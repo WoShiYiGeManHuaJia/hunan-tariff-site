@@ -10,13 +10,16 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <span class="brand-logo">CM</span>
+      <span class="brand-logo"><img src="logo.png" alt="中国移动资费监控"></span>
       <div class="brand-text">
         <div class="brand-name">中国移动资费监控</div>
         <div class="brand-sub">全网 · 湖南资费数据一览</div>
       </div>
     </div>
-    <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
+    <div class="topbar-actions">
+      <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
+      <button class="refresh-btn" id="refreshBtn" title="检测最新快照与历史变化">检测资费</button>
+    </div>
   </div>
   <nav class="tabs">
     <button class="tab active" data-view="overview">数据总览</button>
@@ -97,6 +100,16 @@
 </main>
 
 <footer class="foot">中国移动资费监控面板 · 数据仅供个人学习参考</footer>
+
+<!-- 检测结果弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal-card">
+    <div class="modal-head"><span id="modalTitle">检测结果</span><button class="modal-close" id="modalClose" title="关闭">×</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot"><button class="btn" id="modalOk">知道了</button></div>
+  </div>
+</div>
+
 <script src="./app.js"></script>
 </body>
 </html>
