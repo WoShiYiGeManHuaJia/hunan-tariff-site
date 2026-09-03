@@ -234,3 +234,91 @@ function renderHistory() {
 
 /* 启动：默认总览 */
 renderOverview();
+
+/* ---------- 检测资费（刷新按钮） ---------- */
+const RK = "trf_last_check";
+const btnRefresh = $("refreshBtn");
+
+function fetchNoCache(file) {
+  return fetch(DATA + file, { cache: "no-store" })
+    .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then((j) => { delete cache[file]; return j; });
+}
+
+function openModal(title, html) {
+  $("modalTitle").textContent = title;
+  $("modalBody").innerHTML = html;
+  $("modalMask").classList.add("show");
+}
+function closeModal() { $("modalMask").classList.remove("show"); }
+
+function initModal() {
+  $("modalClose").addEventListener("click", closeModal);
+  $("modalOk").addEventListener("click", closeModal);
+  $("modalMask").addEventListener("click", (e) => { if (e.target === $("modalMask")) closeModal(); });
+}
+
+function describeHistory(hist) {
+  if (!Array.isArray(hist) || !hist.length) return "";
+  return hist.map((r) => {
+    const t = esc(r.ts || "变更记录");
+    const parts = [];
+    ["quanguo", "hunan"].forEach((sec) => {
+      const d = r[sec]; if (!d) return;
+      const head = sec === "quanguo" ? "全国" : "湖南";
+      const chips = [];
+      if (d.added) chips.push('<span class="chip add">新增 ' + d.added + " 条</span>");
+      if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + " 条</span>");
+      if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + " 条</span>");
+      if (chips.length) parts.push('<div class="res-row"><b>' + head + "</b>：" + chips.join(" ") + "</div>");
+    });
+    return parts.length ? '<div class="res-hsev">' + t + parts.join("") + "</div>" : "";
+  }).join("");
+}
+
+function doCheck() {
+  btnRefresh.disabled = true;
+  const oldText = btnRefresh.textContent;
+  btnRefresh.textContent = "检测中…";
+  Promise.all([fetchNoCache("latest.json"), fetchNoCache("history.json")])
+    .then(([latest, hist]) => {
+      const updated = (latest && latest.updated) || "";
+      const hlen = Array.isArray(hist) ? hist.length : 0;
+      let prev = null;
+      try { prev = JSON.parse(localStorage.getItem(RK) || "null"); } catch (e) { prev = null; }
+      const snap = { updated: updated, hlen: hlen };
+      if (!prev) {
+        localStorage.setItem(RK, JSON.stringify(snap));
+        openModal("检测完成",
+          '<div class="res-row">已建立首次检测基线。</div>' +
+          '<div class="res-row sub">数据快照时间：' + esc(updated || "未知") + "</div>" +
+          '<div class="res-row sub">历史变更记录：' + hlen + " 条</div>");
+      } else if (hlen > (prev.hlen || 0)) {
+        const newHist = Array.isArray(hist) ? hist.slice(prev.hlen || 0) : [];
+        const detail = describeHistory(newHist) ||
+          '<div class="res-row">检测到资费变化，可到「变化历史」页查看详情。</div>';
+        localStorage.setItem(RK, JSON.stringify(snap));
+        openModal("检测到资费变化", detail + '<div class="res-row sub">快照时间：' + esc(updated || "未知") + "</div>");
+      } else if (updated && prev.updated !== updated) {
+        localStorage.setItem(RK, JSON.stringify(snap));
+        openModal("数据快照已更新",
+          '<div class="res-row">资费数据快照已更新，新增/下架条数为 0，可能为字段级微调。</div>' +
+          '<div class="res-row sub">快照时间：' + esc(updated) + "</div>");
+      } else {
+        openModal("无变化",
+          '<div class="res-row ok">暂未检测到资费变化。</div>' +
+          '<div class="res-row sub">数据快照时间：' + esc(updated || "未知") + "</div>");
+      }
+      if ($("updateTime")) $("updateTime").textContent = "更新于 " + (updated || "未知");
+    })
+    .catch((e) => {
+      openModal("检测失败", '<div class="res-row">数据获取失败：' + esc(e.message) + "</div>");
+    })
+    .finally(() => {
+      btnRefresh.disabled = false;
+      btnRefresh.textContent = oldText;
+    });
+}
+
+initModal();
+btnRefresh.addEventListener("click", doCheck);
