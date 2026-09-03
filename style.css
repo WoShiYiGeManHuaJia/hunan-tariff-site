@@ -94,8 +94,8 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .about-text ul{margin-left:18px;display:flex;flex-direction:column;gap:6px;margin-top:8px;}
 .foot{text-align:center;color:var(--sub);font-size:12px;padding:18px 0 26px;}
 .topbar-actions{display:flex;align-items:center;gap:8px;}
-.refresh-btn{padding:6px 14px;border:1px solid #1a98ff;background:#1a98ff;color:#fff;
-  font-size:13px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+.refresh-btn{padding:6px 14px;border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.16);color:#fff;
+  font-size:13px;border-radius:20px;cursor:pointer;white-space:nowrap;backdrop-filter:blur(4px);}
 .refresh-btn:active{transform:scale(.96);}
 .refresh-btn:disabled{opacity:.6;}
 .modal-mask{position:fixed;inset:0;background:rgba(10,20,30,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
