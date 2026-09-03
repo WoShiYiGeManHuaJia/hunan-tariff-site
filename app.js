@@ -7,9 +7,21 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
 ));
 const cache = {};
 
+const FETCH_TIMEOUT = 20000; // 20s 超时，避免弱网下无限“加载中”卡死
+function fetchTimeout(url, init) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
+  return fetch(url, Object.assign({}, init || {}, { signal: ctrl.signal }))
+    .catch((e) => {
+      if (e && e.name === "AbortError") throw new Error("加载超时，请检查网络后重试");
+      throw e;
+    })
+    .finally(() => clearTimeout(t));
+}
+
 function loadJson(file) {
   if (cache[file]) return cache[file];
-  return fetch(DATA + file)
+  return fetchTimeout(DATA + file)
     .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then((j) => { cache[file] = j; return j; });
 }
@@ -240,7 +252,7 @@ const RK = "trf_last_check";
 const btnRefresh = $("refreshBtn");
 
 function fetchNoCache(file) {
-  return fetch(DATA + file, { cache: "no-store" })
+  return fetchTimeout(DATA + file, { cache: "no-store" })
     .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then((j) => { delete cache[file]; return j; });
 }
