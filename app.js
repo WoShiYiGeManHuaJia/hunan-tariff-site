@@ -47,12 +47,13 @@ document.querySelectorAll(".tab").forEach((tab) => {
 /* ---------- 数据总览 ---------- */
 function renderOverview() {
   loadJson("latest.json").then((d) => {
-    $("stTotal").textContent = d.quanguo_total != null ? fmt(d.quanguo_total) : "-";
-    $("stHunan").textContent = d.hunan_total != null ? fmt(d.hunan_total) : "-";
+    confStat($("stTotal"), d.quanguo_total, d.prev_quanguo_total);
+    confStat($("stHunan"), d.hunan_total, d.prev_hunan_total);
     const dist = d.dist || {};
     const gr = dist["政企资费"] || {};
-    $("stQuanguo").textContent = fmt(totalOf(dist["个人资费"]));
-    $("stGq").textContent = fmt(totalOf(gr));
+    const pd = d.prev_dist || {};
+    confStat($("stQuanguo"), totalOf(dist["个人资费"]), totalOf(pd["个人资费"]), pd["个人资费"] != null);
+    confStat($("stGq"), totalOf(gr), totalOf(pd["政企资费"]), pd["政企资费"] != null);
     $("updateTime").textContent = "更新于 " + (d.updated || "未知");
     document.title = "中国移动资费监控 · 更新于 " + (d.updated || "");
     renderBars(dist);
