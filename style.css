@@ -31,7 +31,10 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .stat-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(10,50,80,.05);}
 .stat-card.accent{background:linear-gradient(135deg,#0d8bec,#1565c0);color:#fff;border:none;}
 .stat-card.accent2{background:linear-gradient(135deg,#2b7de9,#094f9e);color:#fff;border:none;}
-.stat-num{font-size:28px;font-weight:800;line-height:1.15;}
+.stat-num{font-size:28px;font-weight:800;line-height:1.15;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;}
+.diff{font-size:12px;font-weight:700;padding:2px 7px;border-radius:20px;line-height:1.5;white-space:nowrap;}
+.diff.up{background:#eafaf1;color:#0f7a45;}
+.diff.down{background:#fdeeef;color:#b3383c;}
 .stat-label{font-size:12.5px;margin-top:4px;opacity:.85;}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(10,50,80,.05);}
 .panel-title{font-size:15.5px;font-weight:700;margin-bottom:12px;display:flex;align-items:baseline;gap:8px;}
