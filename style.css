@@ -9,8 +9,8 @@
 html,body{ background:var(--bg); color:var(--txt);
   font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
   font-size:15px; line-height:1.6; }
-.brand-logo{ height:54px; width:auto; border-radius:12px; background:#13161a; overflow:hidden; flex:none;
-  display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.14);}
+.brand-logo{ height:54px; width:auto; border-radius:12px; background:linear-gradient(135deg,#0d8bec,#07568f); overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.18);}
 .brand-logo img{ height:100%; width:auto; object-fit:contain; display:block;}
 .topbar{ background:linear-gradient(135deg,#0d8bec,#07568f); color:#fff; }
 .topbar-inner{ max-width:960px;margin:0 auto;padding:14px 16px 0;display:flex;align-items:center;gap:12px;justify-content:space-between;}
