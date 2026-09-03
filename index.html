@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中国移动资费监控 · 数据一览</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-logo">CM</span>
+      <div class="brand-text">
+        <div class="brand-name">中国移动资费监控</div>
+        <div class="brand-sub">全网 · 湖南资费数据一览</div>
+      </div>
+    </div>
+    <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-view="overview">数据总览</button>
+    <button class="tab" data-view="quanguo">全国资费</button>
+    <button class="tab" data-view="hunan">湖南资费</button>
+    <button class="tab" data-view="history">变化历史</button>
+    <button class="tab" data-view="about">关于</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 数据总览 -->
+  <section id="view-overview" class="view active">
+    <div class="stat-grid" id="statGrid">
+      <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全国资费总数</div></div>
+      <div class="stat-card"><div class="stat-num" id="stHunan">-</div><div class="stat-label">湖南资费总数</div></div>
+      <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label">全网个人资费</div></div>
+      <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label">全网政企资费</div></div>
+    </div>
+    <div class="panel">
+      <h2 class="panel-title">六大类分布 <span class="panel-sub" id="distDesc">全国口径</span></h2>
+      <div class="bars" id="distBars"></div>
+    </div>
+    <div class="panel">
+      <h2 class="panel-title">湖南套餐与加装包</h2>
+      <div class="mini-cards" id="hnMini"></div>
+    </div>
+  </section>
+
+  <!-- 全国资费 -->
+  <section id="view-quanguo" class="view">
+    <div class="toolbar">
+      <input type="search" id="qSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
+      <select id="qOwn" class="sel"><option value="">全部归属</option><option>个人资费</option><option>政企资费</option></select>
+      <select id="qType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option></select>
+      <button class="btn" id="qReload">重新加载</button>
+      <span class="count-hint" id="qCount"></span>
+    </div>
+    <div class="list" id="qList"><div class="loading">加载全国资费数据…</div></div>
+    <div class="pager" id="qPager"></div>
+  </section>
+
+  <!-- 湖南资费 -->
+  <section id="view-hunan" class="view">
+    <div class="toolbar">
+      <input type="search" id="hSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
+      <select id="hType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option></select>
+      <button class="btn" id="hReload">重新加载</button>
+      <span class="count-hint" id="hCount"></span>
+    </div>
+    <div class="list" id="hList"><div class="loading">加载湖南资费数据…</div></div>
+    <div class="pager" id="hPager"></div>
+  </section>
+
+  <!-- 变化历史 -->
+  <section id="view-history" class="view">
+    <div class="panel">
+      <h2 class="panel-title">资费变更时间线</h2>
+      <div id="historyBox"><div class="loading">加载历史记录…</div></div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section id="view-about" class="view">
+    <div class="panel">
+      <h2 class="panel-title">关于本页</h2>
+      <div class="about-text">
+        <p>本页面展示中国移动「全网资费」「湖南资费」的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
+        <ul>
+          <li><b>数据来源：</b>中国移动官网公开资费专区</li>
+          <li><b>更新方式：</b>自动定时抓取比对，有变化即刷新本页</li>
+          <li><b>数据口径：</b>以官网「适用地区」「适用范围」字段为准，仅供参考</li>
+          <li><b>免责声明：</b>展示内容可能存在延迟或误差，办理业务请以营业厅 / 10086 官方信息为准</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">中国移动资费监控面板 · 数据仅供个人学习参考</footer>
+<script src="./app.js"></script>
+</body>
+</html>
