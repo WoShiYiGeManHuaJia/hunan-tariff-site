@@ -140,8 +140,9 @@ function filterItems(st) {
     if (st.own && (it.fields && it.fields["归属"]) !== st.own) continue;
     if (st.type && (it.fields && it.fields["资费类型"]) !== st.type) continue;
     if (st.q) {
-      const hay = (it.name + " " + ((it.fields && it.fields["资费标准"]) || "") + " " +
-        JSON.stringify(it.fields || {})).toLowerCase();
+      const f = it.fields || {};
+      const vals = Object.values(f).filter((v) => v != null && v !== "").join(" ");
+      const hay = (it.name + " " + vals).toLowerCase();
       if (!hay.includes(st.q)) continue;
     }
     out.push(it);
