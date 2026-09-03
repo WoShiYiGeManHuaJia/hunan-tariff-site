@@ -218,7 +218,7 @@ function renderHistory() {
         const head = sec === "quanguo" ? "全国" : "湖南";
         const chips = [];
         if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
-        if (d.removed) chips.push('<span class="chip del">下架 " + d.removed + "</span>");
+        if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
         if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
         if (chips.length) parts.push("<div><b>" + head + "</b>：" + chips.join("") + "</div>");
       });
