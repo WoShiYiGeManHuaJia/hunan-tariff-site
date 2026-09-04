@@ -6,13 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>中国移动资费监控 · 数据一览</title>
-<link rel="stylesheet" href="./style.css?v=20260904k">
+<link rel="stylesheet" href="./style.css?v=20260904l">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <span class="brand-logo"><img src="logo.png?v=20260904k" alt="中国移动资费监控"></span>
+      <span class="brand-logo"><img src="logo.png?v=20260904l" alt="中国移动资费监控"></span>
       <div class="brand-text">
         <div class="brand-name">中国移动资费监控</div>
         <div class="brand-sub">全网 · 各省资费数据一览</div>
@@ -36,18 +36,25 @@
   <!-- 数据总览 -->
   <section id="view-overview" class="view active">
     <div class="stat-grid" id="statGrid">
-      <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全国资费总数</div></div>
-      <div class="stat-card"><div class="stat-num" id="stHunan">-</div><div class="stat-label" id="stDefLabel">默认省份总数</div></div>
+      <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全网通用资费</div></div>
+      <div class="stat-card"><div class="stat-num" id="stAllProv">-</div><div class="stat-label">31省资费合计(去重)</div></div>
       <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label">全网个人资费</div></div>
       <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label">全网政企资费</div></div>
     </div>
     <div class="panel">
-      <h2 class="panel-title">六大类分布 <span class="panel-sub" id="distDesc">全国口径</span></h2>
+      <h2 class="panel-title">六大类分布 <span class="panel-sub" id="distDesc">全网口径</span></h2>
       <div class="bars" id="distBars"></div>
     </div>
     <div class="panel">
-      <h2 class="panel-title" id="hnMiniTitle">默认省份套餐与加装包</h2>
-      <div class="mini-cards" id="hnMini"></div>
+      <h2 class="panel-title">省份资费统计
+        <select id="oProv" class="sel prov-sel" title="切换省份查看该省资费统计"></select>
+      </h2>
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card"><div class="stat-num" id="opTotal">-</div><div class="stat-label" id="opLabel">本省资费总数</div></div>
+        <div class="stat-card"><div class="stat-num" id="opPersonal">-</div><div class="stat-label">本省个人资费</div></div>
+        <div class="stat-card"><div class="stat-num" id="opGq">-</div><div class="stat-label">本省政企资费</div></div>
+      </div>
+      <div class="bars" id="opBars"></div>
     </div>
   </section>
 
@@ -119,6 +126,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=20260904k"></script>
+<script src="./app.js?v=20260904l"></script>
 </body>
 </html>

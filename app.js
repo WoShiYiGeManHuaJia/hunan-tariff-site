@@ -1,4 +1,4 @@
-/* 中国移动资费监控面板 - 前端逻辑（v20260904j：省份自助切换） */
+/* 中国移动资费监控面板 - 前端逻辑（v20260904l：数据总览口径修正 + 省份资费切换联动） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -54,6 +54,7 @@ function ensureSections() {
 
 function fillProvSelects() {
   const provEl = $("pProv");
+  const oProv = $("oProv");
   const opts = provList().map((s) => '<option value="' + esc(s.section) + '">' + esc(s.name) + "</option>").join("");
   if (provEl && provEl.options.length === 0) {
     provEl.innerHTML = opts;
@@ -64,8 +65,21 @@ function fillProvSelects() {
     provEl.addEventListener("change", () => {
       const v = provEl.value;
       try { localStorage.setItem(PROV_KEY, v); } catch (e) {}
+      if (oProv && oProv.options.length) oProv.value = v;  // 同步总览页省份面板
       listState.prov = null;         // 清空缓存重载
       renderList("prov");
+    });
+  }
+  if (oProv && oProv.options.length === 0) {
+    oProv.innerHTML = opts;
+    let mem = "";
+    try { mem = localStorage.getItem(PROV_KEY) || ""; } catch (e) {}
+    oProv.value = provList().some((s) => s.section === mem) ? mem : DEF_SECTION;
+    oProv.addEventListener("change", () => {
+      const v = oProv.value;
+      try { localStorage.setItem(PROV_KEY, v); } catch (e) {}
+      if (provEl && provEl.options.length) provEl.value = v;  // 同步省份 tab 下拉
+      renderProvPanel();            // 总览页省份统计联动
     });
   }
   const hfEl = $("hProvFilter");
@@ -99,15 +113,15 @@ document.querySelectorAll(".tab").forEach((tab) => {
 });
 
 /* ---------- 数据总览 ---------- */
+let LATEST = null; // 最近一次 latest.json（省份面板联动直接读内存，不重复请求）
 function renderOverview() {
   loadJson("latest.json").then((d) => {
+    LATEST = d;
     SECTIONS = d.sections || [];
     DEF_SECTION = d.default || DEF_SECTION;
     fillProvSelects();
-    const defName = secName(DEF_SECTION);
-    $("stDefLabel").textContent = defName + "资费总数";
     $("stTotal").textContent = (d.quanguo_total == null) ? "-" : fmt(d.quanguo_total);
-    $("stHunan").textContent = (d.hunan_total == null) ? "-" : fmt(d.hunan_total);
+    $("stAllProv").textContent = (d.prov_total == null) ? "-" : fmt(d.prov_total);
     const dist = d.dist || {};
     const gr = dist["政企资费"] || {};
     confStat($("stQuanguo"), totalOf(dist["个人资费"]));
@@ -115,8 +129,7 @@ function renderOverview() {
     $("updateTime").textContent = "更新于 " + (d.updated || "未知");
     document.title = "中国移动资费监控 · 更新于 " + (d.updated || "");
     renderBars(dist);
-    $("hnMiniTitle").textContent = defName + "套餐与加装包";
-    renderHnDuo(d.def_dist || {}, defName);
+    renderProvPanel();
   }).catch((e) => {
     $("stTotal").textContent = "加载失败";
     $("updateTime").textContent = "加载失败";
@@ -129,8 +142,30 @@ function confStat(el, cur) {
   el.innerHTML = (cur == null) ? "-" : fmt(cur);
 }
 
-function renderBars(dist) {
-  const box = $("distBars");
+/* 总览页「省份资费统计」面板：随 oProv 下拉切换实时联动 */
+function renderProvPanel() {
+  const provEl = $("oProv");
+  if (!provEl) return;
+  if (!provEl.options.length) fillProvSelects();
+  const sec = provEl.value || DEF_SECTION;
+  const st = (LATEST && LATEST.prov_stats) ? (LATEST.prov_stats[sec] || null) : null;
+  const name = secName(sec);
+  $("opLabel").textContent = name + "资费总数";
+  if (!st) {
+    confStat($("opTotal"), null);
+    confStat($("opPersonal"), null);
+    confStat($("opGq"), null);
+    $("opBars").innerHTML = '<div class="empty">暂无该省统计</div>';
+    return;
+  }
+  confStat($("opTotal"), st.total);
+  confStat($("opPersonal"), st.personal);
+  confStat($("opGq"), st.gq);
+  renderBarsBox($("opBars"), st.dist || {});
+}
+
+function renderBarsBox(box, dist) {
+  if (!box) return;
   const labels = ["个人资费·套餐", "个人资费·加装包", "个人资费·营销活动", "政企资费·套餐", "政企资费·加装包", "政企资费·营销活动"];
   const rows = [];
   let max = 1;
@@ -150,14 +185,8 @@ function renderBars(dist) {
   )).join("");
 }
 
-function renderHnDuo(hn, name) {
-  const order = ["套餐", "加装包", "营销活动"];
-  const box = $("hnMini");
-  const rows = order.map((t) => ({ t, n: hn[t] || 0 }));
-  if (!rows.some((r) => r.n > 0)) { box.innerHTML = '<div class="empty">暂无数据</div>'; return; }
-  box.innerHTML = rows.map((r) => (
-    '<div class="mini-card"><div class="mn">' + fmt(r.n) + "</div><div class=\"ml\">" + esc(name) + "·" + r.t + "</div></div>"
-  )).join("");
+function renderBars(dist) {
+  renderBarsBox($("distBars"), dist);
 }
 
 /* ---------- 列表（全国 / 省份） ---------- */
