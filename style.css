@@ -134,3 +134,19 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .prov-label{font-size:14px;color:var(--sub);font-weight:600;white-space:nowrap;}
 .prov-sel{min-width:110px;cursor:pointer;}
 .toolbar.htl{margin-bottom:8px;}
+
+/* 液态玻璃按钮 */
+.glass-btn{display:inline-flex;align-items:center;gap:6px;
+  border:1px solid rgba(255,255,255,.4);
+  background:linear-gradient(135deg,rgba(255,255,255,.30),rgba(255,255,255,.08));
+  backdrop-filter:blur(14px) saturate(160%);
+  -webkit-backdrop-filter:blur(14px) saturate(160%);
+  color:#fff;font-size:13px;font-weight:600;padding:8px 16px;border-radius:22px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.5);
+  text-decoration:none;white-space:nowrap;transition:all .18s ease;line-height:1.5;}
+.glass-btn:hover{background:linear-gradient(135deg,rgba(255,255,255,.46),rgba(255,255,255,.18));
+  transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.6);}
+.glass-btn:active{transform:scale(.96);}
+.glass-btn .arr{font-size:14px;opacity:.85;transition:transform .18s ease;}
+.glass-btn:hover .arr{transform:translateX(3px);}
+@media(max-width:480px){.glass-btn{padding:7px 12px;font-size:12.5px;}}
