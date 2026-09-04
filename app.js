@@ -66,6 +66,17 @@ function renderOverview() {
 }
 function totalOf(o) { return (o && typeof o === "object") ? Object.values(o).reduce((a, b) => a + b, 0) : 0; }
 function fmt(n) { return (n === undefined || n === null) ? "-" : n.toLocaleString("zh-CN"); }
+function confStat(el, cur, prev, hasPrev) {
+  if (hasPrev === undefined) hasPrev = (prev != null);
+  let html = (cur == null) ? "-" : fmt(cur);
+  if (hasPrev && prev != null && cur != null && prev !== cur) {
+    const d = cur - prev;
+    const cls = d > 0 ? "diff up" : "diff down";
+    const sign = d > 0 ? "+" : "";
+    html += ' <span class="' + cls + '">' + sign + d + '</span>';
+  }
+  el.innerHTML = html;
+}
 
 function renderBars(dist) {
   const box = $("distBars");
