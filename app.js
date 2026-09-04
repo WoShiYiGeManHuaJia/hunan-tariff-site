@@ -312,27 +312,71 @@ function itemHtml(it, idx) {
 }
 
 /* ---------- 变化历史（按省份分组 + 筛选） ---------- */
-function histDetail(d) {
+const _histCache = new Map();   // ts -> 历史记录对象，供「修改业务」明细弹窗查询
+function aesc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;"); }
+
+function histDetail(d, sec, ts) {
   if (!d || typeof d !== "object") return "";
   let html = "";
   const kinds = [
-    ["added", "add", "新增"],
-    ["removed", "del", "下架"],
-    ["modified", "mod", "修改"],
+    ["added", "add", "新增", false],
+    ["removed", "del", "下架", false],
+    ["modified", "mod", "修改", true],
   ];
-  kinds.forEach(([key, cls, lab]) => {
+  kinds.forEach(([key, cls, lab, clickable]) => {
     const n = d[key] || 0;
     if (!n) return;
     html += '<div class="tl-sec"><span class="chip ' + cls + '">' + lab + " " + n + " 条</span>";
     const names = Array.isArray(d[key + "_names"]) ? d[key + "_names"] : null;
     if (names && names.length) {
-      html += '<ul class="tl-names">' + names.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+      if (clickable) {
+        // 修改业务：可点击查看字段级修改明细
+        html += '<ul class="tl-names">' + names.map((x) =>
+          '<li><a class="tl-mod" href="javascript:void(0)" ' +
+          'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" ' +
+          'title="点击查看该业务的修改明细" ' +
+          'onclick="event.stopPropagation();showModDetail(this.dataset.ts,this.dataset.sec,this.dataset.name)">' +
+          esc(x) + "</a>" +
+          (d.modified_details && d.modified_details[x] ? '<span class="mod-badge">查看明细</span>' : "") +
+          "</li>"
+        ).join("") + "</ul>";
+      } else {
+        html += '<ul class="tl-names">' + names.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+      }
     } else {
       html += '<div class="tl-none">本次' + lab + " " + n + " 条，名称未记录，可在对应资费列表查看</div>";
     }
     html += "</div>";
   });
   return html;
+}
+
+/* 修改业务明细弹窗：展示该业务本次被修改的字段（旧值 → 新值） */
+function showModDetail(ts, sec, name) {
+  const rec = _histCache.get(ts);
+  const d = rec ? rec[sec] : null;
+  const details = (d && d.modified_details) ? d.modified_details[name] : null;
+  const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
+  if (!details || !details.length) {
+    openModal(name, head + '<div class="res-row">该记录未保存字段级修改明细。</div>' +
+      '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表查看该业务当前配置。</div>');
+    return;
+  }
+  const rows = details.map((dt) => {
+    const pf = esc(dt.field || "");
+    const pv = esc(dt.from || "（空）");
+    const nv = esc(dt.to || "（空）");
+    return '<div class="mod-row">' +
+      '<div class="mod-f">' + pf + "</div>" +
+      '<div class="mod-v">' +
+      '<div class="mod-old" title="修改前">' + pv + "</div>" +
+      '<div class="mod-arrow">→</div>' +
+      '<div class="mod-new" title="修改后">' + nv + "</div>" +
+      "</div></div>";
+  }).join("");
+  openModal(name, head +
+    '<div class="res-row sub">该业务本次字段级修改（共 ' + details.length + " 项）：</div>" +
+    '<div class="mod-diff">' + rows + "</div>");
 }
 
 function renderHistory() {
@@ -345,6 +389,7 @@ function renderHistory() {
         return;
       }
       box.innerHTML = '<div class="tl">' + list.map((r, idx) => {
+        _histCache.set(r.ts, r);
         const parts = [];
         const details = [];
         SECTIONS.forEach((secObj, si) => {
@@ -359,7 +404,7 @@ function renderHistory() {
           if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
           if (chips.length) {
             parts.push("<div><b>" + esc(head) + "</b>：" + chips.join("") + "</div>");
-            const detail = histDetail(d);
+            const detail = histDetail(d, sec, r.ts);
             if (detail) details.push('<div class="tl-sec-title">' + esc(head) + "</div>" + detail);
           }
         });
@@ -418,7 +463,7 @@ function openModal(title, html) {
   $("modalBody").innerHTML = html;
   $("modalMask").classList.add("show");
 }
-function closeModal() { $("modalMask").classList.remove("show"); }
+function closeModal() { $("modalMask").classList.remove("show"); $("modalMask").classList.remove("warn"); }
 
 function initModal() {
   $("modalClose").addEventListener("click", closeModal);
@@ -492,4 +537,23 @@ function doCheck() {
 }
 
 initModal();
-btnRefresh.addEventListener("click", doCheck);
+
+/* 检测按钮点击频率限制：1 秒内点击超过 2 次，弹出 75% 透明度提示，本次不执行检测 */
+const _clickStamp = [];
+let _clickWarnTs = 0;
+function btnRefreshGuard() {
+  const now = Date.now();
+  _clickStamp.push(now);
+  while (_clickStamp.length && _clickStamp[0] <= now - 1000) _clickStamp.shift();
+  if (_clickStamp.length > 2) {
+    if (now - _clickWarnTs > 1000) {
+      _clickWarnTs = now;
+      $("modalMask").classList.add("warn");
+      openModal("温馨提示",
+        '<div class="res-row ok" style="text-align:center;font-size:15px;">操作过于频繁，请稍后再试</div>');
+    }
+    return false;
+  }
+  return true;
+}
+btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); });
