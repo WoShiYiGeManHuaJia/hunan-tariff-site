@@ -150,3 +150,16 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .glass-btn .arr{font-size:14px;opacity:.85;transition:transform .18s ease;}
 .glass-btn:hover .arr{transform:translateX(3px);}
 @media(max-width:480px){.glass-btn{padding:7px 12px;font-size:12.5px;}}
+
+/* v20260905a 修改业务明细 + 检测按钮频率限制 */
+.tl-names li a.tl-mod{color:var(--blue2);font-weight:600;cursor:pointer;border-bottom:1px dashed currentColor;text-decoration:none;}
+.tl-names li a.tl-mod:hover{color:var(--blue-dark);}
+.mod-badge{display:inline-block;margin-left:6px;font-size:11px;color:var(--blue2);background:#eaf4fe;border:1px solid var(--line);padding:0 6px;border-radius:10px;vertical-align:middle;}
+.mod-diff{display:flex;flex-direction:column;gap:8px;margin-top:8px;padding-right:2px;max-height:40vh;overflow:auto;}
+.mod-row{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#f7fbfe;}
+.mod-f{font-size:12.5px;font-weight:700;color:var(--blue-dark);margin-bottom:4px;}
+.mod-v{display:grid;grid-template-columns:auto 24px 1fr;gap:6px;align-items:start;font-size:12.5px;line-height:1.5;}
+.mod-old{color:var(--sub);background:#fdeeef;border-radius:6px;padding:2px 8px;word-break:break-all;}
+.mod-new{color:var(--txt);background:#eafaf1;border-radius:6px;padding:2px 8px;font-weight:600;word-break:break-all;}
+.mod-arrow{color:var(--sub);text-align:center;}
+.modal-mask.warn{opacity:.75;}
