@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中国联通资费专区</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <span class="brand-mark">U</span>
+    <div class="brand-text">
+      <strong>中国联通资费专区</strong>
+      <small id="updateTime">联通资费信息公示</small>
+    </div>
+  </div>
+</div>
+
+<nav class="tabs">
+  <a class="tab active" data-view="overview" href="#overview">数据总览</a>
+  <a class="tab" data-view="list" href="#list">资费列表</a>
+</nav>
+
+<main>
+  <!-- 数据总览 -->
+  <section id="view-overview" class="view active">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全网资费总数</div></div>
+      <div class="stat-card accent"><div class="stat-num" id="stProv">-</div><div class="stat-label" id="stProvLabel">本省资费总数</div></div>
+      <div class="stat-card accent2"><div class="stat-num" id="stOnsale">-</div><div class="stat-label" id="stOnsaleLabel">本省在售资费</div></div>
+    </div>
+    <div class="panel">
+      <h2 class="panel-title">分类分布
+        <select id="oProv" class="sel prov-sel" title="切换省份"></select>
+        <span class="panel-sub" id="distDesc">分类口径</span>
+      </h2>
+      <div class="bars" id="distBars"></div>
+    </div>
+  </section>
+
+  <!-- 资费列表 -->
+  <section id="view-list" class="view">
+    <div class="filters">
+      <select id="pProv" class="sel" title="省份"></select>
+      <select id="fLvl" class="sel" title="一级分类"></select>
+      <select id="sLvl" class="sel" title="二级分类"></select>
+      <input id="q" class="search" type="search" placeholder="搜索资费名称…">
+    </div>
+    <div id="listHead" class="list-head"></div>
+    <div id="list" class="list"></div>
+    <div class="pager" id="pager"></div>
+  </section>
+</main>
+
+<div id="overlay" class="overlay" hidden>
+  <div class="modal">
+    <button class="modal-close" id="closeModal">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

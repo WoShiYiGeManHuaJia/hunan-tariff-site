@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三大运营商资费监控 · 合集</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#0f1420;color:#e8ecf3;display:flex;flex-direction:column;height:100vh}
+  header{padding:12px 14px;border-bottom:1px solid #232a3a;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  header h1{font-size:16px}
+  .nav{display:flex;gap:6px;flex-wrap:wrap}
+  .nav a{color:#9fb0cc;text-decoration:none;font-size:13px;padding:0;margin-right:14px;position:relative}
+  .nav a.on{color:#fff;font-weight:700}
+  main{flex:1;overflow:auto}
+  iframe{width:100%;height:100%;border:0;display:block}
+  .linkbox{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid #232a3a;font-size:12px;color:#7f8ba3;flex-wrap:wrap}
+  .linkbox a{color:#5ec6f8;text-decoration:none;word-break:break-all}
+</style>
+</head>
+<body>
+<header>
+  <h1>移动 · 联通 · 电信 资费合集</h1>
+  <nav class="nav" id="nav">
+    <a href="#mobile" data-href="../index.html" data-name="移动" class="on">移动</a>
+    <a href="#unicom" data-href="../unicom/" data-name="联通" >联通</a>
+    <a href="#telecom" data-href="../telecom/" data-name="电信">电信</a>
+  </nav>
+</header>
+<div class="linkbox">
+  <span>独立链接：</span>
+  <a href="../index.html" target="_blank" rel="noopener">移动站</a>
+  <a href="../unicom/" target="_blank" rel="noopener">联通站</a>
+  <a href="../telecom/" target="_blank" rel="noopener">电信站</a>
+</div>
+<main><iframe id="frame" src="../index.html"></iframe></main>
+<script>
+  var frame = document.getElementById("frame");
+  var map = {"#mobile":"../index.html","#unicom":"../unicom/","#telecom":"../telecom/"};
+  function pick(hash){
+    var href = map[hash] || "../index.html";
+    var name = {"#mobile":"移动","#unicom":"联通","#telecom":"电信"}[hash] || "移动";
+    frame.src = href;
+    document.querySelectorAll("#nav a").forEach(function(a){ a.classList.toggle("on", a.getAttribute("href")===hash); });
+    document.title = name + " · 三大运营商资费合集";
+  }
+  window.addEventListener("hashchange", function(){ pick(location.hash); });
+  pick(location.hash || "#mobile");
+</script>
+</body>
+</html>
