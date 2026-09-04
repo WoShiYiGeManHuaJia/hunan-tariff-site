@@ -1,4 +1,4 @@
-/* 中国移动资费监控面板 - 前端逻辑 */
+/* 中国移动资费监控面板 - 前端逻辑（v20260904j：省份自助切换） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -20,15 +20,65 @@ function fetchTimeout(url, init) {
 }
 
 function loadJson(file) {
-  if (cache[file]) return cache[file];
+  if (cache[file]) return Promise.resolve(cache[file]);
   return fetchTimeout(DATA + file)
     .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then((j) => { cache[file] = j; return j; });
 }
 
-/* ---------- Tab 切换 ---------- */
+/* ---------- 板块索引：SECTIONS / 省份列表（来自 latest.json） ---------- */
+let SECTIONS = [];        // [{section,name,total,updated}]
+let DEF_SECTION = "hunan"; // 默认省份
+const PROV_KEY = "trf_selected_prov";
+
+function provList() {
+  return SECTIONS.filter((s) => s.section !== "quanguo");
+}
+function secName(sec) {
+  const s = SECTIONS.find((x) => x.section === sec);
+  return s ? s.name : sec;
+}
+
+/* 加载 latest.json 并填充省份下拉（幂等，只填一次） */
+let sectorsLoaded = null;
+function ensureSections() {
+  if (sectorsLoaded) return sectorsLoaded;
+  sectorsLoaded = loadJson("latest.json").then((d) => {
+    SECTIONS = d.sections || [];
+    DEF_SECTION = d.default || DEF_SECTION;
+    fillProvSelects();
+    return d;
+  }).catch(() => {});
+  return sectorsLoaded;
+}
+
+function fillProvSelects() {
+  const provEl = $("pProv");
+  const opts = provList().map((s) => '<option value="' + esc(s.section) + '">' + esc(s.name) + "</option>").join("");
+  if (provEl && provEl.options.length === 0) {
+    provEl.innerHTML = opts;
+    // 记忆上次选择，否则默认省份
+    let mem = "";
+    try { mem = localStorage.getItem(PROV_KEY) || ""; } catch (e) {}
+    provEl.value = provList().some((s) => s.section === mem) ? mem : DEF_SECTION;
+    provEl.addEventListener("change", () => {
+      const v = provEl.value;
+      try { localStorage.setItem(PROV_KEY, v); } catch (e) {}
+      listState.prov = null;         // 清空缓存重载
+      renderList("prov");
+    });
+  }
+  const hfEl = $("hProvFilter");
+  if (hfEl && hfEl.options.length === 0) {
+    let hopts = '<option value="">全部省份</option>';
+    hopts += provList().map((s) => '<option value="' + esc(s.section) + '">' + esc(s.name) + "</option>").join("");
+    hfEl.innerHTML = hopts;
+    hfEl.addEventListener("change", () => renderHistory());
+  }
+}
+
+/* ---------- Tab 切换（支持 hash 直达，如 #history / #prov） ---------- */
 const TAB_SHOWN = {};
-/* ---------- Tab 切换（支持 hash 直达，如 #history） ---------- */
 function goTab(v) {
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.view === v));
   document.querySelectorAll(".view").forEach((x) => x.classList.remove("active"));
@@ -37,8 +87,8 @@ function goTab(v) {
   TAB_SHOWN[v] = true;
   if (v === "overview") renderOverview();
   else if (v === "quanguo") renderList("quanguo");
-  else if (v === "hunan") renderList("hunan");
-  else if (v === "history") renderHistory();
+  else if (v === "prov") { ensureSections(); renderList("prov"); }
+  else if (v === "history") { ensureSections(); renderHistory(); }
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -51,17 +101,22 @@ document.querySelectorAll(".tab").forEach((tab) => {
 /* ---------- 数据总览 ---------- */
 function renderOverview() {
   loadJson("latest.json").then((d) => {
-    confStat($("stTotal"), d.quanguo_total, d.prev_quanguo_total);
-    confStat($("stHunan"), d.hunan_total, d.prev_hunan_total);
+    SECTIONS = d.sections || [];
+    DEF_SECTION = d.default || DEF_SECTION;
+    fillProvSelects();
+    const defName = secName(DEF_SECTION);
+    $("stDefLabel").textContent = defName + "资费总数";
+    $("stTotal").textContent = (d.quanguo_total == null) ? "-" : fmt(d.quanguo_total);
+    $("stHunan").textContent = (d.hunan_total == null) ? "-" : fmt(d.hunan_total);
     const dist = d.dist || {};
     const gr = dist["政企资费"] || {};
-    const pd = d.prev_dist || {};
-    confStat($("stQuanguo"), totalOf(dist["个人资费"]), totalOf(pd["个人资费"]), pd["个人资费"] != null);
-    confStat($("stGq"), totalOf(gr), totalOf(pd["政企资费"]), pd["政企资费"] != null);
+    confStat($("stQuanguo"), totalOf(dist["个人资费"]));
+    confStat($("stGq"), totalOf(gr));
     $("updateTime").textContent = "更新于 " + (d.updated || "未知");
     document.title = "中国移动资费监控 · 更新于 " + (d.updated || "");
     renderBars(dist);
-    renderHnDuo(d.hn_dist || {});
+    $("hnMiniTitle").textContent = defName + "套餐与加装包";
+    renderHnDuo(d.def_dist || {}, defName);
   }).catch((e) => {
     $("stTotal").textContent = "加载失败";
     $("updateTime").textContent = "加载失败";
@@ -70,16 +125,8 @@ function renderOverview() {
 }
 function totalOf(o) { return (o && typeof o === "object") ? Object.values(o).reduce((a, b) => a + b, 0) : 0; }
 function fmt(n) { return (n === undefined || n === null) ? "-" : n.toLocaleString("zh-CN"); }
-function confStat(el, cur, prev, hasPrev) {
-  if (hasPrev === undefined) hasPrev = (prev != null);
-  let html = (cur == null) ? "-" : fmt(cur);
-  if (hasPrev && prev != null && cur != null && prev !== cur) {
-    const d = cur - prev;
-    const cls = d > 0 ? "diff up" : "diff down";
-    const sign = d > 0 ? "+" : "";
-    html += ' <span class="' + cls + '">' + sign + d + '</span>';
-  }
-  el.innerHTML = html;
+function confStat(el, cur) {
+  el.innerHTML = (cur == null) ? "-" : fmt(cur);
 }
 
 function renderBars(dist) {
@@ -103,49 +150,60 @@ function renderBars(dist) {
   )).join("");
 }
 
-function renderHnDuo(hn) {
+function renderHnDuo(hn, name) {
   const order = ["套餐", "加装包", "营销活动"];
   const box = $("hnMini");
   const rows = order.map((t) => ({ t, n: hn[t] || 0 }));
   if (!rows.some((r) => r.n > 0)) { box.innerHTML = '<div class="empty">暂无数据</div>'; return; }
   box.innerHTML = rows.map((r) => (
-    '<div class="mini-card"><div class="mn">' + fmt(r.n) + "</div><div class=\"ml\">湖南·" + r.t + "</div></div>"
+    '<div class="mini-card"><div class="mn">' + fmt(r.n) + "</div><div class=\"ml\">" + esc(name) + "·" + r.t + "</div></div>"
   )).join("");
 }
 
-/* ---------- 列表（全国 / 湖南） ---------- */
+/* ---------- 列表（全国 / 省份） ---------- */
 const PAGE_SIZE = 20;
-const listState = {
-  quanguo: { items: null, page: 1, q: "", own: "", type: "" },
-  hunan:   { items: null, page: 1, q: "", own: "", type: "" },
-};
+const listState = {};    // section -> {items,page,q,own,type}
+function getSt(section) {
+  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", own: "", type: "" };
+  return listState[section];
+}
+function domMap(section) {
+  if (section === "quanguo") {
+    return { list: "qList", pager: "qPager", cnt: "qCount", search: "qSearch", own: "qOwn", type: "qType", reload: "qReload" };
+  }
+  return { list: "pList", pager: "pPager", cnt: "pCount", search: "pSearch", own: null, type: "pType", reload: "pReload" };
+}
 
 function renderList(section) {
-  const st = listState[section];
-  const listEl = $(section === "quanguo" ? "qList" : "hList");
-  const pagerEl = $(section === "quanguo" ? "qPager" : "hPager");
-  const cntEl = $(section === "quanguo" ? "qCount" : "hCount");
-  const file = section === "quanguo" ? "quanguo.json" : "hunan.json";
-  const qEl = $(section === "quanguo" ? "qSearch" : "hSearch");
+  // "prov" 为省份 tab 的占位 section，需解析为下拉当前所选省份（data/ 下按省份文件名存储）
+  if (section === "prov") { section = ((document.getElementById("pProv") || {}).value || "hunan"); }
+  if (section !== "quanguo") { ensureSections(); }
+  const st = getSt(section);
+  const idm = domMap(section);
+  const listEl = $(idm.list);
+  const file = section === "quanguo" ? "quanguo.json" : section + ".json";
+  const label = section === "quanguo" ? "全国" : (secName(section) || section);
+  const qEl = $(idm.search);
   if (!st.items) {
-    listEl.innerHTML = '<div class="loading">加载' + (section === "quanguo" ? "全国" : "湖南") + "资费数据（约" + (section === "quanguo" ? 2 : 2.2) + "MB，请稍候）…</div>";
+    listEl.innerHTML = '<div class="loading">加载' + esc(label) + "资费数据（约 2MB，请稍候）…</div>";
   }
   loadJson(file).then((d) => {
     st.items = d.items || [];
     $("updateTime").textContent = "更新于 " + (d.timestamp || "未知");
+    if (section !== "quanguo") { $("pProv").value = (provList().some((s) => s.section === section) ? section : $("pProv").value); }
     drawList(section);
   }).catch((e) => {
     listEl.innerHTML = '<div class="empty">数据加载失败：' + esc(e.message) + "</div>";
   });
-  // 绑定筛选控件（只绑一次）
+  // 绑定筛选控件（同一 DOM 只绑一次；省份切换不重复绑定，仅更新数据缓存）
   if (!qEl.dataset.bound) {
     qEl.dataset.bound = "1";
     qEl.addEventListener("input", () => { st.q = qEl.value.trim().toLowerCase(); st.page = 1; drawList(section); });
-    const ownEl = $(section === "quanguo" ? "qOwn" : "hOwn");
-    const typeEl = $(section === "quanguo" ? "qType" : "hType");
+    const ownEl = idm.own ? $(idm.own) : null;
+    const typeEl = $(idm.type);
     if (ownEl) ownEl.addEventListener("change", () => { st.own = ownEl.value; st.page = 1; drawList(section); });
     if (typeEl) typeEl.addEventListener("change", () => { st.type = typeEl.value; st.page = 1; drawList(section); });
-    $(section === "quanguo" ? "qReload" : "hReload").addEventListener("click", () => { st.items = null; renderList(section); });
+    $(idm.reload).addEventListener("click", () => { st.items = null; renderList(section); });
   }
 }
 
@@ -167,10 +225,11 @@ function filterItems(st) {
 }
 
 function drawList(section) {
-  const st = listState[section];
-  const listEl = $(section === "quanguo" ? "qList" : "hList");
-  const pagerEl = $(section === "quanguo" ? "qPager" : "hPager");
-  const cntEl = $(section === "quanguo" ? "qCount" : "hCount");
+  const st = getSt(section);
+  const idm = domMap(section);
+  const listEl = $(idm.list);
+  const pagerEl = $(idm.pager);
+  const cntEl = $(idm.cnt);
   const filtered = filterItems(st);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   if (st.page > totalPages) st.page = totalPages;
@@ -187,7 +246,6 @@ function drawList(section) {
       });
     });
   }
-  // 分页
   pagerEl.innerHTML =
     '<button ' + (st.page <= 1 ? "disabled" : "") + ' data-p="-1">上一页</button>' +
     '<span class="page-info">第 ' + st.page + " / " + totalPages + " 页</span>" +
@@ -231,9 +289,8 @@ function itemHtml(it, idx) {
   );
 }
 
-/* ---------- 变化历史 ---------- */
+/* ---------- 变化历史（按省份分组 + 筛选） ---------- */
 function histDetail(d) {
-  // 某个区段（全国/湖南）的明细：新增/下架/修改的具体名称列表；无变化返回 ""
   if (!d || typeof d !== "object") return "";
   let html = "";
   const kinds = [
@@ -257,67 +314,70 @@ function histDetail(d) {
 }
 
 function renderHistory() {
-  loadJson("history.json").then((list) => {
-    const box = $("historyBox");
-    if (!Array.isArray(list) || !list.length) {
-      box.innerHTML = '<div class="empty">暂无资费变化记录（首次基线已建立，后续检测到变更会自动记录）</div>';
-      return;
-    }
-    box.innerHTML = '<div class="tl">' + list.map((r, idx) => {
-      const parts = [];
-      const details = [];
-      ["quanguo", "hunan"].forEach((sec) => {
-        const d = r[sec];
-        if (!d) return;
-        const head = sec === "quanguo" ? "全国" : "湖南";
-        const chips = [];
-        if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
-        if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
-        if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
-        if (chips.length) {
-          parts.push("<div><b>" + head + "</b>：" + chips.join("") + "</div>");
-          const detail = histDetail(d);
-          if (detail) details.push('<div class="tl-sec-title">' + head + "</div>" + detail);
-        }
-      });
-      if (!parts.length) {
-        return (
-          '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
-          '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
-        );
+  const filter = $("hProvFilter") ? $("hProvFilter").value : "";
+  Promise.all([ensureSections().catch(() => {}), loadJson("history.json")])
+    .then(([, list]) => {
+      const box = $("historyBox");
+      if (!Array.isArray(list) || !list.length) {
+        box.innerHTML = '<div class="empty">暂无资费变化记录（首次基线已建立，后续检测到变更会自动记录）</div>';
+        return;
       }
-      const open = idx === list.length - 1; // 默认展开最新一条
-      return (
-        '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
-        '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
-        '<div class="tl-chips">' + parts.join("") + "</div>" +
-        '<div class="tl-body">' + details.join("") + "</div></div>"
-      );
-    }).join("") + "</div>";
+      box.innerHTML = '<div class="tl">' + list.map((r, idx) => {
+        const parts = [];
+        const details = [];
+        SECTIONS.forEach((secObj, si) => {
+          const sec = secObj.section;
+          if (filter && filter !== sec) return;
+          const d = r[sec];
+          if (!d || d.note === "baseline") return;
+          const head = secName(sec);
+          const chips = [];
+          if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
+          if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
+          if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
+          if (chips.length) {
+            parts.push("<div><b>" + esc(head) + "</b>：" + chips.join("") + "</div>");
+            const detail = histDetail(d);
+            if (detail) details.push('<div class="tl-sec-title">' + esc(head) + "</div>" + detail);
+          }
+        });
+        if (!parts.length) {
+          return (
+            '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
+            '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
+          );
+        }
+        const open = idx === list.length - 1; // 默认展开最新一条
+        return (
+          '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
+          '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
+          '<div class="tl-chips">' + parts.join("") + "</div>" +
+          '<div class="tl-body">' + details.join("") + "</div></div>"
+        );
+      }).join("") + "</div>";
 
-    // 点击条目展开/收起详情
-    box.querySelectorAll(".tl-item").forEach((item) => {
-      const toggle = () => {
-        const open = item.classList.toggle("open");
-        item.setAttribute("aria-expanded", open ? "true" : "false");
-      };
-      item.addEventListener("click", (e) => {
-        if (e.target.closest && e.target.closest("a")) return; // 详情内链接不拦
-        toggle();
+      box.querySelectorAll(".tl-item").forEach((item) => {
+        const toggle = () => {
+          const open = item.classList.toggle("open");
+          item.setAttribute("aria-expanded", open ? "true" : "false");
+        };
+        item.addEventListener("click", (e) => {
+          if (e.target.closest && e.target.closest("a")) return;
+          toggle();
+        });
+        item.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+        });
       });
-      item.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
-      });
+    }).catch((e) => {
+      $("historyBox").innerHTML = '<div class="empty">历史数据加载失败：' + esc(e.message) + "</div>";
     });
-  }).catch((e) => {
-    $("historyBox").innerHTML = '<div class="empty">历史数据加载失败：' + esc(e.message) + "</div>";
-  });
 }
 
 /* 启动：支持 hash 直达（如 #history 直达变化历史），默认总览 */
 (function boot() {
   const raw = (location.hash || "").replace("#", "").trim();
-  const valid = ["overview", "quanguo", "hunan", "history", "about"].indexOf(raw) >= 0;
+  const valid = ["overview", "quanguo", "prov", "history", "about"].indexOf(raw) >= 0;
   goTab(valid ? raw : "overview");
 })();
 
@@ -346,17 +406,17 @@ function initModal() {
 
 function describeHistory(hist) {
   if (!Array.isArray(hist) || !hist.length) return "";
+  const heads = SECTIONS.length ? SECTIONS : [{ section: "quanguo", name: "全网(全国)" }, { section: "hunan", name: "湖南" }];
   return hist.map((r) => {
     const t = esc(r.ts || "变更记录");
     const parts = [];
-    ["quanguo", "hunan"].forEach((sec) => {
-      const d = r[sec]; if (!d) return;
-      const head = sec === "quanguo" ? "全国" : "湖南";
+    heads.forEach((s) => {
+      const d = r[s.section]; if (!d) return;
       const chips = [];
       if (d.added) chips.push('<span class="chip add">新增 ' + d.added + " 条</span>");
       if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + " 条</span>");
       if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + " 条</span>");
-      if (chips.length) parts.push('<div class="res-row"><b>' + head + "</b>：" + chips.join(" ") + "</div>");
+      if (chips.length) parts.push('<div class="res-row"><b>' + esc(s.name) + "</b>：" + chips.join(" ") + "</div>");
     });
     return parts.length ? '<div class="res-hsev">' + t + parts.join("") + "</div>" : "";
   }).join("");
@@ -368,6 +428,9 @@ function doCheck() {
   btnRefresh.textContent = "检测中…";
   Promise.all([fetchNoCache("latest.json"), fetchNoCache("history.json")])
     .then(([latest, hist]) => {
+      SECTIONS = latest.sections || SECTIONS;
+      DEF_SECTION = latest.default || DEF_SECTION;
+      if ($("pProv") && $("pProv").options.length === 0) fillProvSelects();
       const updated = (latest && latest.updated) || "";
       const hlen = Array.isArray(hist) ? hist.length : 0;
       let prev = null;

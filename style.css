@@ -128,3 +128,8 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
   .brand-name{font-size:15px;}
   .update-time{display:none;}
 }
+
+/* 省份自助选择（省份资费 / 变化历史筛选） */
+.prov-label{font-size:14px;color:var(--sub);font-weight:600;white-space:nowrap;}
+.prov-sel{min-width:110px;cursor:pointer;}
+.toolbar.htl{margin-bottom:8px;}

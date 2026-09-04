@@ -1,5 +1,206 @@
 {
-  "updated": "2026-09-04 00:15:03",
+  "updated": "2026-09-04 13:24:24",
+  "default": "hunan",
+  "sections": [
+    {
+      "section": "quanguo",
+      "name": "全网(全国)",
+      "total": 1545,
+      "updated": "2026-09-04 03:53:43"
+    },
+    {
+      "section": "anhui",
+      "name": "安徽",
+      "total": 1111,
+      "updated": ""
+    },
+    {
+      "section": "beijing",
+      "name": "北京",
+      "total": 1271,
+      "updated": "2026-09-04 13:24:24"
+    },
+    {
+      "section": "chongqing",
+      "name": "重庆",
+      "total": 1697,
+      "updated": ""
+    },
+    {
+      "section": "fujian",
+      "name": "福建",
+      "total": 1815,
+      "updated": ""
+    },
+    {
+      "section": "gansu",
+      "name": "甘肃",
+      "total": 1331,
+      "updated": ""
+    },
+    {
+      "section": "guangdong",
+      "name": "广东",
+      "total": 3925,
+      "updated": ""
+    },
+    {
+      "section": "guangxi",
+      "name": "广西",
+      "total": 1284,
+      "updated": ""
+    },
+    {
+      "section": "guizhou",
+      "name": "贵州",
+      "total": 668,
+      "updated": ""
+    },
+    {
+      "section": "hainan",
+      "name": "海南",
+      "total": 921,
+      "updated": ""
+    },
+    {
+      "section": "hebei",
+      "name": "河北",
+      "total": 1183,
+      "updated": ""
+    },
+    {
+      "section": "heilongjiang",
+      "name": "黑龙江",
+      "total": 462,
+      "updated": ""
+    },
+    {
+      "section": "henan",
+      "name": "河南",
+      "total": 2184,
+      "updated": ""
+    },
+    {
+      "section": "hubei",
+      "name": "湖北",
+      "total": 1240,
+      "updated": ""
+    },
+    {
+      "section": "hunan",
+      "name": "湖南",
+      "total": 1565,
+      "updated": "2026-09-04 03:54:36"
+    },
+    {
+      "section": "jiangsu",
+      "name": "江苏",
+      "total": 1697,
+      "updated": ""
+    },
+    {
+      "section": "jiangxi",
+      "name": "江西",
+      "total": 2775,
+      "updated": ""
+    },
+    {
+      "section": "jilin",
+      "name": "吉林",
+      "total": 925,
+      "updated": ""
+    },
+    {
+      "section": "liaoning",
+      "name": "辽宁",
+      "total": 984,
+      "updated": ""
+    },
+    {
+      "section": "neimenggu",
+      "name": "内蒙古",
+      "total": 964,
+      "updated": ""
+    },
+    {
+      "section": "ningxia",
+      "name": "宁夏",
+      "total": 1223,
+      "updated": ""
+    },
+    {
+      "section": "peaks",
+      "name": "peaks",
+      "total": 0,
+      "updated": ""
+    },
+    {
+      "section": "qinghai",
+      "name": "青海",
+      "total": 379,
+      "updated": ""
+    },
+    {
+      "section": "shaanxi",
+      "name": "陕西",
+      "total": 800,
+      "updated": ""
+    },
+    {
+      "section": "shandong",
+      "name": "山东",
+      "total": 1760,
+      "updated": ""
+    },
+    {
+      "section": "shanghai",
+      "name": "上海",
+      "total": 1026,
+      "updated": ""
+    },
+    {
+      "section": "shanxi",
+      "name": "山西",
+      "total": 1480,
+      "updated": ""
+    },
+    {
+      "section": "sichuan",
+      "name": "四川",
+      "total": 1828,
+      "updated": ""
+    },
+    {
+      "section": "tianjin",
+      "name": "天津",
+      "total": 654,
+      "updated": ""
+    },
+    {
+      "section": "xinjiang",
+      "name": "新疆",
+      "total": 1155,
+      "updated": ""
+    },
+    {
+      "section": "xizang",
+      "name": "西藏",
+      "total": 642,
+      "updated": ""
+    },
+    {
+      "section": "yunnan",
+      "name": "云南",
+      "total": 1729,
+      "updated": ""
+    },
+    {
+      "section": "zhejiang",
+      "name": "浙江",
+      "total": 1323,
+      "updated": ""
+    }
+  ],
   "quanguo_total": 1545,
   "hunan_total": 1565,
   "dist": {
@@ -12,7 +213,7 @@
       "加装包": 2
     }
   },
-  "hn_dist": {
+  "def_dist": {
     "套餐": 98,
     "加装包": 713,
     "营销活动": 486
