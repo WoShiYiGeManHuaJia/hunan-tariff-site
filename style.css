@@ -57,6 +57,7 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .sel{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:#fff;color:var(--txt);}
 .btn{padding:8px 14px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-size:13.5px;cursor:pointer;}
 .btn:active{transform:scale(.97);}
+#refreshBtn.busy{opacity:.55;}
 .count-hint{font-size:12.5px;color:var(--sub);margin-left:auto;}
 .list{display:flex;flex-direction:column;gap:10px;}
 .item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;cursor:pointer;box-shadow:0 1px 2px rgba(10,50,80,.04);}

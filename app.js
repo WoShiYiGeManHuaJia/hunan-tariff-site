@@ -364,8 +364,9 @@ function showModDetail(ts, sec, name) {
   }
   const rows = details.map((dt) => {
     const pf = esc(dt.field || "");
-    const pv = esc(dt.from || "（空）");
-    const nv = esc(dt.to || "（空）");
+    const normV = (v) => (typeof v === "string" && /^0{2,}$/.test(v) ? "全国（不限定省份）" : v);
+    const pv = esc(normV(dt.from) || "（空）");
+    const nv = esc(normV(dt.to) || "（空）");
     return '<div class="mod-row">' +
       '<div class="mod-f">' + pf + "</div>" +
       '<div class="mod-v">' +
@@ -489,8 +490,11 @@ function describeHistory(hist) {
   }).join("");
 }
 
+let checking = false;
 function doCheck() {
-  btnRefresh.disabled = true;
+  if (checking) return;
+  checking = true;
+  btnRefresh.classList.add("busy");
   const oldText = btnRefresh.textContent;
   btnRefresh.textContent = "检测中…";
   Promise.all([fetchNoCache("latest.json"), fetchNoCache("history.json")])
@@ -531,7 +535,8 @@ function doCheck() {
       openModal("检测失败", '<div class="res-row">数据获取失败：' + esc(e.message) + "</div>");
     })
     .finally(() => {
-      btnRefresh.disabled = false;
+      checking = false;
+      btnRefresh.classList.remove("busy");
       btnRefresh.textContent = oldText;
     });
 }
