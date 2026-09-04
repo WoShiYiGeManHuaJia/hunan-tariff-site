@@ -28,19 +28,23 @@ function loadJson(file) {
 
 /* ---------- Tab 切换 ---------- */
 const TAB_SHOWN = {};
+/* ---------- Tab 切换（支持 hash 直达，如 #history） ---------- */
+function goTab(v) {
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.view === v));
+  document.querySelectorAll(".view").forEach((x) => x.classList.remove("active"));
+  $("view-" + v).classList.add("active");
+  if (TAB_SHOWN[v]) return;
+  TAB_SHOWN[v] = true;
+  if (v === "overview") renderOverview();
+  else if (v === "quanguo") renderList("quanguo");
+  else if (v === "hunan") renderList("hunan");
+  else if (v === "history") renderHistory();
+}
+
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
-    document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
-    tab.classList.add("active");
-    const v = tab.dataset.view;
-    $("view-" + v).classList.add("active");
-    if (TAB_SHOWN[v]) return;
-    TAB_SHOWN[v] = true;
-    if (v === "overview") renderOverview();
-    else if (v === "quanguo") renderList("quanguo");
-    else if (v === "hunan") renderList("hunan");
-    else if (v === "history") renderHistory();
+    goTab(tab.dataset.view);
+    try { history.replaceState(null, "", "#" + tab.dataset.view); } catch (e) {}
   });
 });
 
@@ -228,6 +232,30 @@ function itemHtml(it, idx) {
 }
 
 /* ---------- 变化历史 ---------- */
+function histDetail(d) {
+  // 某个区段（全国/湖南）的明细：新增/下架/修改的具体名称列表；无变化返回 ""
+  if (!d || typeof d !== "object") return "";
+  let html = "";
+  const kinds = [
+    ["added", "add", "新增"],
+    ["removed", "del", "下架"],
+    ["modified", "mod", "修改"],
+  ];
+  kinds.forEach(([key, cls, lab]) => {
+    const n = d[key] || 0;
+    if (!n) return;
+    html += '<div class="tl-sec"><span class="chip ' + cls + '">' + lab + " " + n + " 条</span>";
+    const names = Array.isArray(d[key + "_names"]) ? d[key + "_names"] : null;
+    if (names && names.length) {
+      html += '<ul class="tl-names">' + names.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+    } else {
+      html += '<div class="tl-none">本次' + lab + " " + n + " 条，名称未记录，可在对应资费列表查看</div>";
+    }
+    html += "</div>";
+  });
+  return html;
+}
+
 function renderHistory() {
   loadJson("history.json").then((list) => {
     const box = $("historyBox");
@@ -235,8 +263,9 @@ function renderHistory() {
       box.innerHTML = '<div class="empty">暂无资费变化记录（首次基线已建立，后续检测到变更会自动记录）</div>';
       return;
     }
-    box.innerHTML = '<div class="tl">' + list.map((r) => {
+    box.innerHTML = '<div class="tl">' + list.map((r, idx) => {
       const parts = [];
+      const details = [];
       ["quanguo", "hunan"].forEach((sec) => {
         const d = r[sec];
         if (!d) return;
@@ -245,20 +274,52 @@ function renderHistory() {
         if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
         if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
         if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
-        if (chips.length) parts.push("<div><b>" + head + "</b>：" + chips.join("") + "</div>");
+        if (chips.length) {
+          parts.push("<div><b>" + head + "</b>：" + chips.join("") + "</div>");
+          const detail = histDetail(d);
+          if (detail) details.push('<div class="tl-sec-title">' + head + "</div>" + detail);
+        }
       });
+      if (!parts.length) {
+        return (
+          '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
+          '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
+        );
+      }
+      const open = idx === list.length - 1; // 默认展开最新一条
       return (
-        '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
-        '<div class="tl-chips">' + (parts.join("") || '<span class="chip">无变化</span>') + "</div></div>"
+        '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
+        '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
+        '<div class="tl-chips">' + parts.join("") + "</div>" +
+        '<div class="tl-body">' + details.join("") + "</div></div>"
       );
     }).join("") + "</div>";
+
+    // 点击条目展开/收起详情
+    box.querySelectorAll(".tl-item").forEach((item) => {
+      const toggle = () => {
+        const open = item.classList.toggle("open");
+        item.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+      item.addEventListener("click", (e) => {
+        if (e.target.closest && e.target.closest("a")) return; // 详情内链接不拦
+        toggle();
+      });
+      item.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      });
+    });
   }).catch((e) => {
     $("historyBox").innerHTML = '<div class="empty">历史数据加载失败：' + esc(e.message) + "</div>";
   });
 }
 
-/* 启动：默认总览 */
-renderOverview();
+/* 启动：支持 hash 直达（如 #history 直达变化历史），默认总览 */
+(function boot() {
+  const raw = (location.hash || "").replace("#", "").trim();
+  const valid = ["overview", "quanguo", "hunan", "history", "about"].indexOf(raw) >= 0;
+  goTab(valid ? raw : "overview");
+})();
 
 /* ---------- 检测资费（刷新按钮） ---------- */
 const RK = "trf_last_check";
