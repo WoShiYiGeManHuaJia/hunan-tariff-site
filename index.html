@@ -38,23 +38,16 @@
     <div class="stat-grid" id="statGrid">
       <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全网通用资费</div></div>
       <div class="stat-card"><div class="stat-num" id="stAllProv">-</div><div class="stat-label">31省资费合计(去重)</div></div>
-      <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label">全网个人资费</div></div>
-      <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label">全网政企资费</div></div>
-    </div>
-    <div class="panel">
-      <h2 class="panel-title">六大类分布 <span class="panel-sub" id="distDesc">全网口径</span></h2>
-      <div class="bars" id="distBars"></div>
+      <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label" id="stQuanguoLabel">本省个人资费</div></div>
+      <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label" id="stGqLabel">本省政企资费</div></div>
     </div>
     <div class="panel">
       <h2 class="panel-title">省份资费统计
         <select id="oProv" class="sel prov-sel" title="切换省份查看该省资费统计"></select>
+        <span class="panel-sub" id="distDesc">六大类分布</span>
       </h2>
-      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-card"><div class="stat-num" id="opTotal">-</div><div class="stat-label" id="opLabel">本省资费总数</div></div>
-        <div class="stat-card"><div class="stat-num" id="opPersonal">-</div><div class="stat-label">本省个人资费</div></div>
-        <div class="stat-card"><div class="stat-num" id="opGq">-</div><div class="stat-label">本省政企资费</div></div>
-      </div>
-      <div class="bars" id="opBars"></div>
+      <div class="stat-card"><div class="stat-num" id="opTotal">-</div><div class="stat-label" id="opLabel">本省资费总数</div></div>
+      <div class="bars" id="distBars"></div>
     </div>
   </section>
 

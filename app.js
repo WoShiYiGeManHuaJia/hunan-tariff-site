@@ -1,4 +1,4 @@
-/* 中国移动资费监控面板 - 前端逻辑（v20260904l：数据总览口径修正 + 省份资费切换联动） */
+/* 中国移动资费监控面板 - 前端逻辑（v20260904m：顶部个人/政企卡随省份切换联动） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -122,27 +122,21 @@ function renderOverview() {
     fillProvSelects();
     $("stTotal").textContent = (d.quanguo_total == null) ? "-" : fmt(d.quanguo_total);
     $("stAllProv").textContent = (d.prov_total == null) ? "-" : fmt(d.prov_total);
-    const dist = d.dist || {};
-    const gr = dist["政企资费"] || {};
-    confStat($("stQuanguo"), totalOf(dist["个人资费"]));
-    confStat($("stGq"), totalOf(gr));
     $("updateTime").textContent = "更新于 " + (d.updated || "未知");
     document.title = "中国移动资费监控 · 更新于 " + (d.updated || "");
-    renderBars(dist);
-    renderProvPanel();
+    renderProvPanel();   // 顶部个人/政企卡 + 省份面板统一按所选省份联动（不必再渲染全网口径）
   }).catch((e) => {
     $("stTotal").textContent = "加载失败";
     $("updateTime").textContent = "加载失败";
     $("distBars").innerHTML = '<div class="empty">数据加载失败：' + esc(e.message) + "</div>";
   });
 }
-function totalOf(o) { return (o && typeof o === "object") ? Object.values(o).reduce((a, b) => a + b, 0) : 0; }
 function fmt(n) { return (n === undefined || n === null) ? "-" : n.toLocaleString("zh-CN"); }
 function confStat(el, cur) {
   el.innerHTML = (cur == null) ? "-" : fmt(cur);
 }
 
-/* 总览页「省份资费统计」面板：随 oProv 下拉切换实时联动 */
+/* 总览页顶部「个人/政企」卡 + 「省份资费统计」面板：全部随 oProv 下拉切换实时联动 */
 function renderProvPanel() {
   const provEl = $("oProv");
   if (!provEl) return;
@@ -151,17 +145,20 @@ function renderProvPanel() {
   const st = (LATEST && LATEST.prov_stats) ? (LATEST.prov_stats[sec] || null) : null;
   const name = secName(sec);
   $("opLabel").textContent = name + "资费总数";
+  $("stQuanguoLabel").textContent = name + "个人资费";
+  $("stGqLabel").textContent = name + "政企资费";
+  $("distDesc").textContent = name + "口径 · 六大类分布";
   if (!st) {
     confStat($("opTotal"), null);
-    confStat($("opPersonal"), null);
-    confStat($("opGq"), null);
-    $("opBars").innerHTML = '<div class="empty">暂无该省统计</div>';
+    confStat($("stQuanguo"), null);
+    confStat($("stGq"), null);
+    $("distBars").innerHTML = '<div class="empty">暂无该省统计</div>';
     return;
   }
   confStat($("opTotal"), st.total);
-  confStat($("opPersonal"), st.personal);
-  confStat($("opGq"), st.gq);
-  renderBarsBox($("opBars"), st.dist || {});
+  confStat($("stQuanguo"), st.personal);
+  confStat($("stGq"), st.gq);
+  renderBarsBox($("distBars"), st.dist || {});
 }
 
 function renderBarsBox(box, dist) {
@@ -183,10 +180,6 @@ function renderBarsBox(box, dist) {
     '<div class="bar-track"><div class="bar-fill' + (i > 2 ? " alt" : "") + '" style="width:' + Math.max((r.n / max) * 100, 2) + '%"></div></div>' +
     '<span class="bar-num">' + fmt(r.n) + "</span></div>"
   )).join("");
-}
-
-function renderBars(dist) {
-  renderBarsBox($("distBars"), dist);
 }
 
 /* ---------- 列表（全国 / 省份） ---------- */
