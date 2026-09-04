@@ -3,63 +3,124 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>中国联通资费专区</title>
-<link rel="stylesheet" href="style.css">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>中国联通资费专区 · 数据一览</title>
+<link rel="stylesheet" href="./style.css?v=lt20260904">
 </head>
 <body>
-<div class="topbar">
-  <div class="brand">
-    <span class="brand-mark">U</span>
-    <div class="brand-text">
-      <strong>中国联通资费专区</strong>
-      <small id="updateTime">联通资费信息公示</small>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-logo"><img src="unicom_logo.webp" alt="中国联通资费专区"></span>
+      <div class="brand-text">
+        <div class="brand-name">中国联通资费专区</div>
+        <div class="brand-sub">全网 · 各省资费数据一览</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
+      <button class="refresh-btn" id="refreshBtn" title="检测最新快照与历史变化">检测资费</button>
     </div>
   </div>
-</div>
-
-<nav class="tabs">
-  <a class="tab active" data-view="overview" href="#overview">数据总览</a>
-  <a class="tab" data-view="list" href="#list">资费列表</a>
-</nav>
+  <nav class="tabs">
+    <button class="tab active" data-view="overview">数据总览</button>
+    <button class="tab" data-view="quanguo">全国资费</button>
+    <button class="tab" data-view="prov">省份资费</button>
+    <button class="tab" data-view="history">变化历史</button>
+    <button class="tab" data-view="about">关于</button>
+  </nav>
+</header>
 
 <main>
   <!-- 数据总览 -->
   <section id="view-overview" class="view active">
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全网资费总数</div></div>
-      <div class="stat-card accent"><div class="stat-num" id="stProv">-</div><div class="stat-label" id="stProvLabel">本省资费总数</div></div>
-      <div class="stat-card accent2"><div class="stat-num" id="stOnsale">-</div><div class="stat-label" id="stOnsaleLabel">本省在售资费</div></div>
+      <div class="stat-card"><div class="stat-num" id="stAllProv">-</div><div class="stat-label">31省资费合计(去重)</div></div>
+      <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label" id="stQuanguoLabel">本省资费总数</div></div>
+      <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label" id="stGqLabel">本省在售资费</div></div>
     </div>
     <div class="panel">
-      <h2 class="panel-title">分类分布
-        <select id="oProv" class="sel prov-sel" title="切换省份"></select>
-        <span class="panel-sub" id="distDesc">分类口径</span>
+      <h2 class="panel-title">省份资费统计
+        <select id="oProv" class="sel prov-sel" title="切换省份查看该省资费统计"></select>
+        <span class="panel-sub" id="distDesc">六大类分布</span>
       </h2>
+      <div class="stat-card"><div class="stat-num" id="opTotal">-</div><div class="stat-label" id="opLabel">本省资费总数</div></div>
       <div class="bars" id="distBars"></div>
     </div>
   </section>
 
-  <!-- 资费列表 -->
-  <section id="view-list" class="view">
-    <div class="filters">
-      <select id="pProv" class="sel" title="省份"></select>
-      <select id="fLvl" class="sel" title="一级分类"></select>
-      <select id="sLvl" class="sel" title="二级分类"></select>
-      <input id="q" class="search" type="search" placeholder="搜索资费名称…">
+  <!-- 全国资费 -->
+  <section id="view-quanguo" class="view">
+    <div class="toolbar">
+      <input type="search" id="qSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
+      <select id="qType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option><option>标准资费</option><option>港澳台/国际资费</option></select>
+      <select id="qSub" class="sel"><option value="">全部二级分类</option></select>
+      <button class="btn" id="qReload">重新加载</button>
+      <span class="count-hint" id="qCount"></span>
     </div>
-    <div id="listHead" class="list-head"></div>
-    <div id="list" class="list"></div>
-    <div class="pager" id="pager"></div>
+    <div class="list" id="qList"><div class="loading">加载全国资费数据…</div></div>
+    <div class="pager" id="qPager"></div>
+  </section>
+
+  <!-- 省份资费（自助切换省份，默认湖南） -->
+  <section id="view-prov" class="view">
+    <div class="toolbar">
+      <label class="prov-label" for="pProv">省份：</label>
+      <select id="pProv" class="sel prov-sel" title="自助选择其他省份"></select>
+      <input type="search" id="pSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
+      <select id="pType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option><option>标准资费</option><option>港澳台/国际资费</option></select>
+      <select id="pSub" class="sel"><option value="">全部二级分类</option></select>
+      <button class="btn" id="pReload">重新加载</button>
+      <span class="count-hint" id="pCount"></span>
+    </div>
+    <div class="list" id="pList"><div class="loading">加载省份资费数据…</div></div>
+    <div class="pager" id="pPager"></div>
+  </section>
+
+  <!-- 变化历史 -->
+  <section id="view-history" class="view">
+    <div class="panel">
+      <h2 class="panel-title">资费变更时间线</h2>
+      <div class="toolbar htl">
+        <label class="prov-label" for="hProvFilter">省份：</label>
+        <select id="hProvFilter" class="sel prov-sel" title="按省份筛选变化历史"></select>
+      </div>
+      <div id="historyBox"><div class="loading">加载历史记录…</div></div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section id="view-about" class="view">
+    <div class="panel">
+      <div class="about-banner"><img src="unicom_logo.webp" alt="中国联通"></div>
+      <h2 class="panel-title">关于本页</h2>
+      <div class="about-text">
+        <p>本页面展示中国联通「全国资费」及各省（默认湖南）的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
+        <ul>
+          <li><b>数据来源：</b>中国联通官网公开资费专区（zifeizhuanquwt）</li>
+          <li><b>省份切换：</b>「省份资费」页可自助选择其他省份，默认湖南；变化历史同样按省份标注</li>
+          <li><b>更新方式：</b>自动定时抓取比对，有变化即刷新本页</li>
+          <li><b>数据口径：</b>以官网「适用对象」「适用地区」字段为准，仅供参考</li>
+          <li><b>免责声明：</b>展示内容可能存在延迟或误差，办理业务请以营业厅 / 10010 官方信息为准</li>
+        </ul>
+      </div>
+    </div>
   </section>
 </main>
 
-<div id="overlay" class="overlay" hidden>
-  <div class="modal">
-    <button class="modal-close" id="closeModal">×</button>
-    <div id="modalBody"></div>
+<footer class="foot">中国联通资费监控面板 · 数据仅供个人学习参考</footer>
+
+<!-- 检测结果弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal-card">
+    <div class="modal-head"><span id="modalTitle">检测结果</span><button class="modal-close" id="modalClose" title="关闭">×</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot"><button class="btn" id="modalOk">知道了</button></div>
   </div>
 </div>
 
-<script src="app.js"></script>
+<script src="./app.js?v=lt20260904"></script>
 </body>
 </html>
