@@ -51,6 +51,7 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .sel{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:#fff;color:var(--txt);}
 .btn{padding:8px 16px;border:none;border-radius:22px;background:linear-gradient(135deg,#ff3140,#e60012);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(230,0,18,.25);}
 .btn:active{transform:scale(.96);}
+#refreshBtn.busy{opacity:.55;}
 .count-hint{font-size:12.5px;color:var(--sub);margin-left:auto;}
 .list{display:flex;flex-direction:column;gap:10px;}
 .item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;cursor:pointer;box-shadow:0 1px 2px rgba(30,0,5,.04);}
