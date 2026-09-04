@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>中国电信资费专区 · 数据一览</title>
+<link rel="stylesheet" href="./style.css?v=dx20260905">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-logo"><img src="telecom_logo.webp" alt="中国电信资费专区"></span>
+      <div class="brand-text">
+        <div class="brand-name">中国电信资费专区</div>
+        <div class="brand-sub">湖南 · 全国 资费数据一览</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
+      <button class="glass-btn" id="refreshBtn" title="检测最新快照与历史变化">检测资费</button>
+      <a class="glass-btn" id="switchSite" href="../index.html" title="切换到移动资费站">切换<span class="arr">›</span></a>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-view="overview">数据总览</button>
+    <button class="tab" data-view="quanguo">全国资费</button>
+    <button class="tab" data-view="prov">湖南资费</button>
+    <button class="tab" data-view="history">变化历史</button>
+    <button class="tab" data-view="about">关于</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 数据总览 -->
+  <section id="view-overview" class="view active">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全国资费总数</div></div>
+      <div class="stat-card"><div class="stat-num" id="stAllProv">-</div><div class="stat-label">湖南资费总数</div></div>
+      <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label" id="stQuanguoLabel">本省资费总数</div></div>
+      <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label" id="stGqLabel">本省在售资费</div></div>
+    </div>
+    <div class="panel">
+      <h2 class="panel-title">湖南资费统计
+        <select id="oProv" class="sel prov-sel" title="切换省份查看该省资费统计"></select>
+        <span class="panel-sub" id="distDesc">分类分布</span>
+      </h2>
+      <div class="stat-card"><div class="stat-num" id="opTotal">-</div><div class="stat-label" id="opLabel">湖南资费总数</div></div>
+      <div class="bars" id="distBars"></div>
+    </div>
+  </section>
+
+  <!-- 全国资费 -->
+  <section id="view-quanguo" class="view">
+    <div class="toolbar">
+      <input type="search" id="qSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
+      <select id="qType" class="sel"><option value="">全部类型</option><option>加装包</option><option>营销活动</option><option>国际/港澳台资费</option></select>
+      <select id="qSub" class="sel"><option value="">全部二级分类</option></select>
+      <button class="btn" id="qReload">重新加载</button>
+      <span class="count-hint" id="qCount"></span>
+    </div>
+    <div class="list" id="qList"><div class="loading">加载全国资费数据…</div></div>
+    <div class="pager" id="qPager"></div>
+  </section>
+
+  <!-- 湖南资费 -->
+  <section id="view-prov" class="view">
+    <div class="toolbar">
+      <label class="prov-label" for="pProv">省份：</label>
+      <select id="pProv" class="sel prov-sel" title="自助选择其他省份"></select>
+      <input type="search" id="pSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
+      <select id="pType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option></select>
+      <select id="pSub" class="sel"><option value="">全部二级分类</option></select>
+      <button class="btn" id="pReload">重新加载</button>
+      <span class="count-hint" id="pCount"></span>
+    </div>
+    <div class="list" id="pList"><div class="loading">加载湖南资费数据…</div></div>
+    <div class="pager" id="pPager"></div>
+  </section>
+
+  <!-- 变化历史 -->
+  <section id="view-history" class="view">
+    <div class="panel">
+      <h2 class="panel-title">资费变更时间线</h2>
+      <div class="toolbar htl">
+        <label class="prov-label" for="hProvFilter">省份：</label>
+        <select id="hProvFilter" class="sel prov-sel" title="按省份筛选变化历史"></select>
+      </div>
+      <div id="historyBox"><div class="loading">加载历史记录…</div></div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section id="view-about" class="view">
+    <div class="panel">
+      <div class="about-banner"><img src="telecom_logo.webp" alt="中国电信"></div>
+      <h2 class="panel-title">关于本页</h2>
+      <div class="about-text">
+        <p>本页面展示中国电信「全国资费」及湖南的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
+        <ul>
+          <li><b>数据来源：</b>中国电信官网公开资费专区（rateZone）</li>
+          <li><b>省份范围：</b>湖南 + 全国（集团资费公示），默认湖南</li>
+          <li><b>更新方式：</b>自动定时抓取比对，有变化即刷新本页</li>
+          <li><b>数据口径：</b>以官网「适用对象」「适用地区」字段为准，仅供参考</li>
+          <li><b>免责声明：</b>展示内容可能存在延迟或误差，办理业务请以营业厅 / 10000 官方信息为准</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">中国电信资费监控面板 · 数据仅供个人学习参考</footer>
+
+<!-- 检测结果弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal-card">
+    <div class="modal-head"><span id="modalTitle">检测结果</span><button class="modal-close" id="modalClose" title="关闭">×</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot"><button class="btn" id="modalOk">知道了</button></div>
+  </div>
+</div>
+
+<script src="./app.js?v=dx20260905b"></script>
+</body>
+</html>
