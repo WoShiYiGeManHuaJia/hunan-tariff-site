@@ -1,4 +1,4 @@
-/* 中国电信资费专区 - 前端逻辑（vdx20260905h：全功能对齐移动站；已移除按键音与震动） */
+/* 中国电信资费专区 - 前端逻辑（vdx20260905i：全功能对齐移动站；保留按钮震动、无声音） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -624,3 +624,12 @@ function btnRefreshGuard() {
   return true;
 }
 btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); });
+/* ========== 按钮震动反馈（静音） ========== */
+(function () {
+  var TAPSEL2 = 'button, a, .tab, .btn, .glass-btn, .sort-btn, .refresh-btn, select, [role="button"]';
+  document.addEventListener('click', function (e) {
+    var el = e.target && e.target.closest ? e.target.closest(TAPSEL2) : null;
+    if (!el) return;
+    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
+  });
+})();
