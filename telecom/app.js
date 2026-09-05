@@ -1,4 +1,4 @@
-/* 中国电信资费专区 - 前端逻辑（vdx20260905：全功能对齐移动站，31省切换/变化历史/总览联动） */
+/* 中国电信资费专区 - 前端逻辑（vdx20260905f：键盘敲击音 + 全功能对齐移动站，31省切换/变化历史/总览联动） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -633,20 +633,32 @@ btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); }
     if (AudioCtxG && !actxG) { try { actxG = new AudioCtxG(); } catch (e) {} }
     if (actxG && actxG.state === 'suspended') { try { actxG.resume(); } catch (e) {} }
   }
-  /* 短促清脆按键音：正弦音从高频快速滑落 */
+  /* 键盘敲击音：短促方波"嗒" + 高频噪声瞬态，模拟机械键盘按键 */
   function tapSound() {
     if (!actxG) return;
     var t = actxG.currentTime;
     var osc = actxG.createOscillator();
     var g = actxG.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(2200, t);
-    osc.frequency.exponentialRampToValueAtTime(1400, t + 0.04);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1100, t);
+    osc.frequency.exponentialRampToValueAtTime(320, t + 0.022);
     g.gain.setValueAtTime(0.001, t);
-    g.gain.exponentialRampToValueAtTime(0.10, t + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.16, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
     osc.connect(g); g.connect(actxG.destination);
-    osc.start(t); osc.stop(t + 0.06);
+    osc.start(t); osc.stop(t + 0.05);
+    var dur = 0.018;
+    var len = Math.floor(actxG.sampleRate * dur);
+    var buf = actxG.createBuffer(1, len, actxG.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    var src = actxG.createBufferSource();
+    src.buffer = buf;
+    var bp = actxG.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 1.4;
+    var ng = actxG.createGain(); ng.gain.value = 0.35;
+    src.connect(bp); bp.connect(ng); ng.connect(actxG.destination);
+    src.start(t);
   }
   var TAPSEL = 'button, a, .tab, .btn, .glass-btn, .sort-btn, .refresh-btn, select, [role="button"]';
   document.addEventListener('click', function (e) {
