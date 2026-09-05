@@ -1,4 +1,4 @@
-/* 中国移动资费监控面板 - 前端逻辑（v20260905l：三站切换弹窗对齐 + 键盘敲击音） */
+/* 中国移动资费监控面板 - 前端逻辑（v20260905m：移动站补全排序条 + 三站切换弹窗 + 键盘敲击音） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -186,7 +186,7 @@ function renderBarsBox(box, dist) {
 const PAGE_SIZE = 20;
 const listState = {};    // section -> {items,page,q,own,type}
 function getSt(section) {
-  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", own: "", type: "" };
+  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", own: "", type: "", sort: null, order: null };
   return listState[section];
 }
 function domMap(section) {
@@ -198,6 +198,7 @@ function domMap(section) {
 
 function renderList(section) {
   // "prov" 为省份 tab 的占位 section，需解析为下拉当前所选省份（data/ 下按省份文件名存储）
+  const rawKey = section; // 原始视图键：quanguo / prov（用于定位排序条）
   if (section === "prov") { section = ((document.getElementById("pProv") || {}).value || "hunan"); }
   if (section !== "quanguo") { ensureSections(); }
   const st = getSt(section);
@@ -226,7 +227,65 @@ function renderList(section) {
     if (ownEl) ownEl.addEventListener("change", () => { st.own = ownEl.value; st.page = 1; drawList(section); });
     if (typeEl) typeEl.addEventListener("change", () => { st.type = typeEl.value; st.page = 1; drawList(section); });
     $(idm.reload).addEventListener("click", () => { st.items = null; renderList(section); });
+    setupSortBar(rawKey, st, section);
   }
+}
+
+/* ---------- 资费排序（最新上架 / 价格 / 方向） ---------- */
+function timeOf(it) {
+  const f = it.fields || {};
+  const s = f["上线日期"] || "";
+  if (s) {
+    const m = s.match(/20\d{2}\D+(\d{1,2})\D+(\d{1,2})/);
+    if (m) { const y = s.match(/20\d{2}/)[0]; return new Date(+y, (+m[1]) - 1, +m[2]).getTime(); }
+  }
+  const vp = f["有效期限"] || "";
+  const vm = vp.match(/20\d{2}/);
+  return vm ? new Date(+vm[0], 0, 1).getTime() : 0;
+}
+function priceOf(it) {
+  const f = it.fields || {};
+  const raw = f["资费标准"] || "";
+  const m = String(raw).match(/\d+(?:\.\d+)?/);
+  return m ? parseFloat(m[0]) : 0;
+}
+function sortFiltered(arr, st) {
+  const dir = (st.order == null ? -1 : st.order) < 0 ? -1 : 1; // 默认降序
+  arr.sort(function (a, b) {
+    if (!st.sort) return 0;
+    const av = st.sort === "price" ? priceOf(a) : timeOf(a);
+    const bv = st.sort === "price" ? priceOf(b) : timeOf(b);
+    if (av === 0 && bv !== 0) return 1;  // 无法解析的排后
+    if (bv === 0 && av !== 0) return -1;
+    if (av === bv) return 0;
+    return (av > bv ? 1 : -1) * dir;
+  });
+}
+function setupSortBar(rawKey, st, section) {
+  if (rawKey !== "quanguo" && rawKey !== "prov") return;
+  const bar = document.getElementById((rawKey === "quanguo" ? "q" : "p") + "SortBar");
+  if (!bar || bar.dataset.bound) return;
+  bar.dataset.bound = "1";
+  bar.querySelectorAll(".sort-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const sort = btn.dataset.sort;
+      if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
+      else { st.sort = sort; st.order = sort === "price" ? 1 : -1; }
+      st.page = 1;
+      syncSortUI(bar, st);
+      drawList(section);
+    });
+  });
+  syncSortUI(bar, st);
+}
+function syncSortUI(bar, st) {
+  if (!bar) return;
+  bar.querySelectorAll(".sort-btn[data-sort]").forEach((b) => {
+    const s = b.dataset.sort;
+    if (s !== "dir") b.classList.toggle("active", !!st.sort && st.sort === s);
+  });
+  const d = bar.querySelector('.sort-btn[data-sort="dir"]');
+  if (d) d.textContent = (st.order == null ? -1 : st.order) < 0 ? "降序 ↓" : "升序 ↑";
 }
 
 function filterItems(st) {
@@ -253,6 +312,7 @@ function drawList(section) {
   const pagerEl = $(idm.pager);
   const cntEl = $(idm.cnt);
   const filtered = filterItems(st);
+  if (st.sort) { sortFiltered(filtered, st); }
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   if (st.page > totalPages) st.page = totalPages;
   const start = (st.page - 1) * PAGE_SIZE;
