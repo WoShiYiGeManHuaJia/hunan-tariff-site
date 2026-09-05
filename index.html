@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>中国移动资费监控 · 数据一览</title>
-<link rel="stylesheet" href="./style.css?v=20260904l">
+<link rel="stylesheet" href="./style.css?v=20260905e">
 </head>
 <body>
 <header class="topbar">
@@ -21,7 +21,7 @@
     <div class="topbar-actions">
       <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
       <button class="glass-btn" id="refreshBtn" title="检测最新快照与历史变化">检测资费</button>
-      <a class="glass-btn" id="switchSite" href="./unicom/" title="切换到联通资费站">切换<span class="arr">›</span></a>
+      <button class="glass-btn" id="switchBtn" title="切换运营商站点">切换<span class="arr">›</span></button>
     </div>
   </div>
   <nav class="tabs">
@@ -111,6 +111,20 @@
 
 <footer class="foot">中国移动资费监控面板 · 数据仅供个人学习参考</footer>
 
+<!-- 切换运营商弹窗 -->
+<div class="modal-mask" id="switchMask">
+  <div class="modal-card">
+    <div class="modal-head"><span>切换运营商</span><button class="modal-close" id="switchClose" title="关闭">×</button></div>
+    <div class="modal-body">
+      <div class="switch-list" id="switchList">
+        <a class="sw-item sw-m on" href="./" title="中国移动官网&监控">移动</a>
+        <a class="sw-item sw-u" href="./unicom/" title="中国联通官网&监控">联通</a>
+        <a class="sw-item sw-t" href="./telecom/" title="中国电信官网&监控">电信</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 检测结果弹窗 -->
 <div class="modal-mask" id="modalMask">
   <div class="modal-card">
@@ -120,6 +134,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=20260905b"></script>
+<script src="./app.js?v=20260905c"></script>
 </body>
 </html>
