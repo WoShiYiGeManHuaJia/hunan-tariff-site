@@ -164,16 +164,3 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .mod-new{color:var(--txt);background:#eafaf1;border-radius:6px;padding:2px 8px;font-weight:600;word-break:break-all;}
 .mod-arrow{color:var(--sub);text-align:center;}
 .modal-mask.warn{opacity:.75;}
-
-/* 切换运营商弹窗（75% 透明度，移动/联通/电信导航） */
-#switchMask.modal-mask{background:rgba(10,20,30,.25);}
-#switchMask .modal-card{opacity:.9;max-width:320px;}
-#switchMask.show{animation:none;}
-.switch-list{display:flex;flex-direction:column;gap:10px;padding:4px 0;}
-.sw-item{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt);
-  border:1px solid var(--line);border-radius:14px;padding:13px 14px;font-size:15px;font-weight:700;
-  background:#fff;transition:all .16s ease;box-shadow:0 2px 8px rgba(0,0,0,.05);}
-.sw-item:hover{border-color:var(--blue2);background:#f0f8ff;transform:translateX(3px);}
-.sw-item .dot{width:10px;height:10px;border-radius:50%;flex:none;}
-.sw-item.on{border-color:var(--blue2);background:#eaf4fe;color:var(--blue-dark);}
-@media(max-width:480px){.sw-item{font-size:13.5px;padding:10px 12px;}}

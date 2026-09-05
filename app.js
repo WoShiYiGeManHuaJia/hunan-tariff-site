@@ -466,17 +466,10 @@ function openModal(title, html) {
 }
 function closeModal() { $("modalMask").classList.remove("show"); $("modalMask").classList.remove("warn"); }
 
-/* 切换运营商弹窗（75% 透明度，移动/联通/电信导航） */
-function openSwitch() { $("switchMask").classList.add("show"); }
-function closeSwitch() { $("switchMask").classList.remove("show"); }
-
 function initModal() {
   $("modalClose").addEventListener("click", closeModal);
   $("modalOk").addEventListener("click", closeModal);
   $("modalMask").addEventListener("click", (e) => { if (e.target === $("modalMask")) closeModal(); });
-  $("switchBtn").addEventListener("click", openSwitch);
-  $("switchClose").addEventListener("click", closeSwitch);
-  $("switchMask").addEventListener("click", (e) => { if (e.target === $("switchMask")) closeSwitch(); });
 }
 
 function describeHistory(hist) {
