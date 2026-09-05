@@ -164,3 +164,10 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .mod-new{color:var(--txt);background:#eafaf1;border-radius:6px;padding:2px 8px;font-weight:600;word-break:break-all;}
 .mod-arrow{color:var(--sub);text-align:center;}
 .modal-mask.warn{opacity:.75;}
+
+/* 三站切换胶囊（移动/联通/电信） */
+.site-switch{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.14);padding:4px;border-radius:22px;border:1px solid rgba(255,255,255,.2);}
+.site-switch .sw{text-decoration:none;color:rgba(255,255,255,.92);font-size:13px;font-weight:600;padding:5px 12px;border-radius:18px;transition:all .18s ease;white-space:nowrap;}
+.site-switch .sw:hover{background:rgba(255,255,255,.22);}
+.site-switch .sw.on{background:#fff;color:var(--blue-dark);box-shadow:0 2px 6px rgba(5,70,130,.28);}
+@media(max-width:480px){.site-switch .sw{font-size:12px;padding:4px 9px;}}

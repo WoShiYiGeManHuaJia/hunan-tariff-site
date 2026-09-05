@@ -6,59 +6,59 @@
 <title>运营商资费合集 · 移动+联通+电信</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#0d1017;color:#e8ecf3;display:flex;flex-direction:column;height:100vh}
-  header{padding:12px 16px;border-bottom:1px solid #232a3a;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#121826}
-  header h1{font-size:16px;letter-spacing:.5px}
-  header h1 b{color:#ffb347}
-  .switch{display:flex;gap:10px;flex-wrap:wrap}
-  .switch a{padding:8px 22px;border-radius:24px;font-size:14px;font-weight:700;text-decoration:none;color:#fff;display:flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,.35);transition:all .18s ease;border:2px solid transparent}
-  .switch a .dot{width:9px;height:9px;border-radius:50%;background:#fff;flex:none}
-  .switch a.m{background:linear-gradient(135deg,#0d8bec,#07568f)}
-  .switch a.u{background:linear-gradient(135deg,#ff3140,#b3020e)}
-  .switch a.d{background:linear-gradient(135deg,#00a0e9,#00507f)}
-  .switch a:hover{transform:translateY(-2px)}
-  .switch a.on{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.16),0 5px 16px rgba(0,0,0,.4)}
-  .linkbox{display:flex;gap:8px;align-items:center;padding:9px 16px;border-bottom:1px solid #232a3a;font-size:12.5px;color:#7f8ba3;flex-wrap:wrap;background:#0f1521}
-  .linkbox .lb{color:#9fb0cc;font-weight:600;margin-right:2px}
-  .linkbox a{color:#5ec6f8;text-decoration:none;padding:2px 10px;border:1px solid #2a3549;border-radius:14px;background:#161e2e}
-  .linkbox a:hover{border-color:#5ec6f8}
-  .linkbox a.u{color:#ffb9bf;border-color:#4a2a30}
-  .linkbox a.u:hover{border-color:#ff7180}
-  .linkbox a.d{color:#aee4ff;border-color:#26516d}
-  .linkbox a.d:hover{border-color:#6fc8f5}
-  main{flex:1;overflow:auto;background:#0d1017}
-  iframe{width:100%;height:100%;border:0;display:block}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(160deg,#10141f,#1a2233);color:#e8ecf3;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:36px 20px 48px}
+  .wrap{width:100%;max-width:640px}
+  h1{font-size:20px;letter-spacing:.5px;text-align:center;margin-bottom:6px}
+  h1 b{color:#ffb347}
+  .sub{text-align:center;color:#8a96ac;font-size:13.5px;margin-bottom:28px}
+  .site{display:block;text-decoration:none;border-radius:18px;padding:22px 24px;margin-bottom:16px;color:#fff;display:flex;align-items:center;gap:16px;transition:transform .18s ease,box-shadow .18s ease;border:1px solid rgba(255,255,255,.08);box-shadow:0 6px 22px rgba(0,0,0,.35)}
+  .site:hover{transform:translateY(-3px)}
+  .site .logo{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+  .site .tt{font-size:18px;font-weight:800;margin-bottom:3px}
+  .site .dd{font-size:12.5px;opacity:.85}
+  .site .go{margin-left:auto;font-size:20px;opacity:.7}
+  .s-m{background:linear-gradient(135deg,#0d8bec,#07568f)}
+  .s-m .logo{background:linear-gradient(135deg,#2b9ef0,#11609e)}
+  .s-u{background:linear-gradient(135deg,#ff3140,#b3020e)}
+  .s-u .logo{background:linear-gradient(135deg,#ff5965,#c40f1d)}
+  .s-d{background:linear-gradient(135deg,#00a0e9,#00507f)}
+  .s-d .logo{background:linear-gradient(135deg,#2ab4f5,#00679e)}
+  .foot{margin-top:20px;text-align:center;color:#5d6a80;font-size:12px}
 </style>
 </head>
 <body>
-<header>
+<div class="wrap">
   <h1>运营商资费合集 · <b>移动 · 联通 · 电信</b></h1>
-  <nav class="switch" id="switch">
-    <a href="#mobile" data-href="../index.html" data-name="移动" class="m"><span class="dot"></span>中国移动</a>
-    <a href="#unicom" data-href="../unicom/" data-name="联通" class="u"><span class="dot"></span>中国联通</a>
-    <a href="#telecom" data-href="../telecom/" data-name="电信" class="d"><span class="dot"></span>中国电信</a>
-  </nav>
-</header>
-<div class="linkbox">
-  <span class="lb">独立链接：</span>
-  <a href="../index.html" target="_blank" rel="noopener">移动站（独立）</a>
-  <a class="u" href="../unicom/" target="_blank" rel="noopener">联通站（独立）</a>
-  <a class="d" href="../telecom/" target="_blank" rel="noopener">电信站（独立）</a>
-  <span style="opacity:.6">— 上方合集页签为三站整合入口，各自独立链接照常可用</span>
+  <div class="sub">选择一个运营商进入对应资费站点，数据每日更新</div>
+
+  <a class="site s-m" href="../index.html">
+    <span class="logo">📱</span>
+    <span>
+      <div class="tt">中国移动</div>
+      <div class="dd">全网 + 31 省资费监控 · 变化历史</div>
+    </span>
+    <span class="go">›</span>
+  </a>
+
+  <a class="site s-u" href="../unicom/">
+    <span class="logo">📞</span>
+    <span>
+      <div class="tt">中国联通</div>
+      <div class="dd">全网 + 31 省资费监控 · 变化历史</div>
+    </span>
+    <span class="go">›</span>
+  </a>
+
+  <a class="site s-d" href="../telecom/">
+    <span class="logo">📶</span>
+    <span>
+      <div class="tt">中国电信</div>
+      <div class="dd">湖南 + 全国资费专览</div>
+    </span>
+    <span class="go">›</span>
+  </a>
+
+  <div class="foot">三站独立链接照常可用，此为整合入口</div>
 </div>
-<main><iframe id="frame" src="../index.html"></iframe></main>
-<script>
-  var frame = document.getElementById("frame");
-  var map = {"#mobile":"../index.html","#unicom":"../unicom/","#telecom":"../telecom/"};
-  function pick(hash){
-    var href = map[hash] || "../index.html";
-    var name = {"#mobile":"移动","#unicom":"联通","#telecom":"电信"}[hash] || "移动";
-    frame.src = href;
-    document.querySelectorAll("#switch a").forEach(function(a){ a.classList.toggle("on", a.getAttribute("href")===hash); });
-    document.title = name + " · 运营商资费合集";
-  }
-  window.addEventListener("hashchange", function(){ pick(location.hash); });
-  pick(location.hash || "#mobile");
-</script>
 </body>
 </html>
