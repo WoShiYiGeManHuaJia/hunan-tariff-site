@@ -167,7 +167,7 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 
 /* 切换运营商弹窗（75% 透明度，移动/联通/电信导航） */
 #switchMask.modal-mask{background:rgba(10,20,30,.25);}
-#switchMask .modal-card{opacity:.75;max-width:320px;}
+#switchMask .modal-card{opacity:.9;max-width:320px;}
 #switchMask.show{animation:none;}
 .switch-list{display:flex;flex-direction:column;gap:10px;padding:4px 0;}
 .sw-item{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt);
