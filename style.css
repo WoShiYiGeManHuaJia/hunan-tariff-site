@@ -30,6 +30,12 @@ html,body{ background:var(--bg); color:var(--txt);
   transition:all .18s ease;}
 .tab:hover{filter:brightness(1.1);transform:translateY(-1px);}
 .tab.active{background:#fff;color:var(--blue-dark);font-weight:800;border-color:#fff;box-shadow:0 3px 10px rgba(10,110,200,.38);transform:translateY(-1px);}
+/* 点击反馈圆润化：禁移动端矩形点击高亮与矩形焦点环，点按改为圆角缩放反馈 */
+*{-webkit-tap-highlight-color:transparent;}
+button,a,.tab,.btn,.glass-btn,.sort-btn{-webkit-tap-highlight-color:transparent;}
+button::-moz-focus-inner{border:0;}
+button:focus,.tab:focus,.btn:focus,.glass-btn:focus,.sort-btn:focus{outline:none;box-shadow:none;}
+.tab:active,.btn:active,.glass-btn:active,.sort-btn:active,.refresh-btn:active{transform:scale(.95);filter:brightness(.9);}
 main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .view{display:none;}
 .view.active{display:block;animation:fade .22s ease;}
