@@ -180,6 +180,7 @@ function firstLevelOf(it) { return it.firstLevel || "其他"; }
 function secondLevelOf(it) { return it.secondLevel || "其他"; }
 
 function renderList(section) {
+  const rawKey = section; // 原始视图键：quanguo / prov
   if (section === "prov") { section = ((document.getElementById("pProv") || {}).value || "hunan"); }
   if (section !== "quanguo") { ensureSections(); }
   const st = getSt(section);
@@ -204,7 +205,73 @@ function renderList(section) {
     if (typeEl) typeEl.addEventListener("change", () => { st.type = typeEl.value; st.page = 1; drawList(section); });
     if (subEl) subEl.addEventListener("change", () => { st.sub = subEl.value; st.page = 1; drawList(section); });
     $(idm.reload).addEventListener("click", () => { st.items = null; renderList(section); });
+    setupSortBar(rawKey, st, section);
   }
+}
+
+/* ---------- 资费排序（最新上架 / 价格 / 方向） ---------- */
+function timeOf(it) {
+  const f = it.fields || it.detail || {};
+  const s = f["上线日期"] || "";
+  if (s) {
+    const m = s.match(/20\d{2}\D+(\d{1,2})\D+(\d{1,2})/);
+    if (m) { const y = s.match(/20\d{2}/)[0]; return new Date(+y, (+m[1]) - 1, +m[2]).getTime(); }
+  }
+  const rp = ((it.detail || {}).reportNo || "").match(/^(\d{2})/);
+  if (rp) return new Date(2000 + +rp[1], 0, 1).getTime();
+  const vp = ((it.detail || {}).validPeriod || "") + " " + ((it.detail || {}).serviceContent || "");
+  const vm = vp.match(/20\d{2}/);
+  return vm ? new Date(+vm[0], 0, 1).getTime() : 0;
+}
+function priceOf(it) {
+  if (it.fields) {
+    const raw = it.fields["资费标准"] || (isFinite(parseFloat(it.fee)) ? it.fee : "");
+    const m = String(raw).match(/\d+(?:\.\d+)?/);
+    return m ? parseFloat(m[0]) : 0;
+  }
+  const n = parseFloat(it.fee);
+  if (isFinite(n)) return n;
+  const d = it.detail || {};
+  const dm = String(d.feesStandard || "").match(/\d+(?:\.\d+)?/);
+  return dm ? parseFloat(dm[0]) : 0;
+}
+function sortFiltered(arr, st) {
+  const dir = (st.order == null ? -1 : st.order) < 0 ? -1 : 1; // 默认降序
+  arr.sort(function (a, b) {
+    if (!st.sort) return 0;
+    const av = st.sort === "price" ? priceOf(a) : timeOf(a);
+    const bv = st.sort === "price" ? priceOf(b) : timeOf(b);
+    if (av === 0 && bv !== 0) return 1;  // 无法解析的排后
+    if (bv === 0 && av !== 0) return -1;
+    if (av === bv) return 0;
+    return (av > bv ? 1 : -1) * dir;
+  });
+}
+function setupSortBar(rawKey, st, section) {
+  if (rawKey !== "quanguo" && rawKey !== "prov") return;
+  const bar = document.getElementById((rawKey === "quanguo" ? "q" : "p") + "SortBar");
+  if (!bar || bar.dataset.bound) return;
+  bar.dataset.bound = "1";
+  bar.querySelectorAll(".sort-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const sort = btn.dataset.sort;
+      if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
+      else { st.sort = sort; st.order = sort === "price" ? 1 : -1; }
+      st.page = 1;
+      syncSortUI(bar, st);
+      drawList(section);
+    });
+  });
+  syncSortUI(bar, st);
+}
+function syncSortUI(bar, st) {
+  if (!bar) return;
+  bar.querySelectorAll(".sort-btn[data-sort]").forEach((b) => {
+    const s = b.dataset.sort;
+    if (s !== "dir") b.classList.toggle("active", !!st.sort && st.sort === s);
+  });
+  const d = bar.querySelector('.sort-btn[data-sort="dir"]');
+  if (d) d.textContent = (st.order == null ? -1 : st.order) < 0 ? "降序 ↓" : "升序 ↑";
 }
 
 function filterItems(st) {
@@ -243,14 +310,17 @@ function drawList(section) {
     subEl.value = st.sub;
   }
   const filtered = filterItems(st);
-  filtered.sort((a, b) => {
-    const aStop = firstLevelOf(a) === "停售套餐" ? 1 : 0;
-    const bStop = firstLevelOf(b) === "停售套餐" ? 1 : 0;
-    if (aStop !== bStop) return aStop - bStop;
-    const af = parseFloat(a.fee), bf = parseFloat(b.fee);
-    if (isNaN(af)) return 1; if (isNaN(bf)) return -1;
-    return af - bf;
-  });
+  if (st.sort) { sortFiltered(filtered, st); }
+  else {
+    filtered.sort((a, b) => {
+      const aStop = firstLevelOf(a) === "停售套餐" ? 1 : 0;
+      const bStop = firstLevelOf(b) === "停售套餐" ? 1 : 0;
+      if (aStop !== bStop) return aStop - bStop;
+      const af = parseFloat(a.fee), bf = parseFloat(b.fee);
+      if (isNaN(af)) return 1; if (isNaN(bf)) return -1;
+      return af - bf;
+    });
+  }
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   if (st.page > totalPages) st.page = totalPages;
   const start = (st.page - 1) * PAGE_SIZE;

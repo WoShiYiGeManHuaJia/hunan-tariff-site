@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>中国电信资费专区 · 数据一览</title>
-<link rel="stylesheet" href="./style.css?v=dx20260905c">
+<link rel="stylesheet" href="./style.css?v=dx20260905d">
 </head>
 <body>
 <header class="topbar">
@@ -55,8 +55,14 @@
   <!-- 全国资费 -->
   <section id="view-quanguo" class="view">
     <div class="toolbar">
+      <div class="sort-bar" id="qSortBar">
+        <span class="sort-tit">排序</span>
+        <button type="button" class="sort-btn" data-sort="time">最新上架</button>
+        <button type="button" class="sort-btn" data-sort="price">按价格</button>
+        <button type="button" class="sort-btn s-dir" data-sort="dir">降序 ↓</button>
+      </div>
       <input type="search" id="qSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
-      <select id="qType" class="sel"><option value="">全部类型</option><option>加装包</option><option>营销活动</option><option>国际/港澳台资费</option></select>
+      <select id="qType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option><option>国际/港澳台资费</option></select>
       <select id="qSub" class="sel"><option value="">全部二级分类</option></select>
       <button class="btn" id="qReload">重新加载</button>
       <span class="count-hint" id="qCount"></span>
@@ -68,6 +74,12 @@
   <!-- 湖南资费 -->
   <section id="view-prov" class="view">
     <div class="toolbar">
+      <div class="sort-bar" id="pSortBar">
+        <span class="sort-tit">排序</span>
+        <button type="button" class="sort-btn" data-sort="time">最新上架</button>
+        <button type="button" class="sort-btn" data-sort="price">按价格</button>
+        <button type="button" class="sort-btn s-dir" data-sort="dir">降序 ↓</button>
+      </div>
       <label class="prov-label" for="pProv">省份：</label>
       <select id="pProv" class="sel prov-sel" title="自助选择其他省份"></select>
       <input type="search" id="pSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
@@ -136,6 +148,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=dx20260905c"></script>
+<script src="./app.js?v=dx20260905e"></script>
 </body>
 </html>
