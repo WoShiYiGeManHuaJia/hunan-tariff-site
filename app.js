@@ -1,4 +1,4 @@
-/* 中国移动资费监控面板 - 前端逻辑（v20260905m：移动站补全排序条 + 三站切换弹窗 + 键盘敲击音） */
+/* 中国移动资费监控面板 - 前端逻辑（v20260905n：三站切换弹窗 + 排序条；已移除按键音与震动） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -627,48 +627,3 @@ function btnRefreshGuard() {
   return true;
 }
 btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); });
-
-/* ========== 按钮轻震 + 按键音反馈 ========== */
-(function () {
-  var AudioCtxG = window.AudioContext || window.webkitAudioContext;
-  var actxG = null;
-  function ensureCtx() {
-    if (AudioCtxG && !actxG) { try { actxG = new AudioCtxG(); } catch (e) {} }
-    if (actxG && actxG.state === 'suspended') { try { actxG.resume(); } catch (e) {} }
-  }
-  /* 键盘敲击音：短促方波"嗒" + 高频噪声瞬态，模拟机械键盘按键 */
-  function tapSound() {
-    if (!actxG) return;
-    var t = actxG.currentTime;
-    var osc = actxG.createOscillator();
-    var g = actxG.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(1100, t);
-    osc.frequency.exponentialRampToValueAtTime(320, t + 0.022);
-    g.gain.setValueAtTime(0.001, t);
-    g.gain.exponentialRampToValueAtTime(0.16, t + 0.004);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
-    osc.connect(g); g.connect(actxG.destination);
-    osc.start(t); osc.stop(t + 0.05);
-    var dur = 0.018;
-    var len = Math.floor(actxG.sampleRate * dur);
-    var buf = actxG.createBuffer(1, len, actxG.sampleRate);
-    var d = buf.getChannelData(0);
-    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
-    var src = actxG.createBufferSource();
-    src.buffer = buf;
-    var bp = actxG.createBiquadFilter();
-    bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 1.4;
-    var ng = actxG.createGain(); ng.gain.value = 0.35;
-    src.connect(bp); bp.connect(ng); ng.connect(actxG.destination);
-    src.start(t);
-  }
-  var TAPSEL = 'button, a, .tab, .btn, .glass-btn, .sort-btn, .refresh-btn, select, [role="button"]';
-  document.addEventListener('click', function (e) {
-    var el = e.target && e.target.closest ? e.target.closest(TAPSEL) : null;
-    if (!el) return;
-    ensureCtx();
-    tapSound();
-    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
-  });
-})();
