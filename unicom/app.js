@@ -164,6 +164,10 @@ function renderBarsBox(box, dist) {
 /* ---------- 列表（全国 / 省份） ---------- */
 const PAGE_SIZE = 20;
 const listState = {};
+function liveSec() {
+  const el = document.getElementById("pProv");
+  return (el && el.value) || DEF_SECTION;
+}
 function getSt(section) {
   if (!listState[section]) listState[section] = { items: null, page: 1, q: "", type: "", sub: "" };
   return listState[section];
@@ -198,14 +202,16 @@ function renderList(section) {
   }).catch((e) => { listEl.innerHTML = '<div class="empty">数据加载失败：' + esc(e.message) + "</div>"; });
 
   if (!qEl.dataset.bound) {
+    const secOf = () => (rawKey === "quanguo" ? "quanguo" : liveSec());
+    const stOf = () => getSt(secOf());
     qEl.dataset.bound = "1";
-    qEl.addEventListener("input", () => { st.q = qEl.value.trim().toLowerCase(); st.page = 1; drawList(section); });
+    qEl.addEventListener("input", () => { const st = stOf(); st.q = qEl.value.trim().toLowerCase(); st.page = 1; drawList(secOf()); });
     const typeEl = $(idm.type);
     const subEl = $(idm.sub);
-    if (typeEl) typeEl.addEventListener("change", () => { st.type = typeEl.value; st.page = 1; drawList(section); });
-    if (subEl) subEl.addEventListener("change", () => { st.sub = subEl.value; st.page = 1; drawList(section); });
-    $(idm.reload).addEventListener("click", () => { st.items = null; renderList(section); });
-    setupSortBar(rawKey, st, section);
+    if (typeEl) typeEl.addEventListener("change", () => { const st = stOf(); st.type = typeEl.value; st.page = 1; drawList(secOf()); });
+    if (subEl) subEl.addEventListener("change", () => { const st = stOf(); st.sub = subEl.value; st.page = 1; drawList(secOf()); });
+    $(idm.reload).addEventListener("click", () => { const st = stOf(); st.items = null; renderList(secOf()); });
+    setupSortBar(rawKey);
   }
 }
 
@@ -247,22 +253,24 @@ function sortFiltered(arr, st) {
     return (av > bv ? 1 : -1) * dir;
   });
 }
-function setupSortBar(rawKey, st, section) {
+function setupSortBar(rawKey) {
   if (rawKey !== "quanguo" && rawKey !== "prov") return;
   const bar = document.getElementById((rawKey === "quanguo" ? "q" : "p") + "SortBar");
   if (!bar || bar.dataset.bound) return;
   bar.dataset.bound = "1";
   bar.querySelectorAll(".sort-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
+      const sec = rawKey === "quanguo" ? "quanguo" : liveSec();
+      const st = getSt(sec);
       const sort = btn.dataset.sort;
       if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
       else { st.sort = sort; st.order = sort === "price" ? 1 : -1; }
       st.page = 1;
       syncSortUI(bar, st);
-      drawList(section);
+      drawList(sec);
     });
   });
-  syncSortUI(bar, st);
+  syncSortUI(bar, getSt(rawKey === "quanguo" ? "quanguo" : liveSec()));
 }
 function syncSortUI(bar, st) {
   if (!bar) return;
@@ -296,6 +304,7 @@ function filterItems(st) {
 }
 
 function drawList(section) {
+  if (section !== "quanguo") section = liveSec();
   const st = getSt(section);
   const idm = domMap(section);
   const listEl = $(idm.list);
