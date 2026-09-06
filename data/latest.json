@@ -1,12 +1,12 @@
 {
-  "updated": "2026-09-04 19:46:32",
+  "updated": "2026-09-06 01:56:21",
   "default": "hunan",
   "sections": [
     {
       "section": "quanguo",
       "name": "全网(全国)",
       "total": 1545,
-      "updated": "2026-09-04 19:45:44"
+      "updated": "2026-09-06 01:54:04"
     },
     {
       "section": "anhui",
@@ -90,7 +90,7 @@
       "section": "hunan",
       "name": "湖南",
       "total": 1565,
-      "updated": "2026-09-04 19:46:32"
+      "updated": "2026-09-06 01:56:21"
     },
     {
       "section": "jiangsu",
@@ -126,6 +126,12 @@
       "section": "ningxia",
       "name": "宁夏",
       "total": 1223,
+      "updated": ""
+    },
+    {
+      "section": "peaks",
+      "name": "peaks",
+      "total": 0,
       "updated": ""
     },
     {
@@ -519,6 +525,12 @@
           "营销活动": 476
         }
       }
+    },
+    "peaks": {
+      "total": 0,
+      "personal": 0,
+      "gq": 0,
+      "dist": {}
     },
     "qinghai": {
       "total": 379,
