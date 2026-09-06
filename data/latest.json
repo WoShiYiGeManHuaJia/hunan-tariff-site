@@ -129,12 +129,6 @@
       "updated": ""
     },
     {
-      "section": "peaks",
-      "name": "peaks",
-      "total": 0,
-      "updated": ""
-    },
-    {
       "section": "qinghai",
       "name": "青海",
       "total": 379,
@@ -525,12 +519,6 @@
           "营销活动": 476
         }
       }
-    },
-    "peaks": {
-      "total": 0,
-      "personal": 0,
-      "gq": 0,
-      "dist": {}
     },
     "qinghai": {
       "total": 379,
