@@ -1,4 +1,4 @@
-/* 中国电信资费专区 - 前端逻辑（vdx20260905j：全功能对齐移动站；新增「其他说明」长文本折叠；保留按钮震动、无声音） */
+/* 中国电信资费专区 - 前端逻辑（vdx20260905k：全功能对齐移动站；说明类字段固定折叠「其他说明」；保留按钮震动、无声音） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -376,12 +376,12 @@ function itemHtml(it, idx) {
   if (d.useScope) facts.push("<span>适用：" + esc(String(d.useScope).slice(0, 24)) + "</span>");
   if (d.minute && d.minute !== "0") facts.push("<span>语音 <b>" + esc(d.minute) + " 分钟</b></span>");
   if (d.commonData && d.commonData !== "0") facts.push("<span>流量 <b>" + esc(d.commonData + (d.dataUnit || "GB")) + "</b></span>");
-  const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "套餐内容", "适用对象", "有效期", "其他收费", "办理渠道", "停售状态"];
+  const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "有效期", "停售状态", "业务编码"];
   const rows = detailRows(it);
-  // 长文本（如套餐内容、适用范围、有效期等超长字段）折叠为「其他说明」，避免拉长页面
-  const NOTE_LEN = 60;
-  const noteRows = rows.filter(([k, v]) => v && v.length > NOTE_LEN);
-  const notNotes = rows.filter(([k, v]) => !(v && v.length > NOTE_LEN));
+  // 说明类字段（套餐内容/适用对象/其他收费/办理渠道）固定折叠为「其他说明」，所有业务统一展示折叠入口，不按长度判断
+  const NOTE_KEYS = ["套餐内容", "适用对象", "其他收费", "办理渠道"];
+  const noteRows = rows.filter(([k, v]) => v && NOTE_KEYS.indexOf(k) >= 0);
+  const notNotes = rows.filter(([k, v]) => !(v && NOTE_KEYS.indexOf(k) >= 0));
   const filteredRows = notNotes.filter(([k]) => mainKeys.indexOf(k) >= 0).map(([k, v]) =>
     '<tr><th>' + esc(k) + '</th><td>' + esc(v) + "</td></tr>").join("");
   const otherRows = notNotes.filter(([k]) => mainKeys.indexOf(k) < 0).map(([k, v]) =>
