@@ -213,3 +213,17 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .sw-item.sw-t:hover{border-color:#57efb3;background:linear-gradient(135deg,#46e0a6,#0fb872);}
 .sw-item.on{box-shadow:0 0 0 2px #fff inset,0 6px 18px rgba(12,42,80,.28);transform:translateX(3px);}
 @media(max-width:480px){.sw-item{font-size:13.5px;padding:10px 12px;}}
+
+/* —— 其他说明折叠块（长文本折叠，电信蓝主题） —— */
+.notes-block{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;}
+.notes-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--lt-dark);cursor:pointer;user-select:none;padding:4px 10px;border-radius:8px;background:#eef6fc;border:1px solid #bfe0f2;transition:background .15s ease;}
+.notes-toggle:hover{background:#e2f0fa;}
+.notes-toggle:active{transform:scale(.97);}
+.notes-arrow{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--lt-dark);transition:transform .18s ease;opacity:.8;}
+.notes-block.open .notes-arrow{transform:rotate(180deg);}
+.notes-body{display:none;margin-top:8px;padding:10px 12px;background:#fafcfe;border:1px solid var(--line);border-radius:10px;}
+.notes-block.open .notes-body{display:block;}
+.note-item{margin-bottom:8px;}
+.note-item:last-child{margin-bottom:0;}
+.note-label{font-size:12.5px;font-weight:700;color:var(--lt-dark);margin-bottom:2px;}
+.note-text{font-size:13px;line-height:1.7;word-break:break-all;}
