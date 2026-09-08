@@ -350,13 +350,28 @@ function fieldsTable(f) {
   f = f || {};
   const keys = Object.keys(f);
   const mainKeys = ["资费标准", "方案编号", "资费类型", "归属", "适用范围", "适用地区", "上线日期", "下线日期", "有效期限"];
+  const noteKeys = ["超出资费说明", "其他服务内容"];  // 长文本折叠为「其他说明」
   const detailRows = mainKeys.filter((k) => f[k]).map((k) =>
     '<tr><th>' + esc(k) + '</th><td>' + esc(f[k]) + "</td></tr>"
   ).join("");
-  const otherRows = keys.filter((k) => !mainKeys.includes(k) && f[k]).map((k) =>
+  const otherRows = keys.filter((k) => !mainKeys.includes(k) && !noteKeys.includes(k) && f[k]).map((k) =>
     '<tr><th>' + esc(k) + '</th><td>' + esc(f[k]) + "</td></tr>"
   ).join("");
-  return '<table>' + detailRows + otherRows + '</table>';
+  let html = '<table>' + detailRows + otherRows + '</table>';
+  // 其他说明折叠块（超出资费说明 / 其他服务内容）
+  const noteHtml = noteKeys.filter((k) => f[k]).map((k) =>
+    '<div class="note-item"><div class="note-label">' + esc(k) + "</div>" +
+    '<div class="note-text">' + esc(f[k]) + "</div></div>"
+  ).join("");
+  if (noteHtml) {
+    html +=
+      '<div class="notes-block">' +
+        '<div class="notes-toggle" role="button" tabindex="0" aria-expanded="false">其他说明' +
+        '<span class="notes-arrow"></span></div>' +
+        '<div class="notes-body">' + noteHtml + "</div>" +
+      "</div>";
+  }
+  return html;
 }
 
 function itemHtml(it, idx) {
@@ -679,4 +694,17 @@ btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); }
     if (!el) return;
     if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
   });
+  // —— 其他说明折叠展开 ——
+  // 用捕获阶段拦截：.notes-toggle 在列表项 .detail 内部，若走冒泡，
+  // item 的 click 监听会先触发导致 detail 被误收起，故在捕获阶段即 stopPropagation
+  document.addEventListener('click', function (e) {
+    var tg = e.target && e.target.closest ? e.target.closest('.notes-toggle') : null;
+    if (!tg) return;
+    e.stopPropagation();
+    var block = tg.closest('.notes-block');
+    if (!block) return;
+    var openNow = block.classList.toggle('open');
+    tg.setAttribute('aria-expanded', openNow ? 'true' : 'false');
+    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
+  }, true);
 })();
