@@ -893,5 +893,311 @@
       "removed_names": [],
       "modified_names": []
     }
+  },
+  {
+    "ts": "2026-09-08 20:48:50",
+    "quanguo": {
+      "added": 0,
+      "removed": 0,
+      "modified": 3,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": [
+        "音频彩铃功能",
+        "移动权益随心享（定向流量版）",
+        "企业视频彩铃内容基础版"
+      ],
+      "modified_details": {
+        "音频彩铃功能": [
+          {
+            "field": "其他服务内容",
+            "from": "音频彩铃功能是由被叫定制，在电话接通前为主叫提供一段音乐或语音来替代\"嘟嘟\"音，标准资费5元/月，部分省份业务名称为\"彩铃\"或其它，部分省份资费为6元(如重庆等）或其它，具体以所在省份实际情况为准。",
+            "to": "音频彩铃功能是由被叫定制，在电话接通前为主叫提供一段音乐或语音来替代\"嘟嘟\"音，标准资费5元/月，部分省份业务名称为\"彩铃\"或其它，部分省份资费为6元(如重庆等）或其它，具体以所在省份实际情况为准"
+          }
+        ],
+        "移动权益随心享（定向流量版）": [
+          {
+            "field": "适用范围",
+            "from": "云南、江西地区用户暂不支持订购",
+            "to": "吉林、内蒙古、海南、江西地区用户暂时无法办理"
+          },
+          {
+            "field": "适用地区",
+            "from": "安徽、北京、重庆、福建、广东、甘肃、广西、贵州、河南、湖北、河北、海南、黑龙江、湖南、吉林、江苏、辽宁、内蒙古、宁夏、青海、四川、山东、上海、陕西、山西、天津、新疆、西藏、浙江",
+            "to": "安徽、北京、重庆、福建、广东、甘肃、广西、贵州、河南、湖北、河北、黑龙江、湖南、江苏、辽宁、宁夏、青海、四川、山东、上海、陕西、山西、天津、新疆、西藏、云南、浙江"
+          },
+          {
+            "field": "其他服务内容",
+            "from": "订购立即生效，次月起按自然月份，在每月初进行扣费，退订次月生效。每月可享15GB定向流量及热门权益任选1款。本产品专用于移动权益随心享（定向流量版）促销包恢复原价后的用户订购，不单独销售。",
+            "to": "订购后立即生效，退订次月生效。定向流量月底清零，不可结转、不可转赠或共享，具体以办理页面规则为准。"
+          }
+        ],
+        "企业视频彩铃内容基础版": [
+          {
+            "field": "退订方式",
+            "from": "1. 拨打400-1100-868、所属省份10086按8号键、所属省份10086人工客服\n2. 短信发送“2”至10658831\n3. 拨打125300咪咕音乐人工客服",
+            "to": "1. 拨打400-1100-868、所属省份10086按8号键、所属省份10086人工客服\n2. 拨打125300咪咕音乐人工客服"
+          }
+        ]
+      }
+    },
+    "anhui": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "beijing": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "chongqing": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "fujian": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "gansu": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "guangdong": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "guangxi": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "guizhou": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "hainan": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "hebei": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "heilongjiang": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "henan": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "hubei": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "hunan": {
+      "added": 9,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [
+        "3天全天云存储（4元）",
+        "7天全天云存储（5元）",
+        "7天全融合云存储(年包)",
+        "7天全融合云存储(季包)",
+        "7天事件云存储（3元）",
+        "甄选青春福袋减免优惠（4年）",
+        "甄选青春福袋减免优惠（3年）",
+        "甄选青春福袋减免优惠（2年）",
+        "甄选青春福袋减免优惠（1年）"
+      ],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "jiangsu": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "jiangxi": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "jilin": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "liaoning": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "neimenggu": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "ningxia": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "qinghai": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "shaanxi": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "shandong": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "shanghai": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "shanxi": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "sichuan": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "tianjin": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "xinjiang": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "xizang": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "yunnan": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "zhejiang": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    }
   }
 ]

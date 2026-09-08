@@ -346,6 +346,19 @@ function drawList(section) {
   });
 }
 
+function fieldsTable(f) {
+  f = f || {};
+  const keys = Object.keys(f);
+  const mainKeys = ["资费标准", "方案编号", "资费类型", "归属", "适用范围", "适用地区", "上线日期", "下线日期", "有效期限"];
+  const detailRows = mainKeys.filter((k) => f[k]).map((k) =>
+    '<tr><th>' + esc(k) + '</th><td>' + esc(f[k]) + "</td></tr>"
+  ).join("");
+  const otherRows = keys.filter((k) => !mainKeys.includes(k) && f[k]).map((k) =>
+    '<tr><th>' + esc(k) + '</th><td>' + esc(f[k]) + "</td></tr>"
+  ).join("");
+  return '<table>' + detailRows + otherRows + '</table>';
+}
+
 function itemHtml(it, idx) {
   const f = it.fields || {};
   const own = f["归属"] || "";
@@ -357,15 +370,6 @@ function itemHtml(it, idx) {
   if (f["国内通话"]) facts.push("<span>通话 <b>" + esc(f["国内通话"]) + "</b></span>");
   if (f["国内通用流量"]) facts.push("<span>流量 <b>" + esc(f["国内通用流量"]) + "</b></span>");
   if (f["宽带"] && f["宽带"] !== "無" && f["宽带"] !== "无") facts.push("<span>宽带 <b>" + esc(f["宽带"]) + "</b></span>");
-  const keys = Object.keys(f);
-  const mainKeys = ["资费标准", "方案编号", "资费类型", "归属", "适用范围", "适用地区", "上线日期", "下线日期", "有效期限"];
-  const detailRows = mainKeys.filter((k) => f[k]).map((k) =>
-    '<tr><th>' + esc(k) + '</th><td>' + esc(f[k]) + "</td></tr>"
-  ).join("");
-  const otherKeys = keys.filter((k) => !mainKeys.includes(k) && f[k]);
-  const otherRows = otherKeys.map((k) =>
-    '<tr><th>' + esc(k) + '</th><td>' + esc(f[k]) + "</td></tr>"
-  ).join("");
   return (
     '<div class="item">' +
       '<div class="item-head">' +
@@ -375,7 +379,7 @@ function itemHtml(it, idx) {
         (price ? '<span class="tag">' + esc(price) + "</span>" : "") +
       "</div>" +
       (facts.length ? '<div class="item-facts">' + facts.join("") + "</div>" : "") +
-      '<div class="detail"><table>' + detailRows + otherRows + '</table></div>' +
+      '<div class="detail">' + fieldsTable(f) + "</div>" +
     "</div>"
   );
 }
@@ -388,25 +392,26 @@ function histDetail(d, sec, ts) {
   if (!d || typeof d !== "object") return "";
   let html = "";
   const kinds = [
-    ["added", "add", "新增", false],
-    ["removed", "del", "下架", false],
-    ["modified", "mod", "修改", true],
+    ["added", "add", "新增", "showAddDetail"],
+    ["removed", "del", "下架", null],
+    ["modified", "mod", "修改", "showModDetail"],
   ];
-  kinds.forEach(([key, cls, lab, clickable]) => {
+  kinds.forEach(([key, cls, lab, fn]) => {
     const n = d[key] || 0;
     if (!n) return;
     html += '<div class="tl-sec"><span class="chip ' + cls + '">' + lab + " " + n + " 条</span>";
     const names = Array.isArray(d[key + "_names"]) ? d[key + "_names"] : null;
     if (names && names.length) {
-      if (clickable) {
-        // 修改业务：可点击查看字段级修改明细
+      if (fn) {
+        // 新增/修改业务：可点击查看详情（新增看完整配置，修改看字段级明细）
+        const dk = d[key + "_details"];
         html += '<ul class="tl-names">' + names.map((x) =>
           '<li><a class="tl-mod" href="javascript:void(0)" ' +
           'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" ' +
-          'title="点击查看该业务的修改明细" ' +
-          'onclick="event.stopPropagation();showModDetail(this.dataset.ts,this.dataset.sec,this.dataset.name)">' +
+          'title="点击查看该业务详情" ' +
+          'onclick="event.stopPropagation();' + fn + '(this.dataset.ts,this.dataset.sec,this.dataset.name)">' +
           esc(x) + "</a>" +
-          (d.modified_details && d.modified_details[x] ? '<span class="mod-badge">查看明细</span>' : "") +
+          (dk && dk[x] ? '<span class="mod-badge">查看详情</span>' : "") +
           "</li>"
         ).join("") + "</ul>";
       } else {
@@ -447,6 +452,36 @@ function showModDetail(ts, sec, name) {
   openModal(name, head +
     '<div class="res-row sub">该业务本次字段级修改（共 ' + details.length + " 项）：</div>" +
     '<div class="mod-diff">' + rows + "</div>");
+}
+
+/* 新增业务明细弹窗：展示该业务新增时的完整配置（字段表格） */
+function showAddDetail(ts, sec, name) {
+  const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
+  const renderFields = (f) => {
+    if (!f || !Object.keys(f).length) {
+      openModal(name, head + '<div class="res-row">该记录未保存新增业务完整配置。</div>' +
+        '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表查看该业务当前配置。</div>');
+      return;
+    }
+    openModal(name, head +
+      '<div class="res-row sub">该业务本次新增，完整配置如下：</div>' +
+      '<div class="mod-diff">' + fieldsTable(f) + "</div>");
+  };
+  // 优先读历史记录中保存的新增时字段快照
+  const rec = _histCache.get(ts);
+  const d = rec ? rec[sec] : null;
+  const snap = (d && d.added_details && d.added_details[name]) || null;
+  if (snap) { renderFields(snap); return; }
+  // 兜底：从当前板块数据按名称查找该业务字段
+  const file = sec === "quanguo" ? "quanguo.json" : sec + ".json";
+  loadJson(file).then((j) => {
+    const items = (j && j.items) || [];
+    const nm = String(name == null ? "" : name).trim();
+    const it = items.find((x) => x && String(x.name || "").trim() === nm);
+    renderFields(it ? (it.fields || {}) : null);
+  }).catch((e) => {
+    openModal(name, head + '<div class="res-row">加载详情失败：' + esc(e.message) + "</div>");
+  });
 }
 
 function renderHistory() {
