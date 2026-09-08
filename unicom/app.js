@@ -378,10 +378,25 @@ function itemHtml(it, idx) {
   if (d.commonData && d.commonData !== "0") facts.push("<span>流量 <b>" + esc(d.commonData + (d.dataUnit || "GB")) + "</b></span>");
   const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "套餐内容", "适用对象", "有效期", "其他收费", "办理渠道", "停售状态"];
   const rows = detailRows(it);
-  const filteredRows = rows.filter(([k]) => mainKeys.indexOf(k) >= 0).map(([k, v]) =>
+  // 长文本（如套餐内容、适用范围、有效期等超长字段）折叠为「其他说明」，避免拉长页面
+  const NOTE_LEN = 60;
+  const noteRows = rows.filter(([k, v]) => v && v.length > NOTE_LEN);
+  const notNotes = rows.filter(([k, v]) => !(v && v.length > NOTE_LEN));
+  const filteredRows = notNotes.filter(([k]) => mainKeys.indexOf(k) >= 0).map(([k, v]) =>
     '<tr><th>' + esc(k) + '</th><td>' + esc(v) + "</td></tr>").join("");
-  const otherRows = rows.filter(([k]) => mainKeys.indexOf(k) < 0).map(([k, v]) =>
+  const otherRows = notNotes.filter(([k]) => mainKeys.indexOf(k) < 0).map(([k, v]) =>
     '<tr><th>' + esc(k) + '</th><td>' + esc(v) + "</td></tr>").join("");
+  const noteHtml = noteRows.map(([k, v]) =>
+    '<div class="note-item"><div class="note-label">' + esc(k) + '</div>' +
+    '<div class="note-text">' + esc(v) + "</div></div>"
+  ).join("");
+  const noteBlock = noteHtml
+    ? '<div class="notes-block">' +
+        '<div class="notes-toggle" role="button" tabindex="0" aria-expanded="false">其他说明' +
+        '<span class="notes-arrow"></span></div>' +
+        '<div class="notes-body">' + noteHtml + "</div>" +
+      "</div>"
+    : "";
   return (
     '<div class="item">' +
       '<div class="item-head">' +
@@ -392,7 +407,7 @@ function itemHtml(it, idx) {
       "</div>" +
       (f.extras ? '<div class="item-facts">' + f.extras + "</div>" : "") +
       (facts.length ? '<div class="item-facts">' + facts.join("") + "</div>" : "") +
-      '<div class="detail"><table>' + filteredRows + otherRows + '</table></div>' +
+      '<div class="detail"><table>' + filteredRows + otherRows + '</table>' + noteBlock + '</div>' +
     "</div>"
   );
 }
@@ -641,4 +656,17 @@ btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); }
     if (!el) return;
     if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
   });
+  // —— 其他说明折叠展开 ——
+  // 用捕获阶段拦截：.notes-toggle 在列表项 .detail 内部，若走冒泡，
+  // item 的 click 监听会先触发导致 detail 被误收起，故在捕获阶段即 stopPropagation
+  document.addEventListener('click', function (e) {
+    var tg = e.target && e.target.closest ? e.target.closest('.notes-toggle') : null;
+    if (!tg) return;
+    e.stopPropagation();
+    var block = tg.closest('.notes-block');
+    if (!block) return;
+    var openNow = block.classList.toggle('open');
+    tg.setAttribute('aria-expanded', openNow ? 'true' : 'false');
+    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
+  }, true);
 })();
