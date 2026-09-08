@@ -358,5 +358,540 @@
       "removed_names": [],
       "modified_names": []
     }
+  },
+  {
+    "ts": "2026-09-08 11:59:33",
+    "quanguo": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "anhui": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "beijing": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "chongqing": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "fujian": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "gansu": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "guangdong": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "guangxi": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "guizhou": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "hainan": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "hebei": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "heilongjiang": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "henan": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "hubei": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "hunan": {
+      "added": 14,
+      "removed": 0,
+      "modified": 21,
+      "added_names": [
+        "动感地带超星卡26新版—39元档",
+        "动感地带超星卡26新版—49元档",
+        "甄选“699”礼包-次包",
+        "动感地带芒果包3月包",
+        "动感地带芒果包36月包-橙",
+        "动感地带芒果包10月包",
+        "动感地带芒果包15月包-紫",
+        "动感地带芒果包36月包-蓝",
+        "咪咕音乐天籁VIP会员3月包",
+        "咪咕音乐天籁VIP会员36月包-橙",
+        "咪咕音乐天籁VIP会员10月包",
+        "咪咕音乐天籁VIP会员15月包-紫",
+        "咪咕音乐天籁VIP会员36月包-蓝",
+        "校园套餐减免30元（1年）"
+      ],
+      "removed_names": [],
+      "modified_names": [
+        "【月包】直播神器399元档",
+        "【月包】直播神器199元档",
+        "【月包】直播神器299元档",
+        "长沙动感地带校园专属优惠(50元4年)",
+        "长沙动感地带校园专属优惠(10元1年)",
+        "长沙动感地带校园专属优惠(10元4年)",
+        "长沙动感地带校园专属优惠(30元2年)",
+        "长沙动感地带校园专属优惠(40元4年)",
+        "长沙动感地带校园专属优惠(20元1年)",
+        "长沙动感地带校园专属优惠(50元2年)",
+        "长沙动感地带校园专属优惠(30元4年)",
+        "长沙动感地带校园专属优惠(50元3年)",
+        "长沙动感地带校园专属优惠(20元2年)",
+        "长沙动感地带校园专属优惠(30元1年)",
+        "长沙动感地带校园专属优惠(40元2年)",
+        "长沙动感地带校园专属优惠(20元3年)",
+        "长沙动感地带校园专属优惠(40元3年)",
+        "长沙动感地带校园专属优惠(10元3年)",
+        "长沙动感地带校园专属优惠(20元4年)",
+        "长沙动感地带校园专属优惠(40元1年)",
+        "长沙动感地带校园专属优惠(30元3年)"
+      ],
+      "modified_details": {
+        "【月包】直播神器399元档": [
+          {
+            "field": "资费类型",
+            "from": "套餐",
+            "to": "营销活动"
+          }
+        ],
+        "【月包】直播神器199元档": [
+          {
+            "field": "资费类型",
+            "from": "套餐",
+            "to": "营销活动"
+          }
+        ],
+        "【月包】直播神器299元档": [
+          {
+            "field": "资费类型",
+            "from": "套餐",
+            "to": "营销活动"
+          }
+        ],
+        "长沙动感地带校园专属优惠(50元4年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(10元1年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(10元4年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(30元2年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(40元4年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(20元1年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(50元2年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(30元4年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(50元3年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(20元2年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(30元1年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(40元2年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(20元3年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(40元3年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(10元3年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(20元4年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(40元1年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ],
+        "长沙动感地带校园专属优惠(30元3年)": [
+          {
+            "field": "归属",
+            "from": "政企资费",
+            "to": "个人资费"
+          },
+          {
+            "field": "下线日期",
+            "from": "2026年12月31日",
+            "to": "2026年9月10日"
+          }
+        ]
+      }
+    },
+    "jiangsu": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "jiangxi": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "jilin": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "liaoning": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "neimenggu": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "ningxia": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "qinghai": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "shaanxi": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "shandong": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "shanghai": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "shanxi": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "sichuan": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "tianjin": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "xinjiang": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "xizang": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "yunnan": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    },
+    "zhejiang": {
+      "added": 0,
+      "removed": 0,
+      "modified": 0,
+      "added_names": [],
+      "removed_names": [],
+      "modified_names": []
+    }
   }
 ]
