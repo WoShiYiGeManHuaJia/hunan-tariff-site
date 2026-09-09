@@ -240,3 +240,15 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .note-item:last-child{margin-bottom:0;}
 .note-label{font-size:12.5px;font-weight:700;color:var(--lt-dark);margin-bottom:2px;}
 .note-text{font-size:13px;line-height:1.7;word-break:break-all;}
+
+/* ===== 历史变化：分类色块强化 ===== */
+.chip.add{background:#16a34a;color:#fff;}
+.chip.del{background:#e11d48;color:#fff;}
+.chip.mod{background:#2563eb;color:#fff;}
+.tl-names li.tl-k{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin:6px 0;padding:8px 10px;border-radius:8px;word-break:break-all;}
+.tl-names li.tl-k::before{display:none;}
+.tl-names li.tl-k.add{background:#e8f7ee;border-left:4px solid #16a34a;}
+.tl-names li.tl-k.del{background:#fdecec;border-left:4px solid #e11d48;}
+.tl-names li.tl-k.mod{background:#eaf2fe;border-left:4px solid #2563eb;}
+.tl-names li.tl-k a.tl-mod{flex:1 1 auto;min-width:0;}
+.tl-names li.tl-k .mod-badge{flex:none;margin-left:8px;}
