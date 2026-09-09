@@ -422,7 +422,7 @@ function histDetail(d, sec, ts) {
         // 新增/修改业务：可点击查看详情（新增看完整配置，修改看字段级明细）
         const dk = d[key + "_details"];
         html += '<ul class="tl-names">' + names.map((x) =>
-          '<li><a class="tl-mod" href="javascript:void(0)" ' +
+          '<li class="tl-k ' + cls + '"><a class="tl-mod" href="javascript:void(0)" ' +
           'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" ' +
           'title="点击查看该业务详情" ' +
           'onclick="event.stopPropagation();' + fn + '(this.dataset.ts,this.dataset.sec,this.dataset.name)">' +
