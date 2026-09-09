@@ -450,7 +450,7 @@ function histDetail(d, sec, ts) {
     if (names && names.length) {
       // 新增/下架/修改 均可点击查看详情
       html += '<ul class="tl-names">' + names.map((x) =>
-        '<li><a class="tl-mod" href="javascript:void(0)" ' +
+        '<li class="tl-k ' + cls + '"><a class="tl-mod" href="javascript:void(0)" ' +
         'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" data-kind="' + kind + '" ' +
         'title="点击查看该业务详情" ' +
         'onclick="event.stopPropagation();showPlanDetail(this.dataset.ts,this.dataset.sec,this.dataset.name,this.dataset.kind)">' +
