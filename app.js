@@ -349,8 +349,9 @@ function drawList(section) {
 function fieldsTable(f) {
   f = f || {};
   const keys = Object.keys(f);
-  const mainKeys = ["资费标准", "方案编号", "资费类型", "归属", "适用范围", "适用地区", "上线日期", "下线日期", "有效期限"];
-  const noteKeys = ["其他说明", "超出资费说明", "其他服务内容", "在网要求", "退订方式", "违约责任", "权益", "销售渠道"];  // 说明类字段折叠为「其他说明」（含官方「其他说明」正文）
+  const mainKeys = ["资费标准", "方案编号", "资费类型", "归属", "适用范围", "适用地区", "上线日期", "下线日期", "有效期限",
+                    "在网要求", "退订方式", "违约责任", "销售渠道", "超出资费说明", "其他服务内容", "权益"];
+  const noteKeys = ["其他说明"];  // 折叠「其他说明」仅保留官方「其他说明」正文，其余说明字段上移主表
   const detailRows = mainKeys.filter((k) => f[k]).map((k) =>
     '<tr><th>' + esc(k) + '</th><td>' + esc(f[k]) + "</td></tr>"
   ).join("");
