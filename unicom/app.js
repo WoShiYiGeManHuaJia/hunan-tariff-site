@@ -442,32 +442,95 @@ function aesc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").repl
 function histDetail(d, sec, ts) {
   if (!d || typeof d !== "object") return "";
   let html = "";
-  [["added", "add", "新增", false], ["removed", "del", "下架", false], ["modified", "mod", "修改", true]].forEach(([key, cls, lab, clickable]) => {
+  [["added", "add", "新增", "added"], ["removed", "del", "下架", "removed"], ["modified", "mod", "修改", "modified"]].forEach(([key, cls, lab, kind]) => {
     const n = d[key] || 0;
     if (!n) return;
     html += '<div class="tl-sec"><span class="chip ' + cls + '">' + lab + " " + n + " 条</span>";
     const names = Array.isArray(d[key + "_names"]) ? d[key + "_names"] : null;
     if (names && names.length) {
-      if (clickable) {
-        // 修改业务：可点击查看字段级修改明细
-        html += '<ul class="tl-names">' + names.map((x) =>
-          '<li><a class="tl-mod" href="javascript:void(0)" ' +
-          'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" ' +
-          'title="点击查看该业务的修改明细" ' +
-          'onclick="event.stopPropagation();showModDetail(this.dataset.ts,this.dataset.sec,this.dataset.name)">' +
-          esc(x) + "</a>" +
-          (d.modified_details && d.modified_details[x] ? '<span class="mod-badge">查看明细</span>' : "") +
-          "</li>"
-        ).join("") + "</ul>";
-      } else {
-        html += '<ul class="tl-names">' + names.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
-      }
+      // 新增/下架/修改 均可点击查看详情
+      html += '<ul class="tl-names">' + names.map((x) =>
+        '<li><a class="tl-mod" href="javascript:void(0)" ' +
+        'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" data-kind="' + kind + '" ' +
+        'title="点击查看该业务详情" ' +
+        'onclick="event.stopPropagation();showPlanDetail(this.dataset.ts,this.dataset.sec,this.dataset.name,this.dataset.kind)">' +
+        esc(x) + "</a>" +
+        (((d[key + "_list"] && d[key + "_list"].length) || (d[key + "_details"] && d[key + "_details"][x])) ? '<span class="mod-badge">查看详情</span>' : "") +
+        "</li>"
+      ).join("") + "</ul>";
     } else {
       html += '<div class="tl-none">本次' + lab + " " + n + " 条，可在对应资费列表查看</div>";
     }
     html += "</div>";
   });
   return html;
+}
+
+/* 通用业务详情弹窗：历史页 新增/下架/修改 三类都可点开。
+   优先读历史记录保存的详情（_list 精简详情 或 _details 字段快照），否则兜底从当前板块数据按名称查找。 */
+const PLAN_LABELS = {
+  title: "业务名称", fee: "月费", firstLevel: "一级分类", secondLevel: "二级分类",
+  feesStandard: "资费标准", feeUnit: "计费单位", minute: "语音(分钟)", commonData: "流量",
+  dataUnit: "流量单位", orientTraffic: "定向流量", validPeriod: "有效期", saleChnl: "办理渠道",
+  serviceContent: "套餐内容", codeType: "资费类型", reportNo: "业务编码", extraFees: "其他收费",
+  useScope: "适用对象", broadBand: "宽带", sms: "短信", onlinePeriod: "在售时间",
+};
+function briefTable(o) {
+  if (!o || typeof o !== "object") return '<div class="tl-none">该记录未保存配置详情。</div>';
+  const entries = Object.entries(o).filter(([k, v]) => v !== undefined && v !== null && String(v) !== "" && v !== "0");
+  if (!entries.length) return '<div class="tl-none">该记录未保存配置详情。</div>';
+  return '<table class="gen-table"><tbody>' + entries.map(([k, v]) =>
+    '<tr><th>' + esc(PLAN_LABELS[k] || k) + '</th><td>' + esc(typeof v === "object" ? JSON.stringify(v) : v) + "</td></tr>"
+  ).join("") + "</tbody></table>";
+}
+function showPlanDetail(ts, sec, name, kind) {
+  const rec = _histCache.get(ts);
+  const d = rec ? rec[sec] : null;
+  const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
+  if (kind === "modified") {
+    const details = (d && d.modified_details && d.modified_details[name]) || null;
+    if (details && details.length) {
+      const rows = details.map((dt) => {
+        const normV = (v) => (typeof v === "string" && /^0{2,}$/.test(v) ? "全国（不限定省份）" : v);
+        return '<div class="mod-row">' +
+          '<div class="mod-f">' + esc(dt.field || "") + "</div>" +
+          '<div class="mod-v"><div class="mod-old" title="修改前">' + esc(normV(dt.from) || "（空）") + "</div>" +
+          '<div class="mod-arrow">→</div><div class="mod-new" title="修改后">' + esc(normV(dt.to) || "（空）") + "</div></div></div>";
+      }).join("");
+      openModal(name, head + '<div class="res-row sub">该业务本次字段级修改（共 ' + details.length + " 项）：</div>" +
+        '<div class="mod-diff">' + rows + "</div>");
+      return;
+    }
+  }
+  const nm = String(name == null ? "" : name).trim();
+  let brief = null;
+  const lst = (d && d[kind + "_list"]) || null;
+  if (Array.isArray(lst) && lst.length) {
+    brief = lst.find((x) => x && String(x.title || x.name || "").trim() === nm) || lst[0];
+  }
+  const snap = (d && d[kind + "_details"] && d[kind + "_details"][name]) || null;
+  if (brief || snap) {
+    const lab = kind === "added" ? "新增" : kind === "removed" ? "下架" : "修改";
+    openModal(name, head + '<div class="res-row sub">该业务本次' + lab + '，配置如下：</div><div class="gen-brief">' +
+      briefTable(snap || brief) + "</div>");
+    return;
+  }
+  // 兜底：从当前板块数据按名称查找
+  const file = sec === "quanguo" ? "quanguo.json" : sec + ".json";
+  loadJson(file).then((j) => {
+    const items = (j && j.items) || [];
+    const it = items.find((x) => x && String(x.title || x.name || "").trim() === nm);
+    if (it) {
+      const fields = it.detail || it.fields || it;
+      openModal(name, head + '<div class="res-row sub">当前板块中的配置：</div><div class="gen-brief">' + briefTable(fields) + "</div>");
+    } else if (kind === "removed") {
+      openModal(name, head + '<div class="res-row">该套餐已从板块下架，线上无剩余配置。</div>');
+    } else {
+      openModal(name, head + '<div class="res-row">未找到该业务配置。</div>');
+    }
+  }).catch((e) => {
+    openModal(name, head + '<div class="res-row">加载详情失败：' + esc(e.message) + "</div>");
+  });
 }
 
 /* 修改业务明细弹窗：展示该业务本次被修改的字段（旧值 → 新值） */
@@ -521,17 +584,17 @@ function renderHistory() {
           if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
           if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
           if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
-          if (chips.length) {
-            entries.push(
-              '<div class="tl-sec-entry">' +
-              '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
-              '<b>' + esc(head) + "</b>" +
-              '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
-              '<span class="tl-sec-arrow"></span></div>' +
-              '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
-                '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
-            );
-          }
+          if (!chips.length) chips.push('<span class="chip none">无变化</span>');
+          // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
+          entries.push(
+            '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
+            '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
+            '<b>' + esc(head) + "</b>" +
+            '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
+            '<span class="tl-sec-arrow"></span></div>' +
+            '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
+              '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
+          );
         });
         if (!entries.length) {
           return (
