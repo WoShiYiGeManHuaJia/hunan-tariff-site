@@ -409,7 +409,7 @@ function histDetail(d, sec, ts) {
   let html = "";
   const kinds = [
     ["added", "add", "新增", "showAddDetail"],
-    ["removed", "del", "下架", null],
+    ["removed", "del", "下架", "showDelDetail"],
     ["modified", "mod", "修改", "showModDetail"],
   ];
   kinds.forEach(([key, cls, lab, fn]) => {
@@ -500,6 +500,23 @@ function showAddDetail(ts, sec, name) {
   });
 }
 
+/* 下架业务详情弹窗：历史页「下架」可点开，展示下架时保存的字段快照。
+   无快照时提示已下架（线上板块已无该业务，无法再查）。 */
+function showDelDetail(ts, sec, name) {
+  const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
+  const rec = _histCache.get(ts);
+  const d = rec ? rec[sec] : null;
+  const snap = (d && d.removed_details && d.removed_details[name]) || null;
+  if (snap && Object.keys(snap).length) {
+    openModal(name, head +
+      '<div class="res-row sub">该业务本次下架，下架时配置如下：</div>' +
+      '<div class="mod-diff">' + fieldsTable(snap) + "</div>");
+    return;
+  }
+  openModal(name, head + '<div class="res-row">该套餐已从板块下架，线上无剩余配置可查。</div>' +
+    '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表确认当前在售业务。</div>');
+}
+
 function renderHistory() {
   const filter = $("hProvFilter") ? $("hProvFilter").value : "";
   Promise.all([ensureSections().catch(() => {}), loadJson("history.json")])
@@ -522,17 +539,17 @@ function renderHistory() {
           if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
           if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
           if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
-          if (chips.length) {
-            entries.push(
-              '<div class="tl-sec-entry">' +
-              '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
-              '<b>' + esc(head) + "</b>" +
-              '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
-              '<span class="tl-sec-arrow"></span></div>' +
-              '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
-                '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
-            );
-          }
+          if (!chips.length) chips.push('<span class="chip none">无变化</span>');
+          // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
+          entries.push(
+            '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
+            '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
+            '<b>' + esc(head) + "</b>" +
+            '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
+            '<span class="tl-sec-arrow"></span></div>' +
+            '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
+              '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
+          );
         });
         if (!entries.length) {
           return (
