@@ -510,9 +510,8 @@ function renderHistory() {
       }
       box.innerHTML = '<div class="tl">' + list.map((r, idx) => {
         _histCache.set(r.ts, r);
-        const parts = [];
-        const details = [];
-        SECTIONS.forEach((secObj, si) => {
+        const entries = [];
+        SECTIONS.forEach((secObj) => {
           const sec = secObj.section;
           if (filter && filter !== sec) return;
           const d = r[sec];
@@ -523,23 +522,28 @@ function renderHistory() {
           if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
           if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
           if (chips.length) {
-            parts.push("<div><b>" + esc(head) + "</b>：" + chips.join("") + "</div>");
-            const detail = histDetail(d, sec, r.ts);
-            if (detail) details.push('<div class="tl-sec-title">' + esc(head) + "</div>" + detail);
+            entries.push(
+              '<div class="tl-sec-entry">' +
+              '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
+              '<b>' + esc(head) + "</b>" +
+              '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
+              '<span class="tl-sec-arrow"></span></div>' +
+              '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
+                '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
+            );
           }
         });
-        if (!parts.length) {
+        if (!entries.length) {
           return (
             '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
             '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
           );
         }
-        const open = idx === list.length - 1; // 默认展开最新一条
+        const open = idx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
         return (
           '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
           '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
-          '<div class="tl-chips">' + parts.join("") + "</div>" +
-          '<div class="tl-body">' + details.join("") + "</div></div>"
+          '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
         );
       }).join("") + "</div>";
 
@@ -554,6 +558,22 @@ function renderHistory() {
         });
         item.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+        });
+        // 省份级折叠：点击省标题行，仅展开该省明细（捕获阶段 + stopPropagation 避免误触整条展开）
+        item.querySelectorAll(".tl-sec-head").forEach((head) => {
+          const toggleSec = () => {
+            const entry = head.parentElement;
+            const open = entry.classList.toggle("open");
+            head.setAttribute("aria-expanded", open ? "true" : "false");
+          };
+          head.addEventListener("click", (e) => {
+            if (e.target.closest && e.target.closest("a")) return;
+            e.stopPropagation();
+            toggleSec();
+          }, true);
+          head.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(); }
+          });
         });
       });
     }).catch((e) => {

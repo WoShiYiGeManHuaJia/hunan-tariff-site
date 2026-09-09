@@ -115,6 +115,20 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .tl-sec-title{font-size:12.5px;font-weight:700;color:var(--blue-dark);margin:10px 0 2px;}
 .tl-sec{margin-bottom:4px;}
 .tl-sec .chip{display:inline-block;margin:2px 0;padding:1px 9px;font-size:12px;}
+/* 省份级折叠：点击省标题行展开该省明细 */
+.tl-sec-list{display:none;margin-top:8px;}
+.tl-item.open .tl-sec-list{display:block;animation:fade .2s ease;}
+.tl-sec-entry{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#fafcfe;overflow:hidden;}
+.tl-sec-entry:last-child{margin-bottom:0;}
+.tl-sec-head{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;background:#f2f8fd;}
+.tl-sec-head:hover{background:#e6f2fc;}
+.tl-sec-head b{font-size:13px;font-weight:700;color:var(--blue-dark);white-space:nowrap;}
+.tl-sec-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1;}
+.tl-sec-chips .chip{margin:0;padding:1px 9px;font-size:12px;}
+.tl-sec-arrow{flex:none;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--blue2);transition:transform .18s ease;opacity:.7;}
+.tl-sec-entry.open .tl-sec-arrow{transform:rotate(180deg);opacity:1;}
+.tl-sec-body{display:none;font-size:13px;color:var(--sub);padding:4px 12px 10px;}
+.tl-sec-entry.open .tl-sec-body{display:block;animation:fade .2s ease;}
 .tl-names{list-style:none;margin:4px 0 2px;}
 .tl-names li{font-size:12.5px;color:var(--txt);margin:3px 0;padding-left:13px;position:relative;word-break:break-all;}
 .tl-names li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:var(--blue2);}
