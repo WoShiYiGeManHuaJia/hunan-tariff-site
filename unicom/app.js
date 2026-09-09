@@ -552,9 +552,8 @@ function showModDetail(ts, sec, name) {
     return '<div class="mod-row">' +
       '<div class="mod-f">' + pf + "</div>" +
       '<div class="mod-v">' +
-      '<div class="mod-old" title="修改前">' + pv + "</div>" +
-      '<div class="mod-arrow">→</div>' +
-      '<div class="mod-new" title="修改后">' + nv + "</div>" +
+      '<div class="mod-old" title="修改前"><span class="mod-lab old">修改前</span>' + pv + "</div>" +
+      '<div class="mod-new" title="修改后"><span class="mod-lab new">修改后</span>' + nv + "</div>" +
       "</div></div>";
   }).join("");
   openModal(name, head +
