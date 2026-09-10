@@ -506,6 +506,8 @@ const PLAN_LABELS = {
   dataUnit: "流量单位", orientTraffic: "定向流量", validPeriod: "有效期", saleChnl: "办理渠道",
   serviceContent: "套餐内容", codeType: "资费类型", reportNo: "业务编码", extraFees: "其他收费",
   useScope: "适用对象", broadBand: "宽带", sms: "短信", onlinePeriod: "在售时间",
+  onDate: "上线日期", offDate: "下线日期", unsubscribe: "退订方式", responsibility: "违约责任",
+  inNetReq: "在网要求", otherNotes: "其他说明",
 };
 function briefTable(o) {
   if (!o || typeof o !== "object") return '<div class="tl-none">该记录未保存配置详情。</div>';
