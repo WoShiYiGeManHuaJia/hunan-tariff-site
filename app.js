@@ -731,6 +731,53 @@ function renderHistory() {
   goTab(valid ? raw : "overview");
 })();
 
+/* ========== 更新公告弹窗（每个设备仅显示一次） ========== */
+(function () {
+  var KEY = "marvis_site_notice_20260911";
+  var done = false;
+  try { done = !!localStorage.getItem(KEY); } catch (e) {}
+  if (done) return;
+  var css = [
+    ".notice-mask{position:fixed;inset:0;background:rgba(10,14,26,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;animation:noticeFade .18s ease}",
+    "@keyframes noticeFade{from{opacity:0}to{opacity:1}}",
+    ".notice-card{background:#fff;border-radius:14px;max-width:440px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.25);font-size:14px;line-height:1.7;color:#222;padding:20px 20px 16px;box-sizing:border-box}",
+    ".notice-card h3{margin:0 0 8px;font-size:17px;color:#0a0e1a;display:flex;align-items:center;gap:6px}",
+    ".notice-tag{display:inline-block;font-size:11px;color:#fff;background:#2a7de1;border-radius:4px;padding:1px 6px;font-weight:400;vertical-align:2px}",
+    ".notice-card ul{margin:6px 0 0;padding-left:18px}",
+    ".notice-card li{margin:4px 0}",
+    ".notice-ft{margin-top:14px;text-align:right}",
+    ".notice-ok{border:0;background:#2a7de1;color:#fff;font-size:14px;padding:8px 22px;border-radius:8px;cursor:pointer}",
+    ".notice-ok:active{opacity:.85}",
+    "body.dark .notice-card{background:#171c28;color:#e6e8ee}",
+    "body.dark .notice-card h3{color:#fff}"
+  ].join("");
+  var style = document.createElement("style");
+  style.textContent = css;
+  document.head.appendChild(style);
+  var card = document.createElement("div");
+  card.className = "notice-card";
+  card.innerHTML =
+    '<h3>资费站更新公告 <span class="notice-tag">2026.09.11</span></h3>' +
+    "<ul>" +
+    "<li>电信、联通资费详情已补齐<b>上线日期 / 下线日期 / 销售渠道 / 退订方式 / 违约责任 / 在网要求</b>，官方「其他说明」全文也已收录。</li>" +
+    "<li><b>适用对象</b>已移入资费详情主表，不再挤进折叠区，查看更直观。</li>" +
+    "<li>三站（移动 / 联通 / 电信）功能保持一致：<b>零元业务筛选、历史变化分类（新增绿 / 下架红 / 修改蓝）、省份切换、资费详情弹窗</b>。</li>" +
+    "<li>历史页可查看每次变化的新增 / 下架 / 修改业务明细。</li>" +
+    "</ul>" +
+    '<div class="notice-ft"><button class="notice-ok" id="notice-ok-btn">知道了</button></div>';
+  var mask = document.createElement("div");
+  mask.className = "notice-mask";
+  mask.appendChild(card);
+  document.body.appendChild(mask);
+  var ok = document.getElementById("notice-ok-btn");
+  if (ok) {
+    ok.addEventListener("click", function () {
+      try { localStorage.setItem(KEY, "1"); } catch (e) {}
+      if (mask && mask.parentNode) mask.parentNode.removeChild(mask);
+    });
+  }
+})();
+
 /* ---------- 检测资费（刷新按钮） ---------- */
 const RK = "trf_last_check";
 const btnRefresh = $("refreshBtn");
