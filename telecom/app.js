@@ -1,4 +1,4 @@
-/* 中国电信资费专区 - 前端逻辑（vdx20260905k：全功能对齐移动站；说明类字段固定折叠「其他说明」；保留按钮震动、无声音） */
+/* 中国电信资费专区 - 前端逻辑（vdx20260910a：排序条新增「零元业务」筛选；0元每月在前、0元每次在后；保留按钮震动、无声音） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -241,6 +241,33 @@ function priceOf(it) {
   const dm = String(d.feesStandard || "").match(/\d+(?:\.\d+)?/);
   return dm ? parseFloat(dm[0]) : 0;
 }
+/* ---- 零元业务：筛选当前省份/全国中费用为 0 的资费；免费/0元每月在前、0元每次在后 ---- */
+function isZeroFee(it) {
+  if (it.fields) {
+    const raw = String(it.fields["资费标准"] || "");
+    if (/免费/.test(raw)) return true;
+    const m = raw.match(/\d+(?:\.\d+)?/);
+    return !!m && Math.abs(parseFloat(m[0])) < 1e-9;
+  }
+  const fv = String(it.fee == null ? "" : it.fee).trim();
+  const dv = String(((it.detail || {}).feesStandard == null ? "" : it.detail.feesStandard)).trim();
+  const zero = (n) => { if (n === "") return false; const v = parseFloat(n); return !isNaN(v) && Math.abs(v) < 1e-9; };
+  return zero(fv) || zero(dv);
+}
+function zeroRank(it) {
+  if (it.fields) {
+    const raw = String(it.fields["资费标准"] || "");
+    if (/次/.test(raw)) return 2;                 // 0元/次 → 后排
+    if (/月/.test(raw) || /免费/.test(raw)) return 0; // 0元/月、免费 → 前排
+    return 1;
+  }
+  const u = String(((it.detail || {}).feeUnit) || "");
+  if (/次/.test(u)) return 2;                     // 每次 → 后排
+  if (/月|天/.test(u)) return 0;                  // 元/月、元/30天 等 → 前排
+  const fv = String(it.fee == null ? "" : it.fee);
+  if (/免费/.test(fv)) return 0;
+  return 1;
+}
 function sortFiltered(arr, st) {
   const dir = (st.order == null ? -1 : st.order) < 0 ? -1 : 1; // 默认降序
   arr.sort(function (a, b) {
@@ -263,7 +290,8 @@ function setupSortBar(rawKey) {
       const sec = rawKey === "quanguo" ? "quanguo" : liveSec();
       const st = getSt(sec);
       const sort = btn.dataset.sort;
-      if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
+      if (sort === "zero") { st.zero = !st.zero; }
+      else if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
       else { st.sort = sort; st.order = sort === "price" ? 1 : -1; }
       st.page = 1;
       syncSortUI(bar, st);
@@ -276,8 +304,10 @@ function syncSortUI(bar, st) {
   if (!bar) return;
   bar.querySelectorAll(".sort-btn[data-sort]").forEach((b) => {
     const s = b.dataset.sort;
-    if (s !== "dir") b.classList.toggle("active", !!st.sort && st.sort === s);
+    if (s !== "dir" && s !== "zero") b.classList.toggle("active", !!st.sort && st.sort === s);
   });
+  const z = bar.querySelector('.sort-btn[data-sort="zero"]');
+  if (z) z.classList.toggle("active", !!st.zero);
   const d = bar.querySelector('.sort-btn[data-sort="dir"]');
   if (d) d.textContent = (st.order == null ? -1 : st.order) < 0 ? "降序 ↓" : "升序 ↑";
 }
@@ -286,6 +316,7 @@ function filterItems(st) {
   const src = st.items || [];
   const out = [];
   for (const it of src) {
+    if (st.zero && !isZeroFee(it)) continue;
     if (st.type) {
       const sub = firstLevelOf(it);
       if (sub === "停售套餐") { if (st.type !== "停售套餐") continue; }
@@ -319,7 +350,8 @@ function drawList(section) {
     subEl.value = st.sub;
   }
   const filtered = filterItems(st);
-  if (st.sort) { sortFiltered(filtered, st); }
+  if (st.zero) { filtered.sort((a, b) => zeroRank(a) - zeroRank(b)); }
+  else if (st.sort) { sortFiltered(filtered, st); }
   else {
     filtered.sort((a, b) => {
       const aStop = firstLevelOf(a) === "停售套餐" ? 1 : 0;
