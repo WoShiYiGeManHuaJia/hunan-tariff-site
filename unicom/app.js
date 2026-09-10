@@ -1,4 +1,4 @@
-/* 中国联通资费专区 - 前端逻辑（vlt20260905i：全功能对齐移动站；保留按钮震动、无声音） */
+/* 中国联通资费专区 - 前端逻辑（vlt20260910a：排序条新增「零元业务」筛选；免费/0元每月在前、0元每次在后；保留按钮震动、无声音） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -164,6 +164,10 @@ function renderBarsBox(box, dist) {
 /* ---------- 列表（全国 / 省份） ---------- */
 const PAGE_SIZE = 20;
 const listState = {};
+function liveSec() {
+  const el = document.getElementById("pProv");
+  return (el && el.value) || DEF_SECTION;
+}
 function getSt(section) {
   if (!listState[section]) listState[section] = { items: null, page: 1, q: "", type: "", sub: "" };
   return listState[section];
@@ -198,14 +202,16 @@ function renderList(section) {
   }).catch((e) => { listEl.innerHTML = '<div class="empty">数据加载失败：' + esc(e.message) + "</div>"; });
 
   if (!qEl.dataset.bound) {
+    const secOf = () => (rawKey === "quanguo" ? "quanguo" : liveSec());
+    const stOf = () => getSt(secOf());
     qEl.dataset.bound = "1";
-    qEl.addEventListener("input", () => { st.q = qEl.value.trim().toLowerCase(); st.page = 1; drawList(section); });
+    qEl.addEventListener("input", () => { const st = stOf(); st.q = qEl.value.trim().toLowerCase(); st.page = 1; drawList(secOf()); });
     const typeEl = $(idm.type);
     const subEl = $(idm.sub);
-    if (typeEl) typeEl.addEventListener("change", () => { st.type = typeEl.value; st.page = 1; drawList(section); });
-    if (subEl) subEl.addEventListener("change", () => { st.sub = subEl.value; st.page = 1; drawList(section); });
-    $(idm.reload).addEventListener("click", () => { st.items = null; renderList(section); });
-    setupSortBar(rawKey, st, section);
+    if (typeEl) typeEl.addEventListener("change", () => { const st = stOf(); st.type = typeEl.value; st.page = 1; drawList(secOf()); });
+    if (subEl) subEl.addEventListener("change", () => { const st = stOf(); st.sub = subEl.value; st.page = 1; drawList(secOf()); });
+    $(idm.reload).addEventListener("click", () => { const st = stOf(); st.items = null; renderList(secOf()); });
+    setupSortBar(rawKey);
   }
 }
 
@@ -235,19 +241,31 @@ function priceOf(it) {
   const dm = String(d.feesStandard || "").match(/\d+(?:\.\d+)?/);
   return dm ? parseFloat(dm[0]) : 0;
 }
-/* ---- 零元业务：筛选费用为 0 的资费；0元每月/免费在前、0元每次在后 ---- */
+/* ---- 零元业务：筛选当前省份/全国中费用为 0 的资费；免费/0元每月在前、0元每次在后 ---- */
 function isZeroFee(it) {
-  const d = it.detail || {};
-  const raw = String(it.fee == null ? d.feesStandard : it.fee) || "";
-  if (/免费/.test(raw)) return true;
-  const m = raw.match(/\d+(?:\.\d+)?/);
-  return !!m && Math.abs(parseFloat(m[0])) < 1e-9;
+  if (it.fields) {
+    const raw = String(it.fields["资费标准"] || "");
+    if (/免费/.test(raw)) return true;
+    const m = raw.match(/\d+(?:\.\d+)?/);
+    return !!m && Math.abs(parseFloat(m[0])) < 1e-9;
+  }
+  const fv = String(it.fee == null ? "" : it.fee).trim();
+  const dv = String(((it.detail || {}).feesStandard == null ? "" : it.detail.feesStandard)).trim();
+  const zero = (n) => { if (n === "") return false; const v = parseFloat(n); return !isNaN(v) && Math.abs(v) < 1e-9; };
+  return zero(fv) || zero(dv);
 }
 function zeroRank(it) {
-  const d = it.detail || {};
-  const raw = String(it.fee == null ? d.feesStandard : it.fee) || "";
-  if (/次/.test(raw)) return 2;
-  if (/月/.test(raw) || /免费/.test(raw)) return 0;
+  if (it.fields) {
+    const raw = String(it.fields["资费标准"] || "");
+    if (/次/.test(raw)) return 2;                 // 0元/次 → 后排
+    if (/月/.test(raw) || /免费/.test(raw)) return 0; // 0元/月、免费 → 前排
+    return 1;
+  }
+  const u = String(((it.detail || {}).feeUnit) || "");
+  if (/次/.test(u)) return 2;                     // 每次 → 后排
+  if (/月|天/.test(u)) return 0;                  // 元/月、元/30天 等 → 前排
+  const fv = String(it.fee == null ? "" : it.fee);
+  if (/免费/.test(fv)) return 0;
   return 1;
 }
 function sortFiltered(arr, st) {
@@ -262,23 +280,25 @@ function sortFiltered(arr, st) {
     return (av > bv ? 1 : -1) * dir;
   });
 }
-function setupSortBar(rawKey, st, section) {
+function setupSortBar(rawKey) {
   if (rawKey !== "quanguo" && rawKey !== "prov") return;
   const bar = document.getElementById((rawKey === "quanguo" ? "q" : "p") + "SortBar");
   if (!bar || bar.dataset.bound) return;
   bar.dataset.bound = "1";
   bar.querySelectorAll(".sort-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
+      const sec = rawKey === "quanguo" ? "quanguo" : liveSec();
+      const st = getSt(sec);
       const sort = btn.dataset.sort;
       if (sort === "zero") { st.zero = !st.zero; }
       else if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
       else { st.sort = sort; st.order = sort === "price" ? 1 : -1; }
       st.page = 1;
       syncSortUI(bar, st);
-      drawList(section);
+      drawList(sec);
     });
   });
-  syncSortUI(bar, st);
+  syncSortUI(bar, getSt(rawKey === "quanguo" ? "quanguo" : liveSec()));
 }
 function syncSortUI(bar, st) {
   if (!bar) return;
@@ -296,13 +316,13 @@ function filterItems(st) {
   const src = st.items || [];
   const out = [];
   for (const it of src) {
+    if (st.zero && !isZeroFee(it)) continue;
     if (st.type) {
       const sub = firstLevelOf(it);
       if (sub === "停售套餐") { if (st.type !== "停售套餐") continue; }
       else if (sub !== st.type) continue;
     }
     if (st.sub && secondLevelOf(it) !== st.sub) continue;
-    if (st.zero && !isZeroFee(it)) continue;
     if (st.q) {
       const d = it.detail || {};
       const hay = [it.title, it.fee, d.feesStandard, d.serviceContent, d.useScope, d.codeType,
@@ -315,6 +335,7 @@ function filterItems(st) {
 }
 
 function drawList(section) {
+  if (section !== "quanguo") section = liveSec();
   const st = getSt(section);
   const idm = domMap(section);
   const listEl = $(idm.list);
@@ -329,7 +350,8 @@ function drawList(section) {
     subEl.value = st.sub;
   }
   const filtered = filterItems(st);
-  if (st.sort) { sortFiltered(filtered, st); }
+  if (st.zero) { filtered.sort((a, b) => zeroRank(a) - zeroRank(b)); }
+  else if (st.sort) { sortFiltered(filtered, st); }
   else {
     filtered.sort((a, b) => {
       const aStop = firstLevelOf(a) === "停售套餐" ? 1 : 0;
@@ -340,7 +362,6 @@ function drawList(section) {
       return af - bf;
     });
   }
-  if (st.zero) { filtered.sort(function (a, b) { return zeroRank(a) - zeroRank(b); }); }
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   if (st.page > totalPages) st.page = totalPages;
   const start = (st.page - 1) * PAGE_SIZE;
@@ -387,12 +408,27 @@ function itemHtml(it, idx) {
   if (d.useScope) facts.push("<span>适用：" + esc(String(d.useScope).slice(0, 24)) + "</span>");
   if (d.minute && d.minute !== "0") facts.push("<span>语音 <b>" + esc(d.minute) + " 分钟</b></span>");
   if (d.commonData && d.commonData !== "0") facts.push("<span>流量 <b>" + esc(d.commonData + (d.dataUnit || "GB")) + "</b></span>");
-  const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "套餐内容", "适用对象", "有效期", "其他收费", "办理渠道", "停售状态"];
+  const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "有效期", "停售状态", "业务编码"];
   const rows = detailRows(it);
-  const filteredRows = rows.filter(([k]) => mainKeys.indexOf(k) >= 0).map(([k, v]) =>
+  // 说明类字段（套餐内容/适用对象/其他收费/办理渠道）固定折叠为「其他说明」，所有业务统一展示折叠入口，不按长度判断
+  const NOTE_KEYS = ["套餐内容", "适用对象", "其他收费", "办理渠道"];
+  const noteRows = rows.filter(([k, v]) => v && NOTE_KEYS.indexOf(k) >= 0);
+  const notNotes = rows.filter(([k, v]) => !(v && NOTE_KEYS.indexOf(k) >= 0));
+  const filteredRows = notNotes.filter(([k]) => mainKeys.indexOf(k) >= 0).map(([k, v]) =>
     '<tr><th>' + esc(k) + '</th><td>' + esc(v) + "</td></tr>").join("");
-  const otherRows = rows.filter(([k]) => mainKeys.indexOf(k) < 0).map(([k, v]) =>
+  const otherRows = notNotes.filter(([k]) => mainKeys.indexOf(k) < 0).map(([k, v]) =>
     '<tr><th>' + esc(k) + '</th><td>' + esc(v) + "</td></tr>").join("");
+  const noteHtml = noteRows.map(([k, v]) =>
+    '<div class="note-item"><div class="note-label">' + esc(k) + '</div>' +
+    '<div class="note-text">' + esc(v) + "</div></div>"
+  ).join("");
+  const noteBlock = noteHtml
+    ? '<div class="notes-block">' +
+        '<div class="notes-toggle" role="button" tabindex="0" aria-expanded="false">其他说明' +
+        '<span class="notes-arrow"></span></div>' +
+        '<div class="notes-body">' + noteHtml + "</div>" +
+      "</div>"
+    : "";
   return (
     '<div class="item">' +
       '<div class="item-head">' +
@@ -403,7 +439,7 @@ function itemHtml(it, idx) {
       "</div>" +
       (f.extras ? '<div class="item-facts">' + f.extras + "</div>" : "") +
       (facts.length ? '<div class="item-facts">' + facts.join("") + "</div>" : "") +
-      '<div class="detail"><table>' + filteredRows + otherRows + '</table></div>' +
+      '<div class="detail"><table>' + filteredRows + otherRows + '</table>' + noteBlock + '</div>' +
     "</div>"
   );
 }
@@ -438,32 +474,95 @@ function aesc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").repl
 function histDetail(d, sec, ts) {
   if (!d || typeof d !== "object") return "";
   let html = "";
-  [["added", "add", "新增", false], ["removed", "del", "下架", false], ["modified", "mod", "修改", true]].forEach(([key, cls, lab, clickable]) => {
+  [["added", "add", "新增", "added"], ["removed", "del", "下架", "removed"], ["modified", "mod", "修改", "modified"]].forEach(([key, cls, lab, kind]) => {
     const n = d[key] || 0;
     if (!n) return;
     html += '<div class="tl-sec"><span class="chip ' + cls + '">' + lab + " " + n + " 条</span>";
     const names = Array.isArray(d[key + "_names"]) ? d[key + "_names"] : null;
     if (names && names.length) {
-      if (clickable) {
-        // 修改业务：可点击查看字段级修改明细
-        html += '<ul class="tl-names">' + names.map((x) =>
-          '<li><a class="tl-mod" href="javascript:void(0)" ' +
-          'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" ' +
-          'title="点击查看该业务的修改明细" ' +
-          'onclick="event.stopPropagation();showModDetail(this.dataset.ts,this.dataset.sec,this.dataset.name)">' +
-          esc(x) + "</a>" +
-          (d.modified_details && d.modified_details[x] ? '<span class="mod-badge">查看明细</span>' : "") +
-          "</li>"
-        ).join("") + "</ul>";
-      } else {
-        html += '<ul class="tl-names">' + names.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
-      }
+      // 新增/下架/修改 均可点击查看详情
+      html += '<ul class="tl-names">' + names.map((x) =>
+        '<li class="tl-k ' + cls + '"><a class="tl-mod" href="javascript:void(0)" ' +
+        'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" data-kind="' + kind + '" ' +
+        'title="点击查看该业务详情" ' +
+        'onclick="event.stopPropagation();showPlanDetail(this.dataset.ts,this.dataset.sec,this.dataset.name,this.dataset.kind)">' +
+        esc(x) + "</a>" +
+        (((d[key + "_list"] && d[key + "_list"].length) || (d[key + "_details"] && d[key + "_details"][x])) ? '<span class="mod-badge">查看详情</span>' : "") +
+        "</li>"
+      ).join("") + "</ul>";
     } else {
       html += '<div class="tl-none">本次' + lab + " " + n + " 条，可在对应资费列表查看</div>";
     }
     html += "</div>";
   });
   return html;
+}
+
+/* 通用业务详情弹窗：历史页 新增/下架/修改 三类都可点开。
+   优先读历史记录保存的详情（_list 精简详情 或 _details 字段快照），否则兜底从当前板块数据按名称查找。 */
+const PLAN_LABELS = {
+  title: "业务名称", fee: "月费", firstLevel: "一级分类", secondLevel: "二级分类",
+  feesStandard: "资费标准", feeUnit: "计费单位", minute: "语音(分钟)", commonData: "流量",
+  dataUnit: "流量单位", orientTraffic: "定向流量", validPeriod: "有效期", saleChnl: "办理渠道",
+  serviceContent: "套餐内容", codeType: "资费类型", reportNo: "业务编码", extraFees: "其他收费",
+  useScope: "适用对象", broadBand: "宽带", sms: "短信", onlinePeriod: "在售时间",
+};
+function briefTable(o) {
+  if (!o || typeof o !== "object") return '<div class="tl-none">该记录未保存配置详情。</div>';
+  const entries = Object.entries(o).filter(([k, v]) => v !== undefined && v !== null && String(v) !== "" && v !== "0");
+  if (!entries.length) return '<div class="tl-none">该记录未保存配置详情。</div>';
+  return '<table class="gen-table"><tbody>' + entries.map(([k, v]) =>
+    '<tr><th>' + esc(PLAN_LABELS[k] || k) + '</th><td>' + esc(typeof v === "object" ? JSON.stringify(v) : v) + "</td></tr>"
+  ).join("") + "</tbody></table>";
+}
+function showPlanDetail(ts, sec, name, kind) {
+  const rec = _histCache.get(ts);
+  const d = rec ? rec[sec] : null;
+  const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
+  if (kind === "modified") {
+    const details = (d && d.modified_details && d.modified_details[name]) || null;
+    if (details && details.length) {
+      const rows = details.map((dt) => {
+        const normV = (v) => (typeof v === "string" && /^0{2,}$/.test(v) ? "全国（不限定省份）" : v);
+        return '<div class="mod-row">' +
+          '<div class="mod-f">' + esc(dt.field || "") + "</div>" +
+          '<div class="mod-v"><div class="mod-old" title="修改前">' + esc(normV(dt.from) || "（空）") + "</div>" +
+          '<div class="mod-arrow">→</div><div class="mod-new" title="修改后">' + esc(normV(dt.to) || "（空）") + "</div></div></div>";
+      }).join("");
+      openModal(name, head + '<div class="res-row sub">该业务本次字段级修改（共 ' + details.length + " 项）：</div>" +
+        '<div class="mod-diff">' + rows + "</div>");
+      return;
+    }
+  }
+  const nm = String(name == null ? "" : name).trim();
+  let brief = null;
+  const lst = (d && d[kind + "_list"]) || null;
+  if (Array.isArray(lst) && lst.length) {
+    brief = lst.find((x) => x && String(x.title || x.name || "").trim() === nm) || lst[0];
+  }
+  const snap = (d && d[kind + "_details"] && d[kind + "_details"][name]) || null;
+  if (brief || snap) {
+    const lab = kind === "added" ? "新增" : kind === "removed" ? "下架" : "修改";
+    openModal(name, head + '<div class="res-row sub">该业务本次' + lab + '，配置如下：</div><div class="gen-brief">' +
+      briefTable(snap || brief) + "</div>");
+    return;
+  }
+  // 兜底：从当前板块数据按名称查找
+  const file = sec === "quanguo" ? "quanguo.json" : sec + ".json";
+  loadJson(file).then((j) => {
+    const items = (j && j.items) || [];
+    const it = items.find((x) => x && String(x.title || x.name || "").trim() === nm);
+    if (it) {
+      const fields = it.detail || it.fields || it;
+      openModal(name, head + '<div class="res-row sub">当前板块中的配置：</div><div class="gen-brief">' + briefTable(fields) + "</div>");
+    } else if (kind === "removed") {
+      openModal(name, head + '<div class="res-row">该套餐已从板块下架，线上无剩余配置。</div>');
+    } else {
+      openModal(name, head + '<div class="res-row">未找到该业务配置。</div>');
+    }
+  }).catch((e) => {
+    openModal(name, head + '<div class="res-row">加载详情失败：' + esc(e.message) + "</div>");
+  });
 }
 
 /* 修改业务明细弹窗：展示该业务本次被修改的字段（旧值 → 新值） */
@@ -485,9 +584,8 @@ function showModDetail(ts, sec, name) {
     return '<div class="mod-row">' +
       '<div class="mod-f">' + pf + "</div>" +
       '<div class="mod-v">' +
-      '<div class="mod-old" title="修改前">' + pv + "</div>" +
-      '<div class="mod-arrow">→</div>' +
-      '<div class="mod-new" title="修改后">' + nv + "</div>" +
+      '<div class="mod-old" title="修改前"><span class="mod-lab old">修改前</span>' + pv + "</div>" +
+      '<div class="mod-new" title="修改后"><span class="mod-lab new">修改后</span>' + nv + "</div>" +
       "</div></div>";
   }).join("");
   openModal(name, head +
@@ -506,40 +604,75 @@ function renderHistory() {
       }
       box.innerHTML = '<div class="tl">' + list.map((r, idx) => {
         _histCache.set(r.ts, r);
-        const parts = [];
-        const details = [];
+        const entries = [];
         SECTIONS.forEach((secObj) => {
           const sec = secObj.section;
           if (filter && filter !== sec) return;
           const d = r[sec];
           if (!d || d.note === "baseline") return;
+          const head = secName(sec);
           const chips = [];
           if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
           if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
           if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
-          if (chips.length) {
-            parts.push("<div><b>" + esc(secName(sec)) + "</b>：" + chips.join("") + "</div>");
-            const detail = histDetail(d, sec, r.ts);
-            if (detail) details.push('<div class="tl-sec-title">' + esc(secName(sec)) + "</div>" + detail);
-          }
+          if (!chips.length) chips.push('<span class="chip none">无变化</span>');
+          // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
+          entries.push(
+            '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
+            '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
+            '<b>' + esc(head) + "</b>" +
+            '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
+            '<span class="tl-sec-arrow"></span></div>' +
+            '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
+              '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
+          );
         });
-        if (!parts.length) {
-          return '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + '</div><div class="tl-chips"><span class="chip">无变化</span></div></div>';
+        if (!entries.length) {
+          return (
+            '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
+            '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
+          );
         }
-        const open = idx === list.length - 1;
+        const open = idx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
         return (
           '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
           '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
-          '<div class="tl-chips">' + parts.join("") + "</div>" +
-          '<div class="tl-body">' + details.join("") + "</div></div>"
+          '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
         );
       }).join("") + "</div>";
+
       box.querySelectorAll(".tl-item").forEach((item) => {
-        const toggle = () => { const open = item.classList.toggle("open"); item.setAttribute("aria-expanded", open ? "true" : "false"); };
-        item.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("a")) return; toggle(); });
-        item.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+        const toggle = () => {
+          const open = item.classList.toggle("open");
+          item.setAttribute("aria-expanded", open ? "true" : "false");
+        };
+        item.addEventListener("click", (e) => {
+          if (e.target.closest && e.target.closest("a")) return;
+          toggle();
+        });
+        item.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+        });
+        // 省份级折叠：点击省标题行，仅展开该省明细（捕获阶段 + stopPropagation 避免误触整条展开）
+        item.querySelectorAll(".tl-sec-head").forEach((head) => {
+          const toggleSec = () => {
+            const entry = head.parentElement;
+            const open = entry.classList.toggle("open");
+            head.setAttribute("aria-expanded", open ? "true" : "false");
+          };
+          head.addEventListener("click", (e) => {
+            if (e.target.closest && e.target.closest("a")) return;
+            e.stopPropagation();
+            toggleSec();
+          }, true);
+          head.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(); }
+          });
+        });
       });
-    }).catch((e) => { $("historyBox").innerHTML = '<div class="empty">历史数据加载失败：' + esc(e.message) + "</div>"; });
+    }).catch((e) => {
+      $("historyBox").innerHTML = '<div class="empty">历史数据加载失败：' + esc(e.message) + "</div>";
+    });
 }
 
 (function boot() {
@@ -652,4 +785,17 @@ btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); }
     if (!el) return;
     if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
   });
+  // —— 其他说明折叠展开 ——
+  // 用捕获阶段拦截：.notes-toggle 在列表项 .detail 内部，若走冒泡，
+  // item 的 click 监听会先触发导致 detail 被误收起，故在捕获阶段即 stopPropagation
+  document.addEventListener('click', function (e) {
+    var tg = e.target && e.target.closest ? e.target.closest('.notes-toggle') : null;
+    if (!tg) return;
+    e.stopPropagation();
+    var block = tg.closest('.notes-block');
+    if (!block) return;
+    var openNow = block.classList.toggle('open');
+    tg.setAttribute('aria-expanded', openNow ? 'true' : 'false');
+    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
+  }, true);
 })();
