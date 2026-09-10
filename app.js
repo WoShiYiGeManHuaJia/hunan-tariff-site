@@ -1,4 +1,4 @@
-/* 中国移动资费监控面板 - 前端逻辑（v20260910a：排序条新增「零元业务」筛选；0元每月/免费在前、0元每次在后；保留按钮震动、无声音） */
+/* 中国移动资费监控面板 - 前端逻辑（v20260905o：三站切换弹窗 + 排序条；保留按钮震动、无声音） */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -360,21 +360,6 @@ function priceOf(it) {
   const m = String(raw).match(/\d+(?:\.\d+)?/);
   return m ? parseFloat(m[0]) : 0;
 }
-/* ---- 零元业务：筛选当前省份/全国中费用为 0 的资费；0元每月/免费在前、0元每次在后 ---- */
-function isZeroFee(it) {
-  const f = it.fields || {};
-  const raw = String(f["资费标准"] || "");
-  if (/免费/.test(raw)) return true;
-  const m = raw.match(/\d+(?:\.\d+)?/);
-  return !!m && Math.abs(parseFloat(m[0])) < 1e-9;
-}
-function zeroRank(it) {
-  const f = it.fields || {};
-  const raw = String(f["资费标准"] || "");
-  if (/次/.test(raw)) return 2;                 // 0元/次 → 后排
-  if (/月/.test(raw) || /免费/.test(raw)) return 0; // 0元/月、免费 → 前排
-  return 1;
-}
 function sortFiltered(arr, st) {
   const dir = (st.order == null ? -1 : st.order) < 0 ? -1 : 1; // 默认降序
   arr.sort(function (a, b) {
@@ -397,8 +382,7 @@ function setupSortBar(rawKey) {
       const sec = rawKey === "quanguo" ? "quanguo" : liveSec();
       const st = getSt(sec);
       const sort = btn.dataset.sort;
-      if (sort === "zero") { st.zero = !st.zero; }
-      else if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
+      if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
       else { st.sort = sort; st.order = sort === "price" ? 1 : -1; }
       st.page = 1;
       syncSortUI(bar, st);
@@ -411,10 +395,8 @@ function syncSortUI(bar, st) {
   if (!bar) return;
   bar.querySelectorAll(".sort-btn[data-sort]").forEach((b) => {
     const s = b.dataset.sort;
-    if (s !== "dir" && s !== "zero") b.classList.toggle("active", !!st.sort && st.sort === s);
+    if (s !== "dir") b.classList.toggle("active", !!st.sort && st.sort === s);
   });
-  const z = bar.querySelector('.sort-btn[data-sort="zero"]');
-  if (z) z.classList.toggle("active", !!st.zero);
   const d = bar.querySelector('.sort-btn[data-sort="dir"]');
   if (d) d.textContent = (st.order == null ? -1 : st.order) < 0 ? "降序 ↓" : "升序 ↑";
 }
@@ -423,7 +405,6 @@ function filterItems(st) {
   const src = st.items || [];
   const out = [];
   for (const it of src) {
-    if (st.zero && !isZeroFee(it)) continue;
     if (st.own && (it.fields && it.fields["归属"]) !== st.own) continue;
     if (st.type && (it.fields && it.fields["资费类型"]) !== st.type) continue;
     if (st.q) {
@@ -445,8 +426,7 @@ function drawList(section) {
   const pagerEl = $(idm.pager);
   const cntEl = $(idm.cnt);
   const filtered = filterItems(st);
-  if (st.zero) { filtered.sort(function (a, b) { return zeroRank(a) - zeroRank(b); }); }
-  else if (st.sort) { sortFiltered(filtered, st); }
+  if (st.sort) { sortFiltered(filtered, st); }
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   if (st.page > totalPages) st.page = totalPages;
   const start = (st.page - 1) * PAGE_SIZE;
