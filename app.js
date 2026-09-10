@@ -302,7 +302,7 @@ function domMap(section) {
   if (section === "quanguo") {
     return { list: "qList", pager: "qPager", cnt: "qCount", search: "qSearch", own: "qOwn", type: "qType", reload: "qReload" };
   }
-  return { list: "pList", pager: "pPager", cnt: "pCount", search: "pSearch", own: null, type: "pType", reload: "pReload" };
+  return { list: "pList", pager: "pPager", cnt: "pCount", search: "pSearch", own: "pOwn", type: "pType", reload: "pReload" };
 }
 
 function renderList(section) {
