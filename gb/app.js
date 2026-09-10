@@ -235,6 +235,21 @@ function priceOf(it) {
   const dm = String(d.feesStandard || "").match(/\d+(?:\.\d+)?/);
   return dm ? parseFloat(dm[0]) : 0;
 }
+/* ---- 零元业务：筛选费用为 0 的资费；0元每月/免费在前、0元每次在后 ---- */
+function isZeroFee(it) {
+  const d = it.detail || {};
+  const raw = String(it.fee == null ? d.feesStandard : it.fee) || "";
+  if (/免费/.test(raw)) return true;
+  const m = raw.match(/\d+(?:\.\d+)?/);
+  return !!m && Math.abs(parseFloat(m[0])) < 1e-9;
+}
+function zeroRank(it) {
+  const d = it.detail || {};
+  const raw = String(it.fee == null ? d.feesStandard : it.fee) || "";
+  if (/次/.test(raw)) return 2;
+  if (/月/.test(raw) || /免费/.test(raw)) return 0;
+  return 1;
+}
 function sortFiltered(arr, st) {
   const dir = (st.order == null ? -1 : st.order) < 0 ? -1 : 1; // 默认降序
   arr.sort(function (a, b) {
@@ -255,7 +270,8 @@ function setupSortBar(rawKey, st, section) {
   bar.querySelectorAll(".sort-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const sort = btn.dataset.sort;
-      if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
+      if (sort === "zero") { st.zero = !st.zero; }
+      else if (sort === "dir") { st.order = (st.order == null ? -1 : st.order) * -1; }
       else { st.sort = sort; st.order = sort === "price" ? 1 : -1; }
       st.page = 1;
       syncSortUI(bar, st);
@@ -268,8 +284,10 @@ function syncSortUI(bar, st) {
   if (!bar) return;
   bar.querySelectorAll(".sort-btn[data-sort]").forEach((b) => {
     const s = b.dataset.sort;
-    if (s !== "dir") b.classList.toggle("active", !!st.sort && st.sort === s);
+    if (s !== "dir" && s !== "zero") b.classList.toggle("active", !!st.sort && st.sort === s);
   });
+  const z = bar.querySelector('.sort-btn[data-sort="zero"]');
+  if (z) z.classList.toggle("active", !!st.zero);
   const d = bar.querySelector('.sort-btn[data-sort="dir"]');
   if (d) d.textContent = (st.order == null ? -1 : st.order) < 0 ? "降序 ↓" : "升序 ↑";
 }
@@ -284,6 +302,7 @@ function filterItems(st) {
       else if (sub !== st.type) continue;
     }
     if (st.sub && secondLevelOf(it) !== st.sub) continue;
+    if (st.zero && !isZeroFee(it)) continue;
     if (st.q) {
       const d = it.detail || {};
       const hay = [it.title, it.fee, d.feesStandard, d.serviceContent, d.useScope, d.codeType,
@@ -321,6 +340,7 @@ function drawList(section) {
       return af - bf;
     });
   }
+  if (st.zero) { filtered.sort(function (a, b) { return zeroRank(a) - zeroRank(b); }); }
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   if (st.page > totalPages) st.page = totalPages;
   const start = (st.page - 1) * PAGE_SIZE;
