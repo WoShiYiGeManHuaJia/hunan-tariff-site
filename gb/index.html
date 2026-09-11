@@ -44,7 +44,8 @@
     </div>
     <div class="panel">
       <h2 class="panel-title">省份资费统计
-        <select id="oProv" class="sel prov-sel" title="切换省份查看该省资费统计"></select>
+        <button type="button" class="prov-pick" id="oProvBtn" title="切换省份查看该省资费统计"><span class="prov-name" id="oProvTxt">加载中…</span><span class="prov-caret">▾</span></button>
+        <select id="oProv" class="sel prov-sel" title="切换省份查看该省资费统计" hidden></select>
         <span class="panel-sub" id="distDesc">五大类分布</span>
       </h2>
       <div class="stat-card"><div class="stat-num" id="opTotal">-</div><div class="stat-label" id="opLabel">本省资费总数</div></div>
@@ -100,8 +101,9 @@
     <div class="panel">
       <h2 class="panel-title">资费变更时间线</h2>
       <div class="toolbar htl">
-        <label class="prov-label" for="hProvFilter">省份：</label>
-        <select id="hProvFilter" class="sel prov-sel" title="按省份筛选变化历史"></select>
+        <label class="prov-label" for="hProvFilterBtn">省份：</label>
+        <button type="button" class="prov-pick" id="hProvFilterBtn" title="按省份筛选变化历史"><span class="prov-name" id="hProvFilterTxt">全部省份</span><span class="prov-caret">▾</span></button>
+        <select id="hProvFilter" class="sel prov-sel" title="按省份筛选变化历史" hidden></select>
       </div>
       <div id="historyBox"><div class="loading">加载历史记录…</div></div>
     </div>
