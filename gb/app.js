@@ -1,4 +1,4 @@
-/* 中国广电资费专区 - 前端逻辑(vgb20260911b: 其他说明对齐官方otherNotes + 修复 sort-btn 边框残留电信蓝; 数据来源广电官网公示) */
+/* 中国广电资费专区 - 前端逻辑(vgb20260911c: 省份选择弹窗美化+顶部固定搜索; 数据来源广电官网公示) */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -41,6 +41,58 @@ function ensureSections() {
   return sectorsLoaded;
 }
 
+/* ---------- 省份选择弹窗（按钮触发 + 顶部固定搜索栏） ---------- */
+let PROV_PICKER = null; // 当前弹窗关联的 select id
+function syncProvTxt(selId) {
+  const txt = $(selId + "Txt");
+  if (!txt) return;
+  const sel = $(selId);
+  const v = (sel && sel.value) || "";
+  txt.textContent = v === "" ? "全部省份" : (secName(v) || v);
+}
+function openProvPicker(selId) {
+  PROV_PICKER = selId;
+  const s = $("provSearch"); if (s) s.value = "";
+  renderProvGrid();
+  const b = $(selId + "Btn"); if (b) b.classList.add("open");
+  $("provMask").classList.add("show");
+}
+function closeProvPicker() {
+  $("provMask").classList.remove("show");
+  if (PROV_PICKER) { const b = $(PROV_PICKER + "Btn"); if (b) b.classList.remove("open"); }
+  PROV_PICKER = null;
+}
+function renderProvGrid() {
+  const grid = $("provGrid"); if (!grid) return;
+  const items = provList().map((s) => ({ section: s.section, name: s.name }));
+  if (PROV_PICKER === "hProvFilter") items.unshift({ section: "", name: "全部省份" });
+  const cur = (PROV_PICKER && $(PROV_PICKER)) ? ($(PROV_PICKER).value || "") : "";
+  const s = $("provSearch");
+  const k = (s ? s.value : "").trim().toLowerCase();
+  const list = k ? items.filter((it) => it.name.toLowerCase().indexOf(k) >= 0) : items;
+  if (!list.length) { grid.innerHTML = '<div class="prov-empty">未找到匹配省份</div>'; return; }
+  grid.innerHTML = list.map((it) => {
+    const on = it.section === cur;
+    return '<button type="button" class="prov-cell' + (on ? " on" : "") + '" data-sec="' + esc(it.section) + '">' +
+      "<span>" + esc(it.name) + '</span><span class="tick">✓</span></button>';
+  }).join("");
+  grid.querySelectorAll(".prov-cell").forEach((cell) => {
+    cell.addEventListener("click", () => pickProv(cell.dataset.sec));
+  });
+}
+function pickProv(sec) {
+  if (!PROV_PICKER) return;
+  const sel = $(PROV_PICKER); if (!sel) return;
+  sel.value = sec;
+  sel.dispatchEvent(new Event("change"));
+  closeProvPicker();
+}
+function initProvPicker() {
+  const c = $("provClose"); if (c) c.addEventListener("click", closeProvPicker);
+  const m = $("provMask"); if (m) m.addEventListener("click", (e) => { if (e.target === m) closeProvPicker(); });
+  const s = $("provSearch"); if (s) s.addEventListener("input", renderProvGrid);
+}
+
 function fillProvSelects() {
   const provEl = $("pProv");
   const oProv = $("oProv");
@@ -54,9 +106,13 @@ function fillProvSelects() {
       const v = provEl.value;
       try { localStorage.setItem(PROV_KEY, v); } catch (e) {}
       if (oProv && oProv.options.length) oProv.value = v;
+      if (oProv) syncProvTxt("oProv");
+      syncProvTxt("pProv");
       listState.prov = null;
       renderList("prov");
     });
+    syncProvTxt("pProv");
+    const pBtn = $("pProvBtn"); if (pBtn) pBtn.addEventListener("click", () => openProvPicker("pProv"));
   }
   if (oProv && oProv.options.length === 0) {
     oProv.innerHTML = opts;
@@ -67,15 +123,21 @@ function fillProvSelects() {
       const v = oProv.value;
       try { localStorage.setItem(PROV_KEY, v); } catch (e) {}
       if (provEl && provEl.options.length) provEl.value = v;
+      if (provEl) syncProvTxt("pProv");
+      syncProvTxt("oProv");
       renderProvPanel();
     });
+    syncProvTxt("oProv");
+    const oBtn = $("oProvBtn"); if (oBtn) oBtn.addEventListener("click", () => openProvPicker("oProv"));
   }
   const hfEl = $("hProvFilter");
   if (hfEl && hfEl.options.length === 0) {
     let hopts = '<option value="">全部省份</option>';
     hopts += provList().map((s) => '<option value="' + esc(s.section) + '">' + esc(s.name) + "</option>").join("");
     hfEl.innerHTML = hopts;
-    hfEl.addEventListener("change", () => renderHistory());
+    hfEl.addEventListener("change", () => { syncProvTxt("hProvFilter"); renderHistory(); });
+    syncProvTxt("hProvFilter");
+    const hBtn = $("hProvFilterBtn"); if (hBtn) hBtn.addEventListener("click", () => openProvPicker("hProvFilter"));
   }
 }
 
@@ -197,7 +259,7 @@ function renderList(section) {
   loadJson(file).then((d) => {
     st.items = d.items || [];
     $("updateTime").textContent = "更新于 " + (d.timestamp || "未知");
-    if (section !== "quanguo") { $("pProv").value = (provList().some((s) => s.section === section) ? section : $("pProv").value); }
+    if (section !== "quanguo") { $("pProv").value = (provList().some((s) => s.section === section) ? section : $("pProv").value); syncProvTxt("pProv"); }
     drawList(section);
   }).catch((e) => { listEl.innerHTML = '<div class="empty">数据加载失败：' + esc(e.message) + "</div>"; });
 
@@ -763,6 +825,7 @@ function doCheck() {
     .finally(() => { checking = false; btnRefresh.classList.remove("busy"); btnRefresh.textContent = oldText; });
 }
 initModal();
+initProvPicker();
 
 /* 检测按钮点击频率限制：1 秒内点击超过 2 次，弹出 75% 透明度提示，本次不执行检测 */
 const _clickStamp = [];

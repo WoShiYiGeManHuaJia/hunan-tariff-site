@@ -154,6 +154,53 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .prov-label{font-size:14px;color:var(--sub);font-weight:600;white-space:nowrap;}
 .prov-sel{min-width:110px;cursor:pointer;}
 .toolbar.htl{margin-bottom:8px;}
+
+/* 省份选择按钮（替换原生下拉，液态玻璃+紫色主题） */
+.prov-pick{display:inline-flex;align-items:center;gap:6px;flex:none;
+  border:1px solid rgba(107,79,161,.35);
+  background:rgba(255,255,255,.62);
+  color:var(--lt-deep);font-size:14px;font-weight:700;padding:6px 13px;border-radius:22px;cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 8px rgba(107,79,161,.12);
+  transition:all .18s ease;white-space:nowrap;line-height:1.6;}
+.prov-pick:hover{background:#fff;border-color:rgba(107,79,161,.55);transform:translateY(-1px);}
+.prov-pick:active{transform:scale(.95);filter:brightness(.96);}
+.prov-pick .prov-name{max-width:9em;overflow:hidden;text-overflow:ellipsis;}
+.prov-pick .prov-caret{flex:none;font-size:11px;color:var(--lt);opacity:.85;transition:transform .18s ease;}
+.prov-pick.open .prov-caret{transform:rotate(180deg);}
+
+/* 省份选择弹窗（顶部搜索栏固定，不随省份网格滚动） */
+#provMask.modal-mask{background:rgba(10,20,30,.45);padding:0;}
+#provMask.show{align-items:flex-end;}
+@media(min-width:640px){#provMask.show{align-items:center;}}
+.prov-card{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:520px;
+  max-height:82vh;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 -6px 30px rgba(10,20,30,.28);}
+@media(min-width:640px){.prov-card{border-radius:20px;box-shadow:0 14px 44px rgba(0,0,0,.28);}}
+.prov-head{flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;background:linear-gradient(135deg,#8060c4,#4a3580);color:#fff;}
+.prov-title{font-size:16px;font-weight:800;letter-spacing:.5px;}
+.prov-searchbar{flex:none;position:relative;display:flex;align-items:center;gap:6px;
+  margin:12px 14px 6px;padding:0 12px;border:1px solid rgba(107,79,161,.32);
+  border-radius:24px;background:rgba(255,255,255,.72);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 1px 6px rgba(107,79,161,.10);}
+.prov-search-ico{flex:none;font-size:16px;color:var(--lt);opacity:.85;}
+.prov-search{flex:1 1 auto;border:none;outline:none;background:transparent;
+  font-size:14.5px;color:var(--txt);padding:9px 0;min-width:0;}
+.prov-search::-webkit-search-cancel-button{-webkit-appearance:none;height:14px;width:14px;
+  background:linear-gradient(135deg,#8060c4,#6b4fa1);border-radius:50%;cursor:pointer;}
+.prov-gridbox{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:8px 14px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px;align-content:start;}
+@media(max-width:480px){.prov-gridbox{grid-template-columns:repeat(2,1fr);}}
+.prov-cell{display:flex;align-items:center;justify-content:space-between;gap:6px;
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;
+  background:#fff;color:var(--txt);font-size:13.5px;font-weight:600;text-align:left;
+  transition:all .16s ease;box-shadow:0 1px 2px rgba(30,0,5,.04);}
+.prov-cell:hover{border-color:rgba(107,79,161,.5);transform:translateY(-1px);}
+.prov-cell.on{border-color:transparent;background:linear-gradient(135deg,#8060c4,#4a3580);
+  color:#fff;box-shadow:0 3px 10px rgba(107,79,161,.32);}
+.prov-cell .tick{flex:none;font-size:12px;opacity:0;transition:opacity .15s ease;}
+.prov-cell.on .tick{opacity:1;}
+.prov-empty{grid-column:1/-1;color:var(--sub);text-align:center;padding:28px 0;font-size:14px;}
 /* 液态玻璃按钮 */
 .glass-btn{display:inline-flex;align-items:center;gap:6px;
   border:1px solid rgba(255,255,255,.4);
