@@ -169,13 +169,11 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .prov-pick.open .prov-caret{transform:rotate(180deg);}
 
 /* 省份选择弹窗（顶部搜索栏固定，不随省份网格滚动） */
-#provMask.modal-mask{background:rgba(10,20,30,.45);padding:0;}
-#provMask.show{align-items:flex-end;}
-@media(min-width:640px){#provMask.show{align-items:center;}}
-.prov-card{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:520px;
+#provMask.modal-mask{background:rgba(10,20,30,.45);padding:16px;}
+#provMask.show{align-items:center;}
+.prov-card{background:var(--card);border-radius:20px;width:100%;max-width:520px;
   max-height:82vh;display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:0 -6px 30px rgba(10,20,30,.28);}
-@media(min-width:640px){.prov-card{border-radius:20px;box-shadow:0 14px 44px rgba(0,0,0,.28);}}
+  box-shadow:0 14px 44px rgba(0,0,0,.28);}
 .prov-head{flex:none;display:flex;align-items:center;justify-content:space-between;
   padding:14px 18px;background:linear-gradient(135deg,#8060c4,#4a3580);color:#fff;}
 .prov-title{font-size:16px;font-weight:800;letter-spacing:.5px;}
@@ -216,13 +214,11 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .f-sel{position:absolute!important;width:1px;height:1px;opacity:0;pointer-events:none;}
 
 /* 通用单选选择弹窗 */
-#genMask.modal-mask{background:rgba(10,20,30,.45);padding:0;}
-#genMask.show{align-items:flex-end;}
-@media(min-width:640px){#genMask.show{align-items:center;}}
-.gen-card{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:480px;
+#genMask.modal-mask{background:rgba(10,20,30,.45);padding:16px;}
+#genMask.show{align-items:center;}
+.gen-card{background:var(--card);border-radius:20px;width:100%;max-width:480px;
   max-height:78vh;display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:0 -6px 30px rgba(10,20,30,.28);}
-@media(min-width:640px){.gen-card{border-radius:20px;box-shadow:0 14px 44px rgba(0,0,0,.28);}}
+  box-shadow:0 14px 44px rgba(0,0,0,.28);}
 .gen-head{flex:none;display:flex;align-items:center;justify-content:space-between;
   padding:14px 18px;background:linear-gradient(135deg,#8060c4,#4a3580);color:#fff;}
 .gen-title{font-size:16px;font-weight:800;letter-spacing:.5px;}
