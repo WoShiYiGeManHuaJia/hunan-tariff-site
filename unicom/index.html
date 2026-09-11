@@ -29,6 +29,7 @@
     <button class="tab" data-view="quanguo">全国资费</button>
     <button class="tab" data-view="prov">省份资费</button>
     <button class="tab" data-view="history">变化历史</button>
+    <button class="tab" data-view="announce">湖南联通公告</button>
     <button class="tab" data-view="about">关于</button>
   </nav>
 </header>
@@ -116,6 +117,15 @@
 <select id="hProvFilter" class="sel prov-sel" title="按省份筛选变化历史" hidden></select>
       </div>
       <div id="historyBox"><div class="loading">加载历史记录…</div></div>
+    </div>
+  </section>
+
+  <!-- 湖南联通公告 -->
+  <section id="view-announce" class="view">
+    <div class="panel">
+      <h2 class="panel-title">湖南联通公告<span class="panel-sub">来源：中国联通官网公告 · 自动抓取，仅保留最新 15 条</span></h2>
+      <div class="announce-sub" id="announceSub"></div>
+      <div class="announce-list" id="announceBox"><div class="loading">加载公告…</div></div>
     </div>
   </section>
 

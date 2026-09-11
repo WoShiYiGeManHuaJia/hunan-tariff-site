@@ -22,6 +22,16 @@ function loadJson(file) {
     .then((j) => { cache[file] = j; return j; });
 }
 
+/* ---------- 公告数据（announce.json，最新15条） ---------- */
+let announceCache = null;
+function loadAnnounce() {
+  if (announceCache) return Promise.resolve(announceCache);
+  return fetchTimeout(DATA + "announce.json")
+    .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then((j) => { announceCache = j; return j; })
+    .catch((e) => { announceCache = null; throw e; });
+}
+
 /* ---------- 板块索引 ---------- */
 let SECTIONS = [];
 let DEF_SECTION = "hunan";
@@ -209,6 +219,7 @@ function goTab(v) {
   else if (v === "quanguo") renderList("quanguo");
   else if (v === "prov") { ensureSections(); renderList("prov"); }
   else if (v === "history") { ensureSections(); renderHistory(); }
+  else if (v === "announce") renderAnnounce();
 }
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => {
@@ -718,6 +729,49 @@ function showModDetail(ts, sec, name) {
     '<div class="mod-diff">' + rows + "</div>");
 }
 
+function renderAnnounce() {
+  const box = $("announceBox");
+  const sub = $("announceSub");
+  loadAnnounce().then((d) => {
+    if (!d || !d.items || !d.items.length) {
+      if (sub) sub.textContent = "";
+      box.innerHTML = '<div class="empty">暂无公告数据</div>';
+      return;
+    }
+    if (sub) sub.innerHTML = "数据更新时间：" + esc(d.updated || "");
+    box.innerHTML = d.items.map((it, i) => {
+      const att = (it.attachments && it.attachments.length)
+        ? '<div class="ann-att">' + it.attachments.map((a) =>
+            '<a class="ann-att-btn" href="' + esc(a.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">附件 · ' + esc(a.name || "下载") + "</a>").join("") + "</div>"
+        : "";
+      const body = (it.content && it.content.trim())
+        ? '<div class="ann-content">' + it.content + "</div>"
+        : '<div class="ann-noimg">该公告正文以图片形式发布，请点击查看官网原文。</div>';
+      return '<div class="ann-item" data-i="' + i + '">' +
+        '<div class="ann-head">' +
+        '<span class="ann-date">' + esc(it.date || "") + "</span>" +
+        '<span class="ann-title">' + esc(it.title || "") + "</span>" +
+        '<span class="ann-arrow"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>' +
+        "</div>" +
+        (it.summary ? '<div class="ann-summary">' + esc(it.summary) + "</div>" : "") +
+        '<div class="ann-body">' + body + att +
+        '<div class="ann-more"><a href="' + esc(it.page_url || "#") + '" target="_blank" rel="noopener">查看官网原文</a></div>' +
+        "</div></div>";
+    }).join("");
+    box.querySelectorAll(".ann-item").forEach((el) => {
+      const h = el.querySelector(".ann-head");
+      h.addEventListener("click", () => {
+        const open = el.classList.toggle("open");
+        const arw = el.querySelector(".ann-arrow");
+        if (arw) arw.style.transform = open ? "rotate(180deg)" : "";
+      });
+    });
+  }).catch(() => {
+    if (sub) sub.textContent = "";
+    box.innerHTML = '<div class="empty">公告数据加载失败，请稍后重试</div>';
+  });
+}
+
 function renderHistory() {
   const filter = $("hProvFilter") ? $("hProvFilter").value : "";
   Promise.all([ensureSections().catch(() => {}), loadJson("history.json")])
@@ -802,7 +856,7 @@ function renderHistory() {
 
 (function boot() {
   const raw = (location.hash || "").replace("#", "").trim();
-  const valid = ["overview", "quanguo", "prov", "history", "about"].indexOf(raw) >= 0;
+  const valid = ["overview", "quanguo", "prov", "history", "announce", "about"].indexOf(raw) >= 0;
   goTab(valid ? raw : "overview");
 })();
 
