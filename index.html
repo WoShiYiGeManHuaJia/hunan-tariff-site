@@ -7,6 +7,16 @@
 <meta http-equiv="Pragma" content="no-cache">
 <title>中国移动资费监控 · 数据一览</title>
 <link rel="stylesheet" href="./style.css?v=20260911d">
+  <link rel="icon" href="logo.png" type="image/png">
+  <meta name="description" content="中国移动资费监控 · 全网及湖南全省公开资费数据一览，支持实时检索、资费对比与变化历史追踪。">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="资费监控站">
+  <meta property="og:title" content="中国移动资费监控">
+  <meta property="og:description" content="中国移动资费监控 · 全网及湖南全省公开资费数据一览，支持实时检索、资费对比与变化历史追踪。">
+  <meta property="og:url" content="https://woshiyigemanhuajia.github.io/hunan-tariff-site/">
+  <meta property="og:image" content="https://woshiyigemanhuajia.github.io/hunan-tariff-site/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="中国移动资费监控">
 </head>
 <body>
 <header class="topbar">
@@ -22,6 +32,7 @@
       <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
       <button class="glass-btn" id="refreshBtn" title="检测最新快照与历史变化">检测资费</button>
       <button class="glass-btn" id="switchBtn" title="切换运营商站点">切换<span class="arr">›</span></button>
+      <button class="glass-btn" id="themeBtn" title="切换深色/浅色模式">深色</button>
     </div>
   </div>
   <nav class="tabs">
@@ -39,7 +50,7 @@
   <section id="view-overview" class="view active">
     <div class="stat-grid" id="statGrid">
       <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全网通用资费</div></div>
-      <div class="stat-card"><div class="stat-num" id="stAllProv">-</div><div class="stat-label">31省资费合计(去重)</div></div>
+      <div class="stat-card"><div class="stat-num" id="stAllProv">-</div><div class="stat-label" id="stAllProvLabel">31省资费合计(去重)</div></div>
       <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label" id="stQuanguoLabel">本省个人资费</div></div>
       <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label" id="stGqLabel">本省政企资费</div></div>
     </div>
