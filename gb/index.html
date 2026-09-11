@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>中国广电资费专区 · 数据一览</title>
-<link rel="stylesheet" href="./style.css?v=gb20260911c">
+<link rel="stylesheet" href="./style.css?v=gb20260911d">
 </head>
 <body>
 <header class="topbar">
@@ -63,6 +63,8 @@
         <button type="button" class="sort-btn" data-sort="zero">零元业务</button>
         <button type="button" class="sort-btn s-dir" data-sort="dir">降序 ↓</button>
       </div>
+      
+      <select id="qScope" class="sel" title="搜索范围"><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
       <input type="search" id="qSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
       <select id="qType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option><option>特殊群体套餐</option><option>政企</option></select>
       <select id="qSub" class="sel"><option value="">全部二级分类</option></select>
@@ -86,6 +88,8 @@
       <label class="prov-label" for="pProvBtn">省份：</label>
       <button type="button" class="prov-pick" id="pProvBtn" title="自助选择其他省份"><span class="prov-name" id="pProvTxt">加载中…</span><span class="prov-caret">▾</span></button>
       <select id="pProv" class="sel prov-sel" title="自助选择其他省份" hidden></select>
+      
+      <select id="pScope" class="sel" title="搜索范围"><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
       <input type="search" id="pSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
       <select id="pType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option><option>特殊群体套餐</option><option>政企</option></select>
       <select id="pSub" class="sel"><option value="">全部二级分类</option></select>
@@ -169,6 +173,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=gb20260911c"></script>
+<script src="./app.js?v=gb20260911d"></script>
 </body>
 </html>

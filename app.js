@@ -358,14 +358,14 @@ function liveSec() {
   return (el && el.value) || DEF_SECTION;
 }
 function getSt(section) {
-  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", own: "", type: "", sort: null, order: null };
+  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", scope: "all", own: "", type: "", sort: null, order: null };
   return listState[section];
 }
 function domMap(section) {
   if (section === "quanguo") {
-    return { list: "qList", pager: "qPager", cnt: "qCount", search: "qSearch", own: "qOwn", type: "qType", reload: "qReload" };
+    return { list: "qList", pager: "qPager", cnt: "qCount", search: "qSearch", scope: "qScope", own: "qOwn", type: "qType", reload: "qReload" };
   }
-  return { list: "pList", pager: "pPager", cnt: "pCount", search: "pSearch", own: "pOwn", type: "pType", reload: "pReload" };
+  return { list: "pList", pager: "pPager", cnt: "pCount", search: "pSearch", scope: "pScope", own: "pOwn", type: "pType", reload: "pReload" };
 }
 
 function renderList(section) {
@@ -396,6 +396,8 @@ function renderList(section) {
     const stOf = () => getSt(secOf());
     qEl.dataset.bound = "1";
     qEl.addEventListener("input", () => { const st = stOf(); st.q = qEl.value.trim().toLowerCase(); st.page = 1; drawList(secOf()); });
+    const scopeEl = idm.scope ? $(idm.scope) : null;
+    if (scopeEl) scopeEl.addEventListener("change", () => { const st = stOf(); st.scope = scopeEl.value; st.page = 1; drawList(secOf()); });
     const ownEl = idm.own ? $(idm.own) : null;
     const typeEl = $(idm.type);
     if (ownEl) ownEl.addEventListener("change", () => { const st = stOf(); st.own = ownEl.value; st.page = 1; drawList(secOf()); });
@@ -490,10 +492,14 @@ function filterItems(st) {
     if (st.own && (it.fields && it.fields["归属"]) !== st.own) continue;
     if (st.type && (it.fields && it.fields["资费类型"]) !== st.type) continue;
     if (st.q) {
-      const f = it.fields || {};
-      const vals = Object.values(f).filter((v) => v != null && v !== "").join(" ");
-      const hay = (it.name + " " + vals).toLowerCase();
-      if (!hay.includes(st.q)) continue;
+      if (st.scope === "name") {
+        if ((it.name || "").toLowerCase().indexOf(st.q) < 0) continue;
+      } else {
+        const f = it.fields || {};
+        const vals = Object.values(f).filter((v) => v != null && v !== "").join(" ");
+        const hay = (it.name + " " + vals).toLowerCase();
+        if (!hay.includes(st.q)) continue;
+      }
     }
     out.push(it);
   }
@@ -794,39 +800,46 @@ function renderHistory() {
   goTab(valid ? raw : "overview");
 })();
 
-/* ========== 更新公告弹窗（每个设备仅显示一次） ========== */
+
+/* ========== 更新公告弹窗（每个设备仅显示一次，几大站共用同一标记） ========== */
 (function () {
-  var KEY = "marvis_site_notice_20260911";
+  var KEY = "marvis_site_notice_20260911v2";
   var done = false;
   try { done = !!localStorage.getItem(KEY); } catch (e) {}
   if (done) return;
   var css = [
     ".notice-mask{position:fixed;inset:0;background:rgba(10,14,26,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;animation:noticeFade .18s ease}",
     "@keyframes noticeFade{from{opacity:0}to{opacity:1}}",
-    ".notice-card{background:#fff;border-radius:14px;max-width:440px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.25);font-size:14px;line-height:1.7;color:#222;padding:20px 20px 16px;box-sizing:border-box}",
-    ".notice-card h3{margin:0 0 8px;font-size:17px;color:#0a0e1a;display:flex;align-items:center;gap:6px}",
-    ".notice-tag{display:inline-block;font-size:11px;color:#fff;background:#2a7de1;border-radius:4px;padding:1px 6px;font-weight:400;vertical-align:2px}",
-    ".notice-card ul{margin:6px 0 0;padding-left:18px}",
-    ".notice-card li{margin:4px 0}",
-    ".notice-ft{margin-top:14px;text-align:right}",
-    ".notice-ok{border:0;background:#2a7de1;color:#fff;font-size:14px;padding:8px 22px;border-radius:8px;cursor:pointer}",
+    ".notice-card{background:#fff;border-radius:16px;max-width:400px;width:100%;overflow:hidden;box-shadow:0 14px 44px rgba(0,0,0,.28);font-size:14px;line-height:1.65;color:#222;box-sizing:border-box}",
+    ".notice-top{background:linear-gradient(120deg,#0d8bec,#33a6ff);color:#fff;padding:18px 20px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}",
+    ".notice-ico{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}",
+    ".notice-top h3{margin:0;font-size:16px;font-weight:600;flex:1;min-width:120px}",
+    ".notice-top .notice-tag{font-size:11px;color:#fff;background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.5);border-radius:10px;padding:2px 8px;font-weight:400}",
+    ".notice-body{padding:16px 20px 6px}",
+    ".notice-body p{margin:0 0 10px;color:#555}",
+    ".notice-list{margin:0;padding:0;list-style:none}",
+    ".notice-list li{position:relative;padding:4px 0 4px 22px;margin:0}",
+    ".notice-list li:before{content:'✓';position:absolute;left:0;top:4px;color:#17a34a;font-weight:700}",
+    ".notice-ft{padding:12px 20px 18px;text-align:right}",
+    ".notice-ok{border:0;background:linear-gradient(120deg,#0d8bec,#33a6ff);color:#fff;font-size:14px;padding:9px 26px;border-radius:20px;cursor:pointer;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.14)}",
     ".notice-ok:active{opacity:.85}",
     "body.dark .notice-card{background:#171c28;color:#e6e8ee}",
-    "body.dark .notice-card h3{color:#fff}"
-  ].join("");
+    "body.dark .notice-top{filter:brightness(.9)}",
+    "body.dark .notice-body p{color:#b9bfcc}"
+  ].join(" ");
   var style = document.createElement("style");
   style.textContent = css;
   document.head.appendChild(style);
   var card = document.createElement("div");
   card.className = "notice-card";
   card.innerHTML =
-    '<h3>资费站更新公告 <span class="notice-tag">2026.09.11</span></h3>' +
-    "<ul>" +
-    "<li>电信、联通资费详情已补齐<b>上线日期 / 下线日期 / 销售渠道 / 退订方式 / 违约责任 / 在网要求</b>，官方「其他说明」全文也已收录。</li>" +
-    "<li><b>适用对象</b>已移入资费详情主表，不再挤进折叠区，查看更直观。</li>" +
-    "<li>三站（移动 / 联通 / 电信）功能保持一致：<b>零元业务筛选、历史变化分类（新增绿 / 下架红 / 修改蓝）、省份切换、资费详情弹窗</b>。</li>" +
-    "<li>历史页可查看每次变化的新增 / 下架 / 修改业务明细。</li>" +
-    "</ul>" +
+    '<div class="notice-top"><span class="notice-ico">📢</span><h3>资费站更新公告</h3><span class="notice-tag">2026.09.11</span></div>' +
+    '<div class="notice-body"><p>本次更新主要内容：</p><ul class="notice-list">' +
+    "<li>优化了资费文字排版，查看更清晰。</li>" +
+    "<li>新增广电运营商站点，四大运营商一站切换。</li>" +
+    "<li>美化省份选择弹窗，顶部固定搜索栏。</li>" +
+    "<li>搜索支持「全局 / 仅业务名称」范围切换。</li>" +
+    '</ul></div>' +
     '<div class="notice-ft"><button class="notice-ok" id="notice-ok-btn">知道了</button></div>';
   var mask = document.createElement("div");
   mask.className = "notice-mask";

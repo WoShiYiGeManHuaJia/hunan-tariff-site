@@ -231,14 +231,14 @@ function liveSec() {
   return (el && el.value) || DEF_SECTION;
 }
 function getSt(section) {
-  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", type: "", sub: "" };
+  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", scope: "all", type: "", sub: "" };
   return listState[section];
 }
 function domMap(section) {
   if (section === "quanguo") {
-    return { list: "qList", pager: "qPager", cnt: "qCount", search: "qSearch", type: "qType", sub: "qSub", reload: "qReload" };
+    return { list: "qList", pager: "qPager", cnt: "qCount", search: "qSearch", scope: "qScope", type: "qType", sub: "qSub", reload: "qReload" };
   }
-  return { list: "pList", pager: "pPager", cnt: "pCount", search: "pSearch", type: "pType", sub: "pSub", reload: "pReload" };
+  return { list: "pList", pager: "pPager", cnt: "pCount", search: "pSearch", scope: "pScope", type: "pType", sub: "pSub", reload: "pReload" };
 }
 
 const TYPE_FIRST = { "套餐": 1, "加装包": 1, "营销活动": 1, "标准资费": 1, "港澳台/国际资费": 1, "停售套餐": 1 };
@@ -268,6 +268,8 @@ function renderList(section) {
     const stOf = () => getSt(secOf());
     qEl.dataset.bound = "1";
     qEl.addEventListener("input", () => { const st = stOf(); st.q = qEl.value.trim().toLowerCase(); st.page = 1; drawList(secOf()); });
+    const scopeEl = idm.scope ? $(idm.scope) : null;
+    if (scopeEl) scopeEl.addEventListener("change", () => { const st = stOf(); st.scope = scopeEl.value; st.page = 1; drawList(secOf()); });
     const typeEl = $(idm.type);
     const subEl = $(idm.sub);
     if (typeEl) typeEl.addEventListener("change", () => { const st = stOf(); st.type = typeEl.value; st.page = 1; drawList(secOf()); });
@@ -386,10 +388,14 @@ function filterItems(st) {
     }
     if (st.sub && secondLevelOf(it) !== st.sub) continue;
     if (st.q) {
-      const d = it.detail || {};
-      const hay = [it.title, it.fee, d.feesStandard, d.serviceContent, d.useScope, d.codeType,
-        firstLevelOf(it), secondLevelOf(it)].filter((v) => v != null && v !== "").join(" ").toLowerCase();
-      if (!hay.includes(st.q)) continue;
+      if (st.scope === "name") {
+        if ((it.title || "").toLowerCase().indexOf(st.q) < 0) continue;
+      } else {
+        const d = it.detail || {};
+        const hay = [it.title, it.fee, d.feesStandard, d.serviceContent, d.useScope, d.codeType,
+          firstLevelOf(it), secondLevelOf(it)].filter((v) => v != null && v !== "").join(" ").toLowerCase();
+        if (!hay.includes(st.q)) continue;
+      }
     }
     out.push(it);
   }
@@ -868,3 +874,57 @@ btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); }
     if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
   }, true);
 })();
+
+/* ========== 更新公告弹窗（每个设备仅显示一次，几大站共用同一标记） ========== */
+(function () {
+  var KEY = "marvis_site_notice_20260911v2";
+  var done = false;
+  try { done = !!localStorage.getItem(KEY); } catch (e) {}
+  if (done) return;
+  var css = [
+    ".notice-mask{position:fixed;inset:0;background:rgba(10,14,26,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;animation:noticeFade .18s ease}",
+    "@keyframes noticeFade{from{opacity:0}to{opacity:1}}",
+    ".notice-card{background:#fff;border-radius:16px;max-width:400px;width:100%;overflow:hidden;box-shadow:0 14px 44px rgba(0,0,0,.28);font-size:14px;line-height:1.65;color:#222;box-sizing:border-box}",
+    ".notice-top{background:linear-gradient(120deg,#6b4fa1,#a06ce0);color:#fff;padding:18px 20px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}",
+    ".notice-ico{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}",
+    ".notice-top h3{margin:0;font-size:16px;font-weight:600;flex:1;min-width:120px}",
+    ".notice-top .notice-tag{font-size:11px;color:#fff;background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.5);border-radius:10px;padding:2px 8px;font-weight:400}",
+    ".notice-body{padding:16px 20px 6px}",
+    ".notice-body p{margin:0 0 10px;color:#555}",
+    ".notice-list{margin:0;padding:0;list-style:none}",
+    ".notice-list li{position:relative;padding:4px 0 4px 22px;margin:0}",
+    ".notice-list li:before{content:'✓';position:absolute;left:0;top:4px;color:#17a34a;font-weight:700}",
+    ".notice-ft{padding:12px 20px 18px;text-align:right}",
+    ".notice-ok{border:0;background:linear-gradient(120deg,#6b4fa1,#a06ce0);color:#fff;font-size:14px;padding:9px 26px;border-radius:20px;cursor:pointer;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.14)}",
+    ".notice-ok:active{opacity:.85}",
+    "body.dark .notice-card{background:#171c28;color:#e6e8ee}",
+    "body.dark .notice-top{filter:brightness(.9)}",
+    "body.dark .notice-body p{color:#b9bfcc}"
+  ].join(" ");
+  var style = document.createElement("style");
+  style.textContent = css;
+  document.head.appendChild(style);
+  var card = document.createElement("div");
+  card.className = "notice-card";
+  card.innerHTML =
+    '<div class="notice-top"><span class="notice-ico">📢</span><h3>资费站更新公告</h3><span class="notice-tag">2026.09.11</span></div>' +
+    '<div class="notice-body"><p>本次更新主要内容：</p><ul class="notice-list">' +
+    "<li>优化了资费文字排版，查看更清晰。</li>" +
+    "<li>新增广电运营商站点，四大运营商一站切换。</li>" +
+    "<li>美化省份选择弹窗，顶部固定搜索栏。</li>" +
+    "<li>搜索支持「全局 / 仅业务名称」范围切换。</li>" +
+    '</ul></div>' +
+    '<div class="notice-ft"><button class="notice-ok" id="notice-ok-btn">知道了</button></div>';
+  var mask = document.createElement("div");
+  mask.className = "notice-mask";
+  mask.appendChild(card);
+  document.body.appendChild(mask);
+  var ok = document.getElementById("notice-ok-btn");
+  if (ok) {
+    ok.addEventListener("click", function () {
+      try { localStorage.setItem(KEY, "1"); } catch (e) {}
+      if (mask && mask.parentNode) mask.parentNode.removeChild(mask);
+    });
+  }
+})();
+
