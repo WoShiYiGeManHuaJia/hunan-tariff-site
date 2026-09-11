@@ -1,5 +1,24 @@
 /* 中国移动资费监控面板 - 前端逻辑（v20260911c：排序条新增「零元业务」筛选；0元每月/免费在前、0元每次在后；保留按钮震动、无声音） */
 "use strict";
+
+/* ===== 深色/浅色主题切换（一键按钮 + 跟随系统，localStorage 记忆） ===== */
+(function () {
+  var KEY = "trf_dark";
+  var btn = document.getElementById("themeBtn");
+  function themeApply(dark) {
+    document.body.classList.toggle("dark", dark);
+    if (btn) btn.textContent = dark ? "浅色" : "深色";
+    try { localStorage.setItem(KEY, dark ? "1" : "0"); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  var dark = saved != null ? saved === "1"
+    : !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  themeApply(dark);
+  if (btn) btn.addEventListener("click", function () {
+    themeApply(!document.body.classList.contains("dark"));
+  });
+})();
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
@@ -356,6 +375,9 @@ function renderOverview() {
     $("stTotal").textContent = (d.quanguo_total == null) ? "-" : fmt(d.quanguo_total);
     $("stAllProv").textContent = (d.prov_total == null) ? "-" : fmt(d.prov_total);
     $("updateTime").textContent = "更新于 " + (d.updated || "未知");
+  const slp = document.getElementById("stAllProvLabel");
+  if (slp) slp.textContent = (SECTIONS.length ? (SECTIONS.length - 1) + "省资费合计(去重)" : slp.textContent);
+
     document.title = "中国移动资费监控 · 更新于 " + (d.updated || "");
     renderProvPanel();   // 顶部个人/政企卡 + 省份面板统一按所选省份联动（不必再渲染全网口径）
   }).catch((e) => {
@@ -776,7 +798,16 @@ function showDelDetail(ts, sec, name) {
     '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表确认当前在售业务。</div>');
 }
 
-/* ===== 公告列表 ===== */
+/* ===== 公告列表（href 协议白名单兜底，阻止 javascript: 等危险链接） ===== */
+function safeHref(url) {
+  url = String(url == null ? "" : url).trim();
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) {
+    var lp = url.toLowerCase();
+    if (lp.indexOf("http:") === 0 || lp.indexOf("https:") === 0 || lp.indexOf("mailto:") === 0 || lp.indexOf("#") === 0) return url;
+    return "#";
+  }
+  return url;
+}
 function renderAnnounce() {
   const box = $("announceBox");
   const sub = $("announceSub");
@@ -790,7 +821,7 @@ function renderAnnounce() {
     box.innerHTML = d.items.map((it, i) => {
       const att = (it.attachments && it.attachments.length)
         ? '<div class="ann-att">' + it.attachments.map((a) =>
-            '<a class="ann-att-btn" href="' + esc(a.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">附件 · ' + esc(a.name || "下载") + "</a>").join("") + "</div>"
+            '<a class="ann-att-btn" href="' + esc(safeHref(a.url)) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">附件 · ' + esc(a.name || "下载") + "</a>").join("") + "</div>"
         : "";
       const body = (it.content && it.content.trim())
         ? '<div class="ann-content">' + it.content + "</div>"
@@ -803,7 +834,7 @@ function renderAnnounce() {
         "</div>" +
         (it.summary ? '<div class="ann-summary">' + esc(it.summary) + "</div>" : "") +
         '<div class="ann-body">' + body + att +
-        '<div class="ann-more"><a href="' + esc(it.page_url || "#") + '" target="_blank" rel="noopener">查看官网原文</a></div>' +
+        '<div class="ann-more"><a href="' + esc(safeHref(it.page_url || "#")) + '" target="_blank" rel="noopener">查看官网原文</a></div>' +
         "</div></div>";
     }).join("");
     box.querySelectorAll(".ann-item").forEach((el) => {
@@ -820,83 +851,104 @@ function renderAnnounce() {
   });
 }
 
+const HIST_PAGE = 10;      // 历史每次渲染条数（渐变加载，避免一次性建巨量 DOM）
+let histShown = 0;          // 当前已渲染条数
+let histAll = [];            // 全量历史数组
+let histFilter = "";
+function histDraw(list) {
+  const box = $("historyBox");
+  histShown = Math.min(histShown, list.length);
+  const slice = list.slice(0, histShown);
+  let html = '<div class="tl">' + slice.map((r, idx) => {
+    const gidx = list.indexOf(r);             // 全局下标（用于判定最新一条默认展开）
+    const entries = [];
+    SECTIONS.forEach((secObj) => {
+      const sec = secObj.section;
+      if (histFilter && histFilter !== sec) return;
+      const d = r[sec];
+      if (!d || d.note === "baseline") return;
+      const head = secName(sec);
+      const chips = [];
+      if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
+      if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
+      if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
+      if (!chips.length) chips.push('<span class="chip none">无变化</span>');
+      // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
+      entries.push(
+        '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
+        '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
+        '<b>' + esc(head) + "</b>" +
+        '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
+        '<span class="tl-sec-arrow"></span></div>' +
+        '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
+          '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
+      );
+    });
+    if (!entries.length) {
+      return (
+        '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
+        '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
+      );
+    }
+    const open = gidx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
+    return (
+      '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
+      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
+      '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
+    );
+  }).join("") + "</div>";
+  if (histShown < list.length) {
+    html += '<div class="hist-more"><button type="button" class="btn" id="histMoreBtn">加载更多（剩余 ' + (list.length - histShown) + " 条）</button></div>";
+  }
+  box.innerHTML = html;
+  box.querySelectorAll(".tl-item").forEach((item) => {
+    const toggle = () => {
+      const open = item.classList.toggle("open");
+      item.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    item.addEventListener("click", (e) => {
+      if (e.target.closest && e.target.closest("a")) return;
+      toggle();
+    });
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+    // 省份级折叠：点击省标题行，仅展开该省明细（捕获阶段 + stopPropagation 避免误触整条展开）
+    item.querySelectorAll(".tl-sec-head").forEach((head) => {
+      const toggleSec = () => {
+        const entry = head.parentElement;
+        const open = entry.classList.toggle("open");
+        head.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+      head.addEventListener("click", (e) => {
+        if (e.target.closest && e.target.closest("a")) return;
+        e.stopPropagation();
+        toggleSec();
+      }, true);
+      head.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(); }
+      });
+    });
+  });
+  if (histShown < list.length) {
+    const moreBtn = document.getElementById("histMoreBtn");
+    if (moreBtn) moreBtn.addEventListener("click", function () {
+      histShown = Math.min(list.length, histShown + HIST_PAGE);
+      histDraw(list);
+    });
+  }
+}
 function renderHistory() {
-  const filter = $("hProvFilter") ? $("hProvFilter").value : "";
+  histFilter = $("hProvFilter") ? $("hProvFilter").value : "";
+  histShown = 0;
   Promise.all([ensureSections().catch(() => {}), loadJson("history.json")])
     .then(([, list]) => {
-      const box = $("historyBox");
       if (!Array.isArray(list) || !list.length) {
-        box.innerHTML = '<div class="empty">暂无资费变化记录（首次基线已建立，后续检测到变更会自动记录）</div>';
+        $("historyBox").innerHTML = '<div class="empty">暂无资费变化记录（首次基线已建立，后续检测到变更会自动记录）</div>';
         return;
       }
-      box.innerHTML = '<div class="tl">' + list.map((r, idx) => {
-        _histCache.set(r.ts, r);
-        const entries = [];
-        SECTIONS.forEach((secObj) => {
-          const sec = secObj.section;
-          if (filter && filter !== sec) return;
-          const d = r[sec];
-          if (!d || d.note === "baseline") return;
-          const head = secName(sec);
-          const chips = [];
-          if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
-          if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
-          if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
-          if (!chips.length) chips.push('<span class="chip none">无变化</span>');
-          // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
-          entries.push(
-            '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
-            '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
-            '<b>' + esc(head) + "</b>" +
-            '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
-            '<span class="tl-sec-arrow"></span></div>' +
-            '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
-              '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
-          );
-        });
-        if (!entries.length) {
-          return (
-            '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
-            '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
-          );
-        }
-        const open = idx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
-        return (
-          '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
-          '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
-          '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
-        );
-      }).join("") + "</div>";
-
-      box.querySelectorAll(".tl-item").forEach((item) => {
-        const toggle = () => {
-          const open = item.classList.toggle("open");
-          item.setAttribute("aria-expanded", open ? "true" : "false");
-        };
-        item.addEventListener("click", (e) => {
-          if (e.target.closest && e.target.closest("a")) return;
-          toggle();
-        });
-        item.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
-        });
-        // 省份级折叠：点击省标题行，仅展开该省明细（捕获阶段 + stopPropagation 避免误触整条展开）
-        item.querySelectorAll(".tl-sec-head").forEach((head) => {
-          const toggleSec = () => {
-            const entry = head.parentElement;
-            const open = entry.classList.toggle("open");
-            head.setAttribute("aria-expanded", open ? "true" : "false");
-          };
-          head.addEventListener("click", (e) => {
-            if (e.target.closest && e.target.closest("a")) return;
-            e.stopPropagation();
-            toggleSec();
-          }, true);
-          head.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(); }
-          });
-        });
-      });
+      histAll = list;
+      histDraw(list);
     }).catch((e) => {
       $("historyBox").innerHTML = '<div class="empty">历史数据加载失败：' + esc(e.message) + "</div>";
     });
