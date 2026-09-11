@@ -1,4 +1,4 @@
-/* 中国广电资费专区 - 前端逻辑(vgb20260910b: 全功能对齐移动站；新增/下架/修改均可点击查看详情; 数据来源广电官网公示) */
+/* 中国广电资费专区 - 前端逻辑(vgb20260911a: 修复 sort-btn 边框残留电信蓝 -> 紫; 数据来源广电官网公示) */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
