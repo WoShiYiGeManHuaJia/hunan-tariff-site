@@ -416,6 +416,7 @@ function drawList(section) {
     subEl.innerHTML = '<option value="">全部二级分类</option>' + allSubs.map((s) => '<option>' + esc(s) + "</option>").join("");
     if (st.sub && allSubs.indexOf(st.sub) < 0) st.sub = "";
     subEl.value = st.sub;
+    syncFPick(idm.sub);
   }
   const filtered = filterItems(st);
   if (st.zero) { filtered.sort((a, b) => zeroRank(a) - zeroRank(b)); }
@@ -832,6 +833,60 @@ function doCheck() {
 }
 initModal();
 initProvPicker();
+
+/* ---------- 通用单选筛选弹窗（搜索范围 / 类型 / 二级分类） ---------- */
+let FP_SEL = null; // 当前弹窗关联的 select id
+function fTitle(selId) {
+  const sel = document.getElementById(selId);
+  return (sel && sel.getAttribute("title")) || "选择";
+}
+function syncFPick(selId) {
+  const btn = document.querySelector('.f-pick[data-fpick="' + selId + '"]');
+  if (!btn) return;
+  const sel = document.getElementById(selId);
+  const s = (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) ? sel.options[sel.selectedIndex].text : "";
+  btn.querySelector("span").textContent = s;
+}
+function openFPick(selId) {
+  const sel = document.getElementById(selId); if (!sel) return;
+  FP_SEL = selId;
+  const list = document.getElementById("genList");
+  const cur = sel.value;
+  const items = Array.prototype.map.call(sel.options, (o, i) => {
+    const on = o.value === cur;
+    return '<button type="button" class="gen-item' + (on ? " on" : "") + '" data-i="' + i + '">' +
+      "<span>" + esc(o.text) + '</span><span class="tick">✓</span></button>';
+  }).join("");
+  list.innerHTML = items || '<div class="gen-empty">暂无选项</div>';
+  list.querySelectorAll(".gen-item").forEach((it) => {
+    it.addEventListener("click", () => pickFPick(+it.dataset.i));
+  });
+  document.getElementById("genTitle").textContent = fTitle(selId);
+  const b = document.querySelector('.f-pick[data-fpick="' + selId + '"]'); if (b) b.classList.add("open");
+  document.getElementById("genMask").classList.add("show");
+}
+function pickFPick(idx) {
+  const sel = document.getElementById(FP_SEL); if (!sel) return;
+  sel.selectedIndex = idx;
+  sel.dispatchEvent(new Event("change"));
+  syncFPick(FP_SEL);
+  closeFPick();
+}
+function closeFPick() {
+  document.getElementById("genMask").classList.remove("show");
+  if (FP_SEL) { const b = document.querySelector('.f-pick[data-fpick="' + FP_SEL + '"]'); if (b) b.classList.remove("open"); }
+  FP_SEL = null;
+}
+function initFPick() {
+  const c = document.getElementById("genClose"); if (c) c.addEventListener("click", closeFPick);
+  const m = document.getElementById("genMask"); if (m) m.addEventListener("click", (e) => { if (e.target === m) closeFPick(); });
+  document.querySelectorAll(".f-pick").forEach((btn) => {
+    const selId = btn.dataset.fpick;
+    btn.addEventListener("click", () => openFPick(selId));
+    syncFPick(selId);
+  });
+}
+initFPick();
 
 /* 检测按钮点击频率限制：1 秒内点击超过 2 次，弹出 75% 透明度提示，本次不执行检测 */
 const _clickStamp = [];

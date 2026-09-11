@@ -64,10 +64,13 @@
         <button type="button" class="sort-btn s-dir" data-sort="dir">降序 ↓</button>
       </div>
       
-      <select id="qScope" class="sel" title="搜索范围"><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
+      <button type="button" class="f-pick" data-fpick="qScope" title="搜索范围"><span>全局搜索</span><span class="f-caret">▾</span></button>
+      <select id="qScope" class="sel f-sel" title="搜索范围" hidden><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
       <input type="search" id="qSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
-      <select id="qType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option><option>国际/港澳台资费</option></select>
-      <select id="qSub" class="sel"><option value="">全部二级分类</option></select>
+      <button type="button" class="f-pick" data-fpick="qType" title="类型"><span>全部类型</span><span class="f-caret">▾</span></button>
+      <select id="qType" class="sel f-sel" title="类型" hidden><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option><option>国际/港澳台资费</option></select>
+      <button type="button" class="f-pick" data-fpick="qSub" title="二级分类"><span>全部二级分类</span><span class="f-caret">▾</span></button>
+      <select id="qSub" class="sel f-sel" title="二级分类" hidden><option value="">全部二级分类</option></select>
       <button class="btn" id="qReload">重新加载</button>
       <span class="count-hint" id="qCount"></span>
     </div>
@@ -89,10 +92,13 @@
       <button type="button" class="prov-pick" id="pProvBtn" title="自助选择其他省份"><span class="prov-name" id="pProvTxt">加载中…</span><span class="prov-caret">▾</span></button>
 <select id="pProv" class="sel prov-sel" title="自助选择其他省份" hidden></select>
       
-      <select id="pScope" class="sel" title="搜索范围"><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
+      <button type="button" class="f-pick" data-fpick="pScope" title="搜索范围"><span>全局搜索</span><span class="f-caret">▾</span></button>
+      <select id="pScope" class="sel f-sel" title="搜索范围" hidden><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
       <input type="search" id="pSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
-      <select id="pType" class="sel"><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option></select>
-      <select id="pSub" class="sel"><option value="">全部二级分类</option></select>
+      <button type="button" class="f-pick" data-fpick="pType" title="类型"><span>全部类型</span><span class="f-caret">▾</span></button>
+      <select id="pType" class="sel f-sel" title="类型" hidden><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option></select>
+      <button type="button" class="f-pick" data-fpick="pSub" title="二级分类"><span>全部二级分类</span><span class="f-caret">▾</span></button>
+      <select id="pSub" class="sel f-sel" title="二级分类" hidden><option value="">全部二级分类</option></select>
       <button class="btn" id="pReload">重新加载</button>
       <span class="count-hint" id="pCount"></span>
     </div>
@@ -175,8 +181,16 @@
   </div>
 </div>
 
+<!-- 通用单选选择弹窗（类型 / 二级分类 / 搜索范围） -->
+<div class="modal-mask" id="genMask">
+  <div class="gen-card">
+    <div class="gen-head"><span class="gen-title" id="genTitle">选择</span><button class="modal-close" id="genClose" title="关闭">×</button></div>
+    <div class="gen-listbox" id="genList"></div>
+  </div>
+</div>
 
-<script src="./app.js?v=dx20260911d"></script>
+
+<script src="./app.js?v=dx20260911e"></script>
 
 </body>
 </html>
