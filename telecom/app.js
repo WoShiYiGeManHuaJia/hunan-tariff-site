@@ -1,5 +1,24 @@
 /* 中国电信资费专区 - 前端逻辑（vdx20260910a：排序条新增「零元业务」筛选；0元每月在前、0元每次在后；保留按钮震动、无声音） */
 "use strict";
+
+/* ===== 深色/浅色主题切换（一键按钮 + 跟随系统，localStorage 记忆） ===== */
+(function () {
+  var KEY = "trf_dark";
+  var btn = document.getElementById("themeBtn");
+  function themeApply(dark) {
+    document.body.classList.toggle("dark", dark);
+    if (btn) btn.textContent = dark ? "浅色" : "深色";
+    try { localStorage.setItem(KEY, dark ? "1" : "0"); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  var dark = saved != null ? saved === "1"
+    : !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  themeApply(dark);
+  if (btn) btn.addEventListener("click", function () {
+    themeApply(!document.body.classList.contains("dark"));
+  });
+})();
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
@@ -231,6 +250,10 @@ function renderOverview() {
     $("stTotal").textContent = (d.quanguo_total == null) ? "-" : fmt(d.quanguo_total);
     $("stAllProv").textContent = (d.prov_total == null) ? "-" : fmt(d.prov_total);
     $("updateTime").textContent = "更新于 " + (d.updated || "未知");
+  const slp = document.getElementById("stAllProvLabel");
+  const pn = SECTIONS.filter((k) => k.section !== "quanguo").map((k) => k.name).join("");
+  if (slp && pn) slp.textContent = pn + "资费总数";
+
     document.title = "中国电信资费专区 · 更新于 " + (d.updated || "");
     renderProvPanel();
   }).catch((e) => {
@@ -631,10 +654,22 @@ const PLAN_LABELS = {
   dataUnit: "流量单位", orientTraffic: "定向流量", validPeriod: "有效期", saleChnl: "办理渠道",
   serviceContent: "套餐内容", codeType: "资费类型", reportNo: "业务编码", extraFees: "其他收费",
   useScope: "适用对象", broadBand: "宽带", sms: "短信", onlinePeriod: "在售时间",
+  // 补齐此前缺失的字段（缺映射时 briefTable 会直接显示英文 key，看起来像乱码）
+  name: "业务名称", iptv: "IPTV", onDate: "上线日期", offDate: "下线日期",
+  unsubscribe: "退订方式", responsibility: "违约责任", otherNotes: "其他说明",
+  extraFeesStandard: "套外资费", minuteUnit: "语音单位",
 };
+// 内部字段：不展示给用户（类型码/容器字段，展示无意义）
+const PLAN_HIDDEN = new Set([
+  "id", "detail", "fields", "firstLevelType", "secondLevelType", "_trunc", "scope",
+]);
 function briefTable(o) {
   if (!o || typeof o !== "object") return '<div class="tl-none">该记录未保存配置详情。</div>';
-  const entries = Object.entries(o).filter(([k, v]) => v !== undefined && v !== null && String(v) !== "" && v !== "0");
+  const entries = Object.entries(o).filter(([k, v]) => {
+    if (v === undefined || v === null || String(v) === "" || String(v) === "0") return false;
+    // 内部字段（类型码/容器）不展示，避免出现 id/detail/firstLevelType 等无意义英文行
+    return !(typeof PLAN_HIDDEN !== "undefined" && PLAN_HIDDEN.has(k));
+  });
   if (!entries.length) return '<div class="tl-none">该记录未保存配置详情。</div>';
   return '<table class="gen-table"><tbody>' + entries.map(([k, v]) =>
     '<tr><th>' + esc(PLAN_LABELS[k] || k) + '</th><td>' + esc(typeof v === "object" ? JSON.stringify(v) : v) + "</td></tr>"
@@ -681,7 +716,8 @@ function showPlanDetail(ts, sec, name, kind) {
       const fields = it.detail || it.fields || it;
       openModal(name, head + '<div class="res-row sub">当前板块中的配置：</div><div class="gen-brief">' + briefTable(fields) + "</div>");
     } else if (kind === "removed") {
-      openModal(name, head + '<div class="res-row">该套餐已从板块下架，线上无剩余配置。</div>');
+      openModal(name, head + '<div class="res-row sub">该业务已下架，线上已无在售配置。</div>' +
+        '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表确认当前在售业务。</div>');
     } else {
       openModal(name, head + '<div class="res-row">未找到该业务配置。</div>');
     }
@@ -719,82 +755,16 @@ function showModDetail(ts, sec, name) {
 }
 
 function renderHistory() {
-  const filter = $("hProvFilter") ? $("hProvFilter").value : "";
+  histFilter = $("hProvFilter") ? $("hProvFilter").value : "";
+  histShown = 0;
   Promise.all([ensureSections().catch(() => {}), loadJson("history.json")])
     .then(([, list]) => {
-      const box = $("historyBox");
       if (!Array.isArray(list) || !list.length) {
-        box.innerHTML = '<div class="empty">暂无资费变化记录（首次基线已建立，后续检测到变更会自动记录）</div>';
+        $("historyBox").innerHTML = '<div class="empty">暂无资费变化记录（首次基线已建立，后续检测到变更会自动记录）</div>';
         return;
       }
-      box.innerHTML = '<div class="tl">' + list.map((r, idx) => {
-        _histCache.set(r.ts, r);
-        const entries = [];
-        SECTIONS.forEach((secObj) => {
-          const sec = secObj.section;
-          if (filter && filter !== sec) return;
-          const d = r[sec];
-          if (!d || d.note === "baseline") return;
-          const head = secName(sec);
-          const chips = [];
-          if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
-          if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
-          if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
-          if (!chips.length) chips.push('<span class="chip none">无变化</span>');
-          // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
-          entries.push(
-            '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
-            '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
-            '<b>' + esc(head) + "</b>" +
-            '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
-            '<span class="tl-sec-arrow"></span></div>' +
-            '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
-              '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
-          );
-        });
-        if (!entries.length) {
-          return (
-            '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
-            '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
-          );
-        }
-        const open = idx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
-        return (
-          '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
-          '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
-          '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
-        );
-      }).join("") + "</div>";
-
-      box.querySelectorAll(".tl-item").forEach((item) => {
-        const toggle = () => {
-          const open = item.classList.toggle("open");
-          item.setAttribute("aria-expanded", open ? "true" : "false");
-        };
-        item.addEventListener("click", (e) => {
-          if (e.target.closest && e.target.closest("a")) return;
-          toggle();
-        });
-        item.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
-        });
-        // 省份级折叠：点击省标题行，仅展开该省明细（捕获阶段 + stopPropagation 避免误触整条展开）
-        item.querySelectorAll(".tl-sec-head").forEach((head) => {
-          const toggleSec = () => {
-            const entry = head.parentElement;
-            const open = entry.classList.toggle("open");
-            head.setAttribute("aria-expanded", open ? "true" : "false");
-          };
-          head.addEventListener("click", (e) => {
-            if (e.target.closest && e.target.closest("a")) return;
-            e.stopPropagation();
-            toggleSec();
-          }, true);
-          head.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(); }
-          });
-        });
-      });
+      histAll = list;
+      histDraw(list);
     }).catch((e) => {
       $("historyBox").innerHTML = '<div class="empty">历史数据加载失败：' + esc(e.message) + "</div>";
     });

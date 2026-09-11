@@ -724,14 +724,38 @@ function histDetail(d, sec, ts) {
 }
 
 /* 修改业务明细弹窗：展示该业务本次被修改的字段（旧值 → 新值） */
+/* 历史详情缺失时的回退：从当前板块数据按名称取完整配置。
+   老记录可能只存了名称没存快照（详情缺失率约 1%），此时与其弹一句
+   「未保存明细」，不如直接展示该业务当前的配置，信息量更大。 */
+function lookupCurrent(sec, name) {
+  const file = (sec === "quanguo" ? "quanguo" : sec) + ".json";
+  return loadJson(file).then((d) => {
+    const items = (d && d.items) || [];
+    const hit = items.find((x) => (x.name || x.title || "") === name);
+    return hit ? (hit.fields || hit.detail || hit) : null;
+  }).catch(() => null);
+}
+function fallbackBlock(sec, kindCn) {
+  return '<div class="res-row sub">该业务' + kindCn + '时的字段快照未随历史保存，' +
+    '以下为当前在售配置（如已下架则可能查不到）。</div>';
+}
+
 function showModDetail(ts, sec, name) {
   const rec = _histCache.get(ts);
   const d = rec ? rec[sec] : null;
   const details = (d && d.modified_details) ? d.modified_details[name] : null;
   const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
   if (!details || !details.length) {
-    openModal(name, head + '<div class="res-row">该记录未保存字段级修改明细。</div>' +
-      '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表查看该业务当前配置。</div>');
+    openModal(name, head + '<div class="res-row">加载字段级修改明细…</div>');
+    lookupCurrent(sec, name).then((f) => {
+      if (f && Object.keys(f).length) {
+        openModal(name, head + fallbackBlock(sec, "修改") + '<div class="mod-diff">' + fieldsTable(f) + "</div>");
+      } else {
+        openModal(name, head +
+          '<div class="res-row sub">该记录较久远，未保存字段级修改明细。</div>' +
+          '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表查看该业务当前配置。</div>');
+      }
+    });
     return;
   }
   const rows = details.map((dt) => {
@@ -794,8 +818,16 @@ function showDelDetail(ts, sec, name) {
       '<div class="mod-diff">' + fieldsTable(snap) + "</div>");
     return;
   }
-  openModal(name, head + '<div class="res-row">该套餐已从板块下架，线上无剩余配置可查。</div>' +
-    '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表确认当前在售业务。</div>');
+  // 下架快照缺失时（老记录）尝试展示当前配置；确实查不到再给出友好提示
+  lookupCurrent(sec, name).then((f) => {
+    if (f && Object.keys(f).length) {
+      openModal(name, head + fallbackBlock(sec, "下架") + '<div class="mod-diff">' + fieldsTable(f) + "</div>");
+    } else {
+      openModal(name, head +
+        '<div class="res-row sub">该业务已从此板块下架，线上已无在售配置。</div>' +
+        '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表确认当前在售业务。</div>');
+    }
+  });
 }
 
 /* ===== 公告列表（href 协议白名单兜底，阻止 javascript: 等危险链接） ===== */
