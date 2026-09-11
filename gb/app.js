@@ -1,4 +1,4 @@
-/* 中国广电资费专区 - 前端逻辑(vgb20260911a: 修复 sort-btn 边框残留电信蓝 -> 紫; 数据来源广电官网公示) */
+/* 中国广电资费专区 - 前端逻辑(vgb20260911b: 其他说明对齐官方otherNotes + 修复 sort-btn 边框残留电信蓝; 数据来源广电官网公示) */
 "use strict";
 const DATA = "./data/";
 const $ = (id) => document.getElementById(id);
@@ -408,10 +408,10 @@ function itemHtml(it, idx) {
   if (d.useScope) facts.push("<span>适用：" + esc(String(d.useScope).slice(0, 24)) + "</span>");
   if (d.minute && d.minute !== "0") facts.push("<span>语音 <b>" + esc(d.minute) + " 分钟</b></span>");
   if (d.commonData && d.commonData !== "0") facts.push("<span>流量 <b>" + esc(d.commonData + (d.dataUnit || "GB")) + "</b></span>");
-  const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "有效期", "停售状态", "业务编码"];
+  const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "有效期", "销售渠道", "上线日期", "下线日期", "在网要求", "退订方式", "违约责任", "停售状态", "业务编码", "套餐内容", "适用对象", "其他收费"];
   const rows = detailRows(it);
-  // 说明类字段（套餐内容/适用对象/其他收费/办理渠道）固定折叠为「其他说明」，所有业务统一展示折叠入口，不按长度判断
-  const NOTE_KEYS = ["套餐内容", "适用对象", "其他收费", "办理渠道"];
+  // 官方「其他说明」字段(otherNotes)固定折叠为「其他说明」，与移动站一致；其余常规字段在主表展示
+  const NOTE_KEYS = ["其他说明"];
   const noteRows = rows.filter(([k, v]) => v && NOTE_KEYS.indexOf(k) >= 0);
   const notNotes = rows.filter(([k, v]) => !(v && NOTE_KEYS.indexOf(k) >= 0));
   const filteredRows = notNotes.filter(([k]) => mainKeys.indexOf(k) >= 0).map(([k, v]) =>
@@ -460,7 +460,13 @@ function detailRows(item) {
     ["适用对象", d.useScope || "-"],
     ["有效期", d.validPeriod || "-"],
     ["其他收费", d.extraFees && d.extraFees !== "无" ? d.extraFees : "无"],
-    ["办理渠道", d.saleChnl || "-"],
+    ["销售渠道", d.saleChnl || "-"],
+    ["上线日期", d.onDate || "-"],
+    ["下线日期", d.offDate || "-"],
+    ["在网要求", d.inNetReq || "-"],
+    ["退订方式", d.unsubscribe || "-"],
+    ["违约责任", d.responsibility || "-"],
+    ["其他说明", d.otherNotes || "-"],
     ["停售状态", stop ? "已停售" : "在售"],
     ["业务编码", d.reportNo || "-"],
   ];
