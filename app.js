@@ -944,6 +944,7 @@ function renderHistory() {
   card.innerHTML =
     '<div class="notice-top"><span class="notice-ico">📢</span><h3>资费站更新公告</h3><span class="notice-tag">2026.09.11</span></div>' +
     '<div class="notice-body"><p>本次更新主要内容：</p><ul class="notice-list">' +
+    "<li>新增湖南移动公告页：自动抓取官网公告，仅保留最新 15 条。</li>" +
     "<li>优化了资费文字排版，查看更清晰。</li>" +
     "<li>新增广电运营商站点，四大运营商一站切换。</li>" +
     "<li>美化省份选择弹窗，顶部固定搜索栏。</li>" +
