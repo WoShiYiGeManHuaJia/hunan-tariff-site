@@ -21,7 +21,7 @@ html,body{ background:var(--bg); color:var(--txt);
 .brand-name{font-size:17px;font-weight:700;letter-spacing:.5px;}
 .brand-sub{font-size:12px;opacity:.82;}
 .update-time{font-size:12px;opacity:.9;background:rgba(255,255,255,.14);padding:5px 10px;border-radius:20px;white-space:nowrap;}
-.tabs{max-width:960px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:12px 12px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tabs{max-width:960px;margin:0 auto;display:flex;flex-wrap:nowrap;gap:6px;padding:12px 12px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{flex:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:rgba(255,255,255,.94);font-size:14px;padding:9px 16px;cursor:pointer;border-radius:22px;font-weight:600;transition:all .18s ease;white-space:nowrap;}
 .tab:hover{background:rgba(255,255,255,.26);}
@@ -350,8 +350,8 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .ann-title{flex:1 1 auto;font-weight:700;font-size:14.5px;color:var(--txt);line-height:1.45;}
 .ann-arrow{flex:none;color:#8aa4b8;transition:transform .2s ease;}
 .ann-item.open .ann-arrow{transform:rotate(180deg);color:#0d8bec;}
-.ann-summary{font-size:13px;color:var(--sub);line-height:1.6;padding:0 14px 12px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ann-summary{font-size:13px;color:var(--sub);line-height:1.7;padding:0 14px 12px;}
+.ann-item.open .ann-summary{display:none;}
 .ann-body{display:none;border-top:1px dashed var(--line);padding:13px 14px;
   background:#fbfdfe;}
 .ann-item.open .ann-body{display:block;animation:fade .2s ease;}
