@@ -804,6 +804,93 @@ function renderAnnounce() {
   });
 }
 
+const HIST_PAGE = 10;      // 历史每次渲染条数（渐变加载，避免一次性建巨量 DOM）
+let histShown = 0;          // 当前已渲染条数
+let histAll = [];            // 全量历史数组
+let histFilter = "";
+function histDraw(list) {
+  const box = $("historyBox");
+  histShown = Math.min(histShown, list.length);
+  const slice = list.slice(0, histShown);
+  let html = '<div class="tl">' + slice.map((r, idx) => {
+    const gidx = list.indexOf(r);             // 全局下标（用于判定最新一条默认展开）
+    const entries = [];
+    SECTIONS.forEach((secObj) => {
+      const sec = secObj.section;
+      if (histFilter && histFilter !== sec) return;
+      const d = r[sec];
+      if (!d || d.note === "baseline") return;
+      const head = secName(sec);
+      const chips = [];
+      if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
+      if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
+      if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
+      if (!chips.length) chips.push('<span class="chip none">无变化</span>');
+      // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
+      entries.push(
+        '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
+        '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
+        '<b>' + esc(head) + "</b>" +
+        '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
+        '<span class="tl-sec-arrow"></span></div>' +
+        '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
+          '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
+      );
+    });
+    if (!entries.length) {
+      return (
+        '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
+        '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
+      );
+    }
+    const open = gidx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
+    return (
+      '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
+      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
+      '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
+    );
+  }).join("") + "</div>";
+  if (histShown < list.length) {
+    html += '<div class="hist-more"><button type="button" class="btn" id="histMoreBtn">加载更多（剩余 ' + (list.length - histShown) + " 条）</button></div>";
+  }
+  box.innerHTML = html;
+  box.querySelectorAll(".tl-item").forEach((item) => {
+    const toggle = () => {
+      const open = item.classList.toggle("open");
+      item.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    item.addEventListener("click", (e) => {
+      if (e.target.closest && e.target.closest("a")) return;
+      toggle();
+    });
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+    // 省份级折叠：点击省标题行，仅展开该省明细（捕获阶段 + stopPropagation 避免误触整条展开）
+    item.querySelectorAll(".tl-sec-head").forEach((head) => {
+      const toggleSec = () => {
+        const entry = head.parentElement;
+        const open = entry.classList.toggle("open");
+        head.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+      head.addEventListener("click", (e) => {
+        if (e.target.closest && e.target.closest("a")) return;
+        e.stopPropagation();
+        toggleSec();
+      }, true);
+      head.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(); }
+      });
+    });
+  });
+  if (histShown < list.length) {
+    const moreBtn = document.getElementById("histMoreBtn");
+    if (moreBtn) moreBtn.addEventListener("click", function () {
+      histShown = Math.min(list.length, histShown + HIST_PAGE);
+      histDraw(list);
+    });
+  }
+}
 function renderHistory() {
   histFilter = $("hProvFilter") ? $("hProvFilter").value : "";
   histShown = 0;
