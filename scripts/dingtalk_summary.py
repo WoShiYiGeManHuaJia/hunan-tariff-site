@@ -53,7 +53,9 @@ SECRET = os.getenv("DINGTALK_SECRET", "").strip()
 SINCE_HOURS = float(os.getenv("SINCE_HOURS", "24"))
 SITE_ROOT = os.getenv("SITE_ROOT", ".")
 # 明细只列关注的省份（默认湖南），其余省份不展示
-FOCUS_SEC = os.getenv("FOCUS_SEC", "hunan").strip().lower()
+# 注意：os.getenv 的默认值只在「变量未设置」时生效；workflow 里通过
+# ${{ vars.FOCUS_SEC }} 传入空串时，默认值不会生效，需显式回退。
+FOCUS_SEC = (os.getenv("FOCUS_SEC", "").strip().lower() or "hunan")
 # 结尾附带的资费站访问链接
 SITE_URL = os.getenv("SITE_URL", "https://woshiyigemanhuajia.github.io/hunan-tariff-site/").strip()
 # 测试模式：只发一条「配置成功」消息，不读任何数据
@@ -235,11 +237,10 @@ def main():
             fm = sum(x[3] for x in focus)
             notes = [x[4] for x in focus if x[4]]
             if notes:
-                lines.append("  - `%s`：%s" % (fname, notes[-1][:60]))
+                lines.append("  - %s：%s" % (fname, notes[-1][:60]))
             else:
-                lines.append("  - `%s`：新增%d 下架%d 修改%d" % (fname, fa, fr, fm))
-        else:
-            lines.append("  - `%s`：无变化" % fname)
+                lines.append("  - %s：新增%d 下架%d 修改%d" % (fname, fa, fr, fm))
+        # 关注省份无变化时不输出（避免空占位行刷屏）
 
     lines.append("")
     lines.append("**合计**：新增 %d、下架 %d、修改 %d" % tuple(grand))
