@@ -383,7 +383,10 @@ function setMode(m){
  Object.keys(map).forEach(function(k){$(map[k]).style.display=(k===m?'':'none')});
 }
 /* ===== 生成可直接粘贴执行的命令 ===== */
+const CDN='https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/scripts/';
 const REPO_API='https://api.github.com/repos/WoShiYiGeManHuaJia/hunan-tariff-site/contents/scripts/';
+/* CDN 优先（不限速、国内快），失败自动回退 GitHub API */
+function dl(name){return '(curl -sS -m 60 -o '+name+' '+CDN+name+' || curl -sS -m 60 -H "Accept: application/vnd.github.raw" -H "User-Agent: pc" -o '+name+' '+REPO_API+name+')'}
 function shq(x){return "'"+String(x).replace(/'/g,"'\\''")+"'"}
 function envPairs(){
  const L=[];const p=cfg.push;
@@ -401,8 +404,7 @@ function cmdLocal(){
  const P=envPairs();
  const envs=P.map(function(x){return shq(x[0]+'='+x[1])}).join(' ');
  return 'mkdir -p ~/tariff-push && cd ~/tariff-push'
-  +' && curl -sS -m 60 -H "Accept: application/vnd.github.raw" -H "User-Agent: pc" -o notify.py '+REPO_API+'notify.py'
-  +' && curl -sS -m 60 -H "Accept: application/vnd.github.raw" -H "User-Agent: pc" -o push_once.py '+REPO_API+'push_once.py'
+  +' && '+dl('notify.py')+' && '+dl('push_once.py')
   +' && printf '+shq('%s\\n')+' '+envs+' > .env'
   +' && python3 push_once.py --test';
 }
