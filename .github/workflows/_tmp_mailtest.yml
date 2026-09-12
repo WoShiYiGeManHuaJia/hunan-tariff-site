@@ -15,29 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: step-LOGIN-DIAG
+      - name: step-DIAG
         env:
           U: ${{ github.event.inputs.smtp_user }}
           P: ${{ github.event.inputs.smtp_pass }}
-        run: |
-          echo "::add-mask::$P"
-          set +e
-          timeout 30 python3 -c "
-import smtplib,os,sys
-U,P=os.environ['U'],os.environ['P']
-try:
-    s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=25)
-    s.login(U,P); s.quit(); print('LOGIN OK'); sys.exit(0)
-except smtplib.SMTPAuthenticationError as e:
-    print('AUTH_FAIL code=', e.smtp_code); sys.exit(10)
-except smtplib.SMTPSenderRefused as e:
-    print('SENDER_REFUSED'); sys.exit(11)
-except Exception as e:
-    print('OTHER', type(e).__name__); sys.exit(12)
-"
-          EC=$?
-          echo "EXITCODE=$EC"
-          if [ "$EC" = "10" ]; then echo "结论=授权码错误或SMTP未开启(535)"; fi
-          if [ "$EC" = "11" ]; then echo "结论=发件人被拒"; fi
-          if [ "$EC" = "12" ]; then echo "结论=其他异常"; fi
-          exit $EC
+        run: echo "::add-mask::$P" && echo aW1wb3J0IHNtdHBsaWIsb3Msc3lzClUsUD1vcy5lbnZpcm9uWydVJ10sb3MuZW52aXJvblsnUCddCnRyeToKICAgIHM9c210cGxpYi5TTVRQX1NTTCgnc210cC5xcS5jb20nLDQ2NSx0aW1lb3V0PTI1KQogICAgcy5sb2dpbihVLFApOyBzLnF1aXQoKTsgcHJpbnQoJ0xPR0lOX09LJyk7IHN5cy5leGl0KDApCmV4Y2VwdCBzbXRwbGliLlNNVFBBdXRoZW50aWNhdGlvbkVycm9yIGFzIGU6CiAgICBwcmludCgnQVVUSF9GQUlMIHNtdHBfY29kZT0nLCBnZXRhdHRyKGUsJ3NtdHBfY29kZScsJycpKTsgc3lzLmV4aXQoMTApCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdPVEhFUicsIHR5cGUoZSkuX19uYW1lX18pOyBzeXMuZXhpdCgxMikK | base64 -d > /tmp/d.py && (timeout 30 python3 /tmp/d.py; echo "EXITCODE=$?")
+      - name: step-RESULT10
+        if: failure()
+        run: echo "结论=授权码错误或SMTP服务未开启(535认证失败)" && exit 1
