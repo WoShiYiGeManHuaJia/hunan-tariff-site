@@ -65,6 +65,12 @@ jobs:
           FOCUS="${{ github.event.inputs.focus_provs }}"
           [ -n "$FOCUS" ] || FOCUS="${{ vars.FOCUS_PROVS }}"
           [ -n "$FOCUS" ] || FOCUS="hunan,guangdong"
+          # 兜底：每周日跑一次全量，避免 focus 模式下其余省份永远不更新
+          DOW=$(date -u +%u)
+          if [ "$DOW" = "7" ]; then
+            echo "（周日）强制全量"
+            MODE="full"
+          fi
           if [ "$MODE" = "focus" ]; then
             export TRACK_PROVINCES="$FOCUS"
             echo "模式: 重点（quanguo + $FOCUS）"
