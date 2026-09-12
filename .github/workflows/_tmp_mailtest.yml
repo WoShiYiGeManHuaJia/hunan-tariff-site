@@ -11,34 +11,34 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: 测试 SMTP（失败则 job 失败）
+      - name: 测试 SMTP
         env:
           U: ${{ github.event.inputs.smtp_user }}
           P: ${{ github.event.inputs.smtp_pass }}
         run: |
           echo "::add-mask::$U"
           echo "::add-mask::$P"
-          python3 - << 'PY' || exit 1
-          import smtplib, os, sys
+          python3 - << 'PY' > /tmp/err.txt 2>&1 || { echo "::error::$(cat /tmp/err.txt | tr '\n' ' ' | cut -c1-300)"; exit 1; }
+          import smtplib, os, sys, socket
           from email.mime.text import MIMEText
           from email.mime.multipart import MIMEMultipart
           from email.header import Header
           HOST, PORT = "smtp.qq.com", 465
           U, P = os.environ["U"], os.environ["P"]
+          print("DNS:", socket.gethostbyname(HOST))
           msg = MIMEMultipart("alternative")
-          msg["Subject"] = Header("资费监控 · 邮件通道测试", "utf-8")
-          msg["From"] = Header("资费监控 <%s>" % U, "utf-8")
-          msg["To"] = U
-          msg.attach(MIMEText("测试邮件：如果你收到，说明邮件通道配置正确。", "plain", "utf-8"))
-          msg.attach(MIMEText("<h2>配置成功</h2><p>测试邮件：如果你收到，说明邮件通道配置正确。</p>", "html", "utf-8"))
+          msg["Subject"] = Header("mail test", "utf-8")
+          msg["From"] = U; msg["To"] = U
+          msg.attach(MIMEText("test", "plain", "utf-8"))
           try:
               s = smtplib.SMTP_SSL(HOST, PORT, timeout=30)
+              print("CONNECTED")
               s.login(U, P)
+              print("LOGIN_OK")
               s.sendmail(U, [U], msg.as_string())
               s.quit()
               print("RESULT=SEND_OK")
-              sys.exit(0)
           except Exception as e:
-              print("RESULT=FAIL", type(e).__name__, str(e)[:200])
+              print("RESULT=FAIL", type(e).__name__, str(e)[:250])
               sys.exit(1)
           PY
