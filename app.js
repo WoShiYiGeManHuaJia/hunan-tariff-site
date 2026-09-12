@@ -635,16 +635,16 @@ function fieldsTable(f) {
   // 官方「其他说明」与 超出资费说明/其他服务内容/权益 统一收进「其他说明」折叠，避免主表摊开大段说明
   const noteKeys = ["其他说明", "超出资费说明", "其他服务内容", "权益"];
   const detailRows = mainKeys.filter((k) => f[k]).map((k) =>
-    '<tr><th>' + esc(k) + '</th><td>' + esc(k === "适用地区" ? areaCn(f[k]) : f[k]) + "</td></tr>"
+    '<tr><th>' + esc(k) + '</th><td>' + esc(cleanVal(k === "适用地区" ? areaCn(f[k]) : f[k])) + "</td></tr>"
   ).join("");
   const otherRows = keys.filter((k) => !mainKeys.includes(k) && !noteKeys.includes(k) && f[k]).map((k) =>
-    '<tr><th>' + esc(k) + '</th><td>' + esc(k === "适用地区" ? areaCn(f[k]) : f[k]) + "</td></tr>"
+    '<tr><th>' + esc(k) + '</th><td>' + esc(cleanVal(k === "适用地区" ? areaCn(f[k]) : f[k])) + "</td></tr>"
   ).join("");
   let html = '<table>' + detailRows + otherRows + '</table>';
   // 其他说明折叠块（超出资费说明 / 其他服务内容）
   const noteHtml = noteKeys.filter((k) => f[k]).map((k) =>
     '<div class="note-item"><div class="note-label">' + esc(k) + "</div>" +
-    '<div class="note-text">' + esc(f[k]) + "</div></div>"
+    '<div class="note-text">' + esc(cleanVal(f[k])) + "</div></div>"
   ).join("");
   if (noteHtml) {
     html +=
