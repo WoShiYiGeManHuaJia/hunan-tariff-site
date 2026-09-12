@@ -205,6 +205,10 @@ def same_change(a, b):
     return True
 
 
+# 板块条数骤降判定阈值：低于基线的该比例即视为抓取降级（不计入变化）
+SEC_DROP_RATIO = float(os.getenv("SEC_DROP_RATIO", "0.5"))
+
+
 def is_reverse_change(a, b):
     """判断两条记录是否互为「反向抖动」。
 
@@ -357,6 +361,16 @@ def main():
         if _structure_upgraded(old_items, items):
             print(f"  [升级] 板块 {sec} 字段结构变化，重建基线不计数")
             rec[sec] = {"note": "baseline"}
+            continue
+        # 抓取降级防护：本轮条数远低于基线（源站限流/降级/返回空）时，
+        # 直接 diff 会产生「整板块下架」的假变化（曾出现 quanguo 一次性 -1541）。
+        # 此类情况标记 degraded 且不计数，保留旧数据，等下一轮正常抓取再比对。
+        _old_n = len(old_items or [])
+        _new_n = len(items or [])
+        if _old_n > 0 and _new_n < _old_n * SEC_DROP_RATIO:
+            print(f"  [降级] 板块 {sec} 本轮 {_new_n} 条 < 基线 {_old_n} 条的 "
+                  f"{SEC_DROP_RATIO:.0%}，判定抓取异常，不计数、保留旧数据")
+            rec[sec] = {"note": "degraded", "baseline": _old_n, "this_round": _new_n}
             continue
         added, removed, modified, modified_details, mod_before, mod_after = diff_items(old_items, items)
         if added or removed or modified:
