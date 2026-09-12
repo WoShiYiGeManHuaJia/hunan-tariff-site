@@ -2,8 +2,9 @@ name: Unicom Fetch
 # 公开仓 Actions 免费不限量（私有仓额度已耗尽）
 
 on:
-  schedule:
-    - cron: "37 1,13 * * *"    # 北京 09:37 / 21:37
+  # [已暂停 重构期间] schedule:
+  # - cron: "37 1,13 * * *"    # 北京 09:37 / 21:37
+  # 恢复方法：去掉上面几行的 # 号
   workflow_dispatch:
     inputs:
       rebuild:

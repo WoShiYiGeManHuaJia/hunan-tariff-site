@@ -3,8 +3,9 @@ name: Mobile Fetch & Build
 # 链路：抓快照 → 以 data/ 为基线构建 → 同步站点数据
 
 on:
-  schedule:
-    - cron: "47 0,12 * * *"    # 北京 08:47 / 20:47
+  # [已暂停 重构期间] schedule:
+  # - cron: "47 0,12 * * *"    # 北京 08:47 / 20:47
+  # 恢复方法：去掉上面几行的 # 号
   workflow_dispatch:
 
 permissions:

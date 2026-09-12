@@ -2,9 +2,10 @@ name: Tariff Notify
 # 汇总推送：钉钉 / 飞书 / 企业微信 / 邮件（配哪个推哪个）
 
 on:
-  schedule:
-    - cron: "0 2 * * *"      # 北京 10:00
-    - cron: "0 12 * * *"     # 北京 20:00
+  # [已暂停 重构期间] schedule:
+  # - cron: "0 2 * * *"      # 北京 10:00
+  # - cron: "0 12 * * *"     # 北京 20:00
+  # 恢复方法：去掉上面几行的 # 号
   workflow_dispatch:
     inputs:
       hours:

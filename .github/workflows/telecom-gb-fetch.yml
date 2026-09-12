@@ -3,8 +3,9 @@ name: Telecom & GB Fetch
 # 单 job 顺序执行：电信 → 广电 → 统一提交，避免并行 push 冲突
 
 on:
-  schedule:
-    - cron: "17 1,13 * * *"    # 北京 09:17 / 21:17
+  # [已暂停 重构期间] schedule:
+  # - cron: "17 1,13 * * *"    # 北京 09:17 / 21:17
+  # 恢复方法：去掉上面几行的 # 号
   workflow_dispatch:
     inputs:
       rebuild:
