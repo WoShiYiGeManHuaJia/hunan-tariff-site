@@ -47,6 +47,17 @@ jobs:
           # build_site 固定读 ./snapshots（snapshot.py 输出在 pipelines/mobile/snapshots）
           rm -rf snapshots
           cp -r pipelines/mobile/snapshots ./snapshots
+          N=$(ls snapshots/*.json 2>/dev/null | wc -l)
+          echo "快照文件数: $N"
+
+          # 防护一：一条都没抓到时，绝不重建/覆盖 data/，只把仪表盘按现有数据重算
+          if [ "$N" -eq 0 ]; then
+            echo "::error::本轮抓取未产出任何快照（源站异常或网络失败），已保留现有数据"
+            python3 scripts/rebuild_latest.py
+            rm -rf _site
+            exit 0
+          fi
+
           # 基线：公开仓现有 data/ 与 prev 格式完全一致（已比对验证），直接复用
           rm -rf _prev && mkdir -p _prev
           cp -f data/*.json _prev/ 2>/dev/null || true
@@ -55,6 +66,15 @@ jobs:
           python3 pipelines/scripts/announce_fetch.py --move-dir site/data || true
           # 构建
           python3 scripts/build_site.py 2>&1 | tail -40
+
+          # 防护二：构建结果若为全 0（例如各板块都抓到 0 条），不覆盖现有数据
+          QT=$(python3 -c "import json;print(json.load(open('_site/data/latest.json')).get('quanguo_total',0))" 2>/dev/null || echo 0)
+          echo "新构建 quanguo_total=$QT"
+          if [ "$QT" = "0" ]; then
+            echo "::error::新构建结果为 0，放弃覆盖 data/，改用现有数据重建 latest.json"
+            python3 scripts/rebuild_latest.py
+            rm -rf _site
+          fi
 
       - name: 同步产物到仓库
         run: |
