@@ -818,8 +818,23 @@ function showPlanDetail(ts, sec, name, kind) {
   }
   if (brief || snap) {
     const lab = kind === "added" ? "新增" : kind === "removed" ? "下架" : "修改";
+    const snapObj = snap || brief;
+    // 先渲染历史快照（立即反馈，不阻塞）
     openModal(name, head + '<div class="res-row sub">该业务本次' + lab + '，配置如下：</div><div class="gen-brief">' +
-      briefTable(snap || brief) + "</div>");
+      briefTable(snapObj) + "</div>");
+    /* 历史 _list 存的是 _brief 精简对象（仅 8~13 个字段、长文本截断 200 字），
+       直接展示会"只有几行字看不懂"。这里异步取当前板块的完整 detail
+       （字段数更多时）替换弹窗；业务已下架查不到则保持历史快照。 */
+    const _f = sec === "quanguo" ? "quanguo.json" : sec + ".json";
+    loadJson(_f).then((j) => {
+      const items = (j && j.items) || [];
+      const it = items.find((x) => x && String(x.title || x.name || "").trim() === nm);
+      const det = it && it.detail;
+      if (det && Object.keys(det).length > Object.keys(snapObj).length) {
+        openModal(name, head + '<div class="res-row sub">该业务本次' + lab + '，完整配置如下：</div><div class="gen-brief">' +
+          briefTable(det) + "</div>");
+      }
+    }).catch(() => {});
     return;
   }
   // 兜底：从当前板块数据按名称查找
