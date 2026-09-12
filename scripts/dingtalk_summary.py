@@ -150,8 +150,15 @@ def send_ding(title, text):
                       ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=body,
                                  headers={"Content-Type": "application/json;charset=utf-8"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        res = json.load(r)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            res = json.load(r)
+    except urllib.error.HTTPError as e:
+        print("❌ 钉钉返回 HTTP %s：%s" % (e.code, e.read().decode("utf-8", "ignore")[:200]))
+        return False
+    except Exception as e:
+        print("❌ 请求失败：%s" % e)
+        return False
     ok = res.get("errcode") == 0
     print("钉钉返回: errcode=%s errmsg=%s" % (res.get("errcode"), res.get("errmsg")))
     return ok
