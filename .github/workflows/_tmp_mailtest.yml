@@ -15,20 +15,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: step1-DNS
-        run: python3 -c "import socket;print(socket.gethostbyname('smtp.qq.com'))"
-      - name: step2-TCP465
-        run: timeout 15 python3 -c "import socket;s=socket.create_connection(('smtp.qq.com',465),15);print('TCP OK');s.close()"
-      - name: step3-SSL
-        run: timeout 25 python3 -c "import smtplib;s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=20);print('SSL OK');s.close()"
-      - name: step4-LOGIN
+      - name: step-LOGIN-DIAG
         env:
           U: ${{ github.event.inputs.smtp_user }}
           P: ${{ github.event.inputs.smtp_pass }}
-        run: echo "::add-mask::$P" && timeout 25 python3 -c "import smtplib,os;s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=20);s.login(os.environ['U'],os.environ['P']);print('LOGIN OK');s.quit()"
-      - name: step5-SEND
-        if: success()
-        env:
-          U: ${{ github.event.inputs.smtp_user }}
-          P: ${{ github.event.inputs.smtp_pass }}
-        run: echo "::add-mask::$P" && timeout 40 python3 -c "import smtplib,os;from email.mime.text import MIMEText;from email.header import Header;U=os.environ['U'];P=os.environ['P'];m=MIMEText('ceshi','plain','utf-8');m['Subject']=Header('mailtest','utf-8');m['From']=U;m['To']=U;s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=30);s.login(U,P);s.sendmail(U,[U],m.as_string());s.quit();print('SEND OK')"
+        run: |
+          echo "::add-mask::$P"
+          set +e
+          timeout 30 python3 -c "
+import smtplib,os,sys
+U,P=os.environ['U'],os.environ['P']
+try:
+    s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=25)
+    s.login(U,P); s.quit(); print('LOGIN OK'); sys.exit(0)
+except smtplib.SMTPAuthenticationError as e:
+    print('AUTH_FAIL code=', e.smtp_code); sys.exit(10)
+except smtplib.SMTPSenderRefused as e:
+    print('SENDER_REFUSED'); sys.exit(11)
+except Exception as e:
+    print('OTHER', type(e).__name__); sys.exit(12)
+"
+          EC=$?
+          echo "EXITCODE=$EC"
+          if [ "$EC" = "10" ]; then echo "结论=授权码错误或SMTP未开启(535)"; fi
+          if [ "$EC" = "11" ]; then echo "结论=发件人被拒"; fi
+          if [ "$EC" = "12" ]; then echo "结论=其他异常"; fi
+          exit $EC
