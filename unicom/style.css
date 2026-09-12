@@ -404,3 +404,27 @@ body.dark .prov-card,body.dark .gen-card,body.dark .modal-card{background:var(--
 body.dark .modal-head{border-color:var(--line);}
 body.dark .hist-more{text-align:center;padding:12px 0 6px;}
 body.dark .hist-more .btn{background:var(--card);border:1px solid var(--line);color:var(--blue2);}
+
+/* 修改前后完整字段对比表 */
+.cmp-wrap{margin-top:8px;max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px}
+.cmp-table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+.cmp-table thead th{position:sticky;top:0;background:#eef7fe;color:var(--blue-dark);font-weight:700;
+  font-size:11.5px;padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);z-index:1}
+.cmp-table th:first-child{width:22%}
+.cmp-table td{width:39%}
+.cmp-table tbody th{font-weight:600;color:#5a6b7d;padding:6px 8px;vertical-align:top;
+  border-bottom:1px solid #eef2f6;background:#fafcfe}
+.cmp-table tbody td{padding:6px 8px;vertical-align:top;border-bottom:1px solid #eef2f6;
+  word-break:break-word;line-height:1.5}
+.cmp-table tr.cmp-diff{background:#fff8e8}
+.cmp-table tr.cmp-diff th{background:#fff3d9;color:#8a5a00}
+.cmp-table .cmp-old{color:#8a94a0}
+.cmp-table .cmp-new{color:#0d7a3a;font-weight:600}
+body.dark .cmp-table thead th{background:#1b2431;color:#9fc4e8;border-bottom-color:#2a3546}
+body.dark .cmp-table tbody th{background:#161d28;color:#8fa0b4;border-bottom-color:#232e3c}
+body.dark .cmp-table tbody td{border-bottom-color:#232e3c;color:#c9d2de}
+body.dark .cmp-table tr.cmp-diff{background:#33290f}
+body.dark .cmp-table tr.cmp-diff th{background:#3a2f12;color:#e8c169}
+body.dark .cmp-table .cmp-new{color:#6fd39a}
+body.dark .cmp-wrap{border-color:#2a3546}
+@media(max-width:420px){.cmp-table{font-size:11.5px}}

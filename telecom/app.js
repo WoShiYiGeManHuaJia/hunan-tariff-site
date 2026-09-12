@@ -712,7 +712,32 @@ function showPlanDetail(ts, sec, name, kind) {
   const d = rec ? rec[sec] : null;
   const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
   if (kind === "modified") {
-    const details = (d && d.modified_details && d.modified_details[name]) || null;
+    const before = (d && d.modified_before) ? d.modified_before[name] : null;
+    const after = (d && d.modified_after) ? d.modified_after[name] : null;
+    const det0 = (d && d.modified_details && d.modified_details[name]) || null;
+    if (before || after) {
+      const changed = new Set((det0 || []).map((dt) => dt.field));
+      const allKeys = [];
+      [before || {}, after || {}].forEach((o) => {
+        Object.keys(o).forEach((k) => { if (allKeys.indexOf(k) < 0) allKeys.push(k); });
+      });
+      const rows = allKeys.map((k) => {
+        const bv = cleanVal((before || {})[k]);
+        const av = cleanVal((after || {})[k]);
+        return '<tr class="' + (bv !== av ? "cmp-diff" : "") + '">' +
+          '<th>' + esc(k) + "</th>" +
+          '<td class="cmp-old">' + esc(bv || "—") + "</td>" +
+          '<td class="cmp-new">' + esc(av || "—") + "</td></tr>";
+      }).join("");
+      openModal(name, head +
+        '<div class="res-row sub">该业务修改前后完整字段对比' +
+          (det0 && det0.length ? "（" + det0.length + " 处改动，已高亮）" : "") + "：</div>" +
+        '<div class="cmp-wrap"><table class="cmp-table">' +
+          '<thead><tr><th>字段</th><th>修改前</th><th>修改后</th></tr></thead>' +
+          "<tbody>" + rows + "</tbody></table></div>");
+      return;
+    }
+    const details = det0;
     if (details && details.length) {
       const rows = details.map((dt) => {
         const normV = (v) => {

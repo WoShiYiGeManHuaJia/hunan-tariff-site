@@ -775,8 +775,57 @@ function showModDetail(ts, sec, name) {
   const rec = _histCache.get(ts);
   const d = rec ? rec[sec] : null;
   const details = (d && d.modified_details) ? d.modified_details[name] : null;
+  const before = (d && d.modified_before) ? d.modified_before[name] : null;
+  const after = (d && d.modified_after) ? d.modified_after[name] : null;
   const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
-  if (!details || !details.length) {
+
+  /* 并排展示修改前后的完整字段表，改动行高亮。
+     只丢给用户几个差异片段，无法判断改动落在什么业务上下文里。 */
+  const renderCmp = (bf, af) => {
+    const allKeys = [];
+    [bf || {}, af || {}].forEach((o) => {
+      Object.keys(o).forEach((k) => { if (allKeys.indexOf(k) < 0) allKeys.push(k); });
+    });
+    const cmpRows = allKeys.map((k) => {
+      let bv = cleanVal((bf || {})[k]);
+      let av = cleanVal((af || {})[k]);
+      if (k === "适用地区") { bv = areaCn(bv) || bv; av = areaCn(av) || av; }
+      return '<tr class="' + (bv !== av ? "cmp-diff" : "") + '">' +
+        '<th>' + esc(k) + "</th>" +
+        '<td class="cmp-old">' + esc(bv || "—") + "</td>" +
+        '<td class="cmp-new">' + esc(av || "—") + "</td>" +
+        "</tr>";
+    }).join("");
+    const nDiff = (details || []).length;
+    openModal(name, head +
+      '<div class="res-row sub">该业务修改前后完整字段对比' +
+        (nDiff ? '（共 ' + nDiff + " 处改动，已高亮）" : "") + "：</div>" +
+      '<div class="cmp-wrap"><table class="cmp-table">' +
+        '<thead><tr><th>字段</th><th>修改前</th><th>修改后</th></tr></thead>' +
+        "<tbody>" + cmpRows + "</tbody></table></div>");
+  };
+
+  if (before || after) { renderCmp(before, after); return; }
+
+  /* 无现成快照（老记录）时动态构造：
+     以当前板块配置为「修改后」基线，把差异字段的 from/to 回填。
+     差异字段的值是准确的（来自 modified_details），其余字段前后同一基准。 */
+  if (details && details.length) {
+    lookupCurrent(sec, name).then((cur) => {
+      if (cur && Object.keys(cur).length) {
+        const af = Object.assign({}, cur);
+        const bf = Object.assign({}, cur);
+        details.forEach((dt) => { af[dt.field] = dt.to; bf[dt.field] = dt.from; });
+        renderCmp(bf, af);
+      } else {
+        renderModDiffOnly();
+      }
+    });
+    return;
+  }
+
+  function renderModDiffOnly() {
+    if (!details || !details.length) {
     openModal(name, head + '<div class="res-row">加载字段级修改明细…</div>');
     lookupCurrent(sec, name).then((f) => {
       if (f && Object.keys(f).length) {
@@ -806,9 +855,10 @@ function showModDetail(ts, sec, name) {
       '<div class="mod-new" title="修改后"><span class="mod-lab new">修改后</span>' + nv + "</div>" +
       "</div></div>";
   }).join("");
-  openModal(name, head +
-    '<div class="res-row sub">该业务本次字段级修改（共 ' + details.length + " 项）：</div>" +
-    '<div class="mod-diff">' + rows + "</div>");
+    openModal(name, head +
+      '<div class="res-row sub">该业务本次字段级修改（共 ' + details.length + " 项）：</div>" +
+      '<div class="mod-diff">' + rows + "</div>");
+  }
 }
 
 /* 新增业务明细弹窗：展示该业务新增时的完整配置（字段表格） */
