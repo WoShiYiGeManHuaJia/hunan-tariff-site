@@ -1136,7 +1136,7 @@ function renderHistory() {
 
 /* ========== 更新公告弹窗（每个设备仅显示一次，几大站共用同一标记） ========== */
 (function () {
-  var KEY = "marvis_site_notice_20260911v2";
+  var KEY = "marvis_site_notice_20260912v3";
   var done = false;
   try { done = !!localStorage.getItem(KEY); } catch (e) {}
   if (done) return;
@@ -1166,13 +1166,14 @@ function renderHistory() {
   var card = document.createElement("div");
   card.className = "notice-card";
   card.innerHTML =
-    '<div class="notice-top"><span class="notice-ico">📢</span><h3>资费站更新公告</h3><span class="notice-tag">2026.09.11</span></div>' +
+    '<div class="notice-top"><span class="notice-ico">📢</span><h3>资费站更新公告</h3><span class="notice-tag">2026.09.12</span></div>' +
     '<div class="notice-body"><p>本次更新主要内容：</p><ul class="notice-list">' +
-    "<li>新增湖南移动公告页：自动抓取官网公告，仅保留最新 15 条。</li>" +
-    "<li>优化了资费文字排版，查看更清晰。</li>" +
-    "<li>新增广电运营商站点，四大运营商一站切换。</li>" +
-    "<li>美化省份选择弹窗，顶部固定搜索栏。</li>" +
-    "<li>搜索支持「全局 / 仅业务名称」范围切换。</li>" +
+    "<li>修复：联通 / 电信 / 广电「变化历史」一直加载中打不开的问题。</li>" +
+    "<li>修改的套餐：新增「修改前 / 修改后」字段对比表，改动处高亮显示。</li>" +
+    "<li>下架的套餐：完整展示资费配置，不再只提示「已下架看不了」。</li>" +
+    "<li>修复：部分字段显示为英文（如上线日期、退订方式、违约责任等）。</li>" +
+    "<li>修复：联通一次冒出数千条异常变化，已加入噪声识别并重建基线。</li>" +
+    "<li>变化历史改为上滑加载；联通数据大幅瘦身，打开更快。</li>" +
     '</ul></div>' +
     '<div class="notice-ft"><button class="notice-ok" id="notice-ok-btn">知道了</button></div>';
   var mask = document.createElement("div");
