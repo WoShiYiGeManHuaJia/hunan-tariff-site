@@ -166,7 +166,6 @@ code{
     <div class="sect">推送渠道</div>
     <div id="channels"></div>
   </div>
-
   <div class="sec">
     <div class="sect">🎯 重点省份（抓取范围）</div>
     <div class="chcard" style="padding:12px">
@@ -204,8 +203,7 @@ code{
       <div class="fld"><label>标题（可留空）</label><input id="qTitle" class="inp" placeholder="资费变化通知" value="资费变化通知"></div>
       <div class="fld"><label>内容</label><textarea id="qText" class="inp" rows="4" placeholder="要推送的内容，支持换行。留空则自动用站点最新资费数据。"></textarea></div>
       <div class="hrow" style="margin-top:10px;gap:8px;flex-wrap:wrap">
-        <button id="qGen" class="btn pri">生成命令</button>
-        <button id="qCopy" class="btn">复制命令</button>
+        <button id="qCopy" class="btn pri">📋 复制命令</button>
         <button id="qSend" class="btn">浏览器直发</button>
         <span class="status" id="qStat" style="flex:1;min-width:120px"></span>
       </div>
@@ -239,67 +237,19 @@ code{
     </div>
   </div>
   <div class="sec">
-    <div class="sect">定时推送 · 选一种方式</div>
+    <div class="sect">🛠 自己创建</div>
     <div class="chcard" style="padding:12px">
-      <div class="hrow" style="gap:8px">
-        <button class="pill" data-mode="local">① 自己设备（推荐）</button>
-        <button class="pill" data-mode="cloud">② GitHub 云端</button>
-        <button class="pill" data-mode="manual">③ 不要定时</button>
+      <div class="tiny" style="line-height:1.9;margin-bottom:12px">
+        下载资费变化抓取的<b>全部源码</b>，自己部署、自己改。<br>
+        包含四家运营商的抓取管线、站点构建、汇总推送脚本，以及云端定时配置。
       </div>
-
-      <div id="paneLocal" style="margin-top:14px">
-        <div class="stepw">
-          <div class="stept"><b>第 1 步</b> · 复制下面整行，粘贴到终端，按回车</div>
-          <div class="tiny" style="margin:4px 0 8px">电脑、服务器、路由器都行。它会自动下载脚本、写好配置，并发一条测试消息。<b>密钥只写进你自己的设备。</b></div>
-          <textarea id="cmdLocal" class="codebox" rows="6" readonly></textarea>
-          <div class="hrow" style="margin-top:8px;gap:8px">
-            <button id="cpLocal" class="btn pri">复制这行命令</button>
-            <button id="cpEnv" class="btn">只看 .env</button>
-          </div>
-          <div class="tiny" style="margin-top:8px;line-height:1.8">看到「配置成功」就通了。群里应该收到一条测试消息。</div>
-        </div>
-
-        <div class="stepw" style="margin-top:14px">
-          <div class="stept"><b>第 2 步</b> · 想每天自动推？选一个时间（可选）</div>
-          <div class="hrow" style="gap:8px;margin:6px 0 8px">
-            <button class="pill" data-cron="0 9 * * *">每天 9 点</button>
-            <button class="pill" data-cron="0 */6 * * *">每 6 小时</button>
-            <button class="pill" data-cron="0 9,21 * * *">早晚 9 点</button>
-          </div>
-          <textarea id="cmdCron" class="codebox" rows="4" readonly></textarea>
-          <div class="hrow" style="margin-top:8px">
-            <button id="cpCron" class="btn pri">复制定时命令</button>
-          </div>
-          <div class="tiny" style="margin-top:8px;line-height:1.8">同样粘贴到终端回车即可，会自动加到 crontab，不会覆盖你已有的定时任务。</div>
-        </div>
-      </div>
-
-      <div id="paneCloud" style="margin-top:14px">
-        <div class="stepw">
-          <div class="stept"><b>第 1 步</b> · 先 fork 仓库</div>
-          <div class="tiny" style="margin:4px 0 8px;line-height:1.8">打开 <a href="https://github.com/WoShiYiGeManHuaJia/hunan-tariff-site" target="_blank" rel="noopener">资费监控仓库</a> → 右上角 Fork。之后所有配置都填在你自己的仓库里。</div>
-        </div>
-        <div class="stepw" style="margin-top:12px">
-          <div class="stept"><b>第 2 步</b> · 一键填好密钥（推荐）</div>
-          <div class="tiny" style="margin:4px 0 8px;line-height:1.8">如果装了 GitHub 官方命令行 <code>gh</code>，把下面整段粘到终端回车，<b>所有密钥一次性填完</b>，不用在网页上一个一个点。</div>
-          <textarea id="cmdGh" class="codebox" rows="6" readonly></textarea>
-          <div class="hrow" style="margin-top:8px;gap:8px">
-            <button id="cpGh" class="btn pri">复制命令</button>
-            <button id="btnSecrets" class="btn">手动填（网页）</button>
-          </div>
-          <div class="tiny" style="margin-top:8px;line-height:1.8">没有 <code>gh</code>？点「手动填」，按清单在仓库 Settings → Secrets 里逐个添加。</div>
-        </div>
-        <div class="stepw" style="margin-top:12px">
-          <div class="stept"><b>第 3 步</b> · 开启自动推送</div>
-          <div class="tiny" style="margin:4px 0;line-height:1.8">进你 fork 的仓库 → Actions → 左侧选「Tariff Notify」→ 点 Enable workflow。之后按仓库设定的时间自动跑。</div>
-        </div>
-      </div>
-
-      <div id="paneManual" style="margin-top:14px">
-        <div class="tiny" style="line-height:1.9">
-          不做定时推送。需要时回到上面渠道区，点「<b>发送测试</b>」手动推一次。<br>
-          配置仍保存在本机，随时可改成上面两种方式。
-        </div>
+      <a id="btnDl" class="btn pri" href="tariff-fetch-source.zip" download
+         style="display:inline-block;text-decoration:none;text-align:center">
+        ⬇ 下载源码压缩包
+      </a>
+      <div class="tiny" style="margin-top:10px;line-height:1.8;color:var(--text-secondary)">
+        约 100 KB · 含「怎么用.txt」说明<br>
+        数据文件不含在内，跑起来后自行生成
       </div>
     </div>
   </div>
@@ -345,8 +295,7 @@ const CH=[
 const PROV=[['全国','quanguo'],['北京','beijing'],['天津','tianjin'],['河北','hebei'],['山西','shanxi'],['内蒙古','neimenggu'],['辽宁','liaoning'],['吉林','jilin'],['黑龙江','heilongjiang'],['上海','shanghai'],['江苏','jiangsu'],['浙江','zhejiang'],['安徽','anhui'],['福建','fujian'],['江西','jiangxi'],['山东','shandong'],['河南','henan'],['湖北','hubei'],['湖南','hunan'],['广东','guangdong'],['广西','guangxi'],['海南','hainan'],['重庆','chongqing'],['四川','sichuan'],['贵州','guizhou'],['云南','yunnan'],['西藏','xizang'],['陕西','shaanxi'],['甘肃','gansu'],['青海','qinghai'],['宁夏','ningxia'],['新疆','xinjiang']];
 const DEF={dingtalk:{enabled:false,webhook:'',secret:'',keyword:''},feishu:{enabled:false,webhook:'',secret:''},wecom:{enabled:false,webhook:''},
  email:{enabled:false,host:'',port:'465',user:'',pass:'',to:''},
- push:{focus:'hunan',siteUrl:'https://woshiyigemanhuajia.github.io/hunan-tariff-site/',since:'24',fmt:'detail',skipEmpty:true,mode:'local',
-  focusProvs:['hunan','guangdong','zhejiang'],notifyMode:'focus_auto'}};
+ push:{focus:'hunan',siteUrl:'https://woshiyigemanhuajia.github.io/hunan-tariff-site/',since:'24',fmt:'detail',skipEmpty:true,mode:'local',focusProvs:['hunan','guangdong','zhejiang'],notifyMode:'focus_auto'}};
 let cfg=JSON.parse(JSON.stringify(DEF));
 function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);CH.forEach(function(c){if(d[c.id])Object.assign(cfg[c.id],d[c.id])});if(d.push)Object.assign(cfg.push,d.push)}}catch(e){storageOK=false}}
 let saveTimer=null;
@@ -413,7 +362,7 @@ function bindChannels(){
  });
  $('channels').addEventListener('input',function(e){
   const inp=e.target.closest('[data-fld]');if(!inp)return;
-  inp.classList.remove('err');const p=inp.dataset.fld.split('.');cfg[p[0]][p[1]]=inp.value;save();refreshCmds();refreshQuick();
+  inp.classList.remove('err');const p=inp.dataset.fld.split('.');cfg[p[0]][p[1]]=inp.value;save();refreshQuick();
  });
 }
 const SAMPLE=[{k:'移动',c:'🔵',a:340,r:284,m:1196,f:'无变化'},{k:'联通',c:'🟠',a:0,r:0,m:0,f:null},
@@ -474,13 +423,6 @@ function importCfg(text){
   localStorage.setItem(LS_KEY,JSON.stringify(cfg));renderChannels();renderPrev();syncRules();toast('已导入 '+n+' 项配置','ok')}
  catch(e){toast('导入失败：JSON 格式错误','err')}
 }
-function setMode(m){
- cfg.push.mode=m;save();
- const pills=document.querySelectorAll('[data-mode]');
- Array.prototype.forEach.call(pills,function(b){b.className='pill'+(b.dataset.mode===m?' on':'')});
- const map={local:'paneLocal',cloud:'paneCloud',manual:'paneManual'};
- Object.keys(map).forEach(function(k){$(map[k]).style.display=(k===m?'':'none')});
-}
 /* ===== 快捷推送 ===== */
 function qEnv(){
  const P=envPairs();
@@ -501,8 +443,7 @@ function qCmdText(){
   +' && python3 push_once.py';
 }
 function refreshQuick(){if($('qCmd'))$('qCmd').value=qCmdText()}
-$('qGen').addEventListener('click',function(){refreshQuick();$('qStat').textContent='已生成，点「复制命令」';$('qStat').style.color='var(--success)'});
-$('qCopy').addEventListener('click',function(){if(!$('qCmd').value)refreshQuick();copy($('qCmd').value,'已复制，粘贴到终端按回车')});
+$('qCopy').addEventListener('click',function(){refreshQuick();if(!$('qCmd').value.startsWith('#')){copy($('qCmd').value,'已复制，粘贴到终端按回车')}else{$('qStat').textContent='请先启用推送渠道并填好 Webhook';$('qStat').style.color='var(--destructive)'}});
 $('qTitle').addEventListener('input',refreshQuick);
 $('qText').addEventListener('input',refreshQuick);
 async function qSend(){
@@ -554,53 +495,20 @@ function envPairs(){
  return L;
 }
 function hasChannel(){return envPairs().some(function(x){return /^(DINGTALK|FEISHU|WECOM|SMTP|MAIL)/.test(x[0])})}
-function cmdLocal(){
- if(!hasChannel())return '# 请先在上方「推送渠道」里启用至少一个，并填好 Webhook / SMTP 信息';
- const P=envPairs();
- const envs=P.map(function(x){return shq(x[0]+'='+x[1])}).join(' ');
- return 'mkdir -p ~/tariff-push && cd ~/tariff-push'
-  +' && '+dl('notify.py')+' && '+dl('push_once.py')
-  +' && printf '+shq('%s\\n')+' '+envs+' > .env'
-  +' && python3 push_once.py --test';
-}
-let cronExpr='0 9 * * *';
-function cmdCron(){return '(crontab -l 2>/dev/null; echo "'+cronExpr+' cd ~/tariff-push && python3 push_once.py") | crontab -'}
-function cmdGh(){
- if(!hasChannel())return '# 请先在上方「推送渠道」里启用至少一个，并填好 Webhook / SMTP 信息';
- return envPairs().map(function(x){return 'gh secret set '+x[0]+' -b'+shq(x[1])}).join('\n');
-}
-function refreshCmds(){
- if($('cmdLocal'))$('cmdLocal').value=cmdLocal();
- if($('cmdCron'))$('cmdCron').value=cmdCron();
- if($('cmdGh'))$('cmdGh').value=cmdGh();
-}
-Array.prototype.forEach.call(document.querySelectorAll('[data-cron]'),function(b){
- b.addEventListener('click',function(){
-  cronExpr=b.dataset.cron;
-  Array.prototype.forEach.call(document.querySelectorAll('[data-cron]'),function(c){c.className='pill'+(c.dataset.cron===cronExpr?' on':'')});
-  refreshCmds();toast('已选：'+b.textContent,'ok');
- });
-});
 function syncRules(){$('siteUrl').value=cfg.push.siteUrl||'';$('sinceHours').value=cfg.push.since||'24';$('pushFmt').value=cfg.push.fmt;$('pushSkipEmpty').checked=!!cfg.push.skipEmpty}
 load();
 renderChannels();bindChannels();syncRules();renderPrev();
-setMode(cfg.push.mode||'local');
-refreshCmds();
 refreshQuick();
-Array.prototype.forEach.call(document.querySelectorAll('[data-mode]'),function(b){
- b.addEventListener('click',function(){setMode(b.dataset.mode)});
-});
 $('saveState').textContent=storageOK?'✓ 已加载本地配置':'暂存内存（无法写入本地）';
 $('siteUrl').addEventListener('input',function(){cfg.push.siteUrl=this.value;save();renderPrev()});
 
 /* ===== 重点省份（抓取范围）=====
-   数量不限，四家通用。
-   「全国」：默认始终抓取的板块；面板最前的「全国」按钮＝一键全选所有省份。 */
+   数量不限，四家通用。「全国」默认始终抓取；
+   面板最前的「全国」按钮＝一键全选所有省份。 */
 const NMODES=[
  {k:'full_auto',  t:'(a) 全量定时推送',     tip:'每天 10:00 / 20:00 自动推送，抓取范围为<b>全部省份</b>。联通全量约 70 分钟，因此推送时间需排在抓取之后。'},
  {k:'focus_auto', t:'(b) 重点省份定时推送', tip:'每天 10:00 / 20:00 自动推送，抓取<b>只跑你选的省份 + 全国</b>（约 7 分钟）。适合日常盯盘。'}
 ];
-/* 折叠：默认只展示常用省份，点「展开全部省份」再看其余 */
 const FP_COMMON=['quanguo','hunan','guangdong','beijing','shanghai','zhejiang','jiangsu','sichuan'];
 let fpExpanded=false;
 function fpList(){return (cfg.push.focusProvs||[]).filter(function(c){return c&&c!=='quanguo'})}
@@ -608,53 +516,35 @@ function fpNames(){return fpList().map(provName)}
 function fpAllCodes(){return PROV.filter(function(x){return x[1]!=='quanguo'}).map(function(x){return x[1]})}
 function fpRender(){
  const box=$('fpPick');box.innerHTML='';
- /* 第一个：全国 = 全选 / 取消全选 */
  const all=fpAllCodes();
- const isAll=all.every(function(c){return fpList().indexOf(c)>=0});
+ const isAll=all.length&&all.every(function(c){return fpList().indexOf(c)>=0});
  const bAll=document.createElement('button');
- bAll.className='pill'+(isAll?' on':'');
- bAll.style.borderStyle='solid';
+ bAll.className='pill'+(isAll?' on':'');bAll.style.borderStyle='solid';
  bAll.textContent=isAll?'全国 ✓（已全选）':'全国（全选）';
- bAll.onclick=function(){
-  cfg.push.focusProvs=isAll?[]:all.slice();
-  save();fpRender();
- };
+ bAll.onclick=function(){cfg.push.focusProvs=isAll?[]:all.slice();save();fpRender()};
  box.appendChild(bAll);
- /* 其余省份（折叠） */
  PROV.forEach(function(x){
   if(x[1]==='quanguo')return;
   if(!fpExpanded && FP_COMMON.indexOf(x[1])<0 && fpList().indexOf(x[1])<0)return;
   const b=document.createElement('button');
   b.className='pill'+(fpList().indexOf(x[1])>=0?' on':'');
   b.textContent=x[0];b.dataset.fp=x[1];
-  b.onclick=function(){
-   const L=fpList();const i=L.indexOf(x[1]);
-   if(i>=0){L.splice(i,1)}else{L.push(x[1])}
-   cfg.push.focusProvs=L;save();fpRender();
-  };
+  b.onclick=function(){const L=fpList();const i=L.indexOf(x[1]);if(i>=0){L.splice(i,1)}else{L.push(x[1])}cfg.push.focusProvs=L;save();fpRender()};
   box.appendChild(b);
  });
  const n=fpList().length;
  $('fpCount').textContent=n;
  $('fpSel').textContent=n?fpNames().join('、'):'（未选，只抓全国）';
- /* 展开/收起按钮文案 */
  const more=$('fpMore');
  more.textContent=fpExpanded?('收起 ▲'):('展开全部省份 ▼（共 '+all.length+' 个）');
  more.onclick=function(){fpExpanded=!fpExpanded;fpRender()};
- /* 同步「推送内容 → 关注省份」镜像 */
- const mir=$('fp');if(mir){
+ const mir=$('fp');
+ if(mir){
   mir.innerHTML='';
   if(!n){const t=document.createElement('span');t.className='tiny';t.textContent='（未选，消息只报全国与总数）';mir.appendChild(t)}
-  else{
-   fpList().forEach(function(c){
-    const t=document.createElement('span');t.className='pill on';t.style.cursor='default';
-    t.textContent=provName(c);mir.appendChild(t);
-   });
-  }
+  else{fpList().forEach(function(c){const t=document.createElement('span');t.className='pill on';t.style.cursor='default';t.textContent=provName(c);mir.appendChild(t)})}
  }
- /* 预览与导出命令跟随刷新 */
  try{renderPrev()}catch(e){}
- try{refreshCmds()}catch(e){}
  try{refreshQuick()}catch(e){}
 }
 function renderNMode(){
@@ -670,25 +560,15 @@ function renderNMode(){
  $('nModeTip').innerHTML=cur?cur.tip:'';
 }
 function syncFp(){
- if(cfg.push.notifyMode==='focus_manual')cfg.push.notifyMode='focus_auto';  /* (c) 已移除 */
  if(!cfg.push.notifyMode)cfg.push.notifyMode='focus_auto';
  if(!Array.isArray(cfg.push.focusProvs))cfg.push.focusProvs=['hunan','guangdong','zhejiang'];
- /* 兼容旧版单省份配置 */
- if((!cfg.push.focusProvs.length)&&cfg.push.focus)cfg.push.focusProvs=[cfg.push.focus];
+ if(!cfg.push.focusProvs.length&&cfg.push.focus)cfg.push.focusProvs=[cfg.push.focus];
  fpRender();renderNMode();
 }
 syncFp();
 $('sinceHours').addEventListener('input',function(){cfg.push.since=this.value;save();renderPrev()});
 $('pushFmt').addEventListener('change',function(){cfg.push.fmt=this.value;save();renderPrev()});
 $('pushSkipEmpty').addEventListener('change',function(){cfg.push.skipEmpty=this.checked;save();renderPrev()});
-$('cpLocal').addEventListener('click',function(){copy($('cmdLocal').value,'已复制，粘贴到终端按回车')});
-$('cpCron').addEventListener('click',function(){copy($('cmdCron').value,'已复制，粘贴到终端按回车')});
-$('cpGh').addEventListener('click',function(){copy($('cmdGh').value,'已复制，在你的 fork 目录里粘贴执行')});
-$('cpEnv').addEventListener('click',function(){
- const t=envText();
- openModal('.env 内容','<textarea class="codebox" id="eb" rows="10" readonly></textarea><div class="tiny" style="margin-top:8px;line-height:1.7">含真实密钥，请勿外传。上面那条命令会自动生成这个文件。</div><div class="hrow" style="margin-top:10px"><button class="btn pri" id="cpe">复制</button><button class="btn" id="cle">关闭</button></div>',
- function(m){m.querySelector('#eb').value=t;m.querySelector('#cpe').onclick=function(){copy(t,'.env 已复制')};m.querySelector('#cle').onclick=function(){m.classList.add('hide')}});
-});
 $('wipe').addEventListener('click',function(){cfg=JSON.parse(JSON.stringify(DEF));try{localStorage.removeItem(LS_KEY)}catch(e){}renderChannels();syncRules();renderPrev();$('saveState').textContent='已清除';toast('本地数据已全部清除','ok')});
 $('importBtn').addEventListener('click',function(){$('importFile').click()});
 $('importFile').addEventListener('change',function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=function(){importCfg(r.result)};r.readAsText(f);this.value=''});
