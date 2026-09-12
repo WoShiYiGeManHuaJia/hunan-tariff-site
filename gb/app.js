@@ -1119,8 +1119,9 @@ function histDraw(list) {
       if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
       if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
       if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
-      if (!chips.length) chips.push('<span class="chip none">无变化</span>');
-      // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
+      // 无变化的板块不再占位展示（31 省全列一遍会让真实变化被淹没）；
+      // 整个批次都没有变化时，下方给出一行「本轮全部无变化」提示。
+      if (!chips.length) return;
       entries.push(
         '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
         '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
@@ -1134,7 +1135,9 @@ function histDraw(list) {
     if (!entries.length) {
       return (
         '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
-        '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
+        '<div class="tl-chips"><span class="chip none">' +
+        (histFilter ? "该省份本轮无变化" : "本轮全部省份均无变化") +
+        "</span></div></div>"
       );
     }
     const open = gidx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
