@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>中国移动资费监控 · 数据一览</title>
+<link rel="stylesheet" href="./style.css?v=20260912j">
+  <link rel="icon" href="logo.png" type="image/png">
+  <meta name="description" content="中国移动资费监控 · 全网及湖南全省公开资费数据一览，支持实时检索、资费对比与变化历史追踪。">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="资费监控站">
+  <meta property="og:title" content="中国移动资费监控">
+  <meta property="og:description" content="中国移动资费监控 · 全网及湖南全省公开资费数据一览，支持实时检索、资费对比与变化历史追踪。">
+  <meta property="og:url" content="https://woshiyigemanhuajia.github.io/hunan-tariff-site/">
+  <meta property="og:image" content="https://woshiyigemanhuajia.github.io/hunan-tariff-site/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="中国移动资费监控">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-logo"><img src="logo.png?v=20260904l" alt="中国移动资费监控"></span>
+      <div class="brand-text">
+        <div class="brand-name">中国移动资费监控</div>
+        <div class="brand-sub">全网 · 各省资费数据一览</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
+      <button class="glass-btn" id="refreshBtn" title="检测最新快照与历史变化">检测资费</button>
+      <button class="glass-btn" id="switchBtn" title="切换运营商站点">切换<span class="arr">›</span></button>
+      <button class="glass-btn" id="themeBtn" title="切换深色/浅色模式">深色</button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-view="overview">数据总览</button>
+    <button class="tab" data-view="quanguo">全国资费</button>
+    <button class="tab" data-view="prov">省份资费</button>
+    <button class="tab" data-view="history">变化历史</button>
+    <button class="tab" data-view="announce">湖南移动公告</button>
+    <button class="tab" data-view="about">关于</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 数据总览 -->
+  <section id="view-overview" class="view active">
+    <div class="stat-grid" id="statGrid">
+      <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全网通用资费</div></div>
+      <div class="stat-card"><div class="stat-num" id="stAllProv">-</div><div class="stat-label" id="stAllProvLabel">31省资费合计(去重)</div></div>
+      <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label" id="stQuanguoLabel">本省个人资费</div></div>
+      <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label" id="stGqLabel">本省政企资费</div></div>
+    </div>
+    <div class="panel">
+      <h2 class="panel-title">省份资费统计
+        <button type="button" class="prov-pick" id="oProvBtn" title="切换省份查看该省资费统计"><span class="prov-name" id="oProvTxt">加载中…</span><span class="prov-caret">▾</span></button>
+<select id="oProv" class="sel prov-sel" title="切换省份查看该省资费统计" hidden></select>
+        <span class="panel-sub" id="distDesc">六大类分布</span>
+      </h2>
+      <div class="stat-card"><div class="stat-num" id="opTotal">-</div><div class="stat-label" id="opLabel">本省资费总数</div></div>
+      <div class="bars" id="distBars"></div>
+    </div>
+  </section>
+
+  <!-- 全国资费 -->
+  <section id="view-quanguo" class="view">
+    <div class="toolbar">
+      <div class="sort-bar" id="qSortBar">
+        <span class="sort-tit">排序</span>
+        <button type="button" class="sort-btn" data-sort="time">最新上架</button>
+        <button type="button" class="sort-btn" data-sort="price">按价格</button>
+        <button type="button" class="sort-btn" data-sort="zero">零元业务</button>
+        <button type="button" class="sort-btn s-dir" data-sort="dir">降序 ↓</button>
+      </div>
+      
+      <button type="button" class="f-pick" data-fpick="qScope" title="搜索范围"><span>全局搜索</span><span class="f-caret">▾</span></button>
+      <select id="qScope" class="sel f-sel" title="搜索范围" hidden><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
+      <input type="search" id="qSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
+      <button type="button" class="f-pick" data-fpick="qOwn" title="归属"><span>全部归属</span><span class="f-caret">▾</span></button>
+      <select id="qOwn" class="sel f-sel" title="归属" hidden><option value="">全部归属</option><option>个人资费</option><option>政企资费</option></select>
+      <button type="button" class="f-pick" data-fpick="qType" title="类型"><span>全部类型</span><span class="f-caret">▾</span></button>
+      <select id="qType" class="sel f-sel" title="类型" hidden><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option></select>
+      <button class="btn" id="qReload">重新加载</button>
+      <span class="count-hint" id="qCount"></span>
+    </div>
+    <div class="list" id="qList"><div class="loading">加载全国资费数据…</div></div>
+    <div class="pager" id="qPager"></div>
+  </section>
+
+  <!-- 省份资费（自助切换省份，默认湖南） -->
+  <section id="view-prov" class="view">
+    <div class="toolbar">
+      <div class="sort-bar" id="pSortBar">
+        <span class="sort-tit">排序</span>
+        <button type="button" class="sort-btn" data-sort="time">最新上架</button>
+        <button type="button" class="sort-btn" data-sort="price">按价格</button>
+        <button type="button" class="sort-btn" data-sort="zero">零元业务</button>
+        <button type="button" class="sort-btn s-dir" data-sort="dir">降序 ↓</button>
+      </div>
+      <label class="prov-label" for="pProv">省份：</label>
+      <button type="button" class="prov-pick" id="pProvBtn" title="自助选择其他省份"><span class="prov-name" id="pProvTxt">加载中…</span><span class="prov-caret">▾</span></button>
+<select id="pProv" class="sel prov-sel" title="自助选择其他省份" hidden></select>
+      
+      <button type="button" class="f-pick" data-fpick="pScope" title="搜索范围"><span>全局搜索</span><span class="f-caret">▾</span></button>
+      <select id="pScope" class="sel f-sel" title="搜索范围" hidden><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
+      <input type="search" id="pSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
+      <button type="button" class="f-pick" data-fpick="pOwn" title="归属"><span>全部归属</span><span class="f-caret">▾</span></button>
+      <select id="pOwn" class="sel f-sel" title="归属" hidden><option value="">全部归属</option><option>个人资费</option><option>政企资费</option></select>
+      <button type="button" class="f-pick" data-fpick="pType" title="类型"><span>全部类型</span><span class="f-caret">▾</span></button>
+      <select id="pType" class="sel f-sel" title="类型" hidden><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option></select>
+      <button class="btn" id="pReload">重新加载</button>
+      <span class="count-hint" id="pCount"></span>
+    </div>
+    <div class="list" id="pList"><div class="loading">加载省份资费数据…</div></div>
+    <div class="pager" id="pPager"></div>
+  </section>
+
+  <!-- 变化历史 -->
+  <section id="view-history" class="view">
+    <div class="panel">
+      <h2 class="panel-title">资费变更时间线</h2>
+      <div class="toolbar htl">
+        <label class="prov-label" for="hProvFilter">省份：</label>
+        <button type="button" class="prov-pick" id="hProvFilterBtn" title="按省份筛选变化历史"><span class="prov-name" id="hProvFilterTxt">全部省份</span><span class="prov-caret">▾</span></button>
+<select id="hProvFilter" class="sel prov-sel" title="按省份筛选变化历史" hidden></select>
+      </div>
+      <div id="historyBox"><div class="loading">加载历史记录…</div></div>
+    </div>
+  </section>
+
+  <!-- 湖南移动公告 -->
+  <section id="view-announce" class="view">
+    <div class="panel">
+      <h2 class="panel-title">湖南移动公告<span class="panel-sub">来源：湖南移动官网公告 · 自动抓取，仅保留最新 15 条</span></h2>
+      <div class="announce-sub" id="announceSub"></div>
+      <div class="announce-list" id="announceBox"><div class="loading">加载公告…</div></div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section id="view-about" class="view">
+    <div class="panel">
+      <h2 class="panel-title">关于本页</h2>
+      <div class="about-text">
+        <p>本页面展示中国移动「全网资费」及各省（默认湖南）的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
+        <ul>
+          <li><b>数据来源：</b>中国移动官网公开资费专区</li>
+          <li><b>省份切换：</b>「省份资费」页可自助选择其他省份，默认湖南；变化历史同样按省份标注</li>
+          <li><b>更新方式：</b>自动定时抓取比对，有变化即刷新本页</li>
+          <li><b>数据口径：</b>以官网「适用地区」「适用范围」字段为准，仅供参考</li>
+          <li><b>免责声明：</b>展示内容可能存在延迟或误差，办理业务请以营业厅 / 10086 官方信息为准</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">中国移动资费监控面板 · 数据仅供个人学习参考</footer>
+
+<!-- 切换运营商弹窗 -->
+<div class="modal-mask" id="switchMask">
+  <div class="modal-card">
+    <div class="modal-head"><span>切换运营商</span><button class="modal-close" id="switchClose" title="关闭">×</button></div>
+    <div class="modal-body">
+      <div class="switch-list" id="switchList">
+        <a class="sw-item sw-m on" href="index.html" title="中国移动官网&监控">移动</a>
+        <a class="sw-item sw-u" href="./unicom/" title="中国联通官网&监控">联通</a>
+        <a class="sw-item sw-t" href="./telecom/" title="中国电信官网&监控">电信</a>
+        <a class="sw-item sw-g" href="./gb/" title="中国广电官网&监控">广电</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 检测结果弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal-card">
+    <div class="modal-head"><span id="modalTitle">检测结果</span><button class="modal-close" id="modalClose" title="关闭">×</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot"><button class="btn" id="modalOk">知道了</button></div>
+  </div>
+</div>
+
+
+
+<!-- 省份选择弹窗（顶部固定搜索栏 + 可滚动省份网格） -->
+<div class="modal-mask" id="provMask">
+  <div class="prov-card">
+    <div class="prov-head">
+      <span class="prov-title">选择省份</span>
+      <button class="modal-close" id="provClose" title="关闭">×</button>
+    </div>
+    <div class="prov-searchbar">
+      <span class="prov-search-ico">⌕</span>
+      <input type="search" id="provSearch" class="prov-search" placeholder="搜索省份名称，如：湖南、广东…" autocomplete="off">
+    </div>
+    <div class="prov-gridbox" id="provGrid"></div>
+  </div>
+</div>
+
+<!-- 通用单选选择弹窗（类型 / 归属 / 搜索范围 / 二级分类） -->
+<div class="modal-mask" id="genMask">
+  <div class="gen-card">
+    <div class="gen-head"><span class="gen-title" id="genTitle">选择</span><button class="modal-close" id="genClose" title="关闭">×</button></div>
+    <div class="gen-listbox" id="genList"></div>
+  </div>
+</div>
+
+
+<script src="./app.js?v=20260912j"></script>
+<script src="./common-extras.js?v=20260912j"></script>
+
+</body>
+</html>
