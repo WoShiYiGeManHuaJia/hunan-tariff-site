@@ -2,8 +2,12 @@ name: _tmp_mailtest
 on:
   workflow_dispatch:
     inputs:
-      smtp_user: { description: "u", required: false }
-      smtp_pass: { description: "p", required: false }
+      smtp_user:
+        description: u
+        required: false
+      smtp_pass:
+        description: p
+        required: false
 permissions:
   contents: none
 jobs:
@@ -11,37 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: "1-DNS解析"
+      - name: step1-DNS
         run: python3 -c "import socket;print(socket.gethostbyname('smtp.qq.com'))"
-      - name: "2-TCP465连通"
-        run: timeout 15 python3 -c "
-import socket;s=socket.create_connection(('smtp.qq.com',465),15);print('TCP OK');s.close()"
-      - name: "3-SSL握手"
-        run: timeout 25 python3 -c "
-import smtplib;s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=20);print('SSL OK',s.ehlo()[0]);s.close()"
-      - name: "4-登录"
+      - name: step2-TCP465
+        run: timeout 15 python3 -c "import socket;s=socket.create_connection(('smtp.qq.com',465),15);print('TCP OK');s.close()"
+      - name: step3-SSL
+        run: timeout 25 python3 -c "import smtplib;s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=20);print('SSL OK');s.close()"
+      - name: step4-LOGIN
         env:
           U: ${{ github.event.inputs.smtp_user }}
           P: ${{ github.event.inputs.smtp_pass }}
-        run: |
-          echo "::add-mask::$U"; echo "::add-mask::$P"
-          timeout 25 python3 -c "
-import smtplib,os
-s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=20)
-s.login(os.environ['U'],os.environ['P'])
-print('LOGIN OK');s.quit()"
-      - name: "5-发送"
+        run: echo "::add-mask::$P" && timeout 25 python3 -c "import smtplib,os;s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=20);s.login(os.environ['U'],os.environ['P']);print('LOGIN OK');s.quit()"
+      - name: step5-SEND
         if: success()
         env:
           U: ${{ github.event.inputs.smtp_user }}
           P: ${{ github.event.inputs.smtp_pass }}
-        run: |
-          echo "::add-mask::$U"; echo "::add-mask::$P"
-          timeout 40 python3 -c "
-import smtplib,os
-from email.mime.text import MIMEText
-from email.header import Header
-U,P=os.environ['U'],os.environ['P']
-m=MIMEText('测试邮件','plain','utf-8');m['Subject']=Header('资费监控测试','utf-8');m['From']=U;m['To']=U
-s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=30)
-s.login(U,P);s.sendmail(U,[U],m.as_string());s.quit();print('SEND OK')"
+        run: echo "::add-mask::$P" && timeout 40 python3 -c "import smtplib,os;from email.mime.text import MIMEText;from email.header import Header;U=os.environ['U'];P=os.environ['P'];m=MIMEText('ceshi','plain','utf-8');m['Subject']=Header('mailtest','utf-8');m['From']=U;m['To']=U;s=smtplib.SMTP_SSL('smtp.qq.com',465,timeout=30);s.login(U,P);s.sendmail(U,[U],m.as_string());s.quit();print('SEND OK')"
