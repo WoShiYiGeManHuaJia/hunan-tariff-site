@@ -684,6 +684,23 @@ function itemHtml(it, idx) {
 
 /* ---------- 变化历史（按省份分组 + 筛选） ---------- */
 const _histCache = new Map();   // ts -> 历史记录对象，供「修改业务」明细弹窗查询
+
+/* 按 ts 查历史记录。
+   ★ 此前 _histCache 只有 get 从未 set，导致所有历史弹窗拿到 undefined，
+     一律走兜底分支，表现成「未保存明细」「已下架看不了」。
+     现以 histAll 为权威来源（含上滑加载出的记录），缓存仅作加速。 */
+function findHist(ts) {
+  if (_histCache.has(ts)) return _histCache.get(ts);
+  if (Array.isArray(histAll)) {
+    for (let i = 0; i < histAll.length; i++) {
+      if (String(histAll[i].ts) === String(ts)) {
+        _histCache.set(ts, histAll[i]);
+        return histAll[i];
+      }
+    }
+  }
+  return null;
+}
 function aesc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;"); }
 
 function histDetail(d, sec, ts) {
@@ -772,7 +789,7 @@ function fallbackBlock(sec, kindCn) {
 }
 
 function showModDetail(ts, sec, name) {
-  const rec = _histCache.get(ts);
+  const rec = findHist(ts);
   const d = rec ? rec[sec] : null;
   const details = (d && d.modified_details) ? d.modified_details[name] : null;
   const before = (d && d.modified_before) ? d.modified_before[name] : null;
@@ -807,20 +824,18 @@ function showModDetail(ts, sec, name) {
 
   if (before || after) { renderCmp(before, after); return; }
 
-  /* 无现成快照（老记录）时动态构造：
-     以当前板块配置为「修改后」基线，把差异字段的 from/to 回填。
-     差异字段的值是准确的（来自 modified_details），其余字段前后同一基准。 */
+  /* 无现成快照（老记录）：直接用差异字段构造对比表，立即渲染，不等网络。
+     字段级 from/to 本身就是准确的修改前后值，够用；
+     随后再异步拉当前配置补全「未改动字段」作为上下文。 */
   if (details && details.length) {
+    const bf0 = {}, af0 = {};
+    details.forEach((dt) => { bf0[dt.field] = dt.from; af0[dt.field] = dt.to; });
+    renderCmp(bf0, af0);
     lookupCurrent(sec, name).then((cur) => {
       if (cur && Object.keys(cur).length) {
-        const af = Object.assign({}, cur);
-        const bf = Object.assign({}, cur);
-        details.forEach((dt) => { af[dt.field] = dt.to; bf[dt.field] = dt.from; });
-        renderCmp(bf, af);
-      } else {
-        renderModDiffOnly();
+        renderCmp(Object.assign({}, cur, bf0), Object.assign({}, cur, af0));
       }
-    });
+    }).catch(() => {});
     return;
   }
 
@@ -875,7 +890,7 @@ function showAddDetail(ts, sec, name) {
       '<div class="mod-diff">' + fieldsTable(f) + "</div>");
   };
   // 优先读历史记录中保存的新增时字段快照
-  const rec = _histCache.get(ts);
+  const rec = findHist(ts);
   const d = rec ? rec[sec] : null;
   const snap = (d && d.added_details && d.added_details[name]) || null;
   if (snap) { renderFields(snap); return; }
@@ -895,7 +910,7 @@ function showAddDetail(ts, sec, name) {
    无快照时提示已下架（线上板块已无该业务，无法再查）。 */
 function showDelDetail(ts, sec, name) {
   const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
-  const rec = _histCache.get(ts);
+  const rec = findHist(ts);
   const d = rec ? rec[sec] : null;
   const snap = (d && d.removed_details && d.removed_details[name]) || null;
   if (snap && Object.keys(snap).length) {

@@ -617,6 +617,23 @@ function detailRows(item) {
 
 /* ---------- 变化历史 ---------- */
 const _histCache = new Map();   // ts -> 历史记录对象，供「修改业务」明细弹窗查询
+
+/* 按 ts 查历史记录。
+   ★ 此前 _histCache 只有 .get 从未 .set，所有历史弹窗拿到 undefined，
+     一律走兜底 → 表现成「未保存明细」「已下架看不了」。
+     现以 histAll 为权威来源，缓存仅作加速。 */
+function findHist(ts) {
+  if (typeof _histCache !== "undefined" && _histCache.has(ts)) return _histCache.get(ts);
+  if (typeof histAll !== "undefined" && Array.isArray(histAll)) {
+    for (let i = 0; i < histAll.length; i++) {
+      if (String(histAll[i].ts) === String(ts)) {
+        if (typeof _histCache !== "undefined") _histCache.set(ts, histAll[i]);
+        return histAll[i];
+      }
+    }
+  }
+  return null;
+}
 function aesc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;"); }
 
 function histDetail(d, sec, ts) {
@@ -658,6 +675,8 @@ const PLAN_LABELS = {
   name: "业务名称", iptv: "IPTV", onDate: "上线日期", offDate: "下线日期",
   unsubscribe: "退订方式", responsibility: "违约责任", otherNotes: "其他说明",
   extraFeesStandard: "套外资费", minuteUnit: "语音单位",
+  // 在网要求/区域流量（此前未映射，弹窗里直接显示 inNetReq 等英文）
+  inNetReq: "在网要求", regionTraffic: "区域流量", regionTrafficUnit: "区域流量单位",
 };
 // 内部字段：不展示给用户（类型码/容器字段，展示无意义）
 const PLAN_HIDDEN = new Set([
@@ -707,8 +726,31 @@ function findHistorySnapshot(name) {
   return null;
 }
 
+
+/* 修改前后字段对比表（三列：字段 / 修改前 / 修改后），改动行高亮 */
+function renderCmpTable(name, head, bf, af, nDiff) {
+  const allKeys = [];
+  [bf || {}, af || {}].forEach((o) => {
+    Object.keys(o).forEach((k) => { if (allKeys.indexOf(k) < 0) allKeys.push(k); });
+  });
+  const rows = allKeys.map((k) => {
+    const bv = cleanVal((bf || {})[k]);
+    const av = cleanVal((af || {})[k]);
+    return '<tr class="' + (bv !== av ? "cmp-diff" : "") + '">' +
+      "<th>" + esc(k) + "</th>" +
+      '<td class="cmp-old">' + esc(bv || "—") + "</td>" +
+      '<td class="cmp-new">' + esc(av || "—") + "</td></tr>";
+  }).join("");
+  openModal(name, head +
+    '<div class="res-row sub">该业务修改前后完整字段对比' +
+      (nDiff ? "（" + nDiff + " 处改动，已高亮）" : "") + "：</div>" +
+    '<div class="cmp-wrap"><table class="cmp-table">' +
+      '<thead><tr><th>字段</th><th>修改前</th><th>修改后</th></tr></thead>' +
+      "<tbody>" + rows + "</tbody></table></div>");
+}
+
 function showPlanDetail(ts, sec, name, kind) {
-  const rec = _histCache.get(ts);
+  const rec = findHist(ts);
   const d = rec ? rec[sec] : null;
   const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
   if (kind === "modified") {
@@ -738,6 +780,14 @@ function showPlanDetail(ts, sec, name, kind) {
       return;
     }
     const details = det0;
+    /* 无现成前后快照（老记录）时，直接用差异字段构造对比表，立即渲染。
+       from/to 本身就是准确的修改前后值，不依赖网络、不依赖快照。 */
+    if (details && details.length) {
+      const bf0 = {}, af0 = {};
+      details.forEach((dt) => { bf0[dt.field] = dt.from; af0[dt.field] = dt.to; });
+      renderCmpTable(name, head, bf0, af0, details.length);
+      return;
+    }
     if (details && details.length) {
       const rows = details.map((dt) => {
         const normV = (v) => {
@@ -792,7 +842,7 @@ function showPlanDetail(ts, sec, name, kind) {
 
 /* 修改业务明细弹窗：展示该业务本次被修改的字段（旧值 → 新值） */
 function showModDetail(ts, sec, name) {
-  const rec = _histCache.get(ts);
+  const rec = findHist(ts);
   const d = rec ? rec[sec] : null;
   const details = (d && d.modified_details) ? d.modified_details[name] : null;
   const head = '<div class="res-row sub">变更时间：' + esc(ts) + " · " + esc(secName(sec)) + "</div>";
