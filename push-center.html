@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>推送配置中心 · 运营商资费监控</title>
+<style>
+:root{
+--primary:#F3A04C;--accent:#E58522;--background:#F4F4F6;--panel-bg:#FEFDFC;--card-bg:#fff;
+--tooltip-bg:#454545;--success:#40B43E;--warning:#EBA400;--destructive:#E65C53;
+--destructive-hover:#D14B42;--primary-foreground:#fff;--text-primary:rgba(0,0,0,.8);
+--text-secondary:rgba(0,0,0,.5);--text-tertiary:rgba(0,0,0,.35);--intensity-0:rgba(0,0,0,0);
+--intensity-3:rgba(0,0,0,.03);--intensity-4:rgba(0,0,0,.04);--intensity-6:rgba(0,0,0,.06);
+--intensity-8:rgba(0,0,0,.08);--intensity-12:rgba(0,0,0,.12);--intensity-16:rgba(0,0,0,.16);
+--intensity-20:rgba(0,0,0,.2);--intensity-35:rgba(0,0,0,.35);--intensity-60:rgba(0,0,0,.6);
+--input-shadow:rgba(0,0,0,.08);--radius-sm:8px;--radius-md:10px;--radius-lg:14px;--radius-xl:18px;
+font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){
+:root{
+--background:#232324;--panel-bg:#332D28;--card-bg:#2E2E2E;--tooltip-bg:#BABABA;
+--primary-foreground:#000;--text-primary:rgba(255,255,255,.8);--text-secondary:rgba(255,255,255,.5);
+--text-tertiary:rgba(255,255,255,.35);--intensity-0:rgba(255,255,255,0);
+--intensity-3:rgba(255,255,255,.03);--intensity-4:rgba(255,255,255,.04);
+--intensity-6:rgba(255,255,255,.06);--intensity-8:rgba(255,255,255,.08);
+--intensity-12:rgba(255,255,255,.12);--intensity-16:rgba(255,255,255,.16);
+--intensity-20:rgba(255,255,255,.2);--intensity-35:rgba(255,255,255,.35);
+--intensity-60:rgba(255,255,255,.6);--input-shadow:rgba(0,0,0,.28)}}
+*{box-sizing:border-box}
+button,a,[role=button],select,input[type=range]{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.55}
+body{margin:0;background:var(--background);padding:16px;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#app{position:relative;display:block;width:100%;max-width:760px;margin:0 auto;color:var(--text-primary)}
+.frame{background:var(--panel-bg);border:.5px solid var(--intensity-8);border-radius:18px;padding:16px}
+.hide{display:none!important}
+.hrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.title{font-size:17px;font-weight:600;letter-spacing:.2px}
+.sub{font-size:11px;color:var(--text-secondary)}
+.tiny{font-size:10px;color:var(--text-tertiary)}
+.tag{height:20px;padding:0 8px;border-radius:999px;font-size:10px;display:inline-flex;align-items:center;font-weight:500;white-space:nowrap}
+.t-ok{background:color-mix(in srgb,var(--success) 16%,transparent);color:var(--success);border:.5px solid color-mix(in srgb,var(--success) 35%,transparent)}
+.t-loc{background:color-mix(in srgb,var(--primary) 18%,transparent);color:var(--accent);border:.5px solid color-mix(in srgb,var(--primary) 40%,transparent)}
+.t-warn{background:color-mix(in srgb,var(--warning) 18%,transparent);color:var(--warning);border:.5px solid color-mix(in srgb,var(--warning) 40%,transparent)}
+.t-err{background:color-mix(in srgb,var(--destructive) 16%,transparent);color:var(--destructive);border:.5px solid color-mix(in srgb,var(--destructive) 35%,transparent)}
+.btn{height:32px;padding:0 12px;border-radius:10px;border:.5px solid var(--intensity-8);background:var(--intensity-6);color:var(--text-primary);font-size:12px;font-weight:500;transition:background .15s}
+.btn:hover{background:var(--intensity-12)}
+.btn.pri{background:var(--primary);color:var(--primary-foreground);border:0}
+.btn.pri:hover{background:var(--accent)}
+.btn.danger{color:var(--destructive)}
+.sec{margin-top:16px}
+.sect{font-size:14px;font-weight:600;margin-bottom:10px}
+.chcard{background:var(--card-bg);border:.5px solid var(--intensity-8);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.chhead{display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer;user-select:none}
+.chhead:hover{background:var(--intensity-4)}
+.logo{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;flex:none}
+.sw{margin-left:auto;width:36px;height:21px;border-radius:999px;background:var(--intensity-20);position:relative;transition:background .15s;flex:none;border:0}
+.sw::after{content:"";position:absolute;top:2.5px;left:3px;width:16px;height:16px;border-radius:999px;background:#fff;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.sw.on{background:var(--success)}
+.sw.on::after{left:17px}
+.chbody{padding:0 12px 12px;border-top:.5px solid var(--intensity-6)}
+.fld{margin-top:10px}
+.fld label{display:block;font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:5px}
+.inp{width:100%;height:34px;border:.5px solid var(--intensity-8);border-radius:10px;background:var(--intensity-4);color:var(--text-primary);padding:0 10px;font-size:12px;outline:none;font-family:inherit}
+.inp:focus{border-color:color-mix(in srgb,var(--primary) 45%,transparent)}
+.inp.err{border-color:color-mix(in srgb,var(--destructive) 60%,transparent)}
+.inp::placeholder{color:var(--text-tertiary)}
+.iwrap{position:relative}
+.eyeb{position:absolute;right:6px;top:50%;transform:translateY(-50%);height:24px;padding:0 8px;border:0;background:var(--intensity-6);border-radius:7px;font-size:10px;color:var(--text-secondary)}
+.testrow{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.status{font-size:11px;line-height:1.5;min-height:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.prev{background:var(--card-bg);border:.5px solid var(--intensity-8);border-radius:14px;padding:14px}
+.bubble{background:var(--intensity-4);border-radius:12px;padding:12px;font-size:12px;line-height:1.8;white-space:pre-wrap;font-variant-numeric:tabular-nums}
+.codebox{width:100%;height:180px;border:.5px solid var(--intensity-8);border-radius:10px;background:var(--intensity-4);color:var(--text-primary);padding:10px;font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace;outline:none;resize:vertical;line-height:1.6}
+.toasts{position:fixed;top:10px;right:10px;width:min(300px,calc(100% - 20px));display:flex;flex-direction:column;gap:8px;z-index:60;pointer-events:none}
+.toast{pointer-events:auto;width:100%;background:var(--card-bg);border:.5px solid var(--intensity-12);border-left:3px solid var(--primary);border-radius:12px;padding:10px 12px;box-shadow:0 10px 25px var(--input-shadow);animation:tin .25s ease;font-size:12px;line-height:1.5;color:var(--text-primary)}
+@keyframes tin{from{transform:translateY(-8px);opacity:0}}
+.toast.ok{border-left-color:var(--success)}
+.toast.err{border-left-color:var(--destructive)}
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.38);display:flex;align-items:flex-start;justify-content:center;z-index:50;padding:16px;overflow:auto}
+.mcard{background:var(--card-bg);border-radius:16px;max-width:460px;width:100%;padding:16px;margin:auto;box-shadow:0 10px 25px var(--input-shadow);color:var(--text-primary)}
+
+@media(max-width:560px){
+  .inp{font-size:16px}
+  .sel{font-size:16px}
+  .mcard{max-width:100%}
+}
+.bubble{word-break:break-word}
+.status{white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="frame">
+  <div class="hrow" style="justify-content:space-between">
+    <div style="min-width:0">
+      <div class="hrow"><span class="title">推送配置中心</span><span class="tag t-loc">本地存储</span></div>
+      <div class="sub" style="margin-top:3px">运营商资费监控 · 移动/联通/电信/广电变化推送到钉钉 / 飞书 / 企微 / 邮箱</div>
+    </div>
+    <span class="sub" id="saveState">—</span>
+  </div>
+  <div class="hrow" style="margin-top:12px;gap:6px;background:var(--intensity-4);border-radius:10px;padding:10px 12px">
+    <span class="sub" style="line-height:1.7">🔒 本页无后端、无统计代码。密钥仅写入本设备浏览器 localStorage，不上传任何服务器；测试消息由浏览器直连官方接口发出。</span>
+  </div>
+  <div class="sec">
+    <div class="sect">推送渠道</div>
+    <div id="channels"></div>
+  </div>
+  <div class="sec">
+    <div class="sect">推送内容</div>
+    <div class="chcard" style="padding:12px">
+      <div class="fld"><label>关注省份（明细只列这一个省，其余不展示）</label>
+        <div class="hrow" style="margin-bottom:6px">
+          <input id="focusSec" class="inp" style="flex:1;min-width:130px" placeholder="hunan / guangdong / beijing">
+          <span id="fp" class="hrow" style="gap:6px"></span>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="fld"><label>统计时长（小时）</label><input id="sinceHours" class="inp" type="number" min="1" max="168" value="24"></div>
+        <div class="fld"><label>消息格式</label><select id="pushFmt" class="inp"><option value="detail" selected>明细（列关注省份）</option><option value="digest">汇总（只报总数）</option></select></div>
+      </div>
+      <div class="fld"><label>站点链接（消息末尾，可留空）</label><input id="siteUrl" class="inp" placeholder="https://..."></div>
+      <div class="hrow" style="margin-top:12px;gap:16px">
+        <label class="hrow" style="gap:6px;font-size:12px"><input type="checkbox" id="pushSkipEmpty" checked> 四家都无变化时不推送</label>
+      </div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sect">消息预览</div>
+    <div class="prev">
+      <div class="hrow" style="justify-content:space-between;margin-bottom:10px"><span class="sub" id="prevCh">—</span><span class="tiny">示例数据 · 实际以当日抓取为准</span></div>
+      <div class="bubble" id="prevBody">—</div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sect">导出与备份（全部本地）</div>
+    <div class="hrow" style="gap:8px">
+      <button id="btnEnv" class="btn pri">复制 .env</button>
+      <button id="btnJson" class="btn">复制 config.json</button>
+      <button id="btnSecrets" class="btn">Secrets 清单</button>
+      <button id="copyCfgSafe" class="btn">复制脱敏配置</button>
+    </div>
+    <div class="hrow" style="margin-top:10px;gap:8px">
+      <input id="importFile" type="file" accept=".json" class="hide">
+      <button id="importBtn" class="btn">导入配置</button>
+      <input id="importText" class="inp" style="flex:1;min-width:130px;height:30px" placeholder='粘贴 JSON 后点导入'>
+      <button id="importGo" class="btn">导入</button>
+      <button id="wipe" class="btn danger">清除本地数据</button>
+    </div>
+  </div>
+  <div class="tiny" style="margin-top:14px;line-height:1.9">
+    <b>关于定时推送</b>：浏览器关闭后无法主动推送，这是所有网页的安全机制，任何页面都做不到。<br>
+    因此本页负责「配置 + 测试」，定时推送由导出的配置交给常开设备执行，三条路任选：<br>
+    ① 自己的电脑 / 服务器 / 路由器跑脚本，读 .env 定时推送（密钥完全不出本机）；<br>
+    ② fork 项目后填 GitHub Actions 的 Secrets，由云端定时跑（Secrets 加密只写不读）；<br>
+    ③ 只用本页手动「发送测试」随时推一次。
+  </div>
+</div>
+<div id="toasts" class="toasts"></div>
+<div id="modal" class="mbg hide"></div>
+</div>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const LS_KEY='tariffPushCfg.v1';
+let storageOK=true;
+const CH=[
+ {id:'dingtalk',name:'钉钉群机器人',icon:'D',color:'#00AACC',desc:'Webhook + 加签 Secret，浏览器可直连测试',
+  fields:[{k:'webhook',label:'Webhook 地址',ph:'https://oapi.dingtalk.com/robot/send?access_token=...',type:'text',req:1},
+   {k:'secret',label:'加签 Secret（机器人安全设置选「加签」时填）',ph:'SEC 开头，未启用加签可留空',type:'secret'},
+   {k:'keyword',label:'自定义关键词（安全设置选「关键词」时填）',ph:'如：资费，未设置可留空',type:'text'}]},
+ {id:'feishu',name:'飞书群机器人',icon:'F',color:'#3370FF',desc:'Webhook + 可选签名校验，浏览器可直连测试',
+  fields:[{k:'webhook',label:'Webhook 地址',ph:'https://open.feishu.cn/open-apis/bot/v2/hook/...',type:'text',req:1},
+   {k:'secret',label:'签名校验 Secret（未开启可留空）',ph:'开启「签名校验」后填',type:'secret'}]},
+ {id:'wecom',name:'企业微信群机器人',icon:'W',color:'#00B050',desc:'仅 Webhook；官方接口不允许浏览器跨域直连，实际推送由脚本执行',
+  fields:[{k:'webhook',label:'Webhook 地址',ph:'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...',type:'text',req:1}]},
+ {id:'email',name:'邮箱通知（SMTP）',icon:'@',color:'#E98B2A',desc:'发信需 SMTP 协议，浏览器无法直发；配置保存后由脚本发信',
+  fields:[{k:'host',label:'SMTP 服务器',ph:'smtp.qq.com / smtp.139.com',type:'text',req:1},
+   {k:'port',label:'端口',ph:'465（SSL）或 587（STARTTLS）',type:'text',req:1},
+   {k:'user',label:'发件账号',ph:'you@qq.com',type:'text',req:1},
+   {k:'pass',label:'授权码 / 密码',ph:'QQ 邮箱用授权码，非登录密码',type:'secret',req:1},
+   {k:'to',label:'收件邮箱',ph:'target@example.com',type:'text',req:1}]}
+];
+const PROV=[['全国','quanguo'],['湖南','hunan'],['广东','guangdong'],['北京','beijing'],['浙江','zhejiang'],['江苏','jiangsu'],['上海','shanghai']];
+const DEF={dingtalk:{enabled:false,webhook:'',secret:'',keyword:''},feishu:{enabled:false,webhook:'',secret:''},wecom:{enabled:false,webhook:''},
+ email:{enabled:false,host:'',port:'465',user:'',pass:'',to:''},
+ push:{focus:'hunan',siteUrl:'https://woshiyigemanhuajia.github.io/hunan-tariff-site/',since:'24',fmt:'detail',skipEmpty:true}};
+let cfg=JSON.parse(JSON.stringify(DEF));
+function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);CH.forEach(function(c){if(d[c.id])Object.assign(cfg[c.id],d[c.id])});if(d.push)Object.assign(cfg.push,d.push)}}catch(e){storageOK=false}}
+let saveTimer=null;
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{localStorage.setItem(LS_KEY,JSON.stringify(cfg));$('saveState').textContent='✓ 已保存到本设备';storageOK=true}catch(e){storageOK=false;$('saveState').textContent='暂存内存（无法写入本地）'}},300)}
+function toast(msg,cls){const box=$('toasts');while(box.children.length>=3)box.removeChild(box.firstChild);const d=document.createElement('div');d.className='toast '+(cls||'');d.textContent=msg;box.appendChild(d);setTimeout(function(){d.style.opacity='0';setTimeout(function(){if(d.parentNode)d.remove()},260)},3600)}
+function valid(ch,f){const v=(cfg[ch.id][f.k]||'').trim();if(!f.req)return true;if(!v)return false;if(f.k==='webhook'&&v.indexOf('https://')!==0)return false;if(f.k==='to'||f.k==='user'){if(v.indexOf('@')<1)return false}if(f.k==='port'&&!/^\d+$/.test(v))return false;return true}
+/* HMAC-SHA256 → Base64。key=keyStr, msg=msgStr
+   ★ 钉钉：key=secret,        msg=ts+"\n"+secret
+   ★ 飞书：key=ts+"\n"+secret, msg=""（两者算法不同，不可混用） */
+function signHmac(keyStr,msgStr){
+ return crypto.subtle.importKey('raw',new TextEncoder().encode(keyStr),{name:'HMAC',hash:'SHA-256'},false,['sign'])
+  .then(function(k){return crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msgStr))})
+  .then(function(buf){let s='';const u8=new Uint8Array(buf);for(let i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s)});
+}
+function setStat(id,cls,msg){const el=document.querySelector('[data-stat="'+id+'"]');if(!el)return;
+ el.className='status '+(cls==='ok'?'':cls==='err'?'':'');
+ el.style.color=cls==='ok'?'var(--success)':cls==='err'?'var(--destructive)':cls==='warn'?'var(--warning)':'var(--text-secondary)';
+ el.textContent=msg;}
+async function testSend(ch){
+ const c=cfg[ch.id];const bad=ch.fields.filter(function(f){return f.req&&!valid(ch,f)});
+ if(bad.length){bad.forEach(function(f){const el=document.querySelector('[data-fld="'+ch.id+'.'+f.k+'"]');if(el)el.classList.add('err')});setStat(ch.id,'err','请先补全必填项（已标红）');return}
+ setStat(ch.id,'run','发送中…');
+ if(ch.id==='email'){setStat(ch.id,'ok','✓ 校验通过。SMTP 由脚本发信（浏览器无 SMTP 协议），配置已存本地。');return}
+ if(ch.id==='wecom'){setStat(ch.id,'warn','企微接口禁止浏览器跨域，无法在此直连测试。配置已保存，导出给脚本后即可推送。');return}
+ const text=buildText(true);
+ try{
+  let url=c.webhook.trim(),body={},headers={'Content-Type':'application/json'};
+  if(ch.id==='dingtalk'){
+   if(c.secret.trim()){const ts=String(Date.now());const sign=await signHmac(c.secret.trim(),ts+'\n'+c.secret.trim());url+='&timestamp='+ts+'&sign='+encodeURIComponent(sign)}
+   body={msgtype:'text',text:{content:(c.keyword.trim()||'')+text}};
+  }else if(ch.id==='feishu'){
+   body={msg_type:'text',content:{text:text}};
+   if(c.secret.trim()){const ts=String(Math.floor(Date.now()/1000));const sign=await signHmac(ts+'\n'+c.secret.trim(),'');headers={'Content-Type':'application/json','X-Lark-Signature':sign,'X-Lark-Request-Timestamp':ts}}
+  }
+  let r;try{r=await fetch(url,{method:'POST',headers:headers,body:JSON.stringify(body)})}catch(e){throw new Error('BLOCKED')}
+  const j=await r.json().catch(function(){return{}});
+  const ok=ch.id==='wecom'?j.errcode===0:(j.errcode===0||j.StatusCode===0||j.code===0||r.ok);
+  if(ok)setStat(ch.id,'ok','✓ 已发出，请到群里查收');
+  else setStat(ch.id,'err','接口返回：'+(j.errmsg||j.msg||JSON.stringify(j)));
+ }catch(e){
+  if(String(e.message)==='BLOCKED')setStat(ch.id,'warn','当前环境禁止外部请求（预览沙箱）或接口不许浏览器直连。用浏览器直接打开本页可测钉钉/飞书。');
+  else setStat(ch.id,'err','失败：'+e.message);
+ }
+}
+function renderChannels(){
+ const box=$('channels');box.innerHTML='';
+ CH.forEach(function(ch){
+  const card=document.createElement('div');card.className='chcard';const c=cfg[ch.id];
+  card.innerHTML='<div class="chhead" data-ch="'+ch.id+'"><div class="logo" style="background:'+ch.color+'">'+ch.icon+'</div><div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:600">'+ch.name+'</div><div class="tiny" style="margin-top:2px">'+ch.desc+'</div></div><button class="sw'+(c.enabled?' on':'')+'" data-sw="'+ch.id+'" aria-label="启用开关"></button></div>'
+  +'<div class="chbody" data-body="'+ch.id+'" style="'+(c.enabled?'':'display:none')+'">'
+  +ch.fields.map(function(f){const v=c[f.k]||'';return '<div class="fld"><label>'+f.label+(f.req?' <span style="color:var(--destructive)">*</span>':'')+'</label><div class="iwrap"><input class="inp" data-fld="'+ch.id+'.'+f.k+'" data-type="'+f.type+'" type="'+(f.type==='secret'?'password':'text')+'" value="'+String(v).replace(/"/g,'&quot;')+'" placeholder="'+f.ph+'" autocomplete="off">'+(f.type==='secret'?'<button class="eyeb" data-eye="'+ch.id+'.'+f.k+'">显形</button>':'')+'</div></div>'}).join('')
+  +'<div class="testrow"><button class="btn pri" data-test="'+ch.id+'">'+(ch.id==='email'?'校验配置':'发送测试')+'</button><span class="status" data-stat="'+ch.id+'" style="flex:1;min-width:120px"></span></div></div>';
+  box.appendChild(card);
+ });
+}
+function bindChannels(){
+ $('channels').addEventListener('click',function(e){
+  const sw=e.target.closest('[data-sw]');
+  if(sw){const id=sw.dataset.sw;cfg[id].enabled=!cfg[id].enabled;sw.classList.toggle('on',cfg[id].enabled);document.querySelector('[data-body="'+id+'"]').style.display=cfg[id].enabled?'':'none';save();renderPrev();return}
+  const eye=e.target.closest('[data-eye]');
+  if(eye){const inp=document.querySelector('[data-fld="'+eye.dataset.eye+'"]');const show=inp.type==='password';inp.type=show?'text':'password';eye.textContent=show?'隐藏':'显形';return}
+  const t=e.target.closest('[data-test]');
+  if(t){testSend(CH.filter(function(c){return c.id===t.dataset.test})[0]);return}
+ });
+ $('channels').addEventListener('input',function(e){
+  const inp=e.target.closest('[data-fld]');if(!inp)return;
+  inp.classList.remove('err');const p=inp.dataset.fld.split('.');cfg[p[0]][p[1]]=inp.value;save();
+ });
+}
+const SAMPLE=[{k:'移动',c:'🔵',a:340,r:284,m:1196,f:'无变化'},{k:'联通',c:'🟠',a:0,r:0,m:0,f:null},
+ {k:'电信',c:'🟢',a:7,r:8,m:0,f:'新增7 下架8 修改0'},{k:'广电',c:'🟣',a:5,r:1,m:1,f:'无变化'}];
+function provName(code){for(let i=0;i<PROV.length;i++){if(PROV[i][1]===code)return PROV[i][0]}return code}
+function buildText(isTest){
+ const p=cfg.push;const focus=provName((p.focus||'hunan').trim().toLowerCase());
+ if(isTest){
+  return '【资费监控】推送测试 ✓\n渠道连通正常，密钥未离开本设备。\n关注省份：'+focus+'，统计最近 '+(p.since||'24')+' 小时。';
+ }
+ const ta=SAMPLE.reduce(function(s,x){return s+x.a},0),tr=SAMPLE.reduce(function(s,x){return s+x.r},0),tm=SAMPLE.reduce(function(s,x){return s+x.m},0);
+ let body='';
+ if(p.fmt==='digest'){
+  body='四家合计：新增 '+ta+'、下架 '+tr+'、修改 '+tm;
+ }else{
+  body=SAMPLE.map(function(x){
+   const changed=(x.a||x.r||x.m);
+   let line=changed?(x.c+' '+x.k+'：新增 '+x.a+'、下架 '+x.r+'、修改 '+x.m):(x.c+' '+x.k+'：无变化');
+   if(x.f)line+='\n  └ '+focus+'：'+x.f;
+   return line;
+  }).join('\n');
+  body+='\n\n合计：新增 '+ta+'、下架 '+tr+'、修改 '+tm;
+ }
+ if(p.siteUrl&&p.siteUrl.trim())body+='\n\n'+p.siteUrl.trim();
+ return body;
+}
+function renderPrev(){
+ const en=CH.filter(function(c){return cfg[c.id].enabled});
+ $('prevCh').textContent=en.length?('推送至：'+en.map(function(c){return c.name.replace('群机器人','').replace('通知（SMTP）','(SMTP)')}).join('、')):'尚未启用任何渠道';
+ $('prevBody').textContent=buildText(false)+(cfg.push.skipEmpty?'\n\n（四家都无变化的日子里不打扰）':'');
+}
+function safeCfg(){const c=JSON.parse(JSON.stringify(cfg));CH.forEach(function(ch){ch.fields.forEach(function(f){if(f.type==='secret'&&c[ch.id][f.k])c[ch.id][f.k]='***已隐藏***'})});return c}
+function copy(text,okMsg){
+ const done=function(){toast(okMsg,'ok')};
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(function(){fb()})}else fb();
+ function fb(){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){toast('复制失败，请手动选择文本','err')}document.body.removeChild(ta)}
+}
+function envText(){
+ const L=[];const p=cfg.push;
+ if(cfg.dingtalk.enabled){L.push('DINGTALK_WEBHOOK='+cfg.dingtalk.webhook);if(cfg.dingtalk.secret)L.push('DINGTALK_SECRET='+cfg.dingtalk.secret)}
+ if(cfg.feishu.enabled){L.push('FEISHU_WEBHOOK='+cfg.feishu.webhook);if(cfg.feishu.secret)L.push('FEISHU_SECRET='+cfg.feishu.secret)}
+ if(cfg.wecom.enabled){L.push('WECOM_WEBHOOK='+cfg.wecom.webhook)}
+ if(cfg.email.enabled){L.push('SMTP_HOST='+cfg.email.host);L.push('SMTP_PORT='+cfg.email.port);L.push('SMTP_USER='+cfg.email.user);L.push('SMTP_PASS='+cfg.email.pass);L.push('MAIL_TO='+cfg.email.to)}
+ L.push('FOCUS_SEC='+(p.focus||'hunan'));L.push('SINCE_HOURS='+(p.since||'24'));
+ if(p.siteUrl)L.push('SITE_URL='+p.siteUrl);
+ return L.join('\n');
+}
+function secretsList(){
+ const L=[];const p=cfg.push;
+ if(cfg.dingtalk.enabled){L.push(['DINGTALK_WEBHOOK',cfg.dingtalk.webhook]);if(cfg.dingtalk.secret)L.push(['DINGTALK_SECRET',cfg.dingtalk.secret])}
+ if(cfg.feishu.enabled){L.push(['FEISHU_WEBHOOK',cfg.feishu.webhook]);if(cfg.feishu.secret)L.push(['FEISHU_SECRET',cfg.feishu.secret])}
+ if(cfg.wecom.enabled){L.push(['WECOM_WEBHOOK',cfg.wecom.webhook])}
+ if(cfg.email.enabled){[['SMTP_HOST',cfg.email.host],['SMTP_PORT',cfg.email.port],['SMTP_USER',cfg.email.user],['SMTP_PASS',cfg.email.pass],['MAIL_TO',cfg.email.to]].forEach(function(x){L.push(x)})}
+ L.push(['FOCUS_SEC',p.focus||'hunan']);L.push(['SINCE_HOURS',p.since||'24']);
+ if(p.siteUrl)L.push(['SITE_URL',p.siteUrl]);
+ return L;
+}
+function openModal(title,html,onReady){
+ const m=$('modal');
+ m.innerHTML='<div class="mcard"><div style="font-size:14px;font-weight:600;margin-bottom:10px">'+title+'</div>'+html+'</div>';
+ m.classList.remove('hide');
+ m.onclick=function(e){if(e.target===m)m.classList.add('hide')};
+ if(onReady)onReady(m);
+}
+function importCfg(text){
+ try{const d=JSON.parse(text);let n=0;CH.forEach(function(ch){if(d[ch.id]){Object.keys(cfg[ch.id]).forEach(function(k){if(typeof d[ch.id][k]!=='undefined'&&d[ch.id][k]!=='***已隐藏***'){cfg[ch.id][k]=d[ch.id][k];n++}})}});if(d.push)Object.assign(cfg.push,d.push);
+  localStorage.setItem(LS_KEY,JSON.stringify(cfg));renderChannels();renderPrev();syncRules();toast('已导入 '+n+' 项配置','ok')}
+ catch(e){toast('导入失败：JSON 格式错误','err')}
+}
+function syncRules(){$('focusSec').value=cfg.push.focus||'hunan';$('siteUrl').value=cfg.push.siteUrl||'';$('sinceHours').value=cfg.push.since||'24';$('pushFmt').value=cfg.push.fmt;$('pushSkipEmpty').checked=!!cfg.push.skipEmpty}
+load();
+renderChannels();bindChannels();syncRules();renderPrev();
+$('saveState').textContent=storageOK?'✓ 已加载本地配置':'暂存内存（无法写入本地）';
+const fp=$('fp');
+PROV.forEach(function(x){const b=document.createElement('button');b.className='pill';b.textContent=x[0];b.dataset.p=x[1];
+ b.onclick=function(){cfg.push.focus=x[1];$('focusSec').value=x[1];save();renderPrev();
+  Array.prototype.forEach.call(fp.children,function(c){c.className='pill'+(c.dataset.p===x[1]?' on':'')})};
+ fp.appendChild(b)});
+(function markFocus(){Array.prototype.forEach.call(fp.children,function(c){c.className='pill'+(c.dataset.p===(cfg.push.focus||'hunan')?' on':'')})})();
+$('focusSec').addEventListener('input',function(){cfg.push.focus=this.value;save();renderPrev();
+ Array.prototype.forEach.call(fp.children,function(c){c.className='pill'+(c.dataset.p===cfg.push.focus?' on':'')})});
+$('siteUrl').addEventListener('input',function(){cfg.push.siteUrl=this.value;save();renderPrev()});
+$('sinceHours').addEventListener('input',function(){cfg.push.since=this.value;save();renderPrev()});
+$('pushFmt').addEventListener('change',function(){cfg.push.fmt=this.value;save();renderPrev()});
+$('pushSkipEmpty').addEventListener('change',function(){cfg.push.skipEmpty=this.checked;save();renderPrev()});
+$('btnEnv').addEventListener('click',function(){
+ const t=envText();copy(t,'.env 已复制，保存到脚本同目录');
+ openModal('.env 内容（保存为 .env，放脚本同目录）','<textarea class="codebox" id="envBox" readonly></textarea><div class="tiny" style="margin-top:8px;line-height:1.7">含真实密钥，请勿外传。脚本按此文件读取配置。</div><div class="hrow" style="margin-top:10px"><button class="btn pri" id="cp2">复制</button><button class="btn" id="cl2">关闭</button></div>',
+ function(m){m.querySelector('#envBox').value=t;m.querySelector('#cp2').onclick=function(){copy(t,'已复制')};m.querySelector('#cl2').onclick=function(){m.classList.add('hide')}});
+});
+$('btnJson').addEventListener('click',function(){copy(JSON.stringify(cfg,null,2),'config.json 已复制（含密钥，注意保管）')});
+$('btnSecrets').addEventListener('click',function(){
+ const L=secretsList();
+ if(!L.length){toast('尚未启用任何渠道','err');return}
+ const rows=L.map(function(x){return '<div style="margin-bottom:10px"><div class="tiny" style="font-weight:600">'+x[0]+'</div><div class="bubble" style="margin-top:3px;font-size:11px;word-break:break-all">'+String(x[1]).replace(/</g,'&lt;')+'</div></div>'}).join('');
+ openModal('GitHub Secrets 清单（Settings → Secrets → New）','<div style="max-height:50vh;overflow:auto">'+rows+'</div><div class="tiny" style="margin-top:10px;line-height:1.7">逐个复制「名称 / 值」填进去即可。Secrets 加密存储、只写不读，日志中显示为 ***。</div><div class="hrow" style="margin-top:10px"><button class="btn" id="cl3">关闭</button></div>',
+ function(m){m.querySelector('#cl3').onclick=function(){m.classList.add('hide')}});
+});
+$('copyCfgSafe').addEventListener('click',function(){copy(JSON.stringify(safeCfg(),null,2),'脱敏配置已复制，可安全分享')});
+$('wipe').addEventListener('click',function(){cfg=JSON.parse(JSON.stringify(DEF));try{localStorage.removeItem(LS_KEY)}catch(e){}renderChannels();syncRules();renderPrev();$('saveState').textContent='已清除';toast('本地数据已全部清除','ok')});
+$('importBtn').addEventListener('click',function(){$('importFile').click()});
+$('importFile').addEventListener('change',function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=function(){importCfg(r.result)};r.readAsText(f);this.value=''});
+$('importGo').addEventListener('click',function(){if($('importText').value.trim())importCfg($('importText').value)});
+})();
+</script>
+</body>
+</html>
