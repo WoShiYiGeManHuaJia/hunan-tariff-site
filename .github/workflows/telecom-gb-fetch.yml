@@ -1,0 +1,76 @@
+name: Telecom & GB Fetch
+# 公开仓 Actions 免费不限量（私有仓额度已耗尽）
+# 单 job 顺序执行：电信 → 广电 → 统一提交，避免并行 push 冲突
+
+on:
+  schedule:
+    - cron: "17 1,13 * * *"    # 北京 09:17 / 21:17
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: "重建基线（跳过对比，不写历史）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telecom-gb-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome
+
+      - name: 电信 + 广电抓取
+        run: |
+          set -e
+          mkdir -p telecom/data gb/data
+          FLAG=""
+          if [ "${{ github.event.inputs.rebuild }}" == "true" ]; then
+            FLAG="--rebuild"
+            echo "[]" > telecom/data/history.json
+            echo "[]" > gb/data/history.json
+          fi
+          echo "=== 开始 $(date -u +%FT%TZ) ===" > tg_run.log
+
+          set +e
+          echo "--- 电信 ---" >> tg_run.log
+          PYTHONPATH=pipelines python3 -u pipelines/telecom_pipeline.py \
+            --prev-dir telecom/data --out-dir telecom/data $FLAG >> tg_run.log 2>&1
+          EC_T=$?
+          echo "电信 exit=$EC_T" >> tg_run.log
+
+          echo "--- 广电 ---" >> tg_run.log
+          PYTHONPATH=pipelines python3 -u pipelines/gb_pipeline.py \
+            --prev-dir gb/data --out-dir gb/data $FLAG >> tg_run.log 2>&1
+          EC_G=$?
+          echo "广电 exit=$EC_G" >> tg_run.log
+          set -e
+
+          echo "--- 结束 $(date -u +%FT%TZ) ---" >> tg_run.log
+          tail -70 tg_run.log
+          echo "EC_T=$EC_T EC_G=$EC_G"
+
+      - name: 提交
+        if: always()
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git add -f tg_run.log
+          if git diff --cached --quiet; then
+            echo "无变化"
+          else
+            git commit -q -m "telecom+gb fetch $(date -u +%FT%TZ)"
+            git push origin main
+            echo "已推送"
+          fi
