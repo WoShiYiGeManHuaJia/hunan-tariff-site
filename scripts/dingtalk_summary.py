@@ -19,6 +19,10 @@ WEBHOOK = os.getenv("DINGTALK_WEBHOOK", "").strip()
 SECRET = os.getenv("DINGTALK_SECRET", "").strip()
 SINCE_HOURS = float(os.getenv("SINCE_HOURS", "24"))
 SITE_ROOT = os.getenv("SITE_ROOT", ".")
+# 明细只列关注的省份（默认湖南），其余省份不展示
+FOCUS_SEC = os.getenv("FOCUS_SEC", "hunan").strip().lower()
+# 结尾附带的资费站访问链接
+SITE_URL = os.getenv("SITE_URL", "https://woshiyigemanhuajia.github.io/hunan-tariff-site/").strip()
 
 # 站名 -> (history 路径, 显示名, 图标)
 SITES = [
@@ -95,7 +99,7 @@ def summarize(hist, since):
             tot_rm += r
             tot_mod += m
             note = v.get("note")
-            secs.append((sec_cn(k), a, r, m, note))
+            secs.append((sec_cn(k), a, r, m, note, str(k).strip().lower()))
     return tot_add, tot_rm, tot_mod, secs
 
 
@@ -141,19 +145,30 @@ def main():
             continue
         any_change = True
         lines.append("- %s **%s**：新增 %d、下架 %d、修改 %d" % (icon, name, a, r, m))
-        # 列出变化最多的前 3 个板块
-        top = sorted(secs, key=lambda x: -(x[1] + x[2] + x[3]))[:3]
-        for sec, aa, rr, mm, note in top:
-            if note:
-                lines.append("    - `%s`：%s" % (sec, note[:60]))
+        # 只列关注的省份（默认湖南），同一省份多条记录合并
+        focus = [x for x in secs if x[5] == FOCUS_SEC]
+        fname = sec_cn(FOCUS_SEC)
+        if focus:
+            fa = sum(x[1] for x in focus)
+            fr = sum(x[2] for x in focus)
+            fm = sum(x[3] for x in focus)
+            notes = [x[4] for x in focus if x[4]]
+            if notes:
+                lines.append("  - `%s`：%s" % (fname, notes[-1][:60]))
             else:
-                lines.append("    - `%s`：新增%d 下架%d 修改%d" % (sec, aa, rr, mm))
+                lines.append("  - `%s`：新增%d 下架%d 修改%d" % (fname, fa, fr, fm))
+        else:
+            lines.append("  - `%s`：无变化" % fname)
 
     lines.append("")
     lines.append("**合计**：新增 %d、下架 %d、修改 %d" % tuple(grand))
     if not any_change:
         lines.append("")
         lines.append("> 本时段内四家运营商均无资费变化。")
+
+    if SITE_URL:
+        lines.append("")
+        lines.append("🔗 [查看完整资费站](%s)" % SITE_URL)
 
     text = "\n".join(lines)
     print(text)
