@@ -207,6 +207,9 @@ def same_change(a, b):
 
 # 板块条数骤降判定阈值：低于基线的该比例即视为抓取降级（不计入变化）
 SEC_DROP_RATIO = float(os.getenv("SEC_DROP_RATIO", "0.5"))
+# 连续降级多少轮后认定「源站现状如此」，接受新数据并重建基线
+# （一直冻结旧数据更危险：页面看着正常，实际是过期数据）
+SEC_DEGRADE_ACCEPT = int(os.getenv("SEC_DEGRADE_ACCEPT", "3"))
 
 
 def is_reverse_change(a, b):
@@ -242,8 +245,8 @@ def is_reverse_change(a, b):
     return flipped > 0 and flipped >= checked * 0.6
 
 
-def stat_section(sec):
-    j = load(os.path.join(SNAP, sec + ".json"))
+def stat_section(sec, base=None):
+    j = load(os.path.join(base or SNAP, sec + ".json"))
     items = (j or {}).get("items") or []
     dist = collections.defaultdict(collections.Counter)
     for it in items:
@@ -302,11 +305,47 @@ def main():
 
     # 1) 复制当前快照到站点 data/
     st = {}   # section -> (json, items, dist)
+    # 降级计数（随 data/_degrade.json 提交，跨轮次持久化）
+    state = load(os.path.join(PREV, "_degrade.json")) or {}
     for sec in sections:
         src = os.path.join(SNAP, sec + ".json")
-        if os.path.exists(src):
-            shutil.copy(src, os.path.join(DATA, sec + ".json"))
-        st[sec] = stat_section(sec)
+        old_src = os.path.join(PREV, sec + ".json")
+        new_j = load(src) if os.path.exists(src) else None
+        new_n = len((new_j or {}).get("items") or []) if new_j else 0
+        old_j = load(old_src)
+        old_n = len((old_j or {}).get("items") or []) if old_j else 0
+        cnt = int((state.get(sec) or {}).get("rounds", 0) or 0)
+
+        if old_n > 0 and new_n < old_n * SEC_DROP_RATIO:
+            cnt += 1
+            if new_n > 0 and cnt >= SEC_DEGRADE_ACCEPT:
+                # 连续多轮偏低 → 认定源站现状如此，接受新数据重建基线
+                shutil.copy(src, os.path.join(DATA, sec + ".json"))
+                st[sec] = stat_section(sec)
+                state[sec] = {"rounds": 0, "accepted": now,
+                              "from": old_n, "to": new_n}
+                print(f"  [重同步] 板块 {sec} 连续 {cnt} 轮偏低，"
+                      f"接受新数据 {new_n} 条（原基线 {old_n} 条）")
+            else:
+                # 保留旧数据，等下一轮；本轮 0 条则无法接受
+                if old_j is not None:
+                    shutil.copy(old_src, os.path.join(DATA, sec + ".json"))
+                    st[sec] = stat_section(sec, PREV)
+                else:
+                    st[sec] = (None, [], {})
+                state[sec] = {"rounds": cnt, "last_new": new_n,
+                              "last_old": old_n, "updated": now}
+                why = "本轮 0 条" if new_n == 0 else f"本轮 {new_n} 条"
+                print(f"  [降级] 板块 {sec} {why} < 基线 {old_n} 条的 "
+                      f"{SEC_DROP_RATIO:.0%}，第 {cnt}/{SEC_DEGRADE_ACCEPT} 轮，保留旧数据")
+        else:
+            if new_j is not None and os.path.exists(src):
+                shutil.copy(src, os.path.join(DATA, sec + ".json"))
+            st[sec] = stat_section(sec)
+            state[sec] = {"rounds": 0}
+
+    with open(os.path.join(DATA, "_degrade.json"), "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
 
     # 2) latest.json（仪表盘统计：sections 索引 + 全网/31省/各省分布）
     def_sec = DEFAULT_PROV if DEFAULT_PROV in sections else (sections[0] if sections else "quanguo")
