@@ -45,7 +45,9 @@ jobs:
           MAIL_FROM_NAME:   ${{ secrets.MAIL_FROM_NAME }}
           # 通用
           SINCE_HOURS:      ${{ github.event.inputs.hours || '24' }}
-          FOCUS_SEC:        ${{ vars.FOCUS_SEC }}
-          SITE_URL:         ${{ vars.SITE_URL }}
+          # 仓库未配置 vars 时这里会是空串，必须给默认值
+          # （脚本里也做了显式回退，双保险）
+          FOCUS_SEC:        ${{ vars.FOCUS_SEC || 'hunan' }}
+          SITE_URL:         ${{ vars.SITE_URL || 'https://woshiyigemanhuajia.github.io/hunan-tariff-site/' }}
           SITE_ROOT:        "."
         run: python3 scripts/dingtalk_summary.py

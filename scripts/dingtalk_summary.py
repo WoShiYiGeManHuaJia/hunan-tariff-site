@@ -57,7 +57,10 @@ SITE_ROOT = os.getenv("SITE_ROOT", ".")
 # ${{ vars.FOCUS_SEC }} 传入空串时，默认值不会生效，需显式回退。
 FOCUS_SEC = (os.getenv("FOCUS_SEC", "").strip().lower() or "hunan")
 # 结尾附带的资费站访问链接
-SITE_URL = os.getenv("SITE_URL", "https://woshiyigemanhuajia.github.io/hunan-tariff-site/").strip()
+# 同样注意：workflow 用 ${{ vars.SITE_URL }} 传入，未配置时是空串，
+# os.getenv 默认值不生效，必须显式回退，否则结尾链接整体消失。
+DEFAULT_SITE = "https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
+SITE_URL = (os.getenv("SITE_URL", "").strip().rstrip("/") or DEFAULT_SITE.rstrip("/"))
 # 测试模式：只发一条「配置成功」消息，不读任何数据
 TEST_MODE = "--test" in sys.argv
 
@@ -248,9 +251,12 @@ def main():
         lines.append("")
         lines.append("> 本时段内四家运营商均无资费变化。")
 
-    if SITE_URL:
-        lines.append("")
-        lines.append("🔗 [查看完整资费站](%s)" % SITE_URL)
+    # 结尾固定附链接（主站 + 四家子站直达），不再依赖外部配置是否填对
+    lines.append("")
+    lines.append("---")
+    lines.append("🔗 [资费站入口](%s/)" % SITE_URL)
+    lines.append("　[移动](%s/) ｜ [联通](%s/unicom/) ｜ [电信](%s/telecom/) ｜ [广电](%s/gb/)"
+                 % (SITE_URL, SITE_URL, SITE_URL, SITE_URL))
 
     text = "\n".join(lines)
     print(text)
