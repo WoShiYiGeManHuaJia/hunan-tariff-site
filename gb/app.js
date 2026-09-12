@@ -624,6 +624,38 @@ function briefTable(o) {
     '<tr><th>' + esc(PLAN_LABELS[k] || k) + '</th><td>' + esc(typeof v === "object" ? JSON.stringify(v) : v) + "</td></tr>"
   ).join("") + "</tbody></table>";
 }
+
+/* 值清洗：源站字段常混入 <p></p> 等 HTML 标签，不处理的话
+   「修改前/修改后」看起来一模一样（差异只有标签），无法判断到底改了什么。 */
+function cleanVal(v) {
+  let x = (v == null ? "" : String(v));
+  x = x.replace(/<br\s*\/?>/gi, " ").replace(/<\/?p[^>]*>/gi, " ").replace(/<[^>]*>/g, "");
+  x = x.replace(/&(?:nbsp|amp|lt|gt|quot|#39);/gi, " ");
+  x = x.replace(/\s+/g, " ").trim();
+  return x;
+}
+
+/* 从全量历史回溯同名业务的任意配置快照。老记录可能只存了名称没存快照，
+   但该业务若曾在别的记录里出现过（新增/下架），那里就留有完整配置。 */
+function findHistorySnapshot(name) {
+  if (!Array.isArray(histAll) || !name) return null;
+  const nm = String(name).trim();
+  for (let i = histAll.length - 1; i >= 0; i--) {
+    const rec = histAll[i];
+    if (!rec || typeof rec !== "object") continue;
+    for (const sec in rec) {
+      if (sec === "ts") continue;
+      const d = rec[sec];
+      if (!d || typeof d !== "object") continue;
+      const ad = d.added_details;
+      if (ad && ad[nm]) return ad[nm];
+      const rd = d.removed_details;
+      if (rd && rd[nm]) return rd[nm];
+    }
+  }
+  return null;
+}
+
 function showPlanDetail(ts, sec, name, kind) {
   const rec = _histCache.get(ts);
   const d = rec ? rec[sec] : null;
@@ -632,7 +664,10 @@ function showPlanDetail(ts, sec, name, kind) {
     const details = (d && d.modified_details && d.modified_details[name]) || null;
     if (details && details.length) {
       const rows = details.map((dt) => {
-        const normV = (v) => (typeof v === "string" && /^0{2,}$/.test(v) ? "全国（不限定省份）" : v);
+        const normV = (v) => {
+          const c = cleanVal(v);
+          return /^0{2,}$/.test(c) ? "全国（不限定省份）" : c;
+        };
         return '<div class="mod-row">' +
           '<div class="mod-f">' + esc(dt.field || "") + "</div>" +
           '<div class="mod-v"><div class="mod-old" title="修改前">' + esc(normV(dt.from) || "（空）") + "</div>" +
@@ -649,7 +684,11 @@ function showPlanDetail(ts, sec, name, kind) {
   if (Array.isArray(lst) && lst.length) {
     brief = lst.find((x) => x && String(x.title || x.name || "").trim() === nm) || lst[0];
   }
-  const snap = (d && d[kind + "_details"] && d[kind + "_details"][name]) || null;
+  let snap = (d && d[kind + "_details"] && d[kind + "_details"][name]) || null;
+  if (!brief && !snap) {
+    // 本轮快照缺失（老记录）→ 回溯历史里存过的同名配置
+    snap = findHistorySnapshot(name);
+  }
   if (brief || snap) {
     const lab = kind === "added" ? "新增" : kind === "removed" ? "下架" : "修改";
     openModal(name, head + '<div class="res-row sub">该业务本次' + lab + '，配置如下：</div><div class="gen-brief">' +
@@ -705,7 +744,7 @@ function showModDetail(ts, sec, name) {
 
 function renderHistory() {
   histFilter = $("hProvFilter") ? $("hProvFilter").value : "";
-  histShown = 0;
+  histShown = HIST_PAGE;   // 首屏直接展示一页
   Promise.all([ensureSections().catch(() => {}), loadJson("history.json")])
     .then(([, list]) => {
       if (!Array.isArray(list) || !list.length) {
@@ -952,3 +991,114 @@ btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); }
   }
 })();
 
+const HIST_PAGE = 10;      // 历史每次渲染条数（上滑渐进加载）
+let histShown = 0;          // 当前已渲染条数
+let histAll = [];            // 全量历史数组
+let histFilter = "";
+
+
+/* ===== 变化历史渲染（此前缺失 histDraw，导致历史页一直停在「加载中」）===== */
+function histDraw(list) {
+  const box = $("historyBox");
+  histShown = Math.min(histShown, list.length);
+  const slice = list.slice(0, histShown);
+  let html = '<div class="tl">' + slice.map((r, idx) => {
+    const gidx = list.indexOf(r);             // 全局下标（用于判定最新一条默认展开）
+    const entries = [];
+    SECTIONS.forEach((secObj) => {
+      const sec = secObj.section;
+      if (histFilter && histFilter !== sec) return;
+      const d = r[sec];
+      if (!d || d.note === "baseline") return;
+      const head = secName(sec);
+      const chips = [];
+      if (d.added) chips.push('<span class="chip add">新增 ' + d.added + "</span>");
+      if (d.removed) chips.push('<span class="chip del">下架 ' + d.removed + "</span>");
+      if (d.modified) chips.push('<span class="chip mod">修改 ' + d.modified + "</span>");
+      if (!chips.length) chips.push('<span class="chip none">无变化</span>');
+      // 所有板块（含湖南及其他各省）一并在历史区展示；无变化的省份也渲染并标注「无变化」
+      entries.push(
+        '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
+        '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
+        '<b>' + esc(head) + "</b>" +
+        '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
+        '<span class="tl-sec-arrow"></span></div>' +
+        '<div class="tl-sec-body">' + (histDetail(d, sec, r.ts) ||
+          '<div class="tl-none">本次变化无明细条目</div>') + "</div></div>"
+      );
+    });
+    if (!entries.length) {
+      return (
+        '<div class="tl-item"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
+        '<div class="tl-chips"><span class="chip">无变化</span></div></div>'
+      );
+    }
+    const open = gidx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
+    return (
+      '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
+      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
+      '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
+    );
+  }).join("") + "</div>";
+  if (histShown < list.length) {
+    html += '<div class="hist-more" id="histSentinel"><span class="hist-hint">上滑加载更多（剩余 ' + (list.length - histShown) + " 条）…</span></div>";
+  }
+  box.innerHTML = html;
+  box.querySelectorAll(".tl-item").forEach((item) => {
+    const toggle = () => {
+      const open = item.classList.toggle("open");
+      item.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    item.addEventListener("click", (e) => {
+      if (e.target.closest && e.target.closest("a")) return;
+      toggle();
+    });
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+    // 省份级折叠：点击省标题行，仅展开该省明细（捕获阶段 + stopPropagation 避免误触整条展开）
+    item.querySelectorAll(".tl-sec-head").forEach((head) => {
+      const toggleSec = () => {
+        const entry = head.parentElement;
+        const open = entry.classList.toggle("open");
+        head.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+      head.addEventListener("click", (e) => {
+        if (e.target.closest && e.target.closest("a")) return;
+        e.stopPropagation();
+        toggleSec();
+      }, true);
+      head.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(); }
+      });
+    });
+  });
+  setupHistAutoLoad(list);
+}
+
+/* 上滑自动加载：哨兵进入视口即追加下一页，无需点按钮 */
+let histObserver = null;
+function setupHistAutoLoad(list) {
+  if (histObserver) { try { histObserver.disconnect(); } catch (e) {} histObserver = null; }
+  const sentinel = document.getElementById("histSentinel");
+  if (!sentinel) return;
+  if (histShown >= list.length) return;
+  if (typeof IntersectionObserver === "undefined") {
+    // 兜底：不支持时降级为点击加载
+    sentinel.innerHTML = '<button type="button" class="btn" id="histMoreBtn">加载更多（剩余 ' +
+      (list.length - histShown) + " 条）</button>";
+    const b = document.getElementById("histMoreBtn");
+    if (b) b.addEventListener("click", function () {
+      histShown = Math.min(list.length, histShown + HIST_PAGE);
+      histDraw(list);
+    });
+    return;
+  }
+  histObserver = new IntersectionObserver(function (entries) {
+    if (entries[0] && entries[0].isIntersecting) {
+      histShown = Math.min(list.length, histShown + HIST_PAGE);
+      histDraw(list);
+    }
+  }, { rootMargin: "300px" });
+  histObserver.observe(sentinel);
+}

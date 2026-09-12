@@ -724,6 +724,37 @@ function histDetail(d, sec, ts) {
 }
 
 /* 修改业务明细弹窗：展示该业务本次被修改的字段（旧值 → 新值） */
+/* 值清洗：源站字段里常混入 <p></p> 等 HTML 标签与多余空白，
+   不处理的话「修改前/修改后」看起来一模一样（差异只有标签），无法判断改了什么。 */
+function cleanVal(v) {
+  let x = (v == null ? "" : String(v));
+  x = x.replace(/<br\s*\/?>/gi, " ").replace(/<\/?p[^>]*>/gi, " ").replace(/<[^>]*>/g, "");
+  x = x.replace(/&(?:nbsp|amp|lt|gt|quot|#39);/gi, " ");
+  x = x.replace(/\s+/g, " ").trim();
+  return x;
+}
+
+/* 从全量历史里回溯同名业务的任意配置快照。
+   老记录（如 09-04）可能只存了名称没存快照，但该业务若曾在更早的记录里
+   作为「新增」出现过，added_details 里就留有完整配置，可拿来展示。 */
+function findHistorySnapshot(name) {
+  if (!Array.isArray(histAll) || !name) return null;
+  for (let i = histAll.length - 1; i >= 0; i--) {
+    const rec = histAll[i];
+    if (!rec || typeof rec !== "object") continue;
+    for (const sec in rec) {
+      if (sec === "ts") continue;
+      const d = rec[sec];
+      if (!d || typeof d !== "object") continue;
+      const ad = d.added_details;
+      if (ad && ad[name]) return ad[name];
+      const rd = d.removed_details;
+      if (rd && rd[name]) return rd[name];
+    }
+  }
+  return null;
+}
+
 /* 历史详情缺失时的回退：从当前板块数据按名称取完整配置。
    老记录可能只存了名称没存快照（详情缺失率约 1%），此时与其弹一句
    「未保存明细」，不如直接展示该业务当前的配置，信息量更大。 */
@@ -760,7 +791,12 @@ function showModDetail(ts, sec, name) {
   }
   const rows = details.map((dt) => {
     const pf = esc(dt.field || "");
-    const normV = (v) => (typeof v === "string" ? (/^0{2,}$/.test(v) ? "全国（不限定省份）" : areaCn(v)) : v);
+    const normV = (v) => {
+      let x = cleanVal(v);
+      if (/^0{2,}$/.test(x)) x = "全国（不限定省份）";
+      else if (typeof v === "string") x = areaCn(v) || x;
+      return x;
+    };
     const pv = esc(normV(dt.from) || "（空）");
     const nv = esc(normV(dt.to) || "（空）");
     return '<div class="mod-row">' +
@@ -818,13 +854,20 @@ function showDelDetail(ts, sec, name) {
       '<div class="mod-diff">' + fieldsTable(snap) + "</div>");
     return;
   }
-  // 下架快照缺失时（老记录）尝试展示当前配置；确实查不到再给出友好提示
+  // 本轮快照缺失（老记录）→ 回溯历史里存过的配置 → 再兜底查当前板块
+  const older = findHistorySnapshot(name);
+  if (older && Object.keys(older).length) {
+    openModal(name, head +
+      '<div class="res-row sub">该业务下架时快照未保存，以下为最近一次记录到的配置：</div>' +
+      '<div class="mod-diff">' + fieldsTable(older) + "</div>");
+    return;
+  }
   lookupCurrent(sec, name).then((f) => {
     if (f && Object.keys(f).length) {
       openModal(name, head + fallbackBlock(sec, "下架") + '<div class="mod-diff">' + fieldsTable(f) + "</div>");
     } else {
       openModal(name, head +
-        '<div class="res-row sub">该业务已从此板块下架，线上已无在售配置。</div>' +
+        '<div class="res-row sub">该业务已下架，且历史中未留存配置快照（记录时间较早）。</div>' +
         '<div class="res-row sub">可在「' + esc(secName(sec)) + '资费」列表确认当前在售业务。</div>');
     }
   });
@@ -930,7 +973,7 @@ function histDraw(list) {
     );
   }).join("") + "</div>";
   if (histShown < list.length) {
-    html += '<div class="hist-more"><button type="button" class="btn" id="histMoreBtn">加载更多（剩余 ' + (list.length - histShown) + " 条）</button></div>";
+    html += '<div class="hist-more" id="histSentinel"><span class="hist-hint">上滑加载更多（剩余 ' + (list.length - histShown) + " 条）…</span></div>";
   }
   box.innerHTML = html;
   box.querySelectorAll(".tl-item").forEach((item) => {
@@ -962,17 +1005,38 @@ function histDraw(list) {
       });
     });
   });
-  if (histShown < list.length) {
-    const moreBtn = document.getElementById("histMoreBtn");
-    if (moreBtn) moreBtn.addEventListener("click", function () {
+  setupHistAutoLoad(list);
+}
+
+/* 上滑自动加载：哨兵进入视口即追加下一页，无需点按钮 */
+let histObserver = null;
+function setupHistAutoLoad(list) {
+  if (histObserver) { try { histObserver.disconnect(); } catch (e) {} histObserver = null; }
+  const sentinel = document.getElementById("histSentinel");
+  if (!sentinel) return;
+  if (histShown >= list.length) return;
+  if (typeof IntersectionObserver === "undefined") {
+    // 兜底：不支持时降级为点击加载
+    sentinel.innerHTML = '<button type="button" class="btn" id="histMoreBtn">加载更多（剩余 ' +
+      (list.length - histShown) + " 条）</button>";
+    const b = document.getElementById("histMoreBtn");
+    if (b) b.addEventListener("click", function () {
       histShown = Math.min(list.length, histShown + HIST_PAGE);
       histDraw(list);
     });
+    return;
   }
+  histObserver = new IntersectionObserver(function (entries) {
+    if (entries[0] && entries[0].isIntersecting) {
+      histShown = Math.min(list.length, histShown + HIST_PAGE);
+      histDraw(list);
+    }
+  }, { rootMargin: "300px" });
+  histObserver.observe(sentinel);
 }
 function renderHistory() {
   histFilter = $("hProvFilter") ? $("hProvFilter").value : "";
-  histShown = 0;
+  histShown = HIST_PAGE;   // 首屏直接展示一页（原为 0，需手点才出内容）
   Promise.all([ensureSections().catch(() => {}), loadJson("history.json")])
     .then(([, list]) => {
       if (!Array.isArray(list) || !list.length) {

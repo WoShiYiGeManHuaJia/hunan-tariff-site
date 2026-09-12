@@ -1,4 +1,4 @@
-/* 四站公共增强：CSV 导出 + 收藏关注 + 深色模式兜底
+/* 四站公共增强：收藏关注 + 深色模式兜底
  * 零侵入设计：不修改各站 app.js，仅由 index.html 引入本文件。
  * 四站共用一份（放在公开仓根目录，子目录站用 ../common-extras.js 引用）。
  */
@@ -76,44 +76,6 @@
     return r;
   }
 
-  function csvCell(v) {
-    var s = (v == null ? "" : String(v));
-    s = s.replace(/\r?\n/g, " ").replace(/"/g, '""');
-    return /[",]/.test(s) ? '"' + s + '"' : s;
-  }
-
-  function exportCsv() {
-    var sec = currentSection();
-    var url = DATA_DIR + sec + ".json";
-    fetch(url).then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
-    }).then(function (d) {
-      var items = (d && d.items) || [];
-      if (!items.length) { alert("该板块暂无数据可导出"); return; }
-      var rows = items.map(itemToRow);
-      var keys = [];
-      rows.forEach(function (r) {
-        Object.keys(r).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });
-      });
-      var lines = [keys.map(csvCell).join(",")];
-      rows.forEach(function (r) {
-        lines.push(keys.map(function (k) { return csvCell(r[k]); }).join(","));
-      });
-      var blob = new Blob(["\ufeff" + lines.join("\r\n")],
-        { type: "text/csv;charset=utf-8" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = SITE_CN + "资费_" + secLabel(sec) + "_" +
-        new Date().toISOString().slice(0, 10) + ".csv";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
-    }).catch(function (e) {
-      alert("导出失败（" + url + "）：" + e.message);
-    });
-  }
-
   /* ───────── 收藏星标注入 ───────── */
   function itemName(el) {
     var n = el.querySelector(".item-name");
@@ -175,16 +137,7 @@
     var bars = document.querySelectorAll(".toolbar");
     for (var i = 0; i < bars.length; i++) {
       var bar = bars[i];
-      if (bar.querySelector('[data-ce="csv"]')) continue;
-
-      var csv = document.createElement("button");
-      csv.type = "button";
-      csv.className = "btn ce-btn";
-      csv.setAttribute("data-ce", "csv");
-      csv.textContent = "导出CSV";
-      csv.title = "导出当前板块全量资费为 CSV（Excel 可直接打开）";
-      csv.addEventListener("click", exportCsv);
-      bar.appendChild(csv);
+      if (bar.querySelector('[data-ce="fav"]')) continue;
 
       var fav = document.createElement("button");
       fav.type = "button";
