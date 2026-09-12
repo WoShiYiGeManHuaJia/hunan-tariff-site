@@ -58,6 +58,18 @@ jobs:
       - name: 提交
         if: always()
         run: |
+          set -e
+          # 备份本次产物（防止被远程新提交冲掉）
+          rm -rf /tmp/art && mkdir -p /tmp/art
+          cp -a unicom /tmp/art/ 2>/dev/null || true
+          cp -f fetch_run.log /tmp/art/ 2>/dev/null || true
+          # 硬对齐远端，彻底消除 push 冲突
+          git fetch origin main || true
+          git reset --hard FETCH_HEAD || true
+          # 恢复本次产物
+          rm -rf unicom
+          cp -a /tmp/art/unicom ./unicom 2>/dev/null || true
+          cp -f /tmp/art/fetch_run.log ./fetch_run.log 2>/dev/null || true
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
@@ -66,7 +78,16 @@ jobs:
             echo "无变化"
           else
             git commit -q -m "unicom fetch $(date -u +%FT%TZ)"
-            git push origin main
-            echo "已推送"
+            for i in 1 2 3 4 5; do
+              if git push origin main; then echo "已推送"; break; fi
+              echo "[warn] push 失败，重新对齐后重试 ($i/5)"
+              git fetch origin main
+              git reset --hard FETCH_HEAD
+              cp -a /tmp/art/unicom/. ./unicom/ 2>/dev/null || true
+              cp -f /tmp/art/fetch_run.log ./fetch_run.log 2>/dev/null || true
+              git add -A; git add -f fetch_run.log
+              git commit -q -m "unicom fetch $(date -u +%FT%TZ) retry$i" || true
+              sleep 8
+            done
           fi
-          exit $EC
+          ls -la fetch_run.log 2>/dev/null | head -2

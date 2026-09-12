@@ -71,6 +71,15 @@ jobs:
       - name: 提交
         if: always()
         run: |
+          set -e
+          rm -rf /tmp/art && mkdir -p /tmp/art
+          cp -a data /tmp/art/ 2>/dev/null || true
+          cp -f index.html app.js style.css common-extras.js /tmp/art/ 2>/dev/null || true
+          git fetch origin main || true
+          git reset --hard FETCH_HEAD || true
+          rm -rf data
+          cp -a /tmp/art/data ./data 2>/dev/null || true
+          cp -f /tmp/art/index.html /tmp/art/app.js /tmp/art/style.css /tmp/art/common-extras.js . 2>/dev/null || true
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
@@ -78,6 +87,15 @@ jobs:
             echo "无变化"
           else
             git commit -q -m "mobile fetch+build $(date -u +%FT%TZ)"
-            git push origin main
-            echo "已推送"
+            for i in 1 2 3 4 5; do
+              if git push origin main; then echo "已推送"; break; fi
+              echo "[warn] push 失败，重新对齐后重试 ($i/5)"
+              git fetch origin main
+              git reset --hard FETCH_HEAD
+              cp -a /tmp/art/data/. ./data/ 2>/dev/null || true
+              cp -f /tmp/art/index.html /tmp/art/app.js /tmp/art/style.css /tmp/art/common-extras.js . 2>/dev/null || true
+              git add -A
+              git commit -q -m "mobile fetch+build $(date -u +%FT%TZ) retry$i" || true
+              sleep 8
+            done
           fi
