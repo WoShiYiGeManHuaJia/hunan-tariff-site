@@ -80,20 +80,24 @@ def build_jobs():
 
 
 def fetch_pool(province_id, city_id, attr, pages=20, passes=12, min_rounds=60, empty_stop=30,
-               page_size=500, stale_stop=20, time_budget=300):
+               page_size=500, stale_stop=60, time_budget=300):
     """采集板块套餐池：接口为随机子集轮换(非严格分页，pageSize 硬限 500)。
 
     策略：循环多轮遍历 pageNum(1..pages) 反复采样，按 id 去重累积，
     直到「已跑 >=min_rounds 轮 且 连续 empty_stop 轮无新增」才收敛终止，避免
     旧逻辑单轮增量<5 就提前退出导致的只采到 500 条随机子集、基线不全的问题。
 
-    ★ 分页失效检测（本次修复）：
+    ★ 分页失效检测（已修正误判）：
       部分板块（实测 quanguo 全网、beijing 北京）的 total 恒等于 page_size，
       说明服务端忽略了 pageNum，每轮都回同一批随机子集 —— 再跑多少轮都不会增加。
       旧逻辑会一直空转到 passes 上限，且子集随机轮换会让上轮的条目"消失"，
       被下游 diff 误判成"下架"（这正是联通变化异常的主要来源）。
-      处理：若累计条数达到 page_size 整数倍且连续 stale_stop 轮返回完全相同的
-      条目集合，判定分页失效并提前终止，交由下游护栏兜底（不产生伪下架）。
+      处理：连续 stale_stop 轮返回完全相同的条目集合时判定分页失效并提前终止，
+      交由下游护栏兜底（不产生伪下架）。
+
+      ★★ 2026-09-12 修复：原判据额外要求 "累计条数为 page_size 整倍数"，
+      导致湖南等 7 个恰好抓到 1000(=500×2) 条的省份被误杀。
+      该条件与"分页失效"无因果关系，已移除；stale_stop 20 → 60 提高误判门槛。
     """
     seen = {}
     empty_run = 0
@@ -132,10 +136,17 @@ def fetch_pool(province_id, city_id, attr, pages=20, passes=12, min_rounds=60, e
             if added > 0 or pn in (1, pages) or rounds % 6 == 0:
                 print("    round %d page %d: ret %d cum %d (+%d)" % (rounds, pn, len(lst), len(seen), added))
 
-            # 分页失效：条数卡在 page_size 整数倍 且 连续多轮返回完全相同的集合
-            if len(seen) and len(seen) % page_size == 0 and stale_run >= stale_stop:
-                print("    ⚠ 分页失效：连续 %d 轮返回完全相同条目(cum=%d=pageSize×%d)，"
-                      "服务端忽略 pageNum，提前终止" % (stale_run, len(seen), len(seen) // page_size))
+            # 分页失效：连续多轮返回完全相同的条目集合（服务端忽略 pageNum）
+            #
+            # ★ 修复：去掉了 "len(seen) % page_size == 0" 这个条件。
+            #   原判据把"恰好抓到 500/1000/1500/2000 条"误当成"分页失效"，
+            #   导致湖南/广东/广西/海南/河南/湖北/四川 7 省一律卡在 1000 条；
+            #   而贵州(2036)、云南(2000)、山东(1159) 因非整倍数侥幸跑满。
+            #   ——"是 500 整倍数"与"分页失效"毫无因果关系，属巧合被当成规律。
+            #   真正的信号只有 stale_run（连续多轮返回完全相同集合）。
+            if stale_run >= stale_stop:
+                print("    ⚠ 分页失效：连续 %d 轮返回完全相同条目(cum=%d)，"
+                      "服务端忽略 pageNum，提前终止" % (stale_run, len(seen)))
                 return seen
 
             if added == 0:
