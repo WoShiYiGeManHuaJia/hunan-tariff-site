@@ -5,7 +5,6 @@
 
 ## 在线访问
 
-- 合集入口：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/hub/>
 - 中国移动：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/>
 - 中国联通：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/unicom/>
 - 中国电信：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/telecom/>
