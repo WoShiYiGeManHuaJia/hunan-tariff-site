@@ -1,0 +1,83 @@
+name: Mobile Fetch & Build
+# 公开仓 Actions 免费不限量（私有仓额度已耗尽）
+# 链路：抓快照 → 以 data/ 为基线构建 → 同步站点数据
+
+on:
+  schedule:
+    - cron: "47 0,12 * * *"    # 北京 08:47 / 20:47
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome
+
+      - name: 抓取移动资费快照（31省+全网）
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: |
+          set -e
+          cd pipelines/mobile
+          echo "=== 抓取开始 $(date -u +%FT%TZ) ==="
+          set +e
+          python3 -u main.py --once 2>&1 | tail -80
+          EC=${PIPESTATUS[0]}
+          set -e
+          echo "抓取 exit=$EC"
+          ls -la snapshots/ | head -5
+
+      - name: 构建站点数据
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          # build_site 固定读 ./snapshots（snapshot.py 输出在 pipelines/mobile/snapshots）
+          rm -rf snapshots
+          cp -r pipelines/mobile/snapshots ./snapshots
+          # 基线：公开仓现有 data/ 与 prev 格式完全一致（已比对验证），直接复用
+          rm -rf _prev && mkdir -p _prev
+          cp -f data/*.json _prev/ 2>/dev/null || true
+          echo "基线文件数: $(ls _prev | wc -l)"
+          # 公告
+          python3 pipelines/scripts/announce_fetch.py --move-dir site/data || true
+          # 构建
+          python3 scripts/build_site.py 2>&1 | tail -40
+
+      - name: 同步产物到仓库
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          cp -f _site/index.html _site/app.js _site/style.css ./ 2>/dev/null || true
+          cp -f _site/common-extras.js ./ 2>/dev/null || true
+          mkdir -p data
+          cp -f _site/data/*.json data/ 2>/dev/null || true
+          rm -f data/peaks.json          # 内部降级判定峰值，不公开
+          rm -rf _site _prev snapshots   # 中间产物不入库
+          echo "data 文件数: $(ls data | wc -l)"
+
+      - name: 提交
+        if: always()
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "无变化"
+          else
+            git commit -q -m "mobile fetch+build $(date -u +%FT%TZ)"
+            git push origin main
+            echo "已推送"
+          fi
