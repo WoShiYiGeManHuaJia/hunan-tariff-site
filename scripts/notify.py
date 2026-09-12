@@ -67,6 +67,24 @@ def _post(url, payload, timeout=30):
         return json.load(r)
 
 
+def _trunc_bytes(s, limit):
+    """按字节截断（中文占 3 字节，不能按字符数截，否则仍会超限）。
+
+    截断后丢掉末尾可能被切半个的 UTF-8 字符，避免乱码。
+    """
+    b = s.encode("utf-8")
+    if len(b) <= limit:
+        return s
+    cut = b[:limit]
+    # 回退到最近的完整字符边界
+    for _ in range(4):
+        try:
+            return cut.decode("utf-8") + "\n\n…（内容过长已截断，完整数据请访问网站）"
+        except UnicodeDecodeError:
+            cut = cut[:-1]
+    return cut.decode("utf-8", "ignore")
+
+
 def md_to_text(md):
     """markdown → 纯文本（邮件正文 / 飞书兜底用）"""
     t = re.sub(r"^#+\s*", "", md, flags=re.M)
@@ -169,9 +187,10 @@ def send_wecom(title, md):
     webhook = _env("WECOM_WEBHOOK")
     if not webhook:
         return None
+    LIMIT = 3800                                  # 企微 markdown 上限 4096 字节，留余量
     content = md
-    if len(content.encode("utf-8")) > 3800:      # 企微上限 4096 字节
-        content = md_to_text(md)[:1800]
+    if len(content.encode("utf-8")) > LIMIT:
+        content = _trunc_bytes(md_to_text(md), LIMIT)
     try:
         res = _post(webhook, {"msgtype": "markdown",
                               "markdown": {"content": content}})
