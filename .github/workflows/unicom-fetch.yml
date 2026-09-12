@@ -1,0 +1,72 @@
+name: Unicom Fetch
+# 公开仓 Actions 免费不限量（私有仓额度已耗尽）
+
+on:
+  schedule:
+    - cron: "37 1,13 * * *"    # 北京 09:37 / 21:37
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: "重建基线（跳过对比，不写历史）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unicom-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 运行联通管线
+        run: |
+          set -e
+          mkdir -p unicom/data
+          FLAG=""
+          if [ "${{ github.event.inputs.rebuild }}" == "true" ]; then
+            FLAG="--rebuild"
+            echo "[]" > unicom/data/history.json
+          fi
+          echo "=== 开始 $(date -u +%FT%TZ) ===" > fetch_run.log
+          free -m >> fetch_run.log 2>&1 || true
+          set +e
+          python3 -u pipelines/unicom_pipeline.py \
+            --prev-dir unicom/data \
+            --out-dir unicom/data \
+            $FLAG >> fetch_run.log 2>&1
+          EC=$?
+          set -e
+          echo "--- 管线结束 exit=$EC $(date -u +%FT%TZ) ---" >> fetch_run.log
+          free -m >> fetch_run.log 2>&1 || true
+          tail -80 fetch_run.log
+
+      - name: 抓取公告
+        continue-on-error: true
+        run: python3 pipelines/scripts/announce_fetch.py --uni-dir unicom/data
+
+      - name: 提交
+        if: always()
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git add -f fetch_run.log
+          if git diff --cached --quiet; then
+            echo "无变化"
+          else
+            git commit -q -m "unicom fetch $(date -u +%FT%TZ)"
+            git push origin main
+            echo "已推送"
+          fi
+          exit $EC

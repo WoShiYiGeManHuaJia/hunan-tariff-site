@@ -1,0 +1,33 @@
+name: Tariff Summary to DingTalk
+
+on:
+  schedule:
+    - cron: "0 2 * * *"      # 北京 10:00 每日汇总
+    - cron: "0 12 * * *"     # 北京 20:00
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "统计最近 N 小时"
+        default: "24"
+
+permissions:
+  contents: read
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 推送汇总到钉钉
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          SINCE_HOURS: ${{ github.event.inputs.hours || '24' }}
+          SITE_ROOT: "."
+        run: python3 scripts/dingtalk_summary.py
