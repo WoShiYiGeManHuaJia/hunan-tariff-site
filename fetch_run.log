@@ -1,13 +1,12 @@
-=== 开始 2026-09-12T17:58:15Z ===
-模式=focus 重点省=guangdong
+=== 开始 2026-09-12T18:10:56Z ===
+模式=focus 重点省=hunan,guangdong
                total        used        free      shared  buff/cache   available
-Mem:           15989         978       12722          42        2650       15010
+Mem:           15989        1019       12682          40        2648       14970
 Swap:           3071           0        3071
-== 任务数: 2 ==
+== 任务数: 3 ==
 === 抓取 quanguo (prov=- city=-) ===
     round 1 page 1: ret 500 cum 500 (+500)
-    round 3 page 3: ret 500 cum 907 (+407)
-    round 6 page 6: ret 500 cum 907 (+0)
+    round 6 page 6: ret 500 cum 907 (+407)
     round 12 page 12: ret 500 cum 907 (+0)
     round 18 page 18: ret 500 cum 907 (+0)
     round 20 page 20: ret 500 cum 907 (+0)
@@ -24,32 +23,52 @@ Swap:           3071           0        3071
     收敛: 已跑 60 轮且连续 30 轮无新增，终止
   scope quanguo 列表共 907 条，抓明细...
   明细 907 条
+=== 抓取 hunan (prov=074 city=741) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 677 (+177)
+    round 6 page 6: ret 500 cum 677 (+0)
+    round 12 page 12: ret 500 cum 677 (+0)
+    round 18 page 18: ret 500 cum 677 (+0)
+    round 20 page 20: ret 500 cum 677 (+0)
+    round 21 page 1: ret 500 cum 677 (+0)
+    round 24 page 4: ret 500 cum 677 (+0)
+    round 30 page 10: ret 500 cum 677 (+0)
+    round 36 page 16: ret 500 cum 677 (+0)
+    round 40 page 20: ret 500 cum 677 (+0)
+    round 41 page 1: ret 500 cum 677 (+0)
+    round 42 page 2: ret 500 cum 677 (+0)
+    round 48 page 8: ret 500 cum 677 (+0)
+    round 54 page 14: ret 500 cum 677 (+0)
+    round 60 page 20: ret 500 cum 677 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope hunan 列表共 677 条，抓明细...
+  明细 677 条
 === 抓取 guangdong (prov=051 city=510) ===
     round 1 page 1: ret 500 cum 500 (+500)
-    round 4 page 4: ret 500 cum 742 (+242)
-    round 6 page 6: ret 500 cum 742 (+0)
-    round 12 page 12: ret 500 cum 742 (+0)
-    round 18 page 18: ret 500 cum 742 (+0)
-    round 20 page 20: ret 500 cum 742 (+0)
-    round 21 page 1: ret 500 cum 742 (+0)
-    round 24 page 4: ret 500 cum 742 (+0)
-    round 27 page 7: ret 500 cum 1028 (+286)
-    round 30 page 10: ret 500 cum 1028 (+0)
-    round 36 page 16: ret 500 cum 1028 (+0)
-    round 40 page 20: ret 500 cum 1028 (+0)
-    round 41 page 1: ret 500 cum 1028 (+0)
-    round 42 page 2: ret 500 cum 1028 (+0)
-    round 48 page 8: ret 500 cum 1028 (+0)
-    round 54 page 14: ret 500 cum 1028 (+0)
-    round 60 page 20: ret 500 cum 1028 (+0)
+    round 2 page 2: ret 500 cum 721 (+221)
+    round 6 page 6: ret 500 cum 721 (+0)
+    round 12 page 12: ret 500 cum 721 (+0)
+    round 18 page 18: ret 500 cum 721 (+0)
+    round 20 page 20: ret 500 cum 721 (+0)
+    round 21 page 1: ret 500 cum 721 (+0)
+    round 24 page 4: ret 500 cum 721 (+0)
+    round 30 page 10: ret 500 cum 721 (+0)
+    round 36 page 16: ret 500 cum 721 (+0)
+    round 40 page 20: ret 500 cum 721 (+0)
+    round 41 page 1: ret 500 cum 721 (+0)
+    round 42 page 2: ret 500 cum 721 (+0)
+    round 48 page 8: ret 500 cum 721 (+0)
+    round 54 page 14: ret 500 cum 721 (+0)
+    round 60 page 20: ret 500 cum 721 (+0)
     收敛: 已跑 60 轮且连续 30 轮无新增，终止
-  scope guangdong 列表共 1028 条，抓明细...
-  明细 1028 条
-    >> 采样噪声：本轮增删 754 条，超过基线 127%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
-检测到变化: {'quanguo': 'add907/rm0/mod0', 'guangdong': 'add0/rm0/mod0'}
-latest.json 已生成: quanguo=907 prov_total=1028 sections=2
-完成，history 共 5 条
---- 管线结束 exit=0 2026-09-12T18:03:07Z ---
+  scope guangdong 列表共 721 条，抓明细...
+  明细 721 条
+    >> 采样噪声：本轮增删 1377 条，超过基线 114%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 176 条，超过基线 40%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+检测到变化: {'quanguo': 'add907/rm0/mod0', 'hunan': 'add0/rm0/mod0', 'guangdong': 'add0/rm0/mod0'}
+latest.json 已生成: quanguo=907 prov_total=956 sections=3
+完成，history 共 6 条
+--- 管线结束 exit=0 2026-09-12T18:17:33Z ---
                total        used        free      shared  buff/cache   available
-Mem:           15989         934       12753          45        2667       15055
+Mem:           15989         935       12754          44        2664       15054
 Swap:           3071           0        3071
