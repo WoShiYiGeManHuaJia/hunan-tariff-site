@@ -92,6 +92,7 @@ body{margin:0;background:var(--background);padding:16px;font-family:ui-sans-seri
 @media(max-width:560px){.inp{font-size:16px}.sel{font-size:16px}.mcard{max-width:100%}}
 .bubble{word-break:break-word}
 .status{white-space:pre-wrap}
+code{background:var(--intensity-6);padding:1px 5px;border-radius:4px;font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
 </style>
 </head>
 <body>
@@ -145,14 +146,60 @@ body{margin:0;background:var(--background);padding:16px;font-family:ui-sans-seri
     </div>
   </div>
   <div class="sec">
-    <div class="sect">导出与备份（全部本地）</div>
-    <div class="hrow" style="gap:8px">
-      <button id="btnEnv" class="btn pri">复制 .env</button>
-      <button id="btnJson" class="btn">复制 config.json</button>
-      <button id="btnSecrets" class="btn">Secrets 清单</button>
-      <button id="copyCfgSafe" class="btn">复制脱敏配置</button>
+    <div class="sect">定时推送方式（三选一，可选）</div>
+    <div class="chcard" style="padding:12px">
+      <div class="hrow" style="gap:8px">
+        <button class="pill" data-mode="local">① 自己设备跑脚本</button>
+        <button class="pill" data-mode="cloud">② GitHub Actions</button>
+        <button class="pill" data-mode="manual">③ 只手动推</button>
+      </div>
+
+      <div id="paneLocal" style="margin-top:12px">
+        <div class="tiny" style="line-height:1.9;margin-bottom:10px">
+          <b>密钥完全不出本机。</b>把配置导出成 <code>.env</code>，放到常开的电脑 / 服务器 / 路由器上，用 cron 定时跑脚本读取并推送。
+        </div>
+        <div class="hrow" style="gap:8px">
+          <button id="btnEnv" class="btn pri">复制 .env</button>
+          <button id="btnEnvView" class="btn">查看 .env</button>
+          <button id="btnJson" class="btn">复制 config.json</button>
+        </div>
+        <div class="tiny" style="margin-top:10px;line-height:1.9">
+          <b>怎么用（每天 9 点为例）</b><br>
+          1. 把 <code>.env</code> 和脚本放同一目录<br>
+          2. <code>crontab -e</code> 加一行：<br>
+          <span style="display:block;margin:4px 0;padding:6px 8px;background:var(--intensity-4);border-radius:6px;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all">0 9 * * * cd /你的目录 &amp;&amp; python3 notify.py</span>
+          脚本会自动读取同目录的 <code>.env</code>。
+        </div>
+      </div>
+
+      <div id="paneCloud" style="margin-top:12px">
+        <div class="tiny" style="line-height:1.9;margin-bottom:10px">
+          由云端定时跑，<b>不用自己准备常开设备</b>。Secrets 加密存储、只写不读，日志里显示为 <code>***</code>，仓库访问者也看不到明文。
+        </div>
+        <div class="hrow" style="gap:8px">
+          <button id="btnSecrets" class="btn pri">查看 Secrets 清单</button>
+          <button id="copyCfgSafe" class="btn">复制脱敏配置</button>
+        </div>
+        <div class="tiny" style="margin-top:10px;line-height:1.9">
+          <b>怎么用</b><br>
+          1. fork 资费监控仓库<br>
+          2. Settings → Secrets and variables → Actions → New repository secret<br>
+          3. 按清单逐个填「名称 / 值」<br>
+          4. Actions 里启用对应 workflow，即按设定时间自动推送
+        </div>
+      </div>
+
+      <div id="paneManual" style="margin-top:12px">
+        <div class="tiny" style="line-height:1.9">
+          不做定时推送，只在需要时用上方渠道里的「<b>发送测试</b>」手动推一次。<br>
+          配置仍然保存在本机，随时可以改成上面两种方式。
+        </div>
+      </div>
     </div>
-    <div class="hrow" style="margin-top:10px;gap:8px">
+  </div>
+  <div class="sec">
+    <div class="sect">数据管理（全部本地）</div>
+    <div class="hrow" style="gap:8px">
       <input id="importFile" type="file" accept=".json" class="hide">
       <button id="importBtn" class="btn">导入配置</button>
       <input id="importText" class="inp" style="flex:1;min-width:130px;height:30px" placeholder='粘贴 JSON 后点导入'>
@@ -161,11 +208,8 @@ body{margin:0;background:var(--background);padding:16px;font-family:ui-sans-seri
     </div>
   </div>
   <div class="tiny" style="margin-top:14px;line-height:1.9">
-    <b>关于定时推送</b>：浏览器关闭后无法主动推送，这是所有网页的安全机制，任何页面都做不到。<br>
-    因此本页负责「配置 + 测试」，定时推送由导出的配置交给常开设备执行，三条路任选：<br>
-    ① 自己的电脑 / 服务器 / 路由器跑脚本，读 .env 定时推送（密钥完全不出本机）；<br>
-    ② fork 项目后填 GitHub Actions 的 Secrets，由云端定时跑（Secrets 加密只写不读）；<br>
-    ③ 只用本页手动「发送测试」随时推一次。
+    <b>为什么网页自己不能定时推送</b>：浏览器关闭后无法主动发消息，这是所有网页的安全机制，装成 App、打包成 APK 也绕不过。<br>
+    所以本页负责「配置 + 测试」，定时那一步交给上面选中的方式。
   </div>
 </div>
 <div id="toasts" class="toasts"></div>
@@ -196,7 +240,7 @@ const CH=[
 const PROV=[['全国','quanguo'],['湖南','hunan'],['广东','guangdong'],['北京','beijing'],['浙江','zhejiang'],['江苏','jiangsu'],['上海','shanghai']];
 const DEF={dingtalk:{enabled:false,webhook:'',secret:'',keyword:''},feishu:{enabled:false,webhook:'',secret:''},wecom:{enabled:false,webhook:''},
  email:{enabled:false,host:'',port:'465',user:'',pass:'',to:''},
- push:{focus:'hunan',siteUrl:'https://woshiyigemanhuajia.github.io/hunan-tariff-site/',since:'24',fmt:'detail',skipEmpty:true}};
+ push:{focus:'hunan',siteUrl:'https://woshiyigemanhuajia.github.io/hunan-tariff-site/',since:'24',fmt:'detail',skipEmpty:true,mode:'local'}};
 let cfg=JSON.parse(JSON.stringify(DEF));
 function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);CH.forEach(function(c){if(d[c.id])Object.assign(cfg[c.id],d[c.id])});if(d.push)Object.assign(cfg.push,d.push)}}catch(e){storageOK=false}}
 let saveTimer=null;
@@ -333,9 +377,20 @@ function importCfg(text){
   localStorage.setItem(LS_KEY,JSON.stringify(cfg));renderChannels();renderPrev();syncRules();toast('已导入 '+n+' 项配置','ok')}
  catch(e){toast('导入失败：JSON 格式错误','err')}
 }
+function setMode(m){
+ cfg.push.mode=m;save();
+ const pills=document.querySelectorAll('[data-mode]');
+ Array.prototype.forEach.call(pills,function(b){b.className='pill'+(b.dataset.mode===m?' on':'')});
+ const map={local:'paneLocal',cloud:'paneCloud',manual:'paneManual'};
+ Object.keys(map).forEach(function(k){$(map[k]).style.display=(k===m?'':'none')});
+}
 function syncRules(){$('focusSec').value=cfg.push.focus||'hunan';$('siteUrl').value=cfg.push.siteUrl||'';$('sinceHours').value=cfg.push.since||'24';$('pushFmt').value=cfg.push.fmt;$('pushSkipEmpty').checked=!!cfg.push.skipEmpty}
 load();
 renderChannels();bindChannels();syncRules();renderPrev();
+setMode(cfg.push.mode||'local');
+Array.prototype.forEach.call(document.querySelectorAll('[data-mode]'),function(b){
+ b.addEventListener('click',function(){setMode(b.dataset.mode)});
+});
 $('saveState').textContent=storageOK?'✓ 已加载本地配置':'暂存内存（无法写入本地）';
 const fp=$('fp');
 PROV.forEach(function(x){const b=document.createElement('button');b.className='pill';b.textContent=x[0];b.dataset.p=x[1];
@@ -353,6 +408,11 @@ $('btnEnv').addEventListener('click',function(){
  const t=envText();copy(t,'.env 已复制，保存到脚本同目录');
  openModal('.env 内容（保存为 .env，放脚本同目录）','<textarea class="codebox" id="envBox" readonly></textarea><div class="tiny" style="margin-top:8px;line-height:1.7">含真实密钥，请勿外传。脚本按此文件读取配置。</div><div class="hrow" style="margin-top:10px"><button class="btn pri" id="cp2">复制</button><button class="btn" id="cl2">关闭</button></div>',
  function(m){m.querySelector('#envBox').value=t;m.querySelector('#cp2').onclick=function(){copy(t,'已复制')};m.querySelector('#cl2').onclick=function(){m.classList.add('hide')}});
+});
+$('btnEnvView').addEventListener('click',function(){
+ const t=envText();
+ openModal('.env 内容','<textarea class="codebox" id="envBox2" readonly></textarea><div class="tiny" style="margin-top:8px;line-height:1.7">含真实密钥，请勿外传。保存为 .env 放到脚本同目录。</div><div class="hrow" style="margin-top:10px"><button class="btn pri" id="cpE">复制</button><button class="btn" id="clE">关闭</button></div>',
+ function(m){m.querySelector('#envBox2').value=t;m.querySelector('#cpE').onclick=function(){copy(t,'.env 已复制')};m.querySelector('#clE').onclick=function(){m.classList.add('hide')}});
 });
 $('btnJson').addEventListener('click',function(){copy(JSON.stringify(cfg,null,2),'config.json 已复制（含密钥，注意保管）')});
 $('btnSecrets').addEventListener('click',function(){
