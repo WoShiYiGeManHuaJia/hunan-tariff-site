@@ -7,6 +7,7 @@
 """
 import json
 import os
+import sys
 import time
 import hmac
 import base64
@@ -14,6 +15,35 @@ import hashlib
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone, timedelta
+
+def _load_dotenv():
+    """本地运行时自动读取仓库根目录的 .env（GitHub Actions 里无需此文件）。
+
+    只在本文件所在目录及其上级查找 .env，且已存在的环境变量优先，
+    不会被 .env 覆盖 —— 保证 Actions 的 Secrets 始终生效。
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    for base in (here, os.path.dirname(here), os.path.dirname(os.path.dirname(here))):
+        fp = os.path.join(base, ".env")
+        if os.path.isfile(fp):
+            try:
+                with open(fp, encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#") or "=" not in line:
+                            continue
+                        if line.startswith("export "):
+                            line = line[7:]
+                        k, _, v = line.partition("=")
+                        k, v = k.strip(), v.strip().strip('"').strip("'")
+                        if k and k not in os.environ:   # 环境变量优先
+                            os.environ[k] = v
+            except Exception:
+                pass
+            return
+
+
+_load_dotenv()
 
 WEBHOOK = os.getenv("DINGTALK_WEBHOOK", "").strip()
 SECRET = os.getenv("DINGTALK_SECRET", "").strip()
@@ -23,6 +53,8 @@ SITE_ROOT = os.getenv("SITE_ROOT", ".")
 FOCUS_SEC = os.getenv("FOCUS_SEC", "hunan").strip().lower()
 # 结尾附带的资费站访问链接
 SITE_URL = os.getenv("SITE_URL", "https://woshiyigemanhuajia.github.io/hunan-tariff-site/").strip()
+# 测试模式：只发一条「配置成功」消息，不读任何数据
+TEST_MODE = "--test" in sys.argv
 
 # 站名 -> (history 路径, 显示名, 图标)
 SITES = [
@@ -126,6 +158,24 @@ def send_ding(title, text):
 
 
 def main():
+    # 测试模式：验证 webhook/加签是否配对正确，不读数据
+    if TEST_MODE:
+        if not WEBHOOK:
+            print("❌ 未配置 DINGTALK_WEBHOOK（.env 或仓库 Secrets）")
+            return
+        ok = send_ding(
+            "✅ 钉钉机器人配置成功",
+            "## ✅ 配置成功\n\n"
+            "你的钉钉机器人已成功接入「运营商资费监控」。\n\n"
+            "**当前配置**\n\n"
+            "- 加签密钥：%s\n"
+            "- 关注省份：`%s`\n"
+            "- 站点链接：%s\n\n"
+            "下次资费变化将自动推送到本群。"
+            % ("已配置（SEC…）" if SECRET else "未配置（未开启加签）", FOCUS_SEC, SITE_URL or "未配置"))
+        print("测试结果:", "成功，请查看钉钉群" if ok else "失败，请检查 webhook 与加签密钥")
+        return
+
     now = datetime.now(CST)
     since = now - timedelta(hours=SINCE_HOURS)
     print("统计窗口: %s 之后 (CST)" % since.strftime("%Y-%m-%d %H:%M"))
