@@ -685,8 +685,9 @@ function renderCmpTable(name, head, bf, af, nDiff) {
   const rows = allKeys.map((k) => {
     const bv = cleanVal((bf || {})[k]);
     const av = cleanVal((af || {})[k]);
+    const fk = PLAN_LABELS[k] || k;
     return '<tr class="' + (bv !== av ? "cmp-diff" : "") + '">' +
-      "<th>" + esc(k) + "</th>" +
+      "<th>" + esc(fk) + "</th>" +
       '<td class="cmp-old">' + esc(bv || "—") + "</td>" +
       '<td class="cmp-new">' + esc(av || "—") + "</td></tr>";
   }).join("");
@@ -776,7 +777,11 @@ function showPlanDetail(ts, sec, name, kind) {
     const items = (j && j.items) || [];
     const it = items.find((x) => x && String(x.title || x.name || "").trim() === nm);
     if (it) {
-      const fields = it.detail || it.fields || it;
+      // 优先用完整 detail（含全部字段与完整业务内容），
+    // 历史 _list 精简快照字段少且长文本被截断，弹窗会"只有几行字"
+    const fields = Object.keys(it.detail || {}).length
+      ? it.detail
+      : (it.fields || it);
       openModal(name, head + '<div class="res-row sub">当前板块中的配置：</div><div class="gen-brief">' + briefTable(fields) + "</div>");
     } else if (kind === "removed") {
       openModal(name, head + '<div class="res-row sub">该业务已下架，线上已无在售配置。</div>' +

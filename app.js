@@ -807,8 +807,9 @@ function showModDetail(ts, sec, name) {
       let bv = cleanVal((bf || {})[k]);
       let av = cleanVal((af || {})[k]);
       if (k === "适用地区") { bv = areaCn(bv) || bv; av = areaCn(av) || av; }
+      const fk = (typeof PLAN_LABELS !== "undefined" && PLAN_LABELS[k]) || k;
       return '<tr class="' + (bv !== av ? "cmp-diff" : "") + '">' +
-        '<th>' + esc(k) + "</th>" +
+        '<th>' + esc(fk) + "</th>" +
         '<td class="cmp-old">' + esc(bv || "—") + "</td>" +
         '<td class="cmp-new">' + esc(av || "—") + "</td>" +
         "</tr>";
