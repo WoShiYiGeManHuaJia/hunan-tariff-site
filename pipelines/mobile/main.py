@@ -5,6 +5,7 @@
 #   初始化快照(不通知): python main.py --init
 # 注意：源站（移动网关）会触发 TLS legacy renegotiation，较新 OpenSSL 默认拒绝。
 #   在本文件最顶部注入 OPENSSL_CONF，确保任何 ssl 库初始化前生效（见 openssl_legacy.cnf）。
+import json
 import os
 
 _SSL_CNF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "openssl_legacy.cnf")
@@ -44,10 +45,25 @@ def _is_abnormal_drop(section: str, new_items: list) -> bool:
     return new_n < old_n * ABNORMAL_DROP_RATIO
 
 
+# 诊断文件路径（仓库根目录 _diag.json），记录每轮各板块实抓条数与拦截原因，
+# 供排查「源站到底还返不返回数据」。日志在 Actions 上不易取，落文件最可靠。
+_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _write_diag(diag: dict):
+    try:
+        p = os.path.join(_ROOT_DIR, "_diag.json")
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(diag, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[diag] 写入失败: {e}")
+
+
 def run_once(send_mail=True):
     """执行一轮抓取+对比+通知"""
     print("开始抓取资费数据...")
     data = fetcher.fetch_all()
+    diag = {"ts": time.strftime("%Y-%m-%d %H:%M:%S"), "sections": {}}
 
     reports = []
     first_time = False  # 本轮是否有板块首次建立基线
@@ -55,6 +71,10 @@ def run_once(send_mail=True):
     for section, new_data in data.items():
         new_items = new_data.get("items", [])
         print(f"对比板块 {section} ({len(new_items)} 条)")
+        diag["sections"][section] = {
+            "n": len(new_items),
+            "err": (new_data.get("error") or "")[:120],
+        }
 
         # 确认源站降级（fetcher 写入 DEGRADE: 标记）且已有基线才跳过对比防误报；
         # 首次运行无基线时必须建立基线，即使本轮网络异常也不跳过（用户要求）。
@@ -62,17 +82,29 @@ def run_once(send_mail=True):
         # 交由下方 _is_abnormal_drop 数量护栏兜底，避免整省无 diff 产出。
         degrade_confirm = "DEGRADE:" in (new_data.get("error") or "")
         if degrade_confirm and snapshot.load_snapshot(section) is not None:
-            print(f"  [降级] 板块 {section} 疑似源站降级，跳过对比")
+            # 降级但仍有数据时照写快照（不做对比、不通知），交由构建侧判定：
+            # build_site 连续 SEC_DEGRADE_ACCEPT 轮偏低才接受并重建基线。
+            # 此前直接跳过导致 snapshots/ 为空，湖南/河南的数据长期冻结在旧快照。
+            if new_items:
+                snapshot.save_snapshot(section, new_data)
+                print(f"  [降级] 板块 {section} 本轮 {len(new_items)} 条，"
+                      f"已存快照交由构建侧判定（不对比、不通知）")
+                diag["sections"][section]["reason"] = "degrade_saved"
+            else:
+                print(f"  [降级] 板块 {section} 本轮 0 条，跳过对比")
+                diag["sections"][section]["reason"] = "degrade_empty"
             skipped.append(section)
             continue
         if not new_items:
             print(f"  [异常] 板块 {section} 未抓到任何数据，跳过对比")
+            diag["sections"][section]["reason"] = "empty"
             skipped.append(section)
             continue
 
         # 防误报护栏：抓取数量骤减，不对比、不覆盖快照，只提醒
         if _is_abnormal_drop(section, new_items):
             print(f"  [护栏] 板块 {section} 抓取数量异常骤减，跳过对比")
+            diag["sections"][section]["reason"] = "guard"
             skipped.append(section)
             continue
 
@@ -80,6 +112,7 @@ def run_once(send_mail=True):
         if snapshot.load_snapshot(section) is None:
             snapshot.check_section(section, new_data)
             print(f"  [首次] 板块 {section} 已建立基线快照，本次不通知")
+            diag["sections"][section]["reason"] = "baseline"
             first_time = True
             continue
 
@@ -126,6 +159,7 @@ def run_once(send_mail=True):
                 print("[notify] 已发送无变化心跳通知")
             except Exception as e:
                 print(f"[notify] 心跳发送失败: {e}")
+    _write_diag(diag)
 
 
 def main():
