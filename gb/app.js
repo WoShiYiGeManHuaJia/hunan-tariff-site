@@ -754,6 +754,14 @@ function showPlanDetail(ts, sec, name, kind) {
       return;
     }
   }
+  /* 走到这里说明：kind==="modified" 但历史里既没有 before/after 快照，
+     也没有 modified_details（多为早期记录，当时未保存字段级对比）。
+     明确告诉用户原因，避免误以为功能坏了。 */
+  const headMod = (kind === "modified")
+    ? head + '<div class="res-row sub">该业务在此时间点发生变更，但这条早期记录未保存字段级对比快照，' +
+      '以下为变更后的完整配置。后续新记录将展示「修改前 / 修改后」对比表。</div>'
+    : head;
+
   const nm = String(name == null ? "" : name).trim();
   let brief = null;
   const lst = (d && d[kind + "_list"]) || null;
@@ -769,8 +777,7 @@ function showPlanDetail(ts, sec, name, kind) {
     const lab = kind === "added" ? "新增" : kind === "removed" ? "下架" : "修改";
     const snapObj = snap || brief;
     // 先渲染历史快照（立即反馈，不阻塞）
-    openModal(name, head + '<div class="res-row sub">该业务本次' + lab + '，配置如下：</div><div class="gen-brief">' +
-      briefTable(snapObj) + "</div>");
+    openModal(name, headMod + '<div class="gen-brief">' + briefTable(snapObj) + "</div>");
     /* 历史 _list 存的是 _brief 精简对象（仅 8~13 个字段、长文本截断 200 字），
        直接展示会"只有几行字看不懂"。这里异步取当前板块的完整 detail
        （字段数更多时）替换弹窗；业务已下架查不到则保持历史快照。 */
@@ -780,8 +787,7 @@ function showPlanDetail(ts, sec, name, kind) {
       const it = items.find((x) => x && String(x.title || x.name || "").trim() === nm);
       const det = it && it.detail;
       if (det && Object.keys(det).length > Object.keys(snapObj).length) {
-        openModal(name, head + '<div class="res-row sub">该业务本次' + lab + '，完整配置如下：</div><div class="gen-brief">' +
-          briefTable(det) + "</div>");
+        openModal(name, headMod + '<div class="gen-brief">' + briefTable(det) + "</div>");
       }
     }).catch(() => {});
     return;
