@@ -1,0 +1,42 @@
+name: _tmp_mailtest
+on:
+  workflow_dispatch:
+    inputs:
+      smtp_user: { description: "u", required: false }
+      smtp_pass: { description: "p", required: false }
+permissions:
+  contents: none
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 测试 SMTP
+        env:
+          U: ${{ github.event.inputs.smtp_user }}
+          P: ${{ github.event.inputs.smtp_pass }}
+        run: |
+          echo "::add-mask::$U"
+          echo "::add-mask::$P"
+          python3 - << 'PY'
+          import smtplib, os
+          from email.mime.text import MIMEText
+          from email.mime.multipart import MIMEMultipart
+          from email.header import Header
+          HOST, PORT = "smtp.qq.com", 465
+          U, P = os.environ["U"], os.environ["P"]
+          msg = MIMEMultipart("alternative")
+          msg["Subject"] = Header("资费监控 · 邮件通道测试", "utf-8")
+          msg["From"] = Header("资费监控 <%s>" % U, "utf-8")
+          msg["To"] = U
+          msg.attach(MIMEText("测试邮件：如果你收到，说明邮件通道配置正确。", "plain", "utf-8"))
+          msg.attach(MIMEText("<h2>✅ 配置成功</h2><p>测试邮件：如果你收到，说明邮件通道配置正确。</p>", "html", "utf-8"))
+          try:
+              s = smtplib.SMTP_SSL(HOST, PORT, timeout=30)
+              s.login(U, P)
+              s.sendmail(U, [U], msg.as_string())
+              s.quit()
+              print("RESULT=SEND_OK")
+          except Exception as e:
+              print("RESULT=FAIL", type(e).__name__, str(e)[:200])
+          PY
