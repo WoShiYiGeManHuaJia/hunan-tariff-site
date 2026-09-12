@@ -6,6 +6,15 @@ on:
     - cron: "37 1,13 * * *"    # 北京 09:37 / 21:37
   workflow_dispatch:
     inputs:
+      mode:
+        description: "抓取模式（留空则跟随仓库变量 SCRAPE_MODE）"
+        type: choice
+        options: [focus, full, default]
+        default: default
+      focus_provs:
+        description: "重点省份（focus 模式生效，拼音逗号分隔，如 hunan,guangdong）"
+        type: string
+        default: ""
       rebuild:
         description: "重建基线（跳过对比，不写历史）"
         type: boolean
@@ -38,13 +47,32 @@ jobs:
             FLAG="--rebuild"
             echo "[]" > unicom/data/history.json
           fi
+          # ── 抓取模式 ──
+          # focus: 只抓 全网 + 重点两省（快，联通 70 分钟可降到约 7 分钟）
+          # full : 全部 32 板块
+          # 手动选 default（或定时触发）时，跟随仓库变量 SCRAPE_MODE / FOCUS_PROVS，
+          # 两者都没配则默认 full。
+          MODE="${{ github.event.inputs.mode }}"
+          [ -z "$MODE" ] || [ "$MODE" = "default" ] && MODE="${{ vars.SCRAPE_MODE }}"
+          [ -n "$MODE" ] || MODE="full"
+          FOCUS="${{ github.event.inputs.focus_provs }}"
+          [ -n "$FOCUS" ] || FOCUS="${{ vars.FOCUS_PROVS }}"
+          [ -n "$FOCUS" ] || FOCUS="hunan,guangdong"
+          SCOPE_ARG=""
+          if [ "$MODE" = "focus" ]; then
+            SCOPE_ARG="--scopes quanguo,$FOCUS"
+            echo "模式: 重点（quanguo + $FOCUS）"
+          else
+            echo "模式: 全量（全部板块）"
+          fi
           echo "=== 开始 $(date -u +%FT%TZ) ===" > fetch_run.log
+          echo "模式=$MODE 重点省=$FOCUS" >> fetch_run.log
           free -m >> fetch_run.log 2>&1 || true
           set +e
           python3 -u pipelines/unicom_pipeline.py \
             --prev-dir unicom/data \
             --out-dir unicom/data \
-            $FLAG >> fetch_run.log 2>&1
+            $SCOPE_ARG $FLAG >> fetch_run.log 2>&1
           EC=$?
           set -e
           echo "--- 管线结束 exit=$EC $(date -u +%FT%TZ) ---" >> fetch_run.log

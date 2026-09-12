@@ -6,6 +6,16 @@ on:
   schedule:
     - cron: "47 0,12 * * *"    # 北京 08:47 / 20:47
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "抓取模式（留空则跟随仓库变量 SCRAPE_MODE）"
+        type: choice
+        options: [focus, full, default]
+        default: default
+      focus_provs:
+        description: "重点省份（focus 模式生效，拼音逗号分隔，如 hunan,guangdong）"
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -44,6 +54,24 @@ jobs:
         run: |
           set -e
           cd pipelines/mobile
+          # ── 抓取模式 ──
+          # focus: 只抓 全网 + 重点两省（TRACK_PROVINCES 注入，config.py 会校验省份名）
+          # full : 全部 32 板块（不注入，走 DEFAULT_SECTIONS）
+          # 手动选 default（或定时触发）时跟随仓库变量 SCRAPE_MODE / FOCUS_PROVS，
+          # 两者都没配则默认 full。
+          MODE="${{ github.event.inputs.mode }}"
+          [ -z "$MODE" ] || [ "$MODE" = "default" ] && MODE="${{ vars.SCRAPE_MODE }}"
+          [ -n "$MODE" ] || MODE="full"
+          FOCUS="${{ github.event.inputs.focus_provs }}"
+          [ -n "$FOCUS" ] || FOCUS="${{ vars.FOCUS_PROVS }}"
+          [ -n "$FOCUS" ] || FOCUS="hunan,guangdong"
+          if [ "$MODE" = "focus" ]; then
+            export TRACK_PROVINCES="$FOCUS"
+            echo "模式: 重点（quanguo + $FOCUS）"
+          else
+            unset TRACK_PROVINCES
+            echo "模式: 全量（全部板块）"
+          fi
           echo "=== 抓取开始 $(date -u +%FT%TZ) ==="
           set +e
           python3 -u main.py --once 2>&1 | tail -80

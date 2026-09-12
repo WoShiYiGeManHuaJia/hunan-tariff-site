@@ -447,10 +447,20 @@ def main():
     args = ap.parse_args()
     prev_dir, out_dir = args.prev_dir, args.out_dir
     jobs = build_jobs()
-    scopes = args.scopes.split(",") if args.scopes else (["quanguo"] + [k for k in jobs if k != "quanguo"])
-    missing = [s for s in scopes if s not in jobs]
-    if missing:
-        print("未知板块:", missing); sys.exit(1)
+    # 板块名可能填错（如省份拼音拼错）：此前直接 sys.exit(1) 会让整轮抓取
+    # 全部失败。改为忽略无效项、保留有效项；全部无效时退回全量，避免抓成空集。
+    if args.scopes:
+        wanted = [s.strip() for s in args.scopes.split(",") if s.strip()]
+        bad = [s for s in wanted if s not in jobs]
+        if bad:
+            print("忽略未知板块:", bad)
+        scopes = [s for s in wanted if s in jobs]
+        if not scopes:
+            print("!! 指定板块全部无效，退回全量")
+            scopes = ["quanguo"] + [k for k in jobs if k != "quanguo"]
+    else:
+        scopes = ["quanguo"] + [k for k in jobs if k != "quanguo"]
+    scopes = list(dict.fromkeys(scopes))
 
     now = time.strftime("%Y-%m-%d %H:%M:%S")
     print("== 任务数:", len(scopes), "==")

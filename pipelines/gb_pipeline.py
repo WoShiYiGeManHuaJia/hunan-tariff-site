@@ -344,10 +344,20 @@ def main():
     ap.add_argument("--rebuild", action="store_true", help="重建基线：跳过对比与历史")
     args = ap.parse_args()
     prev_dir, out_dir = args.prev_dir, args.out_dir
-    scopes = args.scopes.split(",") if args.scopes else [k for k, _, _ in AREAS]
-    unknown = [s for s in scopes if s not in KEY2NAME]
-    if unknown:
-        print("未知板块:", unknown); sys.exit(1)
+    # 板块名填错时不再 sys.exit(1) 让整轮失败：忽略无效项、保留有效项，
+    # 全部无效则退回全量（与联通/移动行为一致）。
+    if args.scopes:
+        wanted = [s.strip() for s in args.scopes.split(",") if s.strip()]
+        bad = [s for s in wanted if s not in KEY2NAME]
+        if bad:
+            print("忽略未知板块:", bad)
+        scopes = [s for s in wanted if s in KEY2NAME]
+        if not scopes:
+            print("!! 指定板块全部无效，退回全量")
+            scopes = [k for k, _, _ in AREAS]
+    else:
+        scopes = [k for k, _, _ in AREAS]
+    scopes = list(dict.fromkeys(scopes))
 
     now = time.strftime("%Y-%m-%d %H:%M:%S")
     print("== 广电任务数: %d ==" % len(scopes))

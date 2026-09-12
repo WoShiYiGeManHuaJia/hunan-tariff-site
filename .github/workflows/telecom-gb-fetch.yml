@@ -7,6 +7,15 @@ on:
     - cron: "17 1,13 * * *"    # 北京 09:17 / 21:17
   workflow_dispatch:
     inputs:
+      mode:
+        description: "抓取模式（留空则跟随仓库变量 SCRAPE_MODE）"
+        type: choice
+        options: [focus, full, default]
+        default: default
+      focus_provs:
+        description: "重点省份（focus 模式生效，拼音逗号分隔，如 hunan,guangdong）"
+        type: string
+        default: ""
       rebuild:
         description: "重建基线（跳过对比，不写历史）"
         type: boolean
@@ -40,7 +49,28 @@ jobs:
             echo "[]" > telecom/data/history.json
             echo "[]" > gb/data/history.json
           fi
+          # ── 抓取模式 ──
+          # focus: 只抓 全网 + 重点两省
+          # full : 全部板块
+          # 手动选 default（或定时触发）时跟随仓库变量 SCRAPE_MODE / FOCUS_PROVS。
+          # 注：电信源站仅公开 quanguo 与 hunan 两个板块（其余省 h5 受瑞数 WAF
+          # 拦截、provCode 无公开口径），因此模式对电信无实际影响，它始终抓
+          # 这两个板块；模式只作用于广电。
+          MODE="${{ github.event.inputs.mode }}"
+          [ -z "$MODE" ] || [ "$MODE" = "default" ] && MODE="${{ vars.SCRAPE_MODE }}"
+          [ -n "$MODE" ] || MODE="full"
+          FOCUS="${{ github.event.inputs.focus_provs }}"
+          [ -n "$FOCUS" ] || FOCUS="${{ vars.FOCUS_PROVS }}"
+          [ -n "$FOCUS" ] || FOCUS="hunan,guangdong"
+          GB_SCOPE=""
+          if [ "$MODE" = "focus" ]; then
+            GB_SCOPE="--scopes quanguo,$FOCUS"
+            echo "模式: 重点（quanguo + $FOCUS）"
+          else
+            echo "模式: 全量（全部板块）"
+          fi
           echo "=== 开始 $(date -u +%FT%TZ) ===" > tg_run.log
+          echo "模式=$MODE 重点省=$FOCUS" >> tg_run.log
 
           set +e
           echo "--- 电信 ---" >> tg_run.log
@@ -51,7 +81,7 @@ jobs:
 
           echo "--- 广电 ---" >> tg_run.log
           PYTHONPATH=pipelines python3 -u pipelines/gb_pipeline.py \
-            --prev-dir gb/data --out-dir gb/data $FLAG >> tg_run.log 2>&1
+            --prev-dir gb/data --out-dir gb/data $GB_SCOPE $FLAG >> tg_run.log 2>&1
           EC_G=$?
           echo "广电 exit=$EC_G" >> tg_run.log
           set -e
