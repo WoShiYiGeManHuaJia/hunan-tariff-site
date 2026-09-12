@@ -22,7 +22,10 @@ def _load_dotenv():
     只在本文件所在目录及其上级查找 .env，且已存在的环境变量优先，
     不会被 .env 覆盖 —— 保证 Actions 的 Secrets 始终生效。
     """
-    here = os.path.dirname(os.path.abspath(__file__))
+    try:
+        here = os.path.dirname(os.path.abspath(__file__))
+    except NameError:          # 被 exec/内联执行时没有 __file__
+        here = os.getcwd()
     for base in (here, os.path.dirname(here), os.path.dirname(os.path.dirname(here))):
         fp = os.path.join(base, ".env")
         if os.path.isfile(fp):
@@ -164,23 +167,44 @@ def send_ding(title, text):
     return ok
 
 
+def send_notify(title, text):
+    """优先用多通道模块（钉钉/飞书/企业微信/邮件）；不可用时退回纯钉钉。"""
+    try:
+        import notify
+        print("使用多通道推送模块 notify.py")
+        return notify.send_all(title, text)
+    except ImportError:
+        print("未找到 notify.py，退回仅钉钉推送")
+        ok = send_ding(title, text)
+        return [("钉钉", bool(ok), "")]
+
+
 def main():
     # 测试模式：验证 webhook/加签是否配对正确，不读数据
     if TEST_MODE:
-        if not WEBHOOK:
-            print("❌ 未配置 DINGTALK_WEBHOOK（.env 或仓库 Secrets）")
+        # 多通道时可能只配了飞书/企微/邮件而没配钉钉，交给 notify 统一判断
+        try:
+            import notify
+            any_cfg = any(notify._env(k) for _, k, _ in notify.CHANNELS)
+        except Exception:
+            any_cfg = bool(WEBHOOK)
+        if not any_cfg:
+            print("❌ 一个通道都没配置。请在仓库 Secrets 或 .env 里至少填一个"
+                  "（DINGTALK_WEBHOOK / FEISHU_WEBHOOK / WECOM_WEBHOOK / SMTP_*）。")
             return
-        ok = send_ding(
-            "✅ 钉钉机器人配置成功",
+        res = send_notify(
+            "✅ 推送通道配置成功",
             "## ✅ 配置成功\n\n"
-            "你的钉钉机器人已成功接入「运营商资费监控」。\n\n"
+            "你的通知通道已成功接入「运营商资费监控」。\n\n"
             "**当前配置**\n\n"
-            "- 加签密钥：%s\n"
             "- 关注省份：`%s`\n"
             "- 站点链接：%s\n\n"
-            "下次资费变化将自动推送到本群。"
-            % ("已配置（SEC…）" if SECRET else "未配置（未开启加签）", FOCUS_SEC, SITE_URL or "未配置"))
-        print("测试结果:", "成功，请查看钉钉群" if ok else "失败，请检查 webhook 与加签密钥")
+            "下次资费变化将自动推送到这里。"
+            % (FOCUS_SEC, SITE_URL or "未配置"))
+        okc = [n for n, ok, _ in (res or []) if ok]
+        print("测试完成：成功 %d / 已配置 %d%s"
+              % (len(okc), len(res or []),
+                 ("（%s）" % "、".join(okc)) if okc else ""))
         return
 
     now = datetime.now(CST)
@@ -230,7 +254,7 @@ def main():
     text = "\n".join(lines)
     print(text)
     title = "资费汇总 新增%d 下架%d 修改%d" % tuple(grand)
-    send_ding(title, text)
+    send_notify(title, text)
 
 
 if __name__ == "__main__":

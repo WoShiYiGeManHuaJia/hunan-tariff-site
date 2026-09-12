@@ -25,18 +25,25 @@
 
 ---
 
-## 📮 接入你自己的钉钉机器人
+## 📮 接入你自己的通知通道
 
-fork 本项目后，填入**你自己的**钉钉机器人，资费变化就能推送到**你的**钉钉群。
+fork 本项目后，填入**你自己的**凭据，资费变化就能推送到**你的**
+**钉钉 / 飞书 / 企业微信 / 邮箱**。四个通道任意组合，配几个推几个。
 
-**完整教程见 → [DINGTALK_SETUP.md](DINGTALK_SETUP.md)**
+**完整教程见 → [NOTIFY_SETUP.md](NOTIFY_SETUP.md)**
+
+| 通道 | 要填的 Secrets |
+|---|---|
+| 🔵 钉钉 | `DINGTALK_WEBHOOK` + `DINGTALK_SECRET` |
+| 🟦 飞书 | `FEISHU_WEBHOOK` + `FEISHU_SECRET` |
+| 🟩 企业微信 | `WECOM_WEBHOOK` |
+| 📧 邮件 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `MAIL_TO` |
 
 三步速览：
 
-1. 钉钉群里添加「自定义机器人」，拿到 **Webhook 地址**和**加签密钥**（建议勾选加签）
-2. 进你的仓库 **Settings → Secrets and variables → Actions**，添加
-   `DINGTALK_WEBHOOK` 和 `DINGTALK_SECRET`
-3. Actions 里手动运行 **Tariff Summary to DingTalk**，约 14 秒后钉钉群收到汇总
+1. 在对应群里添加机器人，拿到 Webhook 地址（邮件则用邮箱授权码）
+2. 仓库 **Settings → Secrets and variables → Actions** 添加上表变量
+3. Actions 运行 **Tariff Notify**，约 14 秒后收到；或本地 `python3 scripts/notify.py --test`
 
 推送示例：
 
@@ -53,8 +60,8 @@ fork 本项目后，填入**你自己的**钉钉机器人，资费变化就能�
 🔗 查看完整资费站
 ```
 
-> 🔒 你填的密钥只存在你自己的仓库里，加密存储且**只写不读**，作者与其他人都无法查看。
-> 抓取脚本中**不包含任何凭据**（已扫描确认），全部通过环境变量注入。
+> 🔒 密钥只存在你自己的仓库里，加密存储且**只写不读**，作者与他人均无法查看。
+> 抓取与推送脚本**不含任何硬编码凭据**，全部通过环境变量注入。
 
 ## 自动化说明
 
@@ -65,6 +72,6 @@ fork 本项目后，填入**你自己的**钉钉机器人，资费变化就能�
 | `mobile-build.yml` | 08:47 / 20:47 | 移动抓取 + 站点构建 |
 | `telecom-gb-fetch.yml` | 09:17 / 21:17 | 电信 + 广电抓取 |
 | `unicom-fetch.yml` | 09:37 / 21:37 | 联通抓取（32 板块） |
-| `dingtalk-summary.yml` | 10:00 / 20:00 | 钉钉汇总推送 |
+| `dingtalk-summary.yml` | 10:00 / 20:00 | 汇总推送（钉钉/飞书/企微/邮件） |
 
 fork 后如需停掉自动抓取，删除对应 workflow 文件即可。
