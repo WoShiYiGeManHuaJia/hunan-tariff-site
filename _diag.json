@@ -1,0 +1,165 @@
+{
+  "ts": "2026-09-12 16:05:29",
+  "sections": {
+    "quanguo": {
+      "n": 1541,
+      "err": "",
+      "reason": "baseline"
+    },
+    "beijing": {
+      "n": 1305,
+      "err": "",
+      "reason": "baseline"
+    },
+    "tianjin": {
+      "n": 647,
+      "err": "",
+      "reason": "baseline"
+    },
+    "hebei": {
+      "n": 2215,
+      "err": "",
+      "reason": "baseline"
+    },
+    "shanxi": {
+      "n": 1310,
+      "err": "",
+      "reason": "baseline"
+    },
+    "neimenggu": {
+      "n": 965,
+      "err": "",
+      "reason": "baseline"
+    },
+    "liaoning": {
+      "n": 952,
+      "err": "",
+      "reason": "baseline"
+    },
+    "jilin": {
+      "n": 923,
+      "err": "",
+      "reason": "baseline"
+    },
+    "heilongjiang": {
+      "n": 465,
+      "err": "",
+      "reason": "baseline"
+    },
+    "shanghai": {
+      "n": 1035,
+      "err": "",
+      "reason": "baseline"
+    },
+    "jiangsu": {
+      "n": 1700,
+      "err": "",
+      "reason": "baseline"
+    },
+    "zhejiang": {
+      "n": 1342,
+      "err": "",
+      "reason": "baseline"
+    },
+    "anhui": {
+      "n": 1102,
+      "err": "",
+      "reason": "baseline"
+    },
+    "fujian": {
+      "n": 1889,
+      "err": "",
+      "reason": "baseline"
+    },
+    "jiangxi": {
+      "n": 2825,
+      "err": "",
+      "reason": "baseline"
+    },
+    "shandong": {
+      "n": 1798,
+      "err": "",
+      "reason": "baseline"
+    },
+    "henan": {
+      "n": 2403,
+      "err": "",
+      "reason": "baseline"
+    },
+    "hubei": {
+      "n": 1268,
+      "err": "",
+      "reason": "baseline"
+    },
+    "hunan": {
+      "n": 1562,
+      "err": "",
+      "reason": "baseline"
+    },
+    "guangdong": {
+      "n": 3931,
+      "err": "",
+      "reason": "baseline"
+    },
+    "guangxi": {
+      "n": 1295,
+      "err": "",
+      "reason": "baseline"
+    },
+    "hainan": {
+      "n": 920,
+      "err": "",
+      "reason": "baseline"
+    },
+    "chongqing": {
+      "n": 1619,
+      "err": "",
+      "reason": "baseline"
+    },
+    "sichuan": {
+      "n": 1818,
+      "err": "",
+      "reason": "baseline"
+    },
+    "guizhou": {
+      "n": 684,
+      "err": "",
+      "reason": "baseline"
+    },
+    "yunnan": {
+      "n": 1733,
+      "err": "",
+      "reason": "baseline"
+    },
+    "xizang": {
+      "n": 648,
+      "err": "",
+      "reason": "baseline"
+    },
+    "shaanxi": {
+      "n": 800,
+      "err": "",
+      "reason": "baseline"
+    },
+    "gansu": {
+      "n": 1318,
+      "err": "",
+      "reason": "baseline"
+    },
+    "qinghai": {
+      "n": 383,
+      "err": "",
+      "reason": "baseline"
+    },
+    "ningxia": {
+      "n": 1238,
+      "err": "",
+      "reason": "baseline"
+    },
+    "xinjiang": {
+      "n": 1151,
+      "err": "",
+      "reason": "baseline"
+    }
+  }
+}

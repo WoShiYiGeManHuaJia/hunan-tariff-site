@@ -1,16 +1,98 @@
 {
   "hunan": {
-    "rounds": 3,
-    "last_new": 97,
-    "last_old": 1588,
-    "updated": "2026-09-12 22:39:07",
-    "note": "人为预置：已连续多轮降级"
+    "rounds": 0
   },
   "henan": {
-    "rounds": 3,
-    "last_new": 0,
-    "last_old": 3885,
-    "updated": "2026-09-12 22:39:07",
-    "note": "人为预置：已连续多轮降级"
+    "rounds": 0
+  },
+  "quanguo": {
+    "rounds": 0
+  },
+  "anhui": {
+    "rounds": 0
+  },
+  "beijing": {
+    "rounds": 0
+  },
+  "chongqing": {
+    "rounds": 0
+  },
+  "fujian": {
+    "rounds": 0
+  },
+  "gansu": {
+    "rounds": 0
+  },
+  "guangdong": {
+    "rounds": 0
+  },
+  "guangxi": {
+    "rounds": 0
+  },
+  "guizhou": {
+    "rounds": 0
+  },
+  "hainan": {
+    "rounds": 0
+  },
+  "hebei": {
+    "rounds": 0
+  },
+  "heilongjiang": {
+    "rounds": 0
+  },
+  "hubei": {
+    "rounds": 0
+  },
+  "jiangsu": {
+    "rounds": 0
+  },
+  "jiangxi": {
+    "rounds": 0
+  },
+  "jilin": {
+    "rounds": 0
+  },
+  "liaoning": {
+    "rounds": 0
+  },
+  "neimenggu": {
+    "rounds": 0
+  },
+  "ningxia": {
+    "rounds": 0
+  },
+  "qinghai": {
+    "rounds": 0
+  },
+  "shaanxi": {
+    "rounds": 0
+  },
+  "shandong": {
+    "rounds": 0
+  },
+  "shanghai": {
+    "rounds": 0
+  },
+  "shanxi": {
+    "rounds": 0
+  },
+  "sichuan": {
+    "rounds": 0
+  },
+  "tianjin": {
+    "rounds": 0
+  },
+  "xinjiang": {
+    "rounds": 0
+  },
+  "xizang": {
+    "rounds": 0
+  },
+  "yunnan": {
+    "rounds": 0
+  },
+  "zhejiang": {
+    "rounds": 0
   }
 }
