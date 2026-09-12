@@ -56,6 +56,9 @@ SITE_ROOT = os.getenv("SITE_ROOT") or "."
 # 注意：os.getenv 的默认值只在「变量未设置」时生效；workflow 里通过
 # ${{ vars.FOCUS_SEC }} 传入空串时，默认值不会生效，需显式回退。
 FOCUS_SEC = (os.getenv("FOCUS_SEC", "").strip().lower() or "hunan")
+# 支持多个关注省份（逗号分隔，如 hunan,guangdong,zhejiang）。
+# 旧配置只填一个时行为不变；填多个则消息里逐个列出明细。
+FOCUS_LIST = [x.strip() for x in FOCUS_SEC.split(",") if x.strip()] or ["hunan"]
 # 结尾附带的资费站访问链接
 # 同样注意：workflow 用 ${{ vars.SITE_URL }} 传入，未配置时是空串，
 # os.getenv 默认值不生效，必须显式回退，否则结尾链接整体消失。
@@ -232,17 +235,19 @@ def main():
         any_change = True
         lines.append("- %s **%s**：新增 %d、下架 %d、修改 %d" % (icon, name, a, r, m))
         # 只列关注的省份（默认湖南），同一省份多条记录合并
-        focus = [x for x in secs if x[5] == FOCUS_SEC]
-        fname = sec_cn(FOCUS_SEC)
-        if focus:
-            fa = sum(x[1] for x in focus)
-            fr = sum(x[2] for x in focus)
-            fm = sum(x[3] for x in focus)
-            notes = [x[4] for x in focus if x[4]]
-            if notes:
-                lines.append("  - %s：%s" % (fname, notes[-1][:60]))
-            else:
-                lines.append("  - %s：新增%d 下架%d 修改%d" % (fname, fa, fr, fm))
+        # 关注省份可配多个（FOCUS_SEC 逗号分隔），逐个输出明细
+        for _fs in FOCUS_LIST:
+            focus = [x for x in secs if x[5] == _fs]
+            fname = sec_cn(_fs)
+            if focus:
+                fa = sum(x[1] for x in focus)
+                fr = sum(x[2] for x in focus)
+                fm = sum(x[3] for x in focus)
+                notes = [x[4] for x in focus if x[4]]
+                if notes:
+                    lines.append("  - %s：%s" % (fname, notes[-1][:60]))
+                else:
+                    lines.append("  - %s：新增%d 下架%d 修改%d" % (fname, fa, fr, fm))
         # 关注省份无变化时不输出（避免空占位行刷屏）
 
     lines.append("")

@@ -171,16 +171,16 @@ code{
     <div class="sect">🎯 重点省份（抓取范围）</div>
     <div class="chcard" style="padding:12px">
       <div class="tiny" style="line-height:1.85;margin-bottom:10px">
-        选 <b>3 个省</b>，四家运营商（移动 / 联通 / 电信 / 广电）<b>通用</b>，
-        每家都会自动附带「<b>全国</b>」——即每家抓 4 个板块。<br>
-        只想看全国？一个都不选即可。
+        点选你想盯的省份，<b>数量不限</b>。四家运营商（移动 / 联通 / 电信 / 广电）<b>通用</b>。<br>
+        「<b>全国</b>」板块<b>默认始终抓取</b>；点最前面的「全国」＝<b>一键选中全部省份</b>。
       </div>
       <div class="fld">
-        <label>点选省份（最多 3 个，已选 <span id="fpCount">0</span>/3）</label>
+        <label>点选省份（已选 <span id="fpCount">0</span> 个）</label>
         <div id="fpPick" class="hrow" style="gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+        <button id="fpMore" class="pill" style="border-style:dashed">展开全部省份 ▼</button>
       </div>
       <div class="fld">
-        <label>已选（全国 + 下列省份）</label>
+        <label>抓取范围（全国 + 下列省份）</label>
         <div class="hrow" style="gap:6px;flex-wrap:wrap;align-items:center">
           <span class="pill on" style="cursor:default">全国</span>
           <span id="fpSel" class="sub"></span>
@@ -190,18 +190,6 @@ code{
         <label>推送模式</label>
         <div id="nMode" class="hrow" style="gap:6px;flex-wrap:wrap;margin-top:4px"></div>
         <div class="tiny" id="nModeTip" style="margin-top:8px;line-height:1.8"></div>
-      </div>
-      <div class="fld" style="margin-top:12px">
-        <label>GitHub 令牌（仅存本设备，用于点「手动推送」时触发抓取）</label>
-        <input id="ghToken" class="inp" type="password" placeholder="ghp_xxx（需要 repo + workflow 权限）" autocomplete="off">
-      </div>
-      <div class="hrow" style="margin-top:10px;gap:8px;flex-wrap:wrap">
-        <button id="btnPushNow" class="btn pri">🚀 手动推送（只跑重点省份）</button>
-        <button id="btnSaveVars" class="btn">保存到 GitHub 变量</button>
-        <span class="status" id="fpStat" style="flex:1;min-width:140px"></span>
-      </div>
-      <div class="tiny" style="margin-top:8px;line-height:1.8">
-        「手动推送」= 立刻抓取 <b>全国 + 上面选的 3 个省</b>，跑完直接推送到已启用的渠道。
       </div>
     </div>
   </div>
@@ -227,12 +215,11 @@ code{
   <div class="sec">
     <div class="sect">推送内容</div>
     <div class="chcard" style="padding:12px">
-      <div class="fld"><label>关注省份（消息里单列这一个省的明细，其余不展示）</label>
-        <div class="hrow" style="margin-bottom:6px;gap:8px">
-          <input id="focusName" class="inp" style="flex:1;min-width:120px" list="provList" placeholder="点右边选，或直接打省份名" autocomplete="off">
-          <datalist id="provList"></datalist>
+      <div class="fld"><label>关注省份（消息里逐个列出这些省的明细）</label>
+        <div class="hrow" style="gap:6px;flex-wrap:wrap;align-items:center">
+          <span id="fp" class="hrow" style="gap:6px;flex-wrap:wrap"></span>
+          <span class="tiny" style="color:var(--text-secondary)">跟随上方「重点省份」，在上面改即可</span>
         </div>
-        <div id="fp" class="hrow" style="gap:6px;flex-wrap:wrap"></div>
       </div>
       <div class="grid2">
         <div class="fld"><label>统计时长（小时）</label><input id="sinceHours" class="inp" type="number" min="1" max="168" value="24"></div>
@@ -359,7 +346,7 @@ const PROV=[['全国','quanguo'],['北京','beijing'],['天津','tianjin'],['河
 const DEF={dingtalk:{enabled:false,webhook:'',secret:'',keyword:''},feishu:{enabled:false,webhook:'',secret:''},wecom:{enabled:false,webhook:''},
  email:{enabled:false,host:'',port:'465',user:'',pass:'',to:''},
  push:{focus:'hunan',siteUrl:'https://woshiyigemanhuajia.github.io/hunan-tariff-site/',since:'24',fmt:'detail',skipEmpty:true,mode:'local',
-  focusProvs:['hunan','guangdong','zhejiang'],notifyMode:'focus_auto',ghToken:''}};
+  focusProvs:['hunan','guangdong','zhejiang'],notifyMode:'focus_auto'}};
 let cfg=JSON.parse(JSON.stringify(DEF));
 function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);CH.forEach(function(c){if(d[c.id])Object.assign(cfg[c.id],d[c.id])});if(d.push)Object.assign(cfg.push,d.push)}}catch(e){storageOK=false}}
 let saveTimer=null;
@@ -471,7 +458,7 @@ function secretsList(){
  if(cfg.feishu.enabled){L.push(['FEISHU_WEBHOOK',cfg.feishu.webhook]);if(cfg.feishu.secret)L.push(['FEISHU_SECRET',cfg.feishu.secret])}
  if(cfg.wecom.enabled){L.push(['WECOM_WEBHOOK',cfg.wecom.webhook])}
  if(cfg.email.enabled){[['SMTP_HOST',cfg.email.host],['SMTP_PORT',cfg.email.port],['SMTP_USER',cfg.email.user],['SMTP_PASS',cfg.email.pass],['MAIL_TO',cfg.email.to]].forEach(function(x){L.push(x)})}
- L.push(['FOCUS_SEC',p.focus||'hunan']);L.push(['SINCE_HOURS',p.since||'24']);
+ L.push(['FOCUS_SEC',(fpList().length?fpList().join(','):(p.focus||'hunan'))]);L.push(['SINCE_HOURS',p.since||'24']);
  if(p.siteUrl)L.push(['SITE_URL',p.siteUrl]);
  return L;
 }
@@ -562,7 +549,7 @@ function envPairs(){
  if(cfg.feishu.enabled){if(cfg.feishu.webhook)L.push(['FEISHU_WEBHOOK',cfg.feishu.webhook]);if(cfg.feishu.secret)L.push(['FEISHU_SECRET',cfg.feishu.secret])}
  if(cfg.wecom.enabled&&cfg.wecom.webhook){L.push(['WECOM_WEBHOOK',cfg.wecom.webhook])}
  if(cfg.email.enabled){['host','port','user','pass','to'].forEach(function(k){const m={host:'SMTP_HOST',port:'SMTP_PORT',user:'SMTP_USER',pass:'SMTP_PASS',to:'MAIL_TO'};if(cfg.email[k])L.push([m[k],cfg.email[k]])})}
- L.push(['FOCUS_SEC',p.focus||'hunan']);L.push(['SINCE_HOURS',p.since||'24']);
+ L.push(['FOCUS_SEC',(fpList().length?fpList().join(','):(p.focus||'hunan'))]);L.push(['SINCE_HOURS',p.since||'24']);
  L.push(['SITE_URL',(p.siteUrl||'https://woshiyigemanhuajia.github.io/hunan-tariff-site/').trim()]);
  return L;
 }
@@ -594,7 +581,7 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-cron]'),function(b
   refreshCmds();toast('已选：'+b.textContent,'ok');
  });
 });
-function syncRules(){$('focusName').value=provName(cfg.push.focus||'hunan');$('siteUrl').value=cfg.push.siteUrl||'';$('sinceHours').value=cfg.push.since||'24';$('pushFmt').value=cfg.push.fmt;$('pushSkipEmpty').checked=!!cfg.push.skipEmpty}
+function syncRules(){$('siteUrl').value=cfg.push.siteUrl||'';$('sinceHours').value=cfg.push.since||'24';$('pushFmt').value=cfg.push.fmt;$('pushSkipEmpty').checked=!!cfg.push.skipEmpty}
 load();
 renderChannels();bindChannels();syncRules();renderPrev();
 setMode(cfg.push.mode||'local');
@@ -604,75 +591,71 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-mode]'),function(b
  b.addEventListener('click',function(){setMode(b.dataset.mode)});
 });
 $('saveState').textContent=storageOK?'✓ 已加载本地配置':'暂存内存（无法写入本地）';
-const fp=$('fp');
-const dlst=$('provList');
-PROV.forEach(function(x){const o=document.createElement('option');o.value=x[0];dlst.appendChild(o)});
-/* 常用省份默认展示，其余折叠（避免一下铺开 32 个） */
-const COMMON=['quanguo','hunan','guangdong','beijing','shanghai','zhejiang','jiangsu','sichuan'];
-let provExpanded=false;
-function renderProv(){
- fp.innerHTML='';
- PROV.forEach(function(x){
-  const code=x[1];
-  if(!provExpanded && COMMON.indexOf(code)<0 && code!==cfg.push.focus)return;
-  const b=document.createElement('button');
-  b.className='pill'+(code===cfg.push.focus?' on':'');
-  b.textContent=x[0];b.dataset.p=code;
-  b.onclick=function(){setProv(code)};
-  fp.appendChild(b);
- });
- const t=document.createElement('button');
- t.className='pill';t.style.borderStyle='dashed';
- t.textContent=provExpanded?('收起 ▲'):('展开全部 '+PROV.length+' 个 ▼');
- t.onclick=function(){provExpanded=!provExpanded;renderProv()};
- fp.appendChild(t);
-}
-function setProv(code){
- cfg.push.focus=code;$('focusName').value=provName(code);save();renderPrev();refreshCmds();refreshQuick();renderProv();
-}
-renderProv();
-
-$('focusName').addEventListener('input',function(){
- const v=this.value.trim();
- const hit=PROV.filter(function(x){return x[0]===v})[0];
- if(hit){setProv(hit[1])}
-});
 $('siteUrl').addEventListener('input',function(){cfg.push.siteUrl=this.value;save();renderPrev()});
 
 /* ===== 重点省份（抓取范围）=====
-   选 3 个省，四家通用；每家自动附带「全国」。
-   PROV[0] 是全国，不参与点选。 */
-const MAXFP=3;
+   数量不限，四家通用。
+   「全国」：默认始终抓取的板块；面板最前的「全国」按钮＝一键全选所有省份。 */
 const NMODES=[
- {k:'full_auto',   t:'(a) 定时全量推送',      tip:'每天 10:00 / 20:00 自动推送，抓取范围为<b>全部省份</b>。联通全量约 70 分钟，需要抓取提前（或把推送时间后移）。'},
- {k:'focus_auto',  t:'(b) 定时重点省份推送',  tip:'每天 10:00 / 20:00 自动推送，抓取<b>只跑重点省份</b>（约 7 分钟）。适合日常盯盘。'},
- {k:'focus_manual',t:'(c) 我手动点才推',      tip:'不自动推送。你想看时点上面的「<b>手动推送</b>」，立刻只跑重点省份并推送。'}
+ {k:'full_auto',  t:'(a) 全量定时推送',     tip:'每天 10:00 / 20:00 自动推送，抓取范围为<b>全部省份</b>。联通全量约 70 分钟，因此推送时间需排在抓取之后。'},
+ {k:'focus_auto', t:'(b) 重点省份定时推送', tip:'每天 10:00 / 20:00 自动推送，抓取<b>只跑你选的省份 + 全国</b>（约 7 分钟）。适合日常盯盘。'}
 ];
+/* 折叠：默认只展示常用省份，点「展开全部省份」再看其余 */
+const FP_COMMON=['quanguo','hunan','guangdong','beijing','shanghai','zhejiang','jiangsu','sichuan'];
+let fpExpanded=false;
 function fpList(){return (cfg.push.focusProvs||[]).filter(function(c){return c&&c!=='quanguo'})}
 function fpNames(){return fpList().map(provName)}
-function renderFpPick(){
+function fpAllCodes(){return PROV.filter(function(x){return x[1]!=='quanguo'}).map(function(x){return x[1]})}
+function fpRender(){
  const box=$('fpPick');box.innerHTML='';
+ /* 第一个：全国 = 全选 / 取消全选 */
+ const all=fpAllCodes();
+ const isAll=all.every(function(c){return fpList().indexOf(c)>=0});
+ const bAll=document.createElement('button');
+ bAll.className='pill'+(isAll?' on':'');
+ bAll.style.borderStyle='solid';
+ bAll.textContent=isAll?'全国 ✓（已全选）':'全国（全选）';
+ bAll.onclick=function(){
+  cfg.push.focusProvs=isAll?[]:all.slice();
+  save();fpRender();
+ };
+ box.appendChild(bAll);
+ /* 其余省份（折叠） */
  PROV.forEach(function(x){
-  if(x[1]==='quanguo')return;               // 全国固定附带，不参与选择
+  if(x[1]==='quanguo')return;
+  if(!fpExpanded && FP_COMMON.indexOf(x[1])<0 && fpList().indexOf(x[1])<0)return;
   const b=document.createElement('button');
   b.className='pill'+(fpList().indexOf(x[1])>=0?' on':'');
   b.textContent=x[0];b.dataset.fp=x[1];
-  b.onclick=function(){toggleFp(x[1])};
+  b.onclick=function(){
+   const L=fpList();const i=L.indexOf(x[1]);
+   if(i>=0){L.splice(i,1)}else{L.push(x[1])}
+   cfg.push.focusProvs=L;save();fpRender();
+  };
   box.appendChild(b);
  });
  const n=fpList().length;
  $('fpCount').textContent=n;
- $('fpSel').textContent=fpNames().length?fpNames().join('、'):'（未选，只抓全国）';
-}
-function toggleFp(code){
- const L=fpList();
- const i=L.indexOf(code);
- if(i>=0){L.splice(i,1)}
- else{
-  if(L.length>=MAXFP){toast('最多选 '+MAXFP+' 个省，请先取消一个','warn');return}
-  L.push(code);
+ $('fpSel').textContent=n?fpNames().join('、'):'（未选，只抓全国）';
+ /* 展开/收起按钮文案 */
+ const more=$('fpMore');
+ more.textContent=fpExpanded?('收起 ▲'):('展开全部省份 ▼（共 '+all.length+' 个）');
+ more.onclick=function(){fpExpanded=!fpExpanded;fpRender()};
+ /* 同步「推送内容 → 关注省份」镜像 */
+ const mir=$('fp');if(mir){
+  mir.innerHTML='';
+  if(!n){const t=document.createElement('span');t.className='tiny';t.textContent='（未选，消息只报全国与总数）';mir.appendChild(t)}
+  else{
+   fpList().forEach(function(c){
+    const t=document.createElement('span');t.className='pill on';t.style.cursor='default';
+    t.textContent=provName(c);mir.appendChild(t);
+   });
+  }
  }
- cfg.push.focusProvs=L;save();renderFpPick();
+ /* 预览与导出命令跟随刷新 */
+ try{renderPrev()}catch(e){}
+ try{refreshCmds()}catch(e){}
+ try{refreshQuick()}catch(e){}
 }
 function renderNMode(){
  const box=$('nMode');box.innerHTML='';
@@ -686,49 +669,13 @@ function renderNMode(){
  const cur=NMODES.filter(function(m){return m.k===cfg.push.notifyMode})[0];
  $('nModeTip').innerHTML=cur?cur.tip:'';
 }
-function fpStat(cls,msg){const el=$('fpStat');el.style.color=cls==='ok'?'var(--success)':cls==='err'?'var(--destructive)':cls==='warn'?'var(--warning)':'var(--text-secondary)';el.textContent=msg}
-async function ghApi(path,method,body){
- const tk=($('ghToken').value||'').trim();
- if(!tk){fpStat('err','请先填 GitHub 令牌');return null}
- try{
-  const r=await fetch('https://api.github.com/repos/WoShiYiGeManHuaJia/hunan-tariff-site'+path,{
-   method:method||'GET',
-   headers:{'Authorization':'token '+tk,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
-   body:body?JSON.stringify(body):undefined});
-  if(r.status===204)return {ok:true};
-  const j=await r.json().catch(function(){return {}});
-  if(!r.ok){fpStat('err','失败 '+r.status+(j.message?('：'+j.message):''));return null}
-  return j;
- }catch(e){fpStat('err','网络失败（浏览器跨域或令牌无效）');return null}
-}
-$('btnPushNow').addEventListener('click',async function(){
- const provs=fpList();
- if(!provs.length){fpStat('warn','未选省份 → 只抓全国')}
- fpStat('','正在触发…');
- const j=await ghApi('/actions/workflows/dingtalk-summary.yml/dispatches','POST',{
-  ref:'main',
-  inputs:{action:'手动推送(重点省)',focus_provs:provs.join(','),hours:cfg.push.since||'24'}
- });
- if(j){fpStat('ok','已触发：全国 + '+(fpNames().join('、')||'（无）')+'，约 20 分钟后推送到群')}
-});
-$('btnSaveVars').addEventListener('click',async function(){
- const provs=fpList().join(',')||'hunan,guangdong,zhejiang';
- const mode=cfg.push.notifyMode||'focus_auto';
- fpStat('','正在保存…');
- let ok=true;
- for(const pair of [['FOCUS_PROVS',provs],['NOTIFY_MODE',mode],['SCRAPE_MODE',mode==='full_auto'?'full':'focus']]){
-  let j=await ghApi('/actions/variables','POST',{name:pair[0],value:pair[1]});
-  if(!j){j=await ghApi('/actions/variables/'+pair[0],'PATCH',{name:pair[0],value:pair[1]})}
-  if(!j){ok=false;break}
- }
- if(ok){fpStat('ok','已保存 FOCUS_PROVS / NOTIFY_MODE / SCRAPE_MODE')}
-});
-$('ghToken').addEventListener('input',function(){cfg.push.ghToken=this.value;save()});
 function syncFp(){
- $('ghToken').value=cfg.push.ghToken||'';
+ if(cfg.push.notifyMode==='focus_manual')cfg.push.notifyMode='focus_auto';  /* (c) 已移除 */
  if(!cfg.push.notifyMode)cfg.push.notifyMode='focus_auto';
  if(!Array.isArray(cfg.push.focusProvs))cfg.push.focusProvs=['hunan','guangdong','zhejiang'];
- renderFpPick();renderNMode();
+ /* 兼容旧版单省份配置 */
+ if((!cfg.push.focusProvs.length)&&cfg.push.focus)cfg.push.focusProvs=[cfg.push.focus];
+ fpRender();renderNMode();
 }
 syncFp();
 $('sinceHours').addEventListener('input',function(){cfg.push.since=this.value;save();renderPrev()});
