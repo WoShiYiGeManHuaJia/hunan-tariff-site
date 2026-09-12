@@ -49,15 +49,15 @@ def filter_test_items(items: list, verbose: bool = True) -> list:
 # 单条 entry 最多保留多少条变化名称/详情明细。
 # 一次接口大变动可能产生数百个变更，全量塞进 history 会让文件膨胀到几十 MB
 # （联通 history.json 曾达 42MB，前端需一次性全量下载）。
-HIST_DETAIL_LIMIT = int(__import__("os").getenv("HIST_DETAIL_LIMIT", "20"))
-HIST_NAME_LIMIT = int(__import__("os").getenv("HIST_NAME_LIMIT", "30"))
+HIST_DETAIL_LIMIT = int(__import__("os").getenv("HIST_DETAIL_LIMIT") or "20")
+HIST_NAME_LIMIT = int(__import__("os").getenv("HIST_NAME_LIMIT") or "30")
 # *_list 是联通/广电保存的「精简详情对象数组」，每个元素含 serviceContent 等长文本。
 # 一个板块曾存到 1164 个元素（约 0.4MB），是 history 膨胀的真正元凶
 # —— 首版只限制了 _names/_details，漏掉 _list 导致压缩几乎无效（42MB→26MB）。
-HIST_LIST_LIMIT = int(__import__("os").getenv("HIST_LIST_LIMIT", "12"))
+HIST_LIST_LIMIT = int(__import__("os").getenv("HIST_LIST_LIMIT") or "12")
 
 
-_DETAIL_TEXT_LIMIT = int(__import__("os").getenv("HIST_DETAIL_TEXT_LIMIT", "200"))
+_DETAIL_TEXT_LIMIT = int(__import__("os").getenv("HIST_DETAIL_TEXT_LIMIT") or "200")
 
 
 def _clip_detail(o):
@@ -210,8 +210,10 @@ def modified_details_for(pmap, mods, limit=60):
 # 判据：单板块 (新增+下架) / 基线总量 超过阈值 → 认定是采样抖动而非真实变动。
 import os as _os
 
-NOISE_RATIO = float(_os.getenv("NOISE_RATIO", "0.3"))       # 变化率阈值 30%
-NOISE_MIN_ABS = int(_os.getenv("NOISE_MIN_ABS", "50"))      # 绝对条数门槛（小额变化不误伤）
+# 用 `or` 而非 getenv 默认值：前者对「变量被设为空串」同样生效
+# （workflow 里 ${{ vars.X }} 未配置时展开为空串，会把默认值顶掉）
+NOISE_RATIO = float(_os.getenv("NOISE_RATIO") or "0.3")     # 变化率阈值 30%
+NOISE_MIN_ABS = int(__import__("os").getenv("NOISE_MIN_ABS") or "50")    # 绝对条数门槛（小额变化不误伤）
 
 
 def is_sampling_noise(sec_result, base_total):
@@ -228,6 +230,22 @@ def is_sampling_noise(sec_result, base_total):
     if not base_total or base_total <= 0:
         return False
     return (chg / float(base_total)) > NOISE_RATIO
+
+
+def has_real_change(sec_result):
+    """该板块是否有值得写入 history 的实质变化。
+
+    add/rm/mod 全为 0 且无 note 时返回 False —— 这类「无变化」记录
+    会在变化历史里堆满空行，用户看不到任何信息却要逐条翻。
+    带 note / shifted 的保留：note 解释了「本轮为何没计数」，
+    本身具有诊断价值。
+    """
+    if not isinstance(sec_result, dict):
+        return False
+    if sec_result.get("note") or sec_result.get("shifted"):
+        return True
+    return bool(sec_result.get("added") or sec_result.get("removed")
+                or sec_result.get("modified"))
 
 
 def mark_noise(sec_result, base_total):

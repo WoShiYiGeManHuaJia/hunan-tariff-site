@@ -2,9 +2,8 @@ name: Unicom Fetch
 # 公开仓 Actions 免费不限量（私有仓额度已耗尽）
 
 on:
-  # [已暂停 重构期间] schedule:
-  # - cron: "37 1,13 * * *"    # 北京 09:37 / 21:37
-  # 恢复方法：去掉上面几行的 # 号
+  schedule:
+    - cron: "37 1,13 * * *"    # 北京 09:37 / 21:37
   workflow_dispatch:
     inputs:
       rebuild:
@@ -67,9 +66,19 @@ jobs:
           # 硬对齐远端，彻底消除 push 冲突
           git fetch origin main || true
           git reset --hard FETCH_HEAD || true
-          # 恢复本次产物
+          # ── 原子恢复产物 ──
+          # 此前是 rm -rf unicom 后再 cp，且 cp 带 || true：
+          # 一旦 cp 失败（磁盘满 / /tmp 被清理 / 权限），目录已被删除，
+          # git add -A 会把「整个数据目录消失」当成正常变更提交上去。
+          # 改为先复制到 .new、校验存在、再 mv 原子替换；缺失即中止。
+          if [ ! -d /tmp/art/unicom ]; then
+            echo "::error::产物目录缺失（/tmp/art/unicom），中止提交以避免误删线上数据"
+            exit 1
+          fi
+          rm -rf unicom.new
+          cp -a /tmp/art/unicom ./unicom.new || { echo "::error::产物复制失败，中止"; exit 1; }
           rm -rf unicom
-          cp -a /tmp/art/unicom ./unicom 2>/dev/null || true
+          mv unicom.new unicom || { echo "::error::产物替换失败，中止"; exit 1; }
           cp -f /tmp/art/fetch_run.log ./fetch_run.log 2>/dev/null || true
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -84,7 +93,7 @@ jobs:
               echo "[warn] push 失败，重新对齐后重试 ($i/5)"
               git fetch origin main
               git reset --hard FETCH_HEAD
-              cp -a /tmp/art/unicom/. ./unicom/ 2>/dev/null || true
+              cp -a /tmp/art/unicom/. ./unicom/ 2>/dev/null || echo "[warn] 产物恢复失败（保留远端版本）"
               cp -f /tmp/art/fetch_run.log ./fetch_run.log 2>/dev/null || true
               git add -A; git add -f fetch_run.log
               git commit -q -m "unicom fetch $(date -u +%FT%TZ) retry$i" || true

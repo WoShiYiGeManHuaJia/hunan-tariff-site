@@ -3,9 +3,8 @@ name: Mobile Fetch & Build
 # 链路：抓快照 → 以 data/ 为基线构建 → 同步站点数据
 
 on:
-  # [已暂停 重构期间] schedule:
-  # - cron: "47 0,12 * * *"    # 北京 08:47 / 20:47
-  # 恢复方法：去掉上面几行的 # 号
+  schedule:
+    - cron: "47 0,12 * * *"    # 北京 08:47 / 20:47
   workflow_dispatch:
 
 permissions:
@@ -25,6 +24,18 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install pycryptodome
+
+      # 降级判定峰值持久化：Actions 每轮是全新 runner，若不缓存，
+      # peaks.json 恒为空 → _evaluate_degrade() 中 _pk 恒为空、confirmed 恒 False，
+      # 整套「分类峰值降级判定」写了却从未执行过一次。
+      # 只缓存 peaks.json 本身（内部判据，不公开入库，也不改代码路径）。
+      - name: 恢复降级峰值缓存
+        uses: actions/cache@v4
+        with:
+          path: pipelines/mobile/snapshots/peaks.json
+          key: mobile-peaks-v1
+          restore-keys: |
+            mobile-peaks-
 
       - name: 抓取移动资费快照（31省+全网）
         env:
@@ -81,8 +92,10 @@ jobs:
         run: |
           set -e
           cd "$GITHUB_WORKSPACE"
-          cp -f _site/index.html _site/app.js _site/style.css ./ 2>/dev/null || true
-          cp -f _site/common-extras.js ./ 2>/dev/null || true
+          # 静态页面（index.html / app.js / style.css / common-extras.js）
+          # 不再从 _site 复制回根目录：_site 里的其实是 site/ 旧副本，
+          # 覆盖回去会把根目录已修好的版本回滚（如「无变化不占位」）。
+          # 根目录文件即 Pages 部署源，由 git 维护。
           mkdir -p data
           cp -f _site/data/*.json data/ 2>/dev/null || true
           rm -f data/peaks.json          # 内部降级判定峰值，不公开
@@ -98,8 +111,18 @@ jobs:
           cp -f index.html app.js style.css common-extras.js /tmp/art/ 2>/dev/null || true
           git fetch origin main || true
           git reset --hard FETCH_HEAD || true
+          # ── 原子恢复产物 ──
+          # 此前 rm -rf 后再 cp 且 cp 带 || true：cp 失败时目录已删，
+          # git add -A 会把「data 目录消失」当成正常变更提交上去。
+          # 改为先复制 .new、校验存在、再 mv 原子替换；缺失即中止。
+          if [ ! -d /tmp/art/data ]; then
+            echo "::error::产物目录缺失（/tmp/art/data），中止提交以避免误删线上数据"
+            exit 1
+          fi
+          rm -rf data.new
+          cp -a /tmp/art/data ./data.new || { echo "::error::data 复制失败，中止"; exit 1; }
           rm -rf data
-          cp -a /tmp/art/data ./data 2>/dev/null || true
+          mv data.new data || { echo "::error::data 替换失败，中止"; exit 1; }
           cp -f /tmp/art/index.html /tmp/art/app.js /tmp/art/style.css /tmp/art/common-extras.js . 2>/dev/null || true
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

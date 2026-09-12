@@ -28,7 +28,7 @@ else:
 SECTIONS = list(dict.fromkeys(SECTIONS))
 
 # 轮询间隔（秒），本地循环模式用，默认 1 小时
-CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "3600"))
+CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL") or "3600")
 
 # 无头浏览器（服务器环境建议 True）
 HEADLESS = True

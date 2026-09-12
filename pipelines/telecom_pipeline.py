@@ -10,7 +10,8 @@
 """
 import urllib.request, json, time, base64, hashlib, os, sys, argparse
 
-from pipeline_common import is_sampling_noise, mark_noise, modified_details_for, filter_test_items, slim_change
+from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
+                             modified_details_for, filter_test_items, slim_change)
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
@@ -200,7 +201,10 @@ def build_latest(scopes, datadir):
     sections, prov_stats = [], {}
     q_total = None
     for scope in scopes:
-        d = load(os.path.join(datadir, scope + ".json"))
+        p = os.path.join(datadir, scope + ".json")
+        if not os.path.exists(p):
+            continue
+        d = load(p)
         items = d["items"]
         total = len(items)
         dist = {}
@@ -230,11 +234,18 @@ def main():
     now = time.strftime("%Y-%m-%d %H:%M:%S")
     # 先读上一版
     prev_data = {sc: (load(os.path.join(prev_dir, sc + ".json")) if os.path.exists(os.path.join(prev_dir, sc + ".json")) else None) for sc in scopes}
+    # 本轮抓取为空的板块（接口异常 / WAF 拦截）：绝不落盘，否则会把线上正常数据覆盖成 0 条
+    empty_scopes = set()
     for scope in scopes:
         print("=== 抓取 %s (%s) ===" % (scope, SCOPES[scope]["name"]))
         items = fetch_scope(scope, SCOPES[scope]["prov"])
         # 剔除官方混入的测试/作废业务，避免其被当作真实变更写进 history 与推送
         items = filter_test_items(items)
+        if not items:
+            print("[%s] !! 本轮抓取 0 条，保留旧数据不覆盖（接口异常或受 WAF 拦截）" % scope)
+            empty_scopes.add(scope)
+            time.sleep(1)
+            continue
         data = {"scope": scope, "timestamp": now, "items": items}
         save(os.path.join(out_dir, scope + ".json"), data)
         print("[%s] total=%d" % (scope, len(items)))
@@ -243,7 +254,11 @@ def main():
     history = load(hp) if os.path.exists(hp) else []
     changes = {}
     for sc in scopes:
-        cur = load(os.path.join(out_dir, sc + ".json"))
+        cur_path = os.path.join(out_dir, sc + ".json")
+        if sc in empty_scopes or not os.path.exists(cur_path):
+            # 本轮无数据：不参与对比，避免产生「整板块下架」的假变化
+            continue
+        cur = load(cur_path)
         if prev_data[sc] is None:
             print("  %s 首次，建基线（不记变化）" % sc)
             continue
@@ -258,12 +273,16 @@ def main():
         _bt = len((prev_clean or {}).get("items") or [])
         if is_sampling_noise(r, _bt):
             print("    >> 采样噪声：" + str(mark_noise(r, _bt).get("note", "")))
-        r = mark_noise(r, _bt)
-        changes[sc] = slim_change(r)
+        r = slim_change(mark_noise(r, _bt))
+        if has_real_change(r):
+            changes[sc] = r
     if changes:
         entry = {"ts": now}
         entry.update(changes)
         history.append(entry)
+        # history 会随轮次无限增长（names/details 全量保存），
+        # 前端需一次性下载，不截断最终会让移动端打不开页面。
+        history = history[-int(os.getenv("HISTORY_LIMIT") or "30"):]
         print("检测到变化:", {k: "add%d/rm%d/mod%d" % (v["added"], v["removed"], v["modified"]) for k, v in changes.items()})
     else:
         print("本次检测：无变化")

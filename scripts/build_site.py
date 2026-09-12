@@ -21,7 +21,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAP = os.path.join(ROOT, "snapshots")
 PREV = os.path.join(ROOT, "_prev")
 SITE = os.path.join(ROOT, "_site")
-SITE_SRC = os.path.join(ROOT, "site")   # 静态页面源码（index.html / style.css / app.js）
+# 注：原 SITE_SRC（site/ 目录）已移除。
+# site/ 是历史遗留的静态页面副本，内容比仓库根目录的 index.html/app.js 旧
+# （例：根目录已修「变化历史里无变化板块不占位」，site/ 仍是旧逻辑）。
+# 而 build 流程会把 site/ -> _site/ -> 覆盖根目录，等于每次构建都把修复回滚。
+# 根目录文件才是Pages 部署源（source: main /），故不再从 site/ 复制。
 DATA = os.path.join(SITE, "data")
 PREV_OUT = os.path.join(SITE, "prev")
 os.makedirs(DATA, exist_ok=True)
@@ -206,10 +210,10 @@ def same_change(a, b):
 
 
 # 板块条数骤降判定阈值：低于基线的该比例即视为抓取降级（不计入变化）
-SEC_DROP_RATIO = float(os.getenv("SEC_DROP_RATIO", "0.5"))
+SEC_DROP_RATIO = float(os.getenv("SEC_DROP_RATIO") or "0.5")
 # 连续降级多少轮后认定「源站现状如此」，接受新数据并重建基线
 # （一直冻结旧数据更危险：页面看着正常，实际是过期数据）
-SEC_DEGRADE_ACCEPT = int(os.getenv("SEC_DEGRADE_ACCEPT", "3"))
+SEC_DEGRADE_ACCEPT = int(os.getenv("SEC_DEGRADE_ACCEPT") or "3")
 
 
 def is_reverse_change(a, b):
@@ -298,10 +302,9 @@ def main():
     if not sections:
         sections = ["quanguo"]
 
-    # 0) 先复制静态页面源码（index.html / style.css / app.js）到站点根目录
-    if os.path.isdir(SITE_SRC):
-        shutil.copytree(SITE_SRC, SITE, dirs_exist_ok=True)
-        print("已复制静态页面源码 -> _site/")
+    # 0) 静态页面不再从 site/ 复制（见文件顶部说明）：
+    #    根目录 index.html / app.js / style.css 即部署源，由 git 直接维护，
+    #    避免旧副本在每次构建时把它们覆盖回去。
 
     # 1) 复制当前快照到站点 data/
     st = {}   # section -> (json, items, dist)
@@ -434,10 +437,10 @@ def main():
             diff_details[sec] = modified_details
             # 字段级修改明细量可能极大（一次大调整数百条），完整保留会让 history 膨胀；
             # names 已全量展示，details 保留合理上限即可（默认 500，可用环境变量覆盖）。
-            MDET_LIMIT = int(os.getenv("MODIFIED_DETAILS_LIMIT", "500"))
+            MDET_LIMIT = int(os.getenv("MODIFIED_DETAILS_LIMIT") or "500")
             rec[sec]["modified_details"] = dict(list(modified_details.items())[:MDET_LIMIT])
             # 修改前后完整字段快照（供前端并排对比），同样限量防止膨胀
-            MSNAP_LIMIT = int(os.getenv("MODIFIED_SNAPSHOT_LIMIT", "60"))
+            MSNAP_LIMIT = int(os.getenv("MODIFIED_SNAPSHOT_LIMIT") or "60")
             rec[sec]["modified_before"] = dict(list(mod_before.items())[:MSNAP_LIMIT])
             rec[sec]["modified_after"] = dict(list(mod_after.items())[:MSNAP_LIMIT])
 

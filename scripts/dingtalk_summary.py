@@ -50,8 +50,8 @@ _load_dotenv()
 
 WEBHOOK = os.getenv("DINGTALK_WEBHOOK", "").strip()
 SECRET = os.getenv("DINGTALK_SECRET", "").strip()
-SINCE_HOURS = float(os.getenv("SINCE_HOURS", "24"))
-SITE_ROOT = os.getenv("SITE_ROOT", ".")
+SINCE_HOURS = float(os.getenv("SINCE_HOURS") or "24")
+SITE_ROOT = os.getenv("SITE_ROOT") or "."
 # 明细只列关注的省份（默认湖南），其余省份不展示
 # 注意：os.getenv 的默认值只在「变量未设置」时生效；workflow 里通过
 # ${{ vars.FOCUS_SEC }} 传入空串时，默认值不会生效，需显式回退。

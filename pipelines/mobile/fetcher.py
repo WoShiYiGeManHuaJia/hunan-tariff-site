@@ -116,15 +116,15 @@ TYPE_COMBOS = [("1", "1"), ("1", "2"), ("1", "3"),
 # 分类间请求间隔（秒）。连续请求序列中后段分类会被源站瞬时限流降级(缺量)，
 # 实测 8s 间隔可保证 6 个分类全量返回；间隔过大则单轮耗时过久，取 8s 均衡。
 # 并发模式下该值仅作为批次间的基础间隔，实际等待远小于串行模式。
-FETCH_INTERVAL = float(os.getenv("FETCH_INTERVAL", "8.0"))
+FETCH_INTERVAL = float(os.getenv("FETCH_INTERVAL") or "8.0")
 # 板块间间隔（秒）。串行模式沿用 FETCH_INTERVAL；并发模式默认 2s，
 # 因为并发已把单板块耗时压到秒级，再用 8s 会白白拖长整轮。
-SECTION_INTERVAL = float(os.getenv("SECTION_INTERVAL", "2.0"))
+SECTION_INTERVAL = float(os.getenv("SECTION_INTERVAL") or "2.0")
 # 分类并发度：同一板块内同时发起多少个分类请求。
 # 源站按「IP+UA 指纹」隔离限流配额，每个分类用独立 UA，故并发不会互相挤占。
 # 默认 3（保守，兼顾速度与安全）；实测抓取不全时可下调为 1（退化为串行）。
 # 设为 1 即完全等价于旧的串行行为，可随时回退。
-FETCH_WORKERS = max(1, int(os.getenv("FETCH_WORKERS", "3")))
+FETCH_WORKERS = max(1, int(os.getenv("FETCH_WORKERS") or "3"))
 
 
 def _s(v):
@@ -227,8 +227,12 @@ def _is_conn_error(e) -> bool:
     return "Network is unreachable" in s or "Errno 101" in s or "timed out" in s.lower()
 
 
-def _post(opener, body_hex: str) -> str:
+def _post(opener, body_hex: str, ua: str = None) -> str:
     """POST 加密请求。单请求 60s 超时。
+
+    ua: 本次请求使用的 UA 指纹（由 _pick_ua() 轮换得到）。
+        必须显式传入——此前本函数体内引用了未定义的局部名 ua，
+        导致每次请求都抛 NameError，全部分类抓取失败、整轮 0 条。
 
     链接/握手类瞬时错误（Errno 101 Network is unreachable 等）：指数退避
     2/4/8/16/30s、最多 6 次重试——此类错误代表 runner 侧网络抖动而非源站
@@ -270,7 +274,7 @@ def _fetch_cell(opener, tariff_attr: str, type1: str, type2: str,
         "linkScn": "1", "tariffAttr": tariff_attr, "type1": type1, "type2": type2,
         "page": 1, "limit": 10000, "xk": str(uuid.uuid4()),
     }
-    plain = _post(opener, _encrypt(params))
+    plain = _post(opener, _encrypt(params), ua)
     data = json.loads(plain)
     beans = ((data or {}).get("data") or {}).get("beans") or []
     items_by_name = {}

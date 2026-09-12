@@ -12,7 +12,8 @@
 """
 import json, time, os, sys, urllib.request, http.cookiejar, hashlib, argparse
 
-from pipeline_common import is_sampling_noise, mark_noise, modified_details_for, filter_test_items, slim_change
+from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
+                             modified_details_for, filter_test_items, slim_change)
 
 PROG_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_API = "https://m.client.10010.com/servicequerybusiness/queryTariffNew/"
@@ -45,7 +46,7 @@ FIRST_LEVELS = ["套餐", "加装包", "营销活动", "标准资费", "港澳�
 
 # history.json 体积上限（字节）。超过则对存量历史做压缩自愈，
 # 防止前端一次性全量下载几十 MB 导致页面在移动端打不开。
-HIST_MAX_BYTES = int(os.getenv("UNICOM_HIST_MAX_BYTES", str(3 * 1024 * 1024)))
+HIST_MAX_BYTES = int(os.getenv("UNICOM_HIST_MAX_BYTES") or str(3 * 1024 * 1024))
 
 
 def _get(path, q=""):
@@ -80,7 +81,7 @@ def build_jobs():
 
 
 def fetch_pool(province_id, city_id, attr, pages=20, passes=12, min_rounds=60, empty_stop=30,
-               page_size=500, stale_stop=60, time_budget=300):
+               page_size=500, stale_stop=60, time_budget=300, partial=None):
     """采集板块套餐池：接口为随机子集轮换(非严格分页，pageSize 硬限 500)。
 
     策略：循环多轮遍历 pageNum(1..pages) 反复采样，按 id 去重累积，
@@ -115,6 +116,11 @@ def fetch_pool(province_id, city_id, attr, pages=20, passes=12, min_rounds=60, e
                 d = api("TariffMenuDataRetrieval", q)
             except Exception as e:
                 print("    round %d 失败: %s" % (rounds, (getattr(e, "reason", None) or e)))
+                # 中途失败：只采到部分数据。此前直接 return seen，下游照常 diff，
+                # 基线 1000 条 → 本轮 300 条会被记成「下架 700」。
+                # 这里回传标记，由调用方决定跳过（不落盘、不 diff）。
+                if isinstance(partial, dict):
+                    partial["failed"] = True
                 return seen
             lst = (d.get("data") or {}).get("tariffList") or []
             before = len(seen)
@@ -241,7 +247,8 @@ def fetch_detail(ids, batch=10):
 
 
 def build_scope(scope, province_id, city_id, attr):
-    pool = fetch_pool(province_id, city_id, attr)
+    _partial = {}
+    pool = fetch_pool(province_id, city_id, attr, partial=_partial)
     ids = list(pool.keys())
     print("  scope %s 列表共 %d 条，抓明细..." % (scope, len(ids)))
     detail = fetch_detail(ids)
@@ -254,7 +261,7 @@ def build_scope(scope, province_id, city_id, attr):
     items = list(pool.values())
     # 剔除官方混入的测试/作废业务：留着会被 diff 判成真实上下架并推送
     items = filter_test_items(items)
-    return {"scope": scope, "items": items}
+    return {"scope": scope, "items": items, "partial": bool(_partial.get("failed"))}
 
 
 def digest_item(it):
@@ -316,16 +323,18 @@ def diff_scope(prev, cur):
                 "added_list": [], "removed_list": [], "modified_list": [],
                 "raw_added": raw_added, "raw_removed": raw_removed}
     # names 已全量展示，详情快照保留合理上限即可（对齐移动端策略，防止巨量变更撑爆 history）
-    _DET_LIMIT = int(os.getenv("UNICOM_DETAILS_LIMIT", "200"))
+    _DET_LIMIT = int(os.getenv("UNICOM_DETAILS_LIMIT") or "200")
     _det = {_title_key(x): field_snapshot(x) for x in added}
     _rde = {_title_key(x): field_snapshot(x) for x in removed}
-    _mde = {_title_key(m): field_diff(pmap.get(m.get("id")), m) for m in modified}
+    # ★ 此前本字典里 "modified_details" 出现两次，后者静默覆盖前者，
+    #   使 modified_details_for() 的产出被整个丢弃（dict 字面量重复 key 取最后）。
+    #   现在只保留一份，并统一按 _DET_LIMIT 裁剪。
+    _mde = modified_details_for(pmap, modified)
     return {
         "added": len(added), "removed": len(removed), "modified": len(modified),
         "added_names": [x.get("title", "") for x in added],
         "removed_names": [x.get("title", "") for x in removed],
         "modified_names": [x.get("title", "") for x in modified],
-        "modified_details": modified_details_for(pmap, modified),
         "added_details": dict(list(_det.items())[:_DET_LIMIT]),
         "removed_details": dict(list(_rde.items())[:_DET_LIMIT]),
         "modified_details": dict(list(_mde.items())[:_DET_LIMIT]),
@@ -388,22 +397,19 @@ def save(path, obj):
         json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
 
 
-def update_baseline(scopes, datadir):
-    base = {}
-    for sc in scopes:
-        cur = load(os.path.join(datadir, sc + ".json"))
-        items = [x["id"] for x in cur["items"]]
-        base[sc] = {"count": len(items),
-                    "hash": hashlib.md5(json.dumps(items, ensure_ascii=False).encode("utf-8")).hexdigest(),
-                    "titles": sorted(x["title"] for x in cur["items"])}
-    save(os.path.join(datadir, "_baseline.json"), base)
+# 注：原 update_baseline() / _baseline.json 已移除。
+# 它全仓只写不读（前端、workflow、其它脚本均未读取），每轮却要对
+# 32 板块 × 上千条做 md5 + titles 排序，是纯死数据、白耗 CPU / IO。
 
 
 def build_latest(scopes, datadir):
     sections, prov_total, prov_stats = [], set(), {}
     q_total = None
     for sc in scopes:
-        d = load(os.path.join(datadir, sc + ".json"))
+        p = os.path.join(datadir, sc + ".json")
+        if not os.path.exists(p):
+            continue
+        d = load(p)
         items = d["items"]
         fl_count = {}
         onsale = 0
@@ -459,11 +465,17 @@ def main():
     for it in ((prev_data_raw.get("quanguo") or {}).get("items") or []):
         qu_fp.add(digest_stable(it))
 
+    partial_scopes = set()
     for sc in scopes:
         prov, city, attr = jobs[sc]
         print("=== 抓取 %s (prov=%s city=%s) ===" % (sc, prov or "-", city or "-"))
         d = build_scope(sc, prov, city, attr)
         d["timestamp"] = now
+        if d.get("partial"):
+            # 采集不完整：本轮结果不可信，保留旧数据、不参与 diff，避免假下架
+            print("  !! %s 本轮采集不完整（中途请求失败），保留旧数据、不记变化" % sc)
+            partial_scopes.add(sc)
+            continue
         save(os.path.join(out_dir, sc + ".json"), d)
         if sc == "quanguo":
             for it in (d.get("items") or []):
@@ -498,7 +510,6 @@ def main():
     # 重建基线模式：不对比 prev、不写历史，仅更新渲染数据/基线/latest
     if args.rebuild:
         print("== 重建基线模式：跳过对比与历史，仅刷新数据/基线/latest ==")
-        update_baseline(scopes, out_dir)
         build_latest(scopes, out_dir)
         print("完成(重建)，history 保持现有 %d 条" % len(load(hp) if os.path.exists(hp) else []))
         return
@@ -509,12 +520,17 @@ def main():
     history = load(hp) if os.path.exists(hp) else []
     changes = {}
     for sc in scopes:
+        if sc in partial_scopes:
+            continue
+        cur_path = os.path.join(out_dir, sc + ".json")
+        if not os.path.exists(cur_path):
+            continue
         if sc == "quanguo":
             prev_use = prev_data[sc]
-            cur_use = load(os.path.join(out_dir, sc + ".json"))
+            cur_use = load(cur_path)
         else:
             prev_use = prev_data[sc]
-            cur_use = clean_scope(load(os.path.join(out_dir, sc + ".json")))
+            cur_use = clean_scope(load(cur_path))
         if prev_use is None:
             print("  %s 首次，建基线（不记变化）" % sc)
             continue
@@ -522,20 +538,20 @@ def main():
         _bt = len((prev_use or {}).get("items") or [])
         if is_sampling_noise(r, _bt):
             print("    >> 采样噪声：" + str(mark_noise(r, _bt).get("note", "")))
-        r = mark_noise(r, _bt)
-        changes[sc] = slim_change(r)
+        r = slim_change(mark_noise(r, _bt))
+        if has_real_change(r):
+            changes[sc] = r
     if changes:
         entry = {"ts": now}
         entry.update(changes)
         history.append(entry)
         # 历史记录长期增长会导致 history.json 无限膨胀（names/details 已全量），保留最近 N 条即可
-        history = history[-int(os.getenv("UNICOM_HISTORY_LIMIT", "30")):]
+        history = history[-int(os.getenv("UNICOM_HISTORY_LIMIT") or "30"):]
         print("检测到变化:", {k: "add%d/rm%d/mod%d" % (v["added"], v["removed"], v["modified"]) for k, v in changes.items()})
     else:
         print("本次检测：无变化")
     save(hp, history)
 
-    update_baseline(scopes, out_dir)
     build_latest(scopes, out_dir)
     print("完成，history 共 %d 条" % len(history))
 

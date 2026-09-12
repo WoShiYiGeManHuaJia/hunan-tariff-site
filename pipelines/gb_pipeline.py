@@ -1,4 +1,5 @@
-from pipeline_common import is_sampling_noise, mark_noise, modified_details_for
+from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
+                             modified_details_for, slim_change)
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -370,7 +371,10 @@ def main():
         if sc == "quanguo":
             for it in items:
                 qu_fp.add(digest_stable(it))
-        if ok and len(items) == 0 and prev_data_raw.get(sc):
+        # 保护条件此前写成 `ok and ...`：ok=False 恰是「彻底失败、无数据」，
+        # 保护反而完全失效，空数据直接落盘把线上冲成 0 条。
+        # 判据只看本轮结果本身：本轮为空且上版有数据 → 视为失败，跳过本轮。
+        if len(items) == 0 and prev_data_raw.get(sc):
             print("  !! %s 抓取为空但上版有 %d 条，视为失败，跳过本轮" % (sc, len(prev_data_raw[sc]["items"])))
             failed_scopes.append(sc)
             continue
@@ -384,7 +388,15 @@ def main():
         keep = set(saved_scopes) & {"quanguo", "hunan"}
         for sc in saved_scopes:
             if sc not in keep:
-                os.remove(os.path.join(out_dir, sc + ".json"))
+                # 此前直接 os.remove：本轮文件已覆盖旧数据，一删就是彻底清空，
+                # 站点该省直接空白且被提交。改为回写上一版数据，退守但不清空。
+                old = prev_data_raw.get(sc)
+                if old:
+                    save(os.path.join(out_dir, sc + ".json"), old)
+                    print("  ↩ %s 回退为上一版 %d 条（不删除）" % (
+                        sc, len(old.get("items") or [])))
+                else:
+                    os.remove(os.path.join(out_dir, sc + ".json"))
 
     # 省板块 diff 前剔除全网业务
     def clean_scope(snap):
@@ -415,12 +427,16 @@ def main():
         _bt = len((prev_use or {}).get("items") or [])
         if is_sampling_noise(r, _bt):
             print("    >> 采样噪声：" + str(mark_noise(r, _bt).get("note", "")))
-        r = mark_noise(r, _bt)
-        changes[sc] = r
+        r = slim_change(mark_noise(r, _bt))
+        if has_real_change(r):
+            changes[sc] = r
     if changes:
         entry = {"ts": now}
         entry.update(changes)
         history.append(entry)
+        # 与电信/联通对齐：只保留最近 N 条，避免 history 无限膨胀
+        # （前端需一次性下载，过大则移动端打不开）
+        history = history[-int(os.getenv("HISTORY_LIMIT") or "30"):]
         print("检测到变化:", {k: "add%d/rm%d/mod%d" % (v["added"], v["removed"], v["modified"]) for k, v in changes.items()})
     else:
         print("本次检测：无变化")
