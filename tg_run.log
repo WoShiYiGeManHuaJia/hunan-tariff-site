@@ -1,20 +1,20 @@
-=== 开始 2026-09-12T13:26:56Z ===
+=== 开始 2026-09-12T16:19:37Z ===
 --- 电信 ---
 === 抓取 hunan (湖南) ===
-[hunan] session=fcff8ad099ca46efa9c806fbd4b5db18 boards=['套餐', '加装包', '营销活动']
+[hunan] session=9a6fec73136443eb8957a6f60af482e0 boards=['套餐', '加装包', '营销活动']
   [套餐] count=60 got=60
   [加装包] count=563 got=563
   [营销活动] count=436 got=436
 [hunan] total=1059
 === 抓取 quanguo (全国) ===
-[quanguo] session=1a2597b236534149a6c164f90acbdaa7 boards=['套餐', '加装包', '营销活动', '国际/港澳台资费', '国内（不含港澳台）标准资费']
+[quanguo] session=e550efe911c04c918a0b6b87b006906d boards=['套餐', '加装包', '营销活动', '国际/港澳台资费', '国内（不含港澳台）标准资费']
   [套餐] count=0 got=0
   [加装包] count=241 got=241
   [营销活动] count=18 got=18
   [国际/港澳台资费] count=280 got=280
   [国内（不含港澳台）标准资费] count=0 got=0
 [quanguo] total=539
-检测到变化: {'hunan': 'add0/rm0/mod0', 'quanguo': 'add0/rm0/mod0'}
+本次检测：无变化
 latest.json 已生成: quanguo=539 hunan=1059
 完成，history 共 6 条
 电信 exit=0
@@ -119,8 +119,8 @@ latest.json 已生成: quanguo=539 hunan=1059
 === 抓取 xinjiang (新疆) ===
   [xinjiang] area=XJ00 got=58 failed_leaf=0
 [xinjiang] total=58
-检测到变化: {'quanguo': 'add0/rm0/mod0', 'beijing': 'add0/rm0/mod0', 'tianjin': 'add0/rm0/mod0', 'hebei': 'add0/rm0/mod0', 'shanxi': 'add0/rm0/mod0', 'neimenggu': 'add0/rm0/mod0', 'liaoning': 'add0/rm0/mod0', 'jilin': 'add0/rm0/mod0', 'heilongjiang': 'add0/rm0/mod0', 'shanghai': 'add0/rm0/mod0', 'jiangsu': 'add0/rm0/mod0', 'zhejiang': 'add0/rm0/mod0', 'anhui': 'add0/rm0/mod0', 'fujian': 'add0/rm0/mod0', 'jiangxi': 'add0/rm0/mod0', 'shandong': 'add0/rm0/mod0', 'henan': 'add0/rm0/mod0', 'hubei': 'add0/rm0/mod0', 'hunan': 'add0/rm0/mod0', 'guangdong': 'add0/rm0/mod0', 'shenzhen': 'add0/rm0/mod0', 'guangxi': 'add0/rm0/mod0', 'hainan': 'add0/rm0/mod0', 'chongqing': 'add0/rm0/mod0', 'sichuan': 'add0/rm0/mod0', 'guizhou': 'add0/rm0/mod0', 'yunnan': 'add0/rm0/mod0', 'xizang': 'add0/rm0/mod0', 'shaanxi': 'add0/rm0/mod0', 'gansu': 'add0/rm0/mod0', 'qinghai': 'add0/rm0/mod0', 'ningxia': 'add0/rm0/mod0', 'xinjiang': 'add0/rm0/mod0'}
+本次检测：无变化
 latest.json 已生成: quanguo=133 prov_total=1678 sections=33
 完成，history 共 4 条
 广电 exit=0
---- 结束 2026-09-12T13:55:52Z ---
+--- 结束 2026-09-12T16:44:40Z ---
