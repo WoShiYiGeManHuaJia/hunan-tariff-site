@@ -1229,11 +1229,21 @@ function setupHistAutoLoad(list) {
     });
     return;
   }
+  // 手机端历史区是独立滚动容器，哨兵的可见性要相对该容器判定；
+  // 桌面端容器不限高（整页滚动），仍以视口为基准。
+  let root = null;
+  const box = document.getElementById("historyBox");
+  if (box) {
+    const oy = (window.getComputedStyle(box) || {}).overflowY || "";
+    if (oy === "auto" || oy === "scroll") root = box;
+  }
+  const opt = { rootMargin: "300px" };
+  if (root) opt.root = root;
   histObserver = new IntersectionObserver(function (entries) {
     if (entries[0] && entries[0].isIntersecting) {
       histShown = Math.min(list.length, histShown + HIST_PAGE);
       histDraw(list);
     }
-  }, { rootMargin: "300px" });
+  }, opt);
   histObserver.observe(sentinel);
 }

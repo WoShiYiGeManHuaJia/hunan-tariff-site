@@ -395,3 +395,26 @@ body.dark .cmp-table tr.cmp-diff th{background:#3a2f12;color:#e8c169}
 body.dark .cmp-table .cmp-new{color:#6fd39a}
 body.dark .cmp-wrap{border-color:#2a3546}
 @media(max-width:420px){.cmp-table{font-size:11.5px}}
+
+/* ===== 手机端：变化历史只在时间线区域内滚动 =====
+   整个页面跟着滚会导致顶部标签栏/筛选栏一起跑掉，且滑动惯性容易误触发
+   整页回弹。这里把时间线区域做成独立滚动容器，并阻断滚动链。 */
+@media(max-width:768px){
+  #historyBox{
+    max-height:calc(100vh - 250px);
+    max-height:calc(100dvh - 250px);   /* 适配移动端地址栏伸缩 */
+    min-height:150px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;       /* 滚到边界不把滚动传给 body */
+    overscroll-behavior-y:contain;
+    padding-right:4px;
+    touch-action:pan-y;
+  }
+  #historyBox .tl{margin-left:2px;padding-left:16px;}
+  #historyBox::-webkit-scrollbar{width:4px}
+  #historyBox::-webkit-scrollbar-thumb{background:rgba(10,117,194,.28);border-radius:4px}
+}
+@media(max-width:400px){
+  #historyBox{max-height:calc(100dvh - 230px);min-height:140px;}
+}
