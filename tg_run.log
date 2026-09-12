@@ -1,13 +1,14 @@
-=== 开始 2026-09-12T16:19:37Z ===
+=== 开始 2026-09-12T17:52:45Z ===
+模式=focus 重点省=hunan,guangdong
 --- 电信 ---
 === 抓取 hunan (湖南) ===
-[hunan] session=9a6fec73136443eb8957a6f60af482e0 boards=['套餐', '加装包', '营销活动']
+[hunan] session=9b11a17586424ec48adcf549b62deb06 boards=['套餐', '加装包', '营销活动']
   [套餐] count=60 got=60
   [加装包] count=563 got=563
   [营销活动] count=436 got=436
 [hunan] total=1059
 === 抓取 quanguo (全国) ===
-[quanguo] session=e550efe911c04c918a0b6b87b006906d boards=['套餐', '加装包', '营销活动', '国际/港澳台资费', '国内（不含港澳台）标准资费']
+[quanguo] session=f0c20f2f94e345f8935759f831a0aeff boards=['套餐', '加装包', '营销活动', '国际/港澳台资费', '国内（不含港澳台）标准资费']
   [套餐] count=0 got=0
   [加装包] count=241 got=241
   [营销活动] count=18 got=18
@@ -16,111 +17,21 @@
 [quanguo] total=539
 本次检测：无变化
 latest.json 已生成: quanguo=539 hunan=1059
-完成，history 共 6 条
+完成，history 共 4 条
 电信 exit=0
 --- 广电 ---
-== 广电任务数: 33 ==
+== 广电任务数: 3 ==
 === 抓取 quanguo (全网(全国)) ===
   [quanguo] area=ZZZZ got=133 failed_leaf=0
 [quanguo] total=133
-=== 抓取 beijing (北京) ===
-  [beijing] area=BJ00 got=51 failed_leaf=0
-[beijing] total=51
-=== 抓取 tianjin (天津) ===
-  [tianjin] area=TJ00 got=42 failed_leaf=0
-[tianjin] total=42
-=== 抓取 hebei (河北) ===
-  [hebei] area=HB00 got=71 failed_leaf=0
-[hebei] total=71
-=== 抓取 shanxi (山西) ===
-  [shanxi] area=SX00 got=20 failed_leaf=0
-[shanxi] total=20
-=== 抓取 neimenggu (内蒙古) ===
-  [neimenggu] area=NMG0 got=26 failed_leaf=0
-[neimenggu] total=26
-=== 抓取 liaoning (辽宁) ===
-  [liaoning] area=LN00 got=48 failed_leaf=0
-[liaoning] total=48
-=== 抓取 jilin (吉林) ===
-  [jilin] area=JL00 got=53 failed_leaf=0
-[jilin] total=53
-=== 抓取 heilongjiang (黑龙江) ===
-  [heilongjiang] area=HLJ0 got=71 failed_leaf=0
-[heilongjiang] total=71
-=== 抓取 shanghai (上海) ===
-  [shanghai] area=SH00 got=48 failed_leaf=0
-[shanghai] total=48
-=== 抓取 jiangsu (江苏) ===
-  [jiangsu] area=JS00 got=132 failed_leaf=0
-[jiangsu] total=132
-=== 抓取 zhejiang (浙江) ===
-  [zhejiang] area=ZJ00 got=144 failed_leaf=0
-[zhejiang] total=144
-=== 抓取 anhui (安徽) ===
-  [anhui] area=AH00 got=28 failed_leaf=0
-[anhui] total=28
-=== 抓取 fujian (福建) ===
-  [fujian] area=FJ00 got=51 failed_leaf=0
-[fujian] total=51
-=== 抓取 jiangxi (江西) ===
-  [jiangxi] area=JX00 got=52 failed_leaf=0
-[jiangxi] total=52
-=== 抓取 shandong (山东) ===
-  [shandong] area=SD00 got=36 failed_leaf=0
-[shandong] total=36
-=== 抓取 henan (河南) ===
-  [henan] area=HN01 got=45 failed_leaf=0
-[henan] total=45
-=== 抓取 hubei (湖北) ===
-  [hubei] area=HB01 got=60 failed_leaf=0
-[hubei] total=60
 === 抓取 hunan (湖南) ===
   [hunan] area=HN00 got=20 failed_leaf=0
 [hunan] total=20
 === 抓取 guangdong (广东) ===
   [guangdong] area=GD00 got=133 failed_leaf=0
 [guangdong] total=133
-=== 抓取 shenzhen (深圳) ===
-  [shenzhen] area=SZ00 got=116 failed_leaf=0
-[shenzhen] total=116
-=== 抓取 guangxi (广西) ===
-  [guangxi] area=GX00 got=169 failed_leaf=0
-[guangxi] total=169
-=== 抓取 hainan (海南) ===
-  [hainan] area=HN02 got=22 failed_leaf=0
-[hainan] total=22
-=== 抓取 chongqing (重庆) ===
-  [chongqing] area=CQ00 got=137 failed_leaf=0
-[chongqing] total=137
-=== 抓取 sichuan (四川) ===
-  [sichuan] area=SC00 got=124 failed_leaf=0
-[sichuan] total=124
-=== 抓取 guizhou (贵州) ===
-  [guizhou] area=GZ01 got=35 failed_leaf=0
-[guizhou] total=35
-=== 抓取 yunnan (云南) ===
-  [yunnan] area=YN00 got=51 failed_leaf=0
-[yunnan] total=51
-=== 抓取 xizang (西藏) ===
-  [xizang] area=XZ00 got=26 failed_leaf=0
-[xizang] total=26
-=== 抓取 shaanxi (陕西) ===
-  [shaanxi] area=SX01 got=58 failed_leaf=0
-[shaanxi] total=58
-=== 抓取 gansu (甘肃) ===
-  [gansu] area=GS00 got=33 failed_leaf=0
-[gansu] total=33
-=== 抓取 qinghai (青海) ===
-  [qinghai] area=QH00 got=83 failed_leaf=0
-[qinghai] total=83
-=== 抓取 ningxia (宁夏) ===
-  [ningxia] area=NX00 got=57 failed_leaf=0
-[ningxia] total=57
-=== 抓取 xinjiang (新疆) ===
-  [xinjiang] area=XJ00 got=58 failed_leaf=0
-[xinjiang] total=58
 本次检测：无变化
-latest.json 已生成: quanguo=133 prov_total=1678 sections=33
-完成，history 共 4 条
+latest.json 已生成: quanguo=133 prov_total=151 sections=3
+完成，history 共 2 条
 广电 exit=0
---- 结束 2026-09-12T16:44:40Z ---
+--- 结束 2026-09-12T17:59:47Z ---
