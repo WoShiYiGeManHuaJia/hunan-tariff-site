@@ -167,6 +167,24 @@ code{
     <div id="channels"></div>
   </div>
   <div class="sec">
+    <div class="sect">⚡ 快捷推送</div>
+    <div class="quick">
+      <div class="tiny" style="line-height:1.85;margin-bottom:10px">
+        <b>怎么用</b>：在<b>上面</b>打开开关、填好对应配置，然后点「<b>生成命令</b>」，复制后<b>粘贴到终端按回车</b>就发出去了。<br>
+        不想开终端？点「<b>浏览器直发</b>」（钉钉 / 飞书支持，点一下消息就到群里）。
+      </div>
+      <div class="fld"><label>标题（可留空）</label><input id="qTitle" class="inp" placeholder="资费变化通知" value="资费变化通知"></div>
+      <div class="fld"><label>内容</label><textarea id="qText" class="inp" rows="4" placeholder="要推送的内容，支持换行。留空则自动用站点最新资费数据。"></textarea></div>
+      <div class="hrow" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <button id="qGen" class="btn pri">生成命令</button>
+        <button id="qCopy" class="btn">复制命令</button>
+        <button id="qSend" class="btn">浏览器直发</button>
+        <span class="status" id="qStat" style="flex:1;min-width:120px"></span>
+      </div>
+      <textarea id="qCmd" class="codebox" rows="5" readonly style="margin-top:10px"></textarea>
+    </div>
+  </div>
+  <div class="sec">
     <div class="sect">推送内容</div>
     <div class="chcard" style="padding:12px">
       <div class="fld"><label>关注省份（消息里单列这一个省的明细，其余不展示）</label>
@@ -184,24 +202,6 @@ code{
       <div class="hrow" style="margin-top:12px;gap:16px">
         <label class="hrow" style="gap:6px;font-size:12px"><input type="checkbox" id="pushSkipEmpty" checked> 四家都无变化时不推送</label>
       </div>
-    </div>
-  </div>
-  <div class="sec">
-    <div class="sect">⚡ 快捷推送（不用装任何东西）</div>
-    <div class="quick">
-      <div class="tiny" style="line-height:1.8;margin-bottom:10px">
-        想把<b>任意一段话</b>直接发到群里？在这儿写好，点「生成命令」，复制后<b>粘贴到终端回车</b>就发出去了。<br>
-        不想开终端？用下面的「<b>浏览器直发</b>」（钉钉 / 飞书支持）。
-      </div>
-      <div class="fld"><label>标题（可留空）</label><input id="qTitle" class="inp" placeholder="资费变化通知" value="资费变化通知"></div>
-      <div class="fld"><label>内容</label><textarea id="qText" class="inp" rows="4" placeholder="要推送的内容，支持换行。留空则自动用站点最新数据。"></textarea></div>
-      <div class="hrow" style="margin-top:10px;gap:8px;flex-wrap:wrap">
-        <button id="qGen" class="btn pri">生成命令</button>
-        <button id="qCopy" class="btn">复制命令</button>
-        <button id="qSend" class="btn">浏览器直发</button>
-        <span class="status" id="qStat" style="flex:1;min-width:120px"></span>
-      </div>
-      <textarea id="qCmd" class="codebox" rows="5" readonly style="margin-top:10px"></textarea>
     </div>
   </div>
   <div class="sec">
@@ -566,14 +566,31 @@ $('saveState').textContent=storageOK?'✓ 已加载本地配置':'暂存内存�
 const fp=$('fp');
 const dlst=$('provList');
 PROV.forEach(function(x){const o=document.createElement('option');o.value=x[0];dlst.appendChild(o)});
-PROV.forEach(function(x){const b=document.createElement('button');b.className='pill';b.textContent=x[0];b.dataset.p=x[1];
- b.onclick=function(){setProv(x[1])};
- fp.appendChild(b)});
-function setProv(code){
- cfg.push.focus=code;$('focusName').value=provName(code);save();renderPrev();refreshCmds();refreshQuick();
- Array.prototype.forEach.call(fp.children,function(c){c.className='pill'+(c.dataset.p===code?' on':'')});
+/* 常用省份默认展示，其余折叠（避免一下铺开 32 个） */
+const COMMON=['quanguo','hunan','guangdong','beijing','shanghai','zhejiang','jiangsu','sichuan'];
+let provExpanded=false;
+function renderProv(){
+ fp.innerHTML='';
+ PROV.forEach(function(x){
+  const code=x[1];
+  if(!provExpanded && COMMON.indexOf(code)<0 && code!==cfg.push.focus)return;
+  const b=document.createElement('button');
+  b.className='pill'+(code===cfg.push.focus?' on':'');
+  b.textContent=x[0];b.dataset.p=code;
+  b.onclick=function(){setProv(code)};
+  fp.appendChild(b);
+ });
+ const t=document.createElement('button');
+ t.className='pill';t.style.borderStyle='dashed';
+ t.textContent=provExpanded?('收起 ▲'):('展开全部 '+PROV.length+' 个 ▼');
+ t.onclick=function(){provExpanded=!provExpanded;renderProv()};
+ fp.appendChild(t);
 }
-(function markFocus(){Array.prototype.forEach.call(fp.children,function(c){c.className='pill'+(c.dataset.p===(cfg.push.focus||'hunan')?' on':'')})})();
+function setProv(code){
+ cfg.push.focus=code;$('focusName').value=provName(code);save();renderPrev();refreshCmds();refreshQuick();renderProv();
+}
+renderProv();
+
 $('focusName').addEventListener('input',function(){
  const v=this.value.trim();
  const hit=PROV.filter(function(x){return x[0]===v})[0];
