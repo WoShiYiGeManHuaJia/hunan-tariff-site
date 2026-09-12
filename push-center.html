@@ -108,13 +108,6 @@ code{background:var(--intensity-6);padding:1px 5px;border-radius:4px;font-size:1
   <div class="hrow" style="margin-top:12px;gap:6px;background:var(--intensity-4);border-radius:10px;padding:10px 12px">
     <span class="sub" style="line-height:1.7">🔒 本页无后端、无统计代码。密钥仅写入本设备浏览器 localStorage，不上传任何服务器；测试消息由浏览器直连官方接口发出。</span>
   </div>
-  <div id="installBar" class="hide" style="margin-top:10px;background:var(--intensity-4);border-radius:10px;padding:10px 12px">
-    <div class="hrow" style="gap:8px">
-      <span class="sub" style="flex:1;line-height:1.6">📱 把本页装成 App：桌面出现图标，点开直接进入，没有地址栏。</span>
-      <button id="installBtn" class="btn pri">添加到桌面</button>
-    </div>
-    <div id="iosTip" class="tiny hide" style="margin-top:8px;line-height:1.8">iPhone：点底部「分享」→ 选「添加到主屏幕」→ 添加。</div>
-  </div>
   <div class="sec">
     <div class="sect">推送渠道</div>
     <div id="channels"></div>
@@ -428,21 +421,7 @@ $('importBtn').addEventListener('click',function(){$('importFile').click()});
 $('importFile').addEventListener('change',function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=function(){importCfg(r.result)};r.readAsText(f);this.value=''});
 $('importGo').addEventListener('click',function(){if($('importText').value.trim())importCfg($('importText').value)});
 
-/* ===== PWA：装成 App（可选，不影响正常使用）===== */
-let deferredPrompt=null;
-const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-window.addEventListener('beforeinstallprompt',function(e){
- e.preventDefault();deferredPrompt=e;
- if(!standalone){$('installBar').classList.remove('hide');$('iosTip').classList.add('hide')}
-});
-if(!standalone&&isIOS){$('installBar').classList.remove('hide');$('installBtn').classList.add('hide');$('iosTip').classList.remove('hide')}
-$('installBtn').addEventListener('click',async function(){
- if(!deferredPrompt){toast('请通过浏览器菜单「添加到主屏幕 / 安装应用」操作','warn');return}
- deferredPrompt.prompt();const r=await deferredPrompt.userChoice;
- if(r.outcome==='accepted'){toast('已添加到桌面','ok');$('installBar').classList.add('hide')}
- deferredPrompt=null;
-});
+/* 离线缓存（无安装引导，装不装由用户在浏览器菜单里决定） */
 if('serviceWorker' in navigator){
  window.addEventListener('load',function(){
   navigator.serviceWorker.register('./sw.js').catch(function(){/* 不支持则忽略 */});

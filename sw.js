@@ -3,10 +3,7 @@
 const CACHE = 'tariff-push-v1';
 const ASSETS = [
   './push-center.html',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './manifest.json'
 ];
 
 self.addEventListener('install', function (e) {
