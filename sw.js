@@ -1,6 +1,6 @@
 // 推送配置中心 · Service Worker
 // 作用：把页面缓存到本地，断网也能打开（纯前端页面，所有数据都在 localStorage）
-const CACHE = 'tariff-push-v5';
+const CACHE = 'tariff-push-v6';
 const ASSETS = [
   './push-center.html',
   './manifest.json'
