@@ -95,6 +95,7 @@ jobs:
           echo "--- 结束 $(date -u +%FT%TZ) ---" >> tg_run.log
           tail -70 tg_run.log
           echo "EC_T=$EC_T EC_G=$EC_G"
+          if [ "$EC_T" -ne 0 ] || [ "$EC_G" -ne 0 ]; then echo "::error::电信/广电管线失败"; exit 1; fi
 
       - name: 提交
         if: always()
@@ -131,8 +132,9 @@ jobs:
             echo "无变化"
           else
             git commit -q -m "telecom+gb fetch $(date -u +%FT%TZ)"
+            PUSHED=0
             for i in 1 2 3 4 5; do
-              if git push origin main; then echo "已推送"; break; fi
+              if git push origin main; then echo "已推送"; PUSHED=1; break; fi
               echo "[warn] push 失败，重新对齐后重试 ($i/5)"
               git fetch origin main
               git reset --hard FETCH_HEAD
@@ -143,4 +145,8 @@ jobs:
               git commit -q -m "telecom+gb fetch $(date -u +%FT%TZ) retry$i" || true
               sleep 8
             done
+            if [ "$PUSHED" -ne 1 ]; then
+              echo "::error::连续5次 git push 均失败"
+              exit 1
+            fi
           fi
