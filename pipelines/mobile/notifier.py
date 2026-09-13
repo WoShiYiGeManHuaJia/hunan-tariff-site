@@ -184,14 +184,16 @@ def _truncate_bytes(text: str, max_bytes: int = 18000) -> str:
     raw = text.encode("utf-8")
     if len(raw) <= max_bytes:
         return text
-    cut = raw[:max_bytes]
+    suffix = "\n…消息过长已截断，完整内容请到展示站查看。"
+    budget = max(0, max_bytes - len(suffix.encode("utf-8")))
+    cut = raw[:budget]
     while cut:
         try:
             cut.decode("utf-8")
             break
         except UnicodeDecodeError:
             cut = cut[:-1]
-    return cut.decode("utf-8") + "\n…消息过长已截断，完整内容请到展示站查看。"
+    return cut.decode("utf-8") + suffix
 
 
 def _send_dingtalk(content: str) -> bool:
