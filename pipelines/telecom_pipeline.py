@@ -11,7 +11,7 @@
 import urllib.request, json, time, base64, hashlib, os, sys, argparse
 
 from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
-                             modified_details_for, filter_test_items, slim_change)
+                             modified_details_for, filter_test_items, slim_change, diff_items)
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
@@ -159,29 +159,14 @@ def digest_stable(it):
 
 
 def diff_scope(prev, cur):
-    from collections import Counter
     p_items = prev.get("items") or []
     c_items = cur.get("items") or []
-    # 稳定指纹多重集：用 Counter 精确抵消同名同价多实体，避免集合碰撞吞掉真实增减
-    p_count = Counter(digest_stable(x) for x in p_items)
-    c_count = Counter(digest_stable(x) for x in c_items)
-    p_left = {f: max(0, n - c_count.get(f, 0)) for f, n in p_count.items()}
-    c_left = {f: max(0, n - p_count.get(f, 0)) for f, n in c_count.items()}
-    added, removed = [], []
-    for x in c_items:
-        f = digest_stable(x)
-        if c_left.get(f, 0) > 0:
-            added.append(x); c_left[f] -= 1
-    for x in p_items:
-        f = digest_stable(x)
-        if p_left.get(f, 0) > 0:
-            removed.append(x); p_left[f] -= 1
-    pmap = {x["id"]: x for x in p_items}
-    cmap = {x["id"]: x for x in c_items}
-    modified = [cmap[i] for i in cmap if i in pmap and digest_item(cmap[i]) != digest_item(pmap[i])]
-    # 全量对称错位护栏：id 层面大面积漂移（>50%），但稳定指纹层面净变化为 0 → 实为 id 漂移的基线错位，重建基线不记变化
-    raw_added = sum(1 for i in cmap if i not in pmap)
-    raw_removed = sum(1 for i in pmap if i not in cmap)
+    # 统一 diff：ID 精确匹配 + stable_business_key 兜底 + 完整字段比较；
+    # 价格/流量/权益变化识别为 modified 而非误判上下架，ID 漂移不产生假上下架。
+    r = diff_items(p_items, c_items, detail_limit=int(os.getenv("TELECOM_DETAILS_LIMIT") or "60"))
+    added, removed, modified = r["added_items"], r["removed_items"], r["modified_items"]
+    # 全量对称错位护栏：id 层面大面积漂移（>50%），但稳定业务键层面净变化为 0 → 实为 id 漂移的基线错位，重建基线不记变化
+    raw_added, raw_removed = r["raw_added"], r["raw_removed"]
     raw_n = raw_added + raw_removed
     total_n = len(p_items) + len(c_items)
     if total_n > 0 and raw_n / total_n > 0.5 and not added and not removed and not modified:
@@ -193,7 +178,7 @@ def diff_scope(prev, cur):
         "added_names": [x.get("title", "") for x in added][:20],
         "removed_names": [x.get("title", "") for x in removed][:20],
         "modified_names": [x.get("title", "") for x in modified][:20],
-        "modified_details": modified_details_for(pmap, modified[:20]),
+        "modified_details": r["modified_details"],
     }
 
 
