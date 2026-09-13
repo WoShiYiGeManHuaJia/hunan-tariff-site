@@ -84,6 +84,7 @@ jobs:
           EC=${PIPESTATUS[0]}
           set -e
           echo "抓取 exit=$EC"
+          if [ "$EC" -ne 0 ]; then echo "::error::移动抓取失败"; exit "$EC"; fi
           ls -la snapshots/ | head -5
 
       - name: 构建站点数据
@@ -93,7 +94,7 @@ jobs:
           # build_site 固定读 ./snapshots（snapshot.py 输出在 pipelines/mobile/snapshots）
           rm -rf snapshots
           cp -r pipelines/mobile/snapshots ./snapshots
-          N=$(ls snapshots/*.json 2>/dev/null | wc -l)
+          N=$(find snapshots -maxdepth 1 -type f -name "*.json" ! -name "peaks.json" | wc -l)
           echo "快照文件数: $N"
 
           # 防护一：一条都没抓到时，绝不重建/覆盖 data/，只把仪表盘按现有数据重算
@@ -169,8 +170,9 @@ jobs:
             echo "无变化"
           else
             git commit -q -m "mobile fetch+build $(date -u +%FT%TZ)"
+            PUSHED=0
             for i in 1 2 3 4 5; do
-              if git push origin main; then echo "已推送"; break; fi
+              if git push origin main; then echo "已推送"; PUSHED=1; break; fi
               echo "[warn] push 失败，重新对齐后重试 ($i/5)"
               git fetch origin main
               git reset --hard FETCH_HEAD
@@ -180,4 +182,8 @@ jobs:
               git commit -q -m "mobile fetch+build $(date -u +%FT%TZ) retry$i" || true
               sleep 8
             done
+            if [ "$PUSHED" -ne 1 ]; then
+              echo "::error::连续5次 git push 均失败"
+              exit 1
+            fi
           fi
