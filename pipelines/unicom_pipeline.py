@@ -541,6 +541,32 @@ def save(path, obj):
 # 32 板块 × 上千条做 md5 + titles 排序，是纯死数据、白耗 CPU / IO。
 
 
+def _all_sections(datadir, pool=None):
+    """站点 data 目录下现存的全部板块编码。
+
+    focus 模式只抓 3 个板块，但其余省份上一轮落盘的 {省}.json 仍在，
+    必须一并纳入统计 —— 否则 latest.json 只剩 3 个板块、页面凭空少掉 29 省。
+    """
+    skip = {"latest", "history"}
+    out = []
+    try:
+        for fn in sorted(os.listdir(datadir)):
+            if not fn.endswith(".json") or fn.startswith("_"):
+                continue
+            sc = fn[:-5]
+            if sc in skip:
+                continue
+            out.append(sc)
+    except Exception:
+        pass
+    # 池里新出现的板块（本轮首次抓取）也要算上
+    if pool:
+        for sc in pool.keys():
+            if sc not in out:
+                out.append(sc)
+    return out
+
+
 def _flush_pool(pool, datadir, now):
     """把累积池内容写成展示文件 {板块}.json。
 
@@ -695,7 +721,7 @@ def main():
             print("  %s 重建基线 %d 条" % (sc, len(pool[sc])))
         _flush_pool(pool, out_dir, now)
         save_pool(out_dir, pool, meta)
-        build_latest(list(pool.keys()), out_dir)
+        build_latest(_all_sections(out_dir, pool), out_dir)
         print("完成(重建)，history 保持现有 %d 条" % len(load(hp) if os.path.exists(hp) else []))
         return
 
@@ -747,7 +773,7 @@ def main():
     _flush_pool(pool, out_dir, now)
     save_pool(out_dir, pool, meta)
     # 传全量板块（而非本轮 scopes）：focus 模式下未抓的省份仍保留在页面上
-    build_latest(list(pool.keys()), out_dir)
+    build_latest(_all_sections(out_dir, pool), out_dir)
     print("完成，history 共 %d 条，累积池 %d 个板块" % (len(history), len(pool)))
 
 
