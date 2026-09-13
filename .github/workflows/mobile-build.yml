@@ -158,6 +158,10 @@ jobs:
           rm -rf data
           mv data.new data || { echo "::error::data 替换失败，中止"; exit 1; }
           cp -f /tmp/art/index.html /tmp/art/app.js /tmp/art/style.css /tmp/art/common-extras.js . 2>/dev/null || true
+          # 重打「自己创建」下载包：配置中心 push-center.html 的下载按钮指向
+          # tariff-fetch-source.zip，该包必须与 main 分支代码一致。此前它是
+          # 手工打的一次性产物，改了代码不会跟着变，下载的人拿到旧代码。
+          python3 scripts/make_source_zip.py || echo "[warn] 源码包生成失败，沿用旧包"
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
