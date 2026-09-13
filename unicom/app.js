@@ -1161,8 +1161,10 @@ let histFilter = "";
 
 /* ===== 变化历史渲染（此前缺失 histDraw，导致历史页一直停在「加载中」）===== */
 function histDraw(list) {
-  // 历史按时间升序存储（旧→新），此处局部倒序，令最新变化展示在最上方（手机端体验）
-  list = Array.isArray(list) ? list.slice().reverse() : list;
+  // 历史按时间升序存储（旧→新）：此处仅对本轮渲染做反向副本，且始终基于同一份原始升序数组重排，
+  // 避免「加载更多」时把已反转数组再次 reverse 导致顺序翻回升序（bug: 最新日期掉到底部、角标错位）。
+  const histRaw = Array.isArray(list) ? list.slice() : (list || []);
+  list = histRaw.slice().reverse();
   const box = $("historyBox");
   histShown = Math.min(histShown, list.length);
   const slice = list.slice(0, histShown);
@@ -1241,7 +1243,7 @@ function histDraw(list) {
       });
     });
   });
-  setupHistAutoLoad(list);
+  setupHistAutoLoad(histRaw);
 }
 
 /* 上滑自动加载：哨兵进入视口即追加下一页，无需点按钮 */
