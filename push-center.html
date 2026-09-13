@@ -257,7 +257,7 @@ code{
       <div class="tiny" style="line-height:1.9;margin-bottom:12px;color:var(--text-secondary)">
         让你自己的设备到点自动推，<b style="color:var(--text-primary)">总共只复制下面「两条」</b>：<br>
         ① <b>安装命令</b>（粘贴到终端按回车，自动下载脚本+写入你的配置+发一条测试消息）<br>
-        ② <b>定时行</b>（先运行 <code>crontab -e</code>，把这一行粘进去保存，以后每天 9:00 自动推）
+        ② <b>定时行</b>（先运行 <code>crontab -e</code>，把生成的内容粘进去保存；每天可设 1~4 个推送时间点）
       </div>
       <div class="stepw">
         <div class="stept">第 1 步（必做）· 复制安装命令 → 终端粘贴回车</div>
@@ -265,13 +265,20 @@ code{
       <button id="dCopy" class="btn pri" style="margin-top:8px">📋 复制「安装」命令</button>
       <textarea id="dCmd" class="codebox" rows="5" readonly style="margin-top:8px"></textarea>
       <div class="stepw" style="margin-top:14px">
-        <div class="stept">第 2 步（必做）· 先运行 <code>crontab -e</code>，再复制定时行粘进去保存</div>
+        <div class="stept">第 2 步（必做）· 先选好每天推送时间，再运行 <code>crontab -e</code> 把生成的行粘进去保存</div>
       </div>
-      <button id="cronCopy" class="btn" style="margin-top:10px">📋 复制定时行</button>
-      <textarea id="cronCmd" class="codebox" rows="2" readonly style="margin-top:8px"></textarea>
+      <div class="fld" style="margin-top:8px">
+        <label>每天推送时间（点 ＋ 添加，最多 4 个）</label>
+        <div id="cronTimes"></div>
+        <div class="hrow" style="margin-top:8px;gap:8px">
+          <button id="cronAdd" class="btn">＋ 添加时间点</button>
+          <button id="cronCopy" class="btn pri" style="flex:1">📋 复制定时行</button>
+        </div>
+      </div>
+      <textarea id="cronCmd" class="codebox" rows="6" readonly style="margin-top:8px"></textarea>
       <div class="tiny" style="margin-top:10px;line-height:1.8;color:var(--text-secondary)">
-        改推送时间：把开头 <code>0 9 * * *</code> 改成 <code>0 10 * * *</code> 就是 10:00。<br>
-        <b>OpenWrt 路由器</b>：先 <code>opkg update && opkg install cron</code> 装好定时器（在「系统 → 计划任务」里加同一行也行），再执行上面两步。<br>
+        选定几个时间点，上面就会自动生成对应的几行定时命令。<br>
+        <b>OpenWrt 路由器</b>：先 <code>opkg update && opkg install cron</code> 装好定时器（在「系统 → 计划任务」里加同一段也行），再执行上面两步。<br>
         密钥只写在你自己的设备上，<b>不上传任何服务器</b>。「GitHub 云端」和「自己在设备上」二选一即可，两边都配也行。
       </div>
     </div>
@@ -487,7 +494,7 @@ $('qCopy').addEventListener('click',function(){refreshQuick();if(!$('qCmd').valu
 
 /* ===== 自己在设备上定时（路由器 / 电脑 / NAS）=====
    第一条命令：装脚本 + 写入上方配置 + 发一条测试
-   第二条：crontab 定时行，每天 9:00 自动推送 */
+   第二条：crontab 定时行，由下方选定的 1~4 个时间点生成 */
 function devInstallCmd(){
  if(!qEnv().length)return '# 请先在上方「推送渠道」里启用至少一个并填好 Webhook';
  const envs=envPairs().map(function(x){return shq(x[0]+'='+x[1])}).join(' ');
@@ -496,11 +503,50 @@ function devInstallCmd(){
  return base+' && printf '+shq('%s\n')+' '+envs+' > .env'
    +' && python3 push_once.py --test';
 }
+/* ===== 每天推送时间点（最多 4 个，自动生成多行 crontab） ===== */
+var cronTimes=['09:00'];
+function timeToCron(t){
+ const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);if(!m)return'';
+ const h=+m[1],mi=+m[2];if(h>23||mi>59)return'';
+ return mi+' '+h+' * * *';
+}
 function devCronLine(){
  if(!qEnv().length)return '# 请先在上方启用并填好推送渠道';
- return '0 9 * * * cd ~/tariff-push && python3 push_once.py >> ~/tariff-push/cron.log 2>&1';
+ const lines=cronTimes.map(function(t){
+  const c=timeToCron(t);
+  return c?(c+' cd ~/tariff-push && python3 push_once.py >> ~/tariff-push/cron.log 2>&1'):'';
+ }).filter(function(x){return x});
+ return lines.length?lines.join('\n'):'# 请至少选择一个推送时间';
 }
-function refreshDevice(){if($('dCmd'))$('dCmd').value=devInstallCmd();if($('cronCmd'))$('cronCmd').value=devCronLine()}
+function renderCronTimes(){
+ const box=$('cronTimes');box.innerHTML='';
+ cronTimes.forEach(function(t,i){
+  const row=document.createElement('div');
+  row.className='hrow';row.style.marginTop=(i?'6px':'0');row.style.gap='8px';
+  const inp=document.createElement('input');
+  inp.type='time';inp.className='inp';inp.style.flex='1';inp.value=t;
+  inp.addEventListener('input',function(){cronTimes[i]=inp.value||'09:00';refreshDevice()});
+  row.appendChild(inp);
+  const del=document.createElement('button');
+  del.className='btn';del.style.flex='none';del.textContent='✕';
+  del.addEventListener('click',function(){
+   if(cronTimes.length<=1){toast('至少保留一个时间点','err');return}
+   cronTimes.splice(i,1);renderCronTimes();refreshDevice();
+  });
+  row.appendChild(del);
+  box.appendChild(row);
+ });
+ if($('cronAdd'))$('cronAdd').disabled=cronTimes.length>=4;
+ $('cronCopy').textContent='📋 复制定时行'+(cronTimes.length>1?('（'+cronTimes.length+' 个时间点）'):'');
+}
+function addCronTime(){
+ if(cronTimes.length>=4){toast('最多 4 个推送时间点','err');return}
+ cronTimes.push('12:00');renderCronTimes();refreshDevice();
+}
+function refreshDevice(){
+ if($('dCmd'))$('dCmd').value=devInstallCmd();
+ if($('cronCmd'))$('cronCmd').value=devCronLine();
+}
 function switchTab(name){
  const cloud=name==='cloud',dev=name==='device';
  $('tabCloud').classList.toggle('on',cloud);
@@ -508,9 +554,11 @@ function switchTab(name){
  $('panelCloud').style.display=cloud?'':'none';
  $('panelDevice').style.display=dev?'':'none';
 }
+renderCronTimes();
 refreshDevice();
 $('dCopy').addEventListener('click',function(){refreshDevice();const v=$('dCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制，粘贴到终端执行')}});
 $('cronCopy').addEventListener('click',function(){refreshDevice();const v=$('cronCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制定时行，粘贴到 crontab 里')}});
+$('cronAdd').addEventListener('click',addCronTime);
 $('tabCloud').addEventListener('click',function(){switchTab('cloud')});
 $('tabDevice').addEventListener('click',function(){switchTab('device');refreshDevice()});
 $('qTitle').addEventListener('input',refreshQuick);
