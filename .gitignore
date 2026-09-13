@@ -1,4 +1,15 @@
-
-
 # 本地密钥配置（勿提交真实密钥）
 .env
+
+# Python 编译产物（曾把 6 个 .pyc 混进版本库）
+__pycache__/
+*.py[cod]
+*.pyc
+
+# 运行日志：workflow 每轮生成，提交会让仓库无意义膨胀
+*_run.log
+fetch_run.log
+tg_run.log
+
+# 诊断输出：移动管线每轮重写，仅供排查用
+_diag.json

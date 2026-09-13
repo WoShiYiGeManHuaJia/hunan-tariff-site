@@ -114,11 +114,13 @@ jobs:
           cp -a /tmp/art/unicom ./unicom.new || { echo "::error::产物复制失败，中止"; exit 1; }
           rm -rf unicom
           mv unicom.new unicom || { echo "::error::产物替换失败，中止"; exit 1; }
+          # 日志仅留在工作区供本轮 tail 查看，不再提交：
+          # 此前用 git add -f 强制绕过 .gitignore，导致每轮把日志写进仓库，
+          # 与「删日志减负」的清理相互抵消。
           cp -f /tmp/art/fetch_run.log ./fetch_run.log 2>/dev/null || true
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git add -f fetch_run.log
           if git diff --cached --quiet; then
             echo "无变化"
           else
@@ -131,7 +133,7 @@ jobs:
               git reset --hard FETCH_HEAD
               cp -a /tmp/art/unicom/. ./unicom/ 2>/dev/null || echo "[warn] 产物恢复失败（保留远端版本）"
               cp -f /tmp/art/fetch_run.log ./fetch_run.log 2>/dev/null || true
-              git add -A; git add -f fetch_run.log
+              git add -A
               git commit -q -m "unicom fetch $(date -u +%FT%TZ) retry$i" || true
               sleep 8
             done

@@ -261,14 +261,9 @@ def _brief(it):
 def diff_scope(prev, cur):
     r = diff_items(prev.get("items") or [], cur.get("items") or [], detail_limit=60)
     added, removed, modified = r["added_items"], r["removed_items"], r["modified_items"]
-    # ID 大面积漂移但稳定业务全部匹配：仅重建匹配关系，不报假变更。
-    total_n = len(prev.get("items") or []) + len(cur.get("items") or [])
-    raw_n = r["raw_added"] + r["raw_removed"]
-    if total_n > 0 and raw_n / total_n > 0.5 and not added and not removed and not modified:
-        return {"shifted": True, "added": 0, "removed": 0, "modified": 0,
-                "added_names": [], "removed_names": [], "modified_names": [],
-                "added_list": [], "removed_list": [], "modified_list": [],
-                "raw_added": r["raw_added"], "raw_removed": r["raw_removed"]}
+    # 原 shifted 分支已移除：raw_added = len(added)，故 not added/removed 成立时
+    # raw_n 必为 0，0/total_n > 0.5 恒假 —— 该分支永不可达，ID 漂移检测从未生效。
+    # 真正防 ID 漂移的是 diff_items 的 stable_business_key 匹配，此处无需额外处理。
     return {"added": len(added), "removed": len(removed), "modified": len(modified),
             "added_names": [x.get("title", "") for x in added][:24],
             "removed_names": [x.get("title", "") for x in removed][:24],

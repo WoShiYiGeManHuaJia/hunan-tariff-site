@@ -1,7 +1,9 @@
 # 快照模块：存储历史数据并对比变化
 import json
 import os
+import re
 import time
+import datetime
 
 SNAPSHOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "snapshots")
 os.makedirs(SNAPSHOT_DIR, exist_ok=True)
@@ -141,6 +143,63 @@ def diff(old_items: list, new_items: list) -> dict:
             modified.append({"name": _parse_name(new[ni]), "old": _mobile_fields(old[oi]), "new": _mobile_fields(new[ni]), "changed": changed})
     return {"added": added, "removed": removed, "modified": modified}
 
+# ── 下线日期核验（假下架第二层防护）──
+# 数量护栏（main.py 的 ABNORMAL_DROP_RATIO）只能拦「大幅缩水」，
+# 小幅缩水时仍会把没采到的存量业务判成下架。
+# 实测：河南某轮「下架 1613 条」中 1551 条的下线日期是 2045/2042/2027 年
+# —— 明明白白还在售，却被记为下架。故再按业务字段逐条核验。
+_DATE_PAT = re.compile(r"(\d{4})\s*[-/年.]\s*(\d{1,2})\s*[-/月.]\s*(\d{1,2})")
+# 设为 0 可关闭本层核验（例如源站日期口径变更时）
+REJECT_FUTURE_OFFLINE = os.getenv("REJECT_FUTURE_OFFLINE", "1").strip() != "0"
+
+
+def _parse_cn_date(s):
+    """解析「2029年12月31日」「2029-12-31」等为 date；无法解析返回 None。"""
+    if s is None:
+        return None
+    m = _DATE_PAT.search(str(s))
+    if not m:
+        return None
+    try:
+        return datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except Exception:
+        return None
+
+
+def _still_onsale(item):
+    """按「下线日期」判断一条被判下架的业务是否其实仍在售。
+
+    返回 True(仍在售→假下架) / False(确已过期→真下架) / None(无法判断→保留)。
+    无该字段或格式不可解析时一律返回 None，宁可保留也不误删。
+    """
+    f = item.get("fields") if isinstance(item, dict) else None
+    if not isinstance(f, dict):
+        return None
+    v = f.get("下线日期") or f.get("有效期限")
+    d = _parse_cn_date(v)
+    if d is None:
+        return None
+    return d >= datetime.date.today()
+
+
+def _drop_fake_removed(removed: list, section: str) -> list:
+    """剔除「下线日期仍在未来」的假下架条目。"""
+    if not REJECT_FUTURE_OFFLINE or not removed:
+        return removed
+    kept, dropped = [], []
+    for x in removed:
+        if _still_onsale(x) is True:      # 明确仍在售 → 采样缺失导致的假下架
+            dropped.append(x)
+        else:                              # 真过期 或 无法判断 → 保留
+            kept.append(x)
+    if dropped:
+        names = [_parse_name(x) for x in dropped[:3]]
+        print(f"  [核验] 板块 {section} 剔除假下架 {len(dropped)} 条"
+              f"（下线日期尚未到期）：{ '、'.join(n for n in names if n) }"
+              f"{'…' if len(dropped) > 3 else ''}")
+    return kept
+
+
 def check_section(section: str, new_data: dict):
     """对比某板块变化，返回变化报告 dict 或 None。
     若旧快照格式与新数据不兼容（如升级前的字符串快照），先重建基线不通知。"""
@@ -156,6 +215,8 @@ def check_section(section: str, new_data: dict):
         return None
 
     d = diff(old.get("items") if old else [], new_data.get("items", []))
+    # 第二层：逐条核验下线日期，剔除「仍在售却被判下架」的条目
+    d["removed"] = _drop_fake_removed(d["removed"], section)
     has_change = bool(d["added"] or d["removed"] or d["modified"])
     report = {
         "section": section,

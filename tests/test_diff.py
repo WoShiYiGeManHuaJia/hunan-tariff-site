@@ -151,6 +151,83 @@ def test_unicom_uses_brief():
     assert "_brief(x)" in src
 
 
+# ═══════════════ 五项修复的回归锁 ═══════════════
+# 这些修复曾被整批重构覆盖过一次（累积池被换成噪声判据、下线日期核验丢失、
+# 「试用」误伤真实业务）。加测试锁定，避免再次静默回退。
+
+def test_unicom_has_accumulation_pool():
+    """① 累积池必须存在：噪声判据会吞掉真实变化。"""
+    src = open(os.path.join(ROOT, "pipelines", "unicom_pipeline.py"), encoding="utf-8").read()
+    for fn in ("def load_pool", "def save_pool", "def pool_update", "def _miss_need"):
+        assert fn in src, "缺少累积池函数 %s（是否被噪声判据覆盖？）" % fn
+    assert "_pool.json" in src
+
+
+def test_noise_guard_does_not_eat_real_change():
+    """① 反例锁：mark_noise 会把真实变化一并归零，故联通不得再依赖它判变化。"""
+    # 真实新增 5 / 下架 3，混在 500 条采样噪声里 → 变化率远超阈值
+    sec = {"added": 251, "removed": 251, "modified": 0}
+    out = mark_noise(sec, 1000)
+    # 这正是累积池存在的原因：噪声判据会把真实变化一起吞掉
+    assert out["added"] == 0 and out["removed"] == 0
+    src = open(os.path.join(ROOT, "pipelines", "unicom_pipeline.py"), encoding="utf-8").read()
+    assert "mark_noise(" not in src, "联通不得再用 mark_noise 判变化（会漏报真实变更）"
+
+
+def test_mobile_offline_date_check():
+    """② 下线日期核验：未来日期的业务不得被记为下架。"""
+    sys.path.insert(0, os.path.join(ROOT, "pipelines", "mobile"))
+    import snapshot
+    future = {"name": "2045年到期的业务", "fields": {"下线日期": "2045年12月31日"}}
+    past = {"name": "已过期业务", "fields": {"下线日期": "2020年01月01日"}}
+    nodate = {"name": "无日期业务", "fields": {}}
+    kept = snapshot._drop_fake_removed([future, past, nodate], "test")
+    names = {x["name"] for x in kept}
+    assert "2045年到期的业务" not in names, "未来下线日期不应判为下架"
+    assert "已过期业务" in names, "真过期应保留"
+    assert "无日期业务" in names, "无日期无法判断，应保留（不误删）"
+
+
+def test_trial_word_not_filtered():
+    """③ 「试用」是真实业务高频词，不得进入过滤词表。"""
+    # 运营商真实在售业务，曾被误删
+    for t in ("众享阅读产品试用1个月", "校讯通.免费试用", "Token试用套餐",
+              "高考王者尊享版试用2个月", "同步课堂产品试用2个月"):
+        assert not is_test_item(t), "真实业务被误判为测试数据: %s" % t
+    # 真测试数据仍要能识别
+    assert is_test_item("【测试】xxx 请忽略")
+    assert is_test_item("校园卡测试流量包")
+    assert is_test_item("demo样例数据")
+
+
+def test_gitignore_covers_junk():
+    """④ .gitignore 必须挡住 __pycache__ / 日志 / 诊断文件。"""
+    p = os.path.join(ROOT, ".gitignore")
+    assert os.path.isfile(p), ".gitignore 不存在"
+    txt = open(p, encoding="utf-8").read()
+    assert "__pycache__" in txt, "缺少 __pycache__ 规则（.pyc 会混进版本库）"
+    assert "_diag.json" in txt
+    assert "fetch_run.log" in txt or "*_run.log" in txt
+
+
+def test_no_git_add_force():
+    """④ workflow 不得用 git add -f 绕过 .gitignore 提交日志。"""
+    import glob
+    for f in glob.glob(os.path.join(ROOT, ".github", "workflows", "*.yml")):
+        # 只看真实代码行：注释里提到 git add -f 是说明文字，不算违规
+        code_lines = [ln for ln in open(f, encoding="utf-8").read().splitlines()
+                      if "git add" in ln and not ln.strip().startswith("#")]
+        for ln in code_lines:
+            assert "git add -f" not in ln, "%s 仍用 git add -f 强制提交：%s" % (f, ln.strip())
+
+
+def test_no_shifted_dead_code():
+    """⑤ shifted 分支永不可达，三份管线都不得再产出它。"""
+    for name in ("unicom_pipeline.py", "telecom_pipeline.py", "gb_pipeline.py"):
+        src = open(os.path.join(ROOT, "pipelines", name), encoding="utf-8").read()
+        assert '"shifted": True' not in src, "%s 仍产出 shifted（死代码分支）" % name
+
+
 if __name__ == "__main__":
     tests = [v for k, v in list(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

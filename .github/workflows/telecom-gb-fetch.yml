@@ -126,8 +126,8 @@ jobs:
           cp -f /tmp/art/tg_run.log ./tg_run.log 2>/dev/null || true
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 日志仅留在工作区供本轮 tail 查看，不再提交（此前 git add -f 会绕过 .gitignore）
           git add -A
-          git add -f tg_run.log
           if git diff --cached --quiet; then
             echo "无变化"
           else
@@ -141,7 +141,7 @@ jobs:
               cp -a /tmp/art/telecom/. ./telecom/ 2>/dev/null || true
               cp -a /tmp/art/gb/. ./gb/ 2>/dev/null || true
               cp -f /tmp/art/tg_run.log ./tg_run.log 2>/dev/null || true
-              git add -A; git add -f tg_run.log
+              git add -A
               git commit -q -m "telecom+gb fetch $(date -u +%FT%TZ) retry$i" || true
               sleep 8
             done
