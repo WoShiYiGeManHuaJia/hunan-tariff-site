@@ -11,7 +11,7 @@
 import urllib.request, json, time, base64, hashlib, os, sys, argparse
 
 from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
-                             modified_details_for, filter_test_items, slim_change, diff_items)
+                             modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key)
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
@@ -154,33 +154,42 @@ def digest_item(it):
 
 
 def digest_stable(it):
-    """稳定指纹：不含 id（接口 id 可能逐轮漂移），用 标题+资费+一级分类+二级分类 标识业务实体。"""
-    return json.dumps([it.get("title", ""), it.get("fee", ""), it.get("firstLevel", ""), it.get("secondLevel", "")], ensure_ascii=False)
+    """跨板块业务身份；与公共 Diff 使用同一套键，价格变化不会造成身份变化。"""
+    return stable_business_key(it)
+
+
+def _brief(it):
+    """历史页弹窗展示用的配置快照（与联通/广电对齐）。"""
+    d = it.get("detail") or {}
+    out = {"title": it.get("title", ""), "fee": it.get("fee", ""),
+           "firstLevel": it.get("firstLevel", ""), "secondLevel": it.get("secondLevel", "")}
+    for k, v in d.items():
+        if k in ("timestamp", "responseContent", "data"):
+            continue
+        if isinstance(v, str) and len(v) > 600:
+            v = v[:600] + "…"
+        out[k] = v
+    return out
 
 
 def diff_scope(prev, cur):
-    p_items = prev.get("items") or []
-    c_items = cur.get("items") or []
-    # 统一 diff：ID 精确匹配 + stable_business_key 兜底 + 完整字段比较；
-    # 价格/流量/权益变化识别为 modified 而非误判上下架，ID 漂移不产生假上下架。
-    r = diff_items(p_items, c_items, detail_limit=int(os.getenv("TELECOM_DETAILS_LIMIT") or "60"))
+    r = diff_items(prev.get("items") or [], cur.get("items") or [], detail_limit=int(os.getenv("TELECOM_DETAILS_LIMIT") or "60"))
     added, removed, modified = r["added_items"], r["removed_items"], r["modified_items"]
-    # 全量对称错位护栏：id 层面大面积漂移（>50%），但稳定业务键层面净变化为 0 → 实为 id 漂移的基线错位，重建基线不记变化
-    raw_added, raw_removed = r["raw_added"], r["raw_removed"]
-    raw_n = raw_added + raw_removed
-    total_n = len(p_items) + len(c_items)
+    total_n = len(prev.get("items") or []) + len(cur.get("items") or [])
+    raw_n = r["raw_added"] + r["raw_removed"]
     if total_n > 0 and raw_n / total_n > 0.5 and not added and not removed and not modified:
         return {"shifted": True, "added": 0, "removed": 0, "modified": 0,
                 "added_names": [], "removed_names": [], "modified_names": [],
-                "raw_added": raw_added, "raw_removed": raw_removed}
-    return {
-        "added": len(added), "removed": len(removed), "modified": len(modified),
-        "added_names": [x.get("title", "") for x in added][:20],
-        "removed_names": [x.get("title", "") for x in removed][:20],
-        "modified_names": [x.get("title", "") for x in modified][:20],
-        "modified_details": r["modified_details"],
-    }
-
+                "added_list": [], "removed_list": [], "modified_list": [],
+                "raw_added": r["raw_added"], "raw_removed": r["raw_removed"]}
+    return {"added": len(added), "removed": len(removed), "modified": len(modified),
+            "added_names": [x.get("title", "") for x in added],
+            "removed_names": [x.get("title", "") for x in removed],
+            "modified_names": [x.get("title", "") for x in modified],
+            "modified_details": r["modified_details"],
+            "added_list": [_brief(x) for x in added[:24]],
+            "removed_list": [_brief(x) for x in removed[:24]],
+            "modified_list": [_brief(x) for x in modified[:24]]}
 
 def build_latest(scopes, datadir):
     sections, prov_stats = [], {}
@@ -213,6 +222,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--prev-dir", required=True)
     ap.add_argument("--out-dir", required=True)
+    ap.add_argument("--rebuild", action="store_true",
+                    help="重建基线模式：仅抓取并覆盖渲染数据/latest，跳过对比与历史记录")
     args = ap.parse_args()
     prev_dir, out_dir = args.prev_dir, args.out_dir
     scopes = list(SCOPES.keys())
@@ -236,6 +247,11 @@ def main():
         print("[%s] total=%d" % (scope, len(items)))
         time.sleep(1)
     hp = os.path.join(out_dir, "history.json")
+    if args.rebuild:
+        print("== 重建基线模式：跳过对比与历史，仅刷新数据/latest ==")
+        build_latest(scopes, out_dir)
+        print("完成(重建)，history 保持现有 %d 条" % len(load(hp) if os.path.exists(hp) else []))
+        return
     history = load(hp) if os.path.exists(hp) else []
     changes = {}
     for sc in scopes:
@@ -251,7 +267,7 @@ def main():
         # 不过滤会让它们在本轮被判成"下架"而产生误报。
         prev_clean = prev_data[sc]
         if prev_clean and prev_clean.get("items"):
-            kept = filter_test_items(prev_clean["items"])
+            kept = filter_test_items(prev_clean["items"], verbose=False)
             if len(kept) != len(prev_clean["items"]):
                 prev_clean = dict(prev_clean, items=kept)
         r = diff_scope(prev_clean, cur)
