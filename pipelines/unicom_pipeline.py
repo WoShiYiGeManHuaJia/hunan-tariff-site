@@ -440,8 +440,20 @@ def _miss_need(hit_n, pool_n):
 
 
 def load_pool(datadir):
-    """读取累积池。返回 (pool, meta)，meta 存每个板块的平滑阈值等状态。"""
-    d = load(os.path.join(datadir, POOL_FILE))
+    """读取累积池。返回 (pool, meta)，meta 存每个板块的平滑阈值等状态。
+
+    ★ 首次运行时 _pool.json 尚不存在，此处必须容错返回空池；
+      直接用 load() 会因 FileNotFoundError 让整轮抓取直接崩溃
+      （首次部署必现，09-13 首轮即因此 exit=1 空跑一轮）。
+    """
+    fp = os.path.join(datadir, POOL_FILE)
+    if not os.path.exists(fp):
+        return {}, {}
+    try:
+        d = load(fp)
+    except Exception as e:
+        print("  [池] 读取失败(%s)，按空池重建" % e)
+        return {}, {}
     if not isinstance(d, dict):
         return {}, {}
     return (d.get("pool") or {}), (d.get("meta") or {})
