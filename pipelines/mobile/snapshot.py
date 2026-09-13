@@ -73,36 +73,73 @@ def _structure_upgraded(old_items: list, new_items: list) -> bool:
     return ok is not None and nk is not None and ok != nk
 
 
-def diff(old_items: list, new_items: list) -> dict:
-    """对比新旧资费条目，返回新增/下架/修改三类。
-    以业务名称为 key；同名下字段有变化的归入 modified，
-    并附 changed: {字段名: (旧值, 新值)}。"""
-    old_map = {_parse_name(i): i for i in (old_items or [])}
-    new_map = {_parse_name(i): i for i in (new_items or [])}
-    added = [new_map[k] for k in new_map if k not in old_map]                       # 新增条目
-    removed = [old_map[k] for k in old_map if k not in new_map]                     # 下架条目
-    modified = []                                                                   # 修改条目
-    for k in old_map:
-        if k not in new_map or old_map[k] == new_map[k]:
-            continue
-        old_item, new_item = old_map[k], new_map[k]
-        if isinstance(old_item, dict) and isinstance(new_item, dict):
-            old_f, new_f = old_item.get("fields", {}), new_item.get("fields", {})
-            changed = {
-                f: (old_f.get(f), new_f.get(f))
-                for f in sorted(set(old_f) | set(new_f))
-                if old_f.get(f) != new_f.get(f)
-            }
-            modified.append({"name": k, "old": old_f, "new": new_f, "changed": changed})
-        else:
-            modified.append({"name": k, "old": old_item, "new": new_item,
-                             "changed": {k: (old_item, new_item)}})
-    return {
-        "added": added,
-        "removed": removed,
-        "modified": modified,
-    }
+def _norm(v):
+    if v is None:
+        return ""
+    if isinstance(v, (dict, list)):
+        return json.dumps(v, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return str(v).strip()
 
+
+def _mobile_key(item):
+    """移动业务身份键：优先稳定业务编号，否则名称+分类；绝不包含价格/字段内容。"""
+    if not isinstance(item, dict):
+        return ("text", _parse_name(item))
+    fields = item.get("fields") if isinstance(item.get("fields"), dict) else {}
+    for k in ("productCode", "goodsCode", "businessCode", "code", "方案编号"):
+        v = fields.get(k) or item.get(k)
+        if v not in (None, ""):
+            return ("code", k, _norm(v))
+    return ("name", _norm(item.get("name")), _norm(fields.get("资费类型")), _norm(fields.get("归属")))
+
+
+def _mobile_fields(item):
+    if isinstance(item, dict):
+        f = item.get("fields")
+        if isinstance(f, dict):
+            return {k: v for k, v in f.items()}
+        return {k: v for k, v in item.items() if k not in ("id", "name")}
+    return {"name": item}
+
+
+def _changed(old, new):
+    a, b = _mobile_fields(old), _mobile_fields(new)
+    return {k: (a.get(k), b.get(k)) for k in sorted(set(a) | set(b)) if _norm(a.get(k)) != _norm(b.get(k))}
+
+
+def diff(old_items: list, new_items: list) -> dict:
+    """重复安全的移动 Diff：同身份一对一匹配，避免同名条目互相覆盖。"""
+    old, new = list(old_items or []), list(new_items or [])
+    used_old, used_new = set(), set()
+    pairs = []
+
+    def groups(items, key_fn, used):
+        out = {}
+        for i, x in enumerate(items):
+            if i not in used:
+                out.setdefault(key_fn(x), []).append(i)
+        return out
+
+    # 先精确 ID；只有唯一 ID 才配对。
+    om, nm = groups(old, lambda x: _norm(x.get("id")) if isinstance(x, dict) else "", used_old), groups(new, lambda x: _norm(x.get("id")) if isinstance(x, dict) else "", used_new)
+    for k in set(om) & set(nm):
+        if k and len(om[k]) == len(nm[k]) == 1:
+            oi, ni = om[k][0], nm[k][0]; used_old.add(oi); used_new.add(ni); pairs.append((oi, ni))
+
+    # 再稳定业务键；多条同身份时一对一，不覆盖。
+    om, nm = groups(old, _mobile_key, used_old), groups(new, _mobile_key, used_new)
+    for k in set(om) & set(nm):
+        for oi, ni in zip(om[k], nm[k]):
+            used_old.add(oi); used_new.add(ni); pairs.append((oi, ni))
+
+    added = [new[i] for i in range(len(new)) if i not in used_new]
+    removed = [old[i] for i in range(len(old)) if i not in used_old]
+    modified = []
+    for oi, ni in pairs:
+        changed = _changed(old[oi], new[ni])
+        if changed:
+            modified.append({"name": _parse_name(new[ni]), "old": _mobile_fields(old[oi]), "new": _mobile_fields(new[ni]), "changed": changed})
+    return {"added": added, "removed": removed, "modified": modified}
 
 def check_section(section: str, new_data: dict):
     """对比某板块变化，返回变化报告 dict 或 None。
