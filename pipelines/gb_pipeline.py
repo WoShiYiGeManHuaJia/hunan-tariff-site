@@ -1,6 +1,3 @@
-from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
-                             modified_details_for, slim_change, diff_items)
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """广电资费监控管线（可在 GitHub Actions 直接运行，路径全部相对脚本目录）
@@ -20,12 +17,15 @@ from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
 """
 import json, time, os, sys, urllib.request, ssl, hashlib, argparse
 
+from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
+                             modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key)
+
 PROG_DIR = os.path.dirname(os.path.abspath(__file__))
 API = "https://m.10099.com.cn/contact-web/api/goods/"
 CHANNEL = "cd_20220914_514144"
 _ctx = ssl.create_default_context()
-_ctx.check_hostname = False
-_ctx.verify_mode = ssl.CERT_NONE
+_ctx.check_hostname = True
+_ctx.verify_mode = ssl.CERT_REQUIRED
 HDRS = {
     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
     "Content-Type": "application/json",
@@ -225,14 +225,14 @@ def _num(v):
 
 def fetch_scope(scope, area):
     raw, failed = query(TREE, area)
-    items = [parse_item(x) for x in raw]
+    items = filter_test_items([parse_item(x) for x in raw])
     print("  [%s] area=%s got=%d failed_leaf=%d" % (scope, area, len(items), failed))
     return items, failed
 
 
 def digest_stable(it):
-    """稳定指纹：标题+资费+一级+二级 标识业务实体（不含 id，防逐轮漂移）。"""
-    return json.dumps([it.get("title", ""), it.get("fee", ""), it.get("firstLevel", ""), it.get("secondLevel", "")], ensure_ascii=False)
+    """跨板块业务身份；与公共 Diff 使用同一套键，价格变化不会造成身份变化。"""
+    return stable_business_key(it)
 
 
 def digest_item(it):
@@ -259,21 +259,16 @@ def _brief(it):
 
 
 def diff_scope(prev, cur):
-    p_items = prev.get("items") or []
-    c_items = cur.get("items") or []
-    # 统一 diff：ID 精确匹配 + stable_business_key 兜底 + 完整字段比较；
-    # 价格/流量/权益变化识别为 modified 而非误判上下架，ID 漂移不产生假上下架。
-    r = diff_items(p_items, c_items, detail_limit=60)
+    r = diff_items(prev.get("items") or [], cur.get("items") or [], detail_limit=60)
     added, removed, modified = r["added_items"], r["removed_items"], r["modified_items"]
-    # 全量对称错位护栏：id 层面大面积漂移（>50%），但稳定业务键层面净变化为 0 → 实为 id 漂移的基线错位，重建基线不记变化
-    raw_added, raw_removed = r["raw_added"], r["raw_removed"]
-    raw_n = raw_added + raw_removed
-    total_n = len(p_items) + len(c_items)
+    # ID 大面积漂移但稳定业务全部匹配：仅重建匹配关系，不报假变更。
+    total_n = len(prev.get("items") or []) + len(cur.get("items") or [])
+    raw_n = r["raw_added"] + r["raw_removed"]
     if total_n > 0 and raw_n / total_n > 0.5 and not added and not removed and not modified:
         return {"shifted": True, "added": 0, "removed": 0, "modified": 0,
                 "added_names": [], "removed_names": [], "modified_names": [],
                 "added_list": [], "removed_list": [], "modified_list": [],
-                "raw_added": raw_added, "raw_removed": raw_removed}
+                "raw_added": r["raw_added"], "raw_removed": r["raw_removed"]}
     return {"added": len(added), "removed": len(removed), "modified": len(modified),
             "added_names": [x.get("title", "") for x in added][:24],
             "removed_names": [x.get("title", "") for x in removed][:24],
@@ -282,7 +277,6 @@ def diff_scope(prev, cur):
             "added_list": [_brief(x) for x in added[:24]],
             "removed_list": [_brief(x) for x in removed[:24]],
             "modified_list": [_brief(x) for x in modified[:24]]}
-
 
 def load(path):
     with open(path, encoding="utf-8") as f:
@@ -370,7 +364,13 @@ def main():
                 qu_fp.add(digest_stable(it))
         # 保护条件此前写成 `ok and ...`：ok=False 恰是「彻底失败、无数据」，
         # 保护反而完全失效，空数据直接落盘把线上冲成 0 条。
-        # 判据只看本轮结果本身：本轮为空且上版有数据 → 视为失败，跳过本轮。
+        # 任一分类失败时，本轮数据是不完整样本。若已有正常基线，
+        # 绝不把残缺快照参与 Diff，否则缺失项会被误报为大批下架。
+        if failed and prev_data_raw.get(sc):
+            print("  !! %s 有 %d 个分类失败，保留上版 %d 条，跳过本轮" % (
+                sc, failed, len(prev_data_raw[sc].get("items") or [])))
+            failed_scopes.append(sc)
+            continue
         if len(items) == 0 and prev_data_raw.get(sc):
             print("  !! %s 抓取为空但上版有 %d 条，视为失败，跳过本轮" % (sc, len(prev_data_raw[sc]["items"])))
             failed_scopes.append(sc)
@@ -420,6 +420,10 @@ def main():
         if prev_use is None:
             print("  %s 首次，建基线（不记变化）" % sc)
             continue
+        if prev_use.get("items"):
+            kept = filter_test_items(prev_use["items"], verbose=False)
+            if len(kept) != len(prev_use["items"]):
+                prev_use = dict(prev_use, items=kept)
         r = diff_scope(prev_use, cur_use)
         _bt = len((prev_use or {}).get("items") or [])
         if is_sampling_noise(r, _bt):
