@@ -1,0 +1,29 @@
+name: Test Dingtalk Ping
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 发一条测试消息
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: |
+          set -e
+          python3 - <<'PY'
+          import os,time,hmac,hashlib,base64,urllib.parse,json,urllib.request
+          wh=os.environ['DINGTALK_WEBHOOK']; sec=os.environ['DINGTALK_SECRET']
+          ts=str(round(time.time()*1000))
+          sign=urllib.parse.quote_plus(base64.b64encode(
+              hmac.new(sec.encode(), f"{ts}\n{sec}".encode(), hashlib.sha256).digest()))
+          body={"msgtype":"text","text":{"content":"【连通测试】这是一条测试消息，收到说明你的钉钉客户端能正常弹出通知。"}}
+          req=urllib.request.Request(f"{wh}&timestamp={ts}&sign={sign}",
+              data=json.dumps(body).encode(), headers={"Content-Type":"application/json"})
+          r=json.load(urllib.request.urlopen(req,timeout=30))
+          print("结果:",r)
+          if r.get("errcode")!=0: raise SystemExit("发送失败")
+          print("✅ 测试消息已送达")
+          PY
