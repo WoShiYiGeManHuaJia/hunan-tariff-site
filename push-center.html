@@ -54,6 +54,9 @@ body{margin:0;background:var(--background);padding:16px;font-family:ui-sans-seri
 .btn.danger{color:var(--destructive)}
 .sec{margin-top:16px}
 .sect{font-size:14px;font-weight:600;margin-bottom:10px}
+.tabbar{display:flex;gap:8px;margin-bottom:10px;background:var(--intensity-6);padding:4px;border-radius:12px}
+.tabbtn{flex:1;height:36px;border:0;border-radius:9px;background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;transition:background .15s,color .15s}
+.tabbtn.on{background:var(--card-bg);color:var(--text-primary);box-shadow:0 1px 4px var(--input-shadow)}
 .chcard{background:var(--card-bg);border:.5px solid var(--intensity-8);border-radius:14px;margin-bottom:10px;overflow:hidden}
 .chhead{display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer;user-select:none}
 .chhead:hover{background:var(--intensity-4)}
@@ -224,8 +227,12 @@ code{
     </div>
   </div>
   <div class="sec">
-    <div class="sect">⏰ 每天自动定时推送（GitHub 云端）</div>
-    <div class="chcard" style="padding:12px">
+    <div class="sect">⏰ 每天自动定时推送</div>
+    <div class="tabbar">
+      <button id="tabCloud" class="tabbtn on">☁️ GitHub 云端</button>
+      <button id="tabDevice" class="tabbtn">🔧 自己设备</button>
+    </div>
+    <div class="chcard" style="padding:12px" id="panelCloud">
       <div class="tiny" style="line-height:1.9;margin-bottom:10px">
         <b>GitHub 云端</b>＝让 GitHub 网站替你 <b>24 小时挂定时任务</b>：电脑关机、手机不开终端，到点照样抓取并推送。<br>
         本站站长已配好（每天 10:00 / 20:00 自动推）。<b>想自己接一套，三步搞定：</b>
@@ -246,10 +253,7 @@ code{
         🔒 密钥只存你自己仓库的 Secrets，<b>加密存储、只写不读</b>，作者和其他人都看不到。
       </div>
     </div>
-  </div>
-  <div class="sec">
-    <div class="sect">🔧 自己在设备上定时（路由器 / 电脑 / NAS）</div>
-    <div class="chcard" style="padding:12px">
+    <div class="chcard" style="padding:12px;display:none" id="panelDevice">
       <div class="tiny" style="line-height:1.9;margin-bottom:12px">
         想让<b>你自己的设备</b>到点自己跑、不依赖 GitHub？复制下面第一条命令，在<b>终端</b>粘贴执行，一次装好并写入你上方的推送配置；再加一行定时任务，就每天自动抓取并推送。<br>
         密钥只写在你自己的设备上，<b>不上传任何服务器</b>。「GitHub 云端」和「自己在设备上」二选一即可，两边都配也行。
@@ -493,9 +497,18 @@ function devCronLine(){
  return '0 9 * * * cd ~/tariff-push && python3 push_once.py >> ~/tariff-push/cron.log 2>&1';
 }
 function refreshDevice(){if($('dCmd'))$('dCmd').value=devInstallCmd();if($('cronCmd'))$('cronCmd').value=devCronLine()}
+function switchTab(name){
+ const cloud=name==='cloud',dev=name==='device';
+ $('tabCloud').classList.toggle('on',cloud);
+ $('tabDevice').classList.toggle('on',dev);
+ $('panelCloud').style.display=cloud?'':'none';
+ $('panelDevice').style.display=dev?'':'none';
+}
 refreshDevice();
 $('dCopy').addEventListener('click',function(){refreshDevice();const v=$('dCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制，粘贴到终端执行')}});
 $('cronCopy').addEventListener('click',function(){refreshDevice();const v=$('cronCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制定时行，粘贴到 crontab 里')}});
+$('tabCloud').addEventListener('click',function(){switchTab('cloud')});
+$('tabDevice').addEventListener('click',function(){switchTab('device');refreshDevice()});
 $('qTitle').addEventListener('input',refreshQuick);
 $('qText').addEventListener('input',refreshQuick);
 async function qSend(){
