@@ -415,3 +415,17 @@ body.dark .cmp-wrap{border-color:#2a3546}
 @media(max-width:400px){
   #historyBox{max-height:calc(100dvh - 230px);min-height:140px;}
 }
+/* ===== 历史页 UI 增强（2026-09-13 版本号 bump 后追加） ===== */
+.tl-item.fresh::before{width:14px;height:14px;background:linear-gradient(135deg,#ff5b5b,#e2365e);box-shadow:0 0 0 4px rgba(226,54,94,.16);left:-27px;top:15px;}
+.tl-item.fresh .tl-time{color:#d0264f;}
+.tl-fresh{flex:none;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#ff5b5b,#e2365e);padding:1px 8px;border-radius:10px;letter-spacing:.5px;box-shadow:0 1px 3px rgba(226,54,94,.3);}
+.tl-item .tl-head{gap:8px;}
+.tl{border-left:2px solid transparent;border-image:linear-gradient(180deg,var(--blue2) 0%,rgba(13,139,236,.28) 100%) 1;}
+@media(max-width:768px){
+  .tl-item{padding:10px 0 14px;}
+  .tl-time{font-size:13.5px;}
+  .tl-item.fresh::before{left:-27px;}
+  .tl-fresh{font-size:10.5px;}
+  .tl-sec-entry .tl-sec-head{padding:9px 12px;}
+}
+
