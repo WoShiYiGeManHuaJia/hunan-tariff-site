@@ -122,6 +122,62 @@ def load_history(path):
         return []
 
 
+def load_latest_time(path):
+    """读该站 latest.json 的「最后检查时间」。
+
+    history.json 只在有真实变化时才写入，latest.json 每轮抓取都会更新。
+    两者不同步会让钉钉看起来「滞后于网站」——其实只是该时段确实没变化。
+    这里补上检查时间，让消息能说清「查过了，但没变化」。
+    """
+    fp = os.path.join(SITE_ROOT, path.replace("history.json", "latest.json"))
+    if not os.path.exists(fp):
+        return None
+    try:
+        with open(fp, encoding="utf-8") as f:
+            d = json.load(f)
+        for k in ("updated_at", "updated", "ts", "generated_at"):
+            v = parse_ts(d.get(k))
+            if v:
+                return v
+    except Exception:
+        pass
+    return None
+
+
+def last_change_time(hist):
+    """history 里最后一次「真实变化」的时间（全 0 记录不算）。"""
+    for e in reversed(hist or []):
+        dt = parse_ts(e.get("ts"))
+        if not dt:
+            continue
+        changed = False
+        for k, v in e.items():
+            if k == "ts" or not isinstance(v, dict):
+                continue
+            if (int(v.get("added", 0) or 0) or int(v.get("removed", 0) or 0)
+                    or int(v.get("modified", 0) or 0)):
+                changed = True
+                break
+        if changed:
+            return dt
+    return None
+
+
+def human_ago(dt, now):
+    """把时间差说成人话：刚 / N 分钟前 / N 小时前 / N 天前"""
+    if not dt:
+        return None
+    secs = (now - dt).total_seconds()
+    if secs < 0:
+        secs = 0
+    if secs < 3600:
+        m = int(secs // 60)
+        return "刚刚" if m <= 2 else "%d 分钟前" % m
+    if secs < 86400:
+        return "%d 小时前" % int(secs // 3600)
+    return "%d 天前" % int(secs // 86400)
+
+
 def summarize(hist, since):
     """汇总某站 since 之后的变化"""
     tot_add = tot_rm = tot_mod = 0
@@ -230,7 +286,17 @@ def main():
         a, r, m, secs = summarize(hist, since)
         grand[0] += a; grand[1] += r; grand[2] += m
         if not (a or r or m):
-            lines.append("- %s **%s**：无变化" % (icon, name))
+            # 说清「查过了但没变化」，而不是干巴巴一句「无变化」——
+            # 否则用户看到网站时间戳在跳、钉钉却说无变化，会以为钉钉滞后。
+            checked = load_latest_time(path)
+            prev = last_change_time(hist)
+            bits = []
+            if checked:
+                bits.append("数据至 %s" % checked.strftime("%m-%d %H:%M"))
+            if prev:
+                bits.append("上次变化 %s" % human_ago(prev, now))
+            suffix = "（%s）" % "，".join(bits) if bits else ""
+            lines.append("- %s **%s**：无变化%s" % (icon, name, suffix))
             continue
         any_change = True
         lines.append("- %s **%s**：新增 %d、下架 %d、修改 %d" % (icon, name, a, r, m))
