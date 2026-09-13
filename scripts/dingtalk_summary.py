@@ -179,9 +179,25 @@ def human_ago(dt, now):
 
 
 def summarize(hist, since):
-    """汇总某站 since 之后的变化"""
+    """汇总某站「最新一轮」的变化。
+
+    注意：这里刻意不累加窗口内所有轮次。之前累加导致 24h 内每轮推送
+    都会重复报同一批旧 diff（例如湖南卡了三天后首次补抓那轮的一次性
+    大 diff），而网站「变化历史」显示的是最新一条 —— 两边看起来
+    永远对不上，用户会以为钉钉在推老数据。
+    改为只取窗口内最后一条记录，与网站同源同口径。
+    """
     tot_add = tot_rm = tot_mod = 0
     secs = []
+    latest = None
+    latest_dt = None
+    for e in hist:
+        dt = parse_ts(e.get("ts"))
+        if dt and dt < since:
+            continue
+        latest = e
+        latest_dt = dt
+    hist = [latest] if latest is not None else []
     for e in hist:
         dt = parse_ts(e.get("ts"))
         if dt and dt < since:
