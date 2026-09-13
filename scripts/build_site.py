@@ -164,6 +164,44 @@ def _structure_upgraded(old_items, new_items):
     return ok is not None and nk is not None and ok != nk
 
 
+def _still_on_sale(item, today):
+    """条目是否「仍在售」——下线日期在今天或之后。
+
+    用于识别假下架：源站是随机子集采样，本轮没采到 ≠ 业务下架。
+    真下架的业务其「下线日期」必然已过；若下线日期还在未来
+    （如 2045 年），说明只是这轮没采到。
+    无「下线日期」字段（电信/广电）时返回 False，即不参与过滤。
+    """
+    fields = (item or {}).get("fields") or {}
+    v = str(fields.get("下线日期") or "").strip()
+    if not v:
+        return False
+    m = re.match(r'(\d{4})年(\d{1,2})月(\d{1,2})日', v)
+    if not m:
+        return False
+    try:
+        d = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except Exception:
+        return False
+    return d >= today
+
+
+def filter_sampling_removed(sec, removed, today):
+    """剔除因采样缺失被误判为下架的条目（下线日期仍在未来）。
+
+    仅对「本轮条数净减少」时启用：若本轮反而变多，说明采样充分，
+    removed 更可能是真下架，不过滤以免漏报。
+    """
+    if not removed:
+        return removed, 0
+    keep = [r for r in removed if not _still_on_sale(r, today)]
+    dropped = len(removed) - len(keep)
+    if dropped:
+        print(f"  [采样校验] 板块 {sec} 剔除 {dropped} 条「下线日期仍在未来」的假下架"
+              f"（原 {len(removed)} 条，保留 {len(keep)} 条真下架）")
+    return keep, dropped
+
+
 def clean_upgrade_false_records(history, st):
     """剔除字段结构升级造成的全量误报记录：
     某条记录里某板块 modified 数量 >= 该板块业务总量的 90%，几乎不可能真实发生，
@@ -210,7 +248,11 @@ def same_change(a, b):
 
 
 # 板块条数骤降判定阈值：低于基线的该比例即视为抓取降级（不计入变化）
-SEC_DROP_RATIO = float(os.getenv("SEC_DROP_RATIO") or "0.5")
+# 抓取降级防护阈值：本轮条数 < 基线该比例即判定采样异常，不计数。
+# 原为 0.5，太松——河南曾出现 3885→2403（61.9%，未跌破 50%）放行，
+# 导致 1613 条「本轮没采到」被记成真下架（其中 96% 下线日期仍在未来）。
+# 收紧到 0.7，与 pipelines/mobile/main.py 的 ABNORMAL_DROP_RATIO 同口径。
+SEC_DROP_RATIO = float(os.getenv("SEC_DROP_RATIO") or "0.7")
 # 连续降级多少轮后认定「源站现状如此」，接受新数据并重建基线
 # （一直冻结旧数据更危险：页面看着正常，实际是过期数据）
 SEC_DEGRADE_ACCEPT = int(os.getenv("SEC_DEGRADE_ACCEPT") or "3")
@@ -391,6 +433,9 @@ def main():
         print(f"[清理] 剔除 {_pre_clean - len(history)} 条字段升级误报历史记录")
     rec = {"ts": now}
     has_change = False
+    # 采样校验用的「今天」取北京时间，与 now 同口径
+    _today = (datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
+              .date())
     diff_details = {}   # sec -> {name: [{field,from,to}, ...]} 供回填旧记录
     for sec in sections:
         j, items, _dist = st[sec]
@@ -415,6 +460,11 @@ def main():
             rec[sec] = {"note": "degraded", "baseline": _old_n, "this_round": _new_n}
             continue
         added, removed, modified, modified_details, mod_before, mod_after = diff_items(old_items, items)
+        # 采样缺失二次校验：本轮净减少时，剔除「下线日期仍在未来」的假下架。
+        # 河南曾一次性假下架 1613 条（96% 下线日期在未来），靠条数阈值（0.7）
+        # 只能拦住大幅缩水，小幅缩水仍会漏网，故再按业务字段逐条核验。
+        if _new_n < _old_n:
+            removed, _dropped = filter_sampling_removed(sec, removed, _today)
         if added or removed or modified:
             has_change = True
         rec[sec] = {
