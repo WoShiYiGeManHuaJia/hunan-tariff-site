@@ -1,5 +1,7 @@
 # 📮 接入你自己的钉钉机器人
 
+> 四个通道（钉钉 / 飞书 / 企业微信 / 邮件）完整教程见 **[NOTIFY_SETUP.md](NOTIFY_SETUP.md)**。本文只讲钉钉。
+
 > 本项目已开源。任何人 fork 后，都可以填入**自己的**钉钉机器人，
 > 把资费变化推送到**自己的**钉钉群里。
 >
@@ -45,7 +47,7 @@
    | `FOCUS_SEC` | 明细列哪个省份，如 `guangdong` | `hunan` |
    | `SITE_URL` | 消息末尾的站点链接 | 本项目 Pages 地址 |
 
-4. 打开 **Actions** 页 → 左侧选 **Tariff Summary to DingTalk** → **Run workflow**
+4. 打开 **Actions** 页 → 左侧选 **Tariff Notify** → **Run workflow**
 5. **约 14 秒后**，你的钉钉群就会收到汇总消息 ✅
 
 > 🔒 Secrets 是加密存储且**只写不读**——存进去后连你自己都看不到原文，
