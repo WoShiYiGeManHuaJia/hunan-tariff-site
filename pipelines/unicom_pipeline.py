@@ -10,7 +10,7 @@
 用法:
   python3 unicom_pipeline.py --prev-dir PATH --out-dir PATH [--scopes hunan,quanguo]
 """
-import json, time, os, sys, urllib.request, http.cookiejar, hashlib, argparse
+import json, time, os, sys, math, urllib.request, http.cookiejar, hashlib, argparse
 
 from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
                              modified_details_for, filter_test_items, slim_change)
@@ -386,6 +386,145 @@ def field_diff(old, new):
     return diff
 
 
+# ═══════════════ 累积池（采样噪声根治）═══════════════
+# 联通接口 pageSize 硬限 500，服务端按随机子集轮换返回，单轮永远采不全。
+# 原实现直接把「上一轮采到的」当完整基线做 diff，于是：
+#   · 上轮采得少、本轮采得多 → 差额全记成「新增」
+#   · 上轮采到、本轮没采到   → 全记成「下架」
+# 实测：全网真实约 1000 条，history 却累计「新增 6148 条」（虚高 6 倍）；
+# 且 17:58 与 18:10 相隔 12 分钟输出完全相同的新增 907 —— 同一批存量业务
+# 因基线反复被残缺数据污染而被重复计入新增。
+#
+# 根治办法是维护「累积池」：所有见过的业务按稳定指纹去重留存，
+# 只有「从未见过」才算新增，「连续多轮消失」才算下架。
+# 展示数据（{板块}.json）改由池构建，页面数字单调收敛、不再忽大忽小。
+POOL_FILE = "_pool.json"
+# 连续多少轮没再采到才认定真下架。
+# 固定阈值行不通：误判率 = (1-采样率)^阈值，采样越稀薄越需要多等几轮。
+#   · 采样 40% 时阈值 4 就有 13% 概率误判（实测每轮假下架 52 条）
+#   · 采样 10% 时阈值 4 误判率高达 66%
+# 故改为按本轮采样率自适应：误判概率压到 1% 以下所需的轮数。
+# 显式设置 UNICOM_MISS_CONFIRM 时按固定值走（调试用）。
+MISS_CONFIRM_FIXED = os.getenv("UNICOM_MISS_CONFIRM")
+MISS_CONFIRM_MIN = int(os.getenv("UNICOM_MISS_CONFIRM_MIN") or "3")
+MISS_CONFIRM_MAX = int(os.getenv("UNICOM_MISS_CONFIRM_MAX") or "40")
+# 可接受的误判概率（把存量业务误判成已下架）
+MISS_FP_TARGET = float(os.getenv("UNICOM_MISS_FP") or "0.01")
+# 阈值平滑系数（越大越迟钝：0.8 表示新采样率只占 20% 权重）
+NEED_EMA = float(os.getenv("UNICOM_NEED_EMA") or "0.8")
+# 池体积上限（条），超限时按 miss 从大到小淘汰，防止无限膨胀
+POOL_MAX = int(os.getenv("UNICOM_POOL_MAX") or "40000")
+
+
+def _miss_need(hit_n, pool_n):
+    """按本轮真实采样率推算「确认下架」所需的连续未出现轮数。
+
+    某业务本轮没被采到的概率 = 1 - p（p 为采样率），连续 k 轮都采不到
+    才判下架，误判概率就是 (1-p)^k。反解出让误判低于 MISS_FP_TARGET 的 k：
+        k = ln(target) / ln(1 - p)
+
+    ★ 采样率必须按「命中池内已见业务的条数 / 池内总条数」来算，
+      不能用「本轮总条数 / 池内条数」：池尚未收敛时本轮条数可能反而
+      大于池内已有量（会算出 p>1），导致阈值被压到最小、误判下架激增。
+    """
+    if MISS_CONFIRM_FIXED:
+        return max(1, int(MISS_CONFIRM_FIXED))
+    if pool_n <= 0 or hit_n <= 0:
+        return MISS_CONFIRM_MIN
+    p = min(0.95, max(0.01, float(hit_n) / float(pool_n)))
+    try:
+        k = math.log(MISS_FP_TARGET) / math.log(1.0 - p)
+    except Exception:
+        return MISS_CONFIRM_MIN
+    return max(MISS_CONFIRM_MIN, min(MISS_CONFIRM_MAX, int(k) + 1))
+
+
+def load_pool(datadir):
+    """读取累积池。返回 (pool, meta)，meta 存每个板块的平滑阈值等状态。"""
+    d = load(os.path.join(datadir, POOL_FILE))
+    if not isinstance(d, dict):
+        return {}, {}
+    return (d.get("pool") or {}), (d.get("meta") or {})
+
+
+def save_pool(datadir, pool, meta=None):
+    # 淘汰：miss 越大越优先清理（最久没见过的先走）
+    for sc in list(pool.keys()):
+        recs = pool[sc]
+        if not isinstance(recs, dict) or len(recs) <= POOL_MAX:
+            continue
+        over = len(recs) - POOL_MAX
+        for fp, _ in sorted(recs.items(),
+                            key=lambda kv: -(kv[1].get("miss") or 0))[:over]:
+            recs.pop(fp, None)
+    save(os.path.join(datadir, POOL_FILE), {"pool": pool, "meta": meta or {}})
+
+
+def pool_update(scope, cur_items, pool, meta=None):
+    """用本轮采集结果更新累积池。
+
+    返回 (added_items, removed_items, is_coldstart)
+      added       —— 首次见到的业务（真新增候选）
+      removed     —— 连续 MISS_CONFIRM 轮未再采到（确认真下架）
+      is_coldstart—— 本板块首次建池，本轮只建基线、不记任何变化
+    """
+    if meta is None:
+        meta = {}
+    if scope not in pool:
+        # 冷启动：本轮条目全部入池，不产生任何变化记录
+        pool[scope] = {}
+        for x in cur_items:
+            pool[scope][digest_stable(x)] = {"item": x, "miss": 0}
+        return [], [], True
+
+    recs = pool[scope]
+    pool_n_before = len(recs)      # 更新前池内量，用于估算采样率
+    cur_fps = set()
+    added = []
+    for x in cur_items:
+        fp = digest_stable(x)
+        cur_fps.add(fp)
+        rec = recs.get(fp)
+        if rec is None:
+            recs[fp] = {"item": x, "miss": 0}
+            added.append(x)
+        else:
+            rec["item"] = x      # 用最新快照刷新（fee 等字段可能更新）
+            rec["miss"] = 0
+
+    removed = []
+    # 命中已见业务的条数 = 本轮总条数 - 首次见到的条数
+    hit_n = len(cur_items) - len(added)
+    need_raw = _miss_need(hit_n, pool_n_before)
+    # 阈值平滑：need 逐轮抖动会让已累积 miss 的业务突然集体达标被删
+    # （实测每轮假下架 60+）。用 EMA 抹平，只让阈值缓慢跟随采样率变化。
+    prev_need = (meta.get(scope) or {}).get("need")
+    need = int(round(NEED_EMA * (prev_need if prev_need else need_raw)
+                     + (1 - NEED_EMA) * need_raw))
+    need = max(MISS_CONFIRM_MIN, min(MISS_CONFIRM_MAX, need))
+    meta[scope] = {"need": need, "pool": len(recs)}
+    for fp, rec in list(recs.items()):
+        if fp in cur_fps:
+            continue
+        miss = int(rec.get("miss") or 0) + 1
+        if miss >= need:
+            removed.append(rec.get("item") or {})
+            recs.pop(fp, None)
+        else:
+            rec["miss"] = miss
+    if need != MISS_CONFIRM_MIN:
+        print("    [命中 %d / 池内 %d] 采样率约 %.0f%%，下架确认需连续 %d 轮未采到"
+              % (hit_n, pool_n_before,
+                 100.0 * hit_n / pool_n_before if pool_n_before else 0, need))
+    return added, removed, False
+
+
+def pool_items(pool, scope):
+    """池内全部在售业务的展示条目（供 {板块}.json 与 latest 使用）。"""
+    recs = pool.get(scope) or {}
+    return [r.get("item") for r in recs.values() if r.get("item")]
+
+
 def load(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
@@ -400,6 +539,21 @@ def save(path, obj):
 # 注：原 update_baseline() / _baseline.json 已移除。
 # 它全仓只写不读（前端、workflow、其它脚本均未读取），每轮却要对
 # 32 板块 × 上千条做 md5 + titles 排序，是纯死数据、白耗 CPU / IO。
+
+
+def _flush_pool(pool, datadir, now):
+    """把累积池内容写成展示文件 {板块}.json。
+
+    展示数据取自池内「在售」条目（miss < MISS_CONFIRM 的都已留存），
+    因此页面条数只会随发现新业务单调增长，不会因某轮采样少而骤降。
+    """
+    n = 0
+    for sc in pool.keys():
+        items = pool_items(pool, sc)
+        save(os.path.join(datadir, sc + ".json"),
+             {"scope": sc, "items": items, "timestamp": now})
+        n += 1
+    print("  [池] 已写出 %d 个板块展示数据" % n)
 
 
 def build_latest(scopes, datadir):
@@ -475,7 +629,11 @@ def main():
     for it in ((prev_data_raw.get("quanguo") or {}).get("items") or []):
         qu_fp.add(digest_stable(it))
 
+    # 累积池：见过的业务按稳定指纹留存，只有「从未见过/连续多轮消失」才算变化
+    pool, meta = load_pool(out_dir)
+
     partial_scopes = set()
+    cur_data = {}
     for sc in scopes:
         prov, city, attr = jobs[sc]
         print("=== 抓取 %s (prov=%s city=%s) ===" % (sc, prov or "-", city or "-"))
@@ -486,10 +644,16 @@ def main():
             print("  !! %s 本轮采集不完整（中途请求失败），保留旧数据、不记变化" % sc)
             partial_scopes.add(sc)
             continue
-        save(os.path.join(out_dir, sc + ".json"), d)
-        if sc == "quanguo":
-            for it in (d.get("items") or []):
-                qu_fp.add(digest_stable(it))
+        # 不再直接写入展示文件：展示数据改由累积池构建，
+        # 否则单轮采得少时会把残缺结果存成下轮基线，导致下轮凭空多出大量「新增」。
+        cur_data[sc] = d.get("items") or []
+        print("  %s 本轮采集 %d 条" % (sc, len(cur_data[sc])))
+
+    # 全网产品指纹全集（上轮 ∪ 本轮 ∪ 累积池），供省板块剔除全网产品
+    for it in (cur_data.get("quanguo") or []):
+        qu_fp.add(digest_stable(it))
+    for fp in (pool.get("quanguo") or {}):
+        qu_fp.add(fp)
 
     # 省板块对比口径：对比前双方都剔除全网产品（仅有 diff 环节生效，展示文件仍保留 全网+本省特有）。
     # 全网产品变化只记在全网板块，不再“复制进31省”，清除 09-03 那种伪历史；各省历史只记本省特有变化。
@@ -519,36 +683,53 @@ def main():
 
     # 重建基线模式：不对比 prev、不写历史，仅更新渲染数据/基线/latest
     if args.rebuild:
-        print("== 重建基线模式：跳过对比与历史，仅刷新数据/基线/latest ==")
-        build_latest(scopes, out_dir)
+        print("== 重建基线模式：清空累积池、跳过对比与历史，仅刷新数据/latest ==")
+        pool = {}
+        for sc in scopes:
+            if sc in partial_scopes or sc not in cur_data:
+                continue
+            cur_items = cur_data[sc]
+            if sc != "quanguo":
+                cur_items = [x for x in cur_items if digest_stable(x) not in qu_fp]
+            pool[sc] = {digest_stable(x): {"item": x, "miss": 0} for x in cur_items}
+            print("  %s 重建基线 %d 条" % (sc, len(pool[sc])))
+        _flush_pool(pool, out_dir, now)
+        save_pool(out_dir, pool, meta)
+        build_latest(list(pool.keys()), out_dir)
         print("完成(重建)，history 保持现有 %d 条" % len(load(hp) if os.path.exists(hp) else []))
         return
 
-    prev_data = {sc: clean_scope(prev_data_raw[sc]) for sc in scopes}
-
-    # diff（上一版已入内存）
+    # ── 用累积池判变化（替代单轮 diff）──
     history = load(hp) if os.path.exists(hp) else []
     changes = {}
+    _DET_LIMIT = int(os.getenv("UNICOM_DETAILS_LIMIT") or "200")
     for sc in scopes:
-        if sc in partial_scopes:
+        if sc in partial_scopes or sc not in cur_data:
             continue
-        cur_path = os.path.join(out_dir, sc + ".json")
-        if not os.path.exists(cur_path):
+        cur_items = cur_data[sc]
+        if sc != "quanguo":
+            # 省板块对比口径：剔除全网产品（与原逻辑一致）
+            cur_items = [x for x in cur_items if digest_stable(x) not in qu_fp]
+        added, removed, cold = pool_update(sc, cur_items, pool, meta)
+        if cold:
+            print("  %s 首次，累积池建基线（不记变化），入池 %d 条" % (sc, len(pool.get(sc) or {})))
             continue
-        if sc == "quanguo":
-            prev_use = prev_data[sc]
-            cur_use = load(cur_path)
-        else:
-            prev_use = prev_data[sc]
-            cur_use = clean_scope(load(cur_path))
-        if prev_use is None:
-            print("  %s 首次，建基线（不记变化）" % sc)
+        if not added and not removed:
+            print("  %s 无变化（池内 %d 条）" % (sc, len(pool.get(sc) or {})))
             continue
-        r = diff_scope(prev_use, cur_use)
-        _bt = len((prev_use or {}).get("items") or [])
-        if is_sampling_noise(r, _bt):
-            print("    >> 采样噪声：" + str(mark_noise(r, _bt).get("note", "")))
-        r = slim_change(mark_noise(r, _bt))
+        r = {
+            "added": len(added), "removed": len(removed), "modified": 0,
+            "added_names": [x.get("title", "") for x in added],
+            "removed_names": [x.get("title", "") for x in removed],
+            "modified_names": [],
+            "added_details": dict(list({_title_key(x): field_snapshot(x) for x in added}.items())[:_DET_LIMIT]),
+            "removed_details": dict(list({_title_key(x): field_snapshot(x) for x in removed}.items())[:_DET_LIMIT]),
+            "modified_details": {},
+            "added_list": [_brief(x) for x in added],
+            "removed_list": [_brief(x) for x in removed],
+            "modified_list": [],
+        }
+        print("  %s 新增 %d / 下架 %d（池内 %d 条）" % (sc, len(added), len(removed), len(pool.get(sc) or {})))
         if has_real_change(r):
             changes[sc] = r
     if changes:
@@ -562,8 +743,12 @@ def main():
         print("本次检测：无变化")
     save(hp, history)
 
-    build_latest(scopes, out_dir)
-    print("完成，history 共 %d 条" % len(history))
+    # 展示数据由累积池构建：页面数字单调收敛，不再随单轮采样运气忽大忽小
+    _flush_pool(pool, out_dir, now)
+    save_pool(out_dir, pool, meta)
+    # 传全量板块（而非本轮 scopes）：focus 模式下未抓的省份仍保留在页面上
+    build_latest(list(pool.keys()), out_dir)
+    print("完成，history 共 %d 条，累积池 %d 个板块" % (len(history), len(pool)))
 
 
 if __name__ == "__main__":
