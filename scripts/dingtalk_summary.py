@@ -300,54 +300,28 @@ def main():
             continue
         any_change = True
         lines.append("- %s **%s**：新增 %d、下架 %d、修改 %d" % (icon, name, a, r, m))
-        # 只列关注的省份（默认湖南），同一省份多条记录合并
-        # 关注省份可配多个（FOCUS_SEC 逗号分隔），逐个输出明细
-        for _fs in FOCUS_LIST:
-            focus = [x for x in secs if x[5] == _fs]
-            fname = sec_cn(_fs)
-            if focus:
-                fa = sum(x[1] for x in focus)
-                fr = sum(x[2] for x in focus)
-                fm = sum(x[3] for x in focus)
-                notes = [x[4] for x in focus if x[4]]
-                if notes:
-                    lines.append("  - %s：%s" % (fname, notes[-1][:60]))
-                else:
-                    lines.append("  - %s：新增%d 下架%d 修改%d" % (fname, fa, fr, fm))
-        # 其余有变化的省份：按变化量降序列出前几个。
-        # 只列关注省份会把真实变化吞进「合计」，用户网站看得到各省明细、
-        # 钉钉却只有一个总数，两边对不上会以为钉钉漏报。
-        others = []
+        # 列出全部有变化的省份，与网站「变化历史」同源同口径。
+        # 不再按 FOCUS_SEC 筛选，也不再只取「变化最大的前几个」——
+        # 那会让钉钉与网站看起来数据不一致（网站列全省，钉钉只给总数）。
         agg = {}
         for x in secs:
-            if x[5] in FOCUS_LIST:
-                continue
             k = x[5]
             if k not in agg:
-                agg[k] = [0, 0, 0, 0, x[4]]      # a, r, m, 权重, note
+                agg[k] = [0, 0, 0, 0, None]
             agg[k][0] += x[1]; agg[k][1] += x[2]; agg[k][2] += x[3]
             agg[k][3] = agg[k][0] + agg[k][1] + agg[k][2]
-        for k, v in agg.items():
-            others.append((k, v[0], v[1], v[2], v[3]))
-        others.sort(key=lambda t: -t[4])
-        TOPN = 5
-        if others:
-            head = others[:TOPN]
-            tail = others[TOPN:]
-            parts = []
-            for k, a2, r2, m2, w in head:
-                seg = []
-                if a2: seg.append("新增%d" % a2)
-                if r2: seg.append("下架%d" % r2)
-                if m2: seg.append("修改%d" % m2)
-                parts.append("%s %s" % (sec_cn(k), "/".join(seg) or "有变化"))
-            tail_n = len(tail)
-            tail_sum = sum(t[4] for t in tail)
-            extra = ""
-            if tail_n:
-                extra = "（另 %d 省合计 %d 条）" % (tail_n, tail_sum)
-            lines.append("  - 其他变化：%s%s" % ("、".join(parts), extra))
-        # 关注省份无变化时不输出（避免空占位行刷屏）
+            if x[4]:
+                agg[k][4] = x[4]
+        ordered = sorted(agg.items(), key=lambda kv: -kv[1][3])
+        for k, (a2, r2, m2, w, note) in ordered:
+            if note:
+                lines.append("  - %s：%s" % (sec_cn(k), note[:60]))
+                continue
+            seg = []
+            if a2: seg.append("新增%d" % a2)
+            if r2: seg.append("下架%d" % r2)
+            if m2: seg.append("修改%d" % m2)
+            lines.append("  - %s：%s" % (sec_cn(k), "/".join(seg) or "有变化"))
 
     lines.append("")
     lines.append("**合计**：新增 %d、下架 %d、修改 %d" % tuple(grand))

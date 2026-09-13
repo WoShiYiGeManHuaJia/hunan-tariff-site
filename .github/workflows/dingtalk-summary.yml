@@ -51,6 +51,14 @@ on:
 permissions:
   contents: write    # 抓取后需要提交数据
 
+# 去重：同一时刻只允许一个 Tariff Notify 运行。
+# 之前手动触发时脚本把 204 误判为失败并重试 10 次，导致连发 10 条钉钉。
+# 这里 cancel-in-progress: false —— 新任务排队等旧的跑完，而不是并发跑多个
+# （并发会让多个 notify 同时读到同一份 history，推送内容重复）。
+concurrency:
+  group: tariff-notify
+  cancel-in-progress: false
+
 jobs:
   # ══════════ 抓取（仅「手动推送」/「全量推送」/定时自动模式）══════════
   fetch:
@@ -238,7 +246,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # 必须显式 checkout main 最新：默认的 checkout 拉的是「触发本工作流的
+      # 那个 commit」，而 fetch job 之后又提交了新的抓取结果。不拉最新的话
+      # notify 读到的是抓取前的旧 history —— 这就是钉钉内容与网站不一致的
+      # 根因（钉钉说有变化、网站上已经没有了）。
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
 
       - uses: actions/setup-python@v5
         with:
@@ -266,7 +281,9 @@ jobs:
           SINCE_HOURS:      ${{ github.event.inputs.hours || '24' }}
           # 仓库未配置 vars 时这里会是空串，必须给默认值
           # （脚本里也做了显式回退，双保险）
-          FOCUS_SEC:        ${{ vars.FOCUS_SEC || 'hunan' }}
+          # 注意：FOCUS_SEC 已不再用于「筛选推送哪些省」——推送一律列全部
+          # 有变化的省，与网站变化历史同源同口径。此变量仅为兼容旧配置保留。
+          FOCUS_SEC:        ${{ vars.FOCUS_SEC || '' }}
           SITE_URL:         ${{ vars.SITE_URL || 'https://woshiyigemanhuajia.github.io/hunan-tariff-site/' }}
           SITE_ROOT:        "."
         run: python3 scripts/dingtalk_summary.py
