@@ -254,21 +254,25 @@ code{
       </div>
     </div>
     <div class="chcard" style="padding:12px;display:none" id="panelDevice">
-      <div class="tiny" style="line-height:1.9;margin-bottom:12px">
-        想让<b>你自己的设备</b>到点自己跑、不依赖 GitHub？复制下面第一条命令，在<b>终端</b>粘贴执行，一次装好并写入你上方的推送配置；再加一行定时任务，就每天自动抓取并推送。<br>
-        密钥只写在你自己的设备上，<b>不上传任何服务器</b>。「GitHub 云端」和「自己在设备上」二选一即可，两边都配也行。
+      <div class="tiny" style="line-height:1.9;margin-bottom:12px;color:var(--text-secondary)">
+        让你自己的设备到点自动推，<b style="color:var(--text-primary)">总共只复制下面「两条」</b>：<br>
+        ① <b>安装命令</b>（粘贴到终端按回车，自动下载脚本+写入你的配置+发一条测试消息）<br>
+        ② <b>定时行</b>（先运行 <code>crontab -e</code>，把这一行粘进去保存，以后每天 9:00 自动推）
       </div>
-      <button id="dCopy" class="btn pri">📋 复制「安装」命令</button>
+      <div class="stepw">
+        <div class="stept">第 1 步（必做）· 复制安装命令 → 终端粘贴回车</div>
+      </div>
+      <button id="dCopy" class="btn pri" style="margin-top:8px">📋 复制「安装」命令</button>
       <textarea id="dCmd" class="codebox" rows="5" readonly style="margin-top:8px"></textarea>
       <div class="stepw" style="margin-top:14px">
-        <div class="stept">然后「添加定时」：在终端执行 <code>crontab -e</code>，把下面这行粘进去保存</div>
+        <div class="stept">第 2 步（必做）· 先运行 <code>crontab -e</code>，再复制定时行粘进去保存</div>
       </div>
       <button id="cronCopy" class="btn" style="margin-top:10px">📋 复制定时行</button>
       <textarea id="cronCmd" class="codebox" rows="2" readonly style="margin-top:8px"></textarea>
       <div class="tiny" style="margin-top:10px;line-height:1.8;color:var(--text-secondary)">
-        行为说明：每天 <b>9:00</b> 自动推送（把开头 <code>0 9 * * *</code> 改成 <code>0 10 * * *</code> 就是 10:00）。<br>
-        <b>OpenWrt 路由器</b>：<code>opkg update && opkg install cron</code>，然后在「系统 → 计划任务」里加同一行（或命令行 <code>crontab -e</code>）。<br>
-        建议：先执行「安装」命令（会发一条测试消息），确认群里有消息了，再加定时行更稳。
+        改推送时间：把开头 <code>0 9 * * *</code> 改成 <code>0 10 * * *</code> 就是 10:00。<br>
+        <b>OpenWrt 路由器</b>：先 <code>opkg update && opkg install cron</code> 装好定时器（在「系统 → 计划任务」里加同一行也行），再执行上面两步。<br>
+        密钥只写在你自己的设备上，<b>不上传任何服务器</b>。「GitHub 云端」和「自己在设备上」二选一即可，两边都配也行。
       </div>
     </div>
   </div>
