@@ -6,6 +6,7 @@
 此前电信站已出现官方测试数据落库（见 history 中的「【测试】…请忽略」）。
 """
 import re
+import json
 
 # 标题命中任一关键词即判定为测试/作废数据
 _TEST_PAT = re.compile(
@@ -154,6 +155,102 @@ def _norm_txt(v):
     x = _re2.sub(r"<[^>]*>", "", x)
     x = _re2.sub(r"&(?:nbsp|amp|lt|gt|quot|#39);", " ", x, flags=_re2.I)
     return _re2.sub(r"\s+", " ", x).strip()
+
+
+def _item_id(it):
+    """返回可用于精确匹配的业务 ID；空 ID 不参与 ID 匹配。"""
+    v = it.get("id") if isinstance(it, dict) else None
+    return str(v).strip() if v not in (None, "") else ""
+
+
+def stable_business_key(it):
+    """稳定业务键：优先标题+分类；不要把价格放进去。
+
+    价格、流量、权益等字段变化应该被识别为 modified，而不是
+    「旧业务下架 + 新业务新增」。因此稳定键绝不能包含 fee 或 detail。
+    """
+    d = it.get("detail") if isinstance(it.get("detail"), dict) else {}
+    # 官方稳定业务编号优先；例如 reportNo/code 等通常不会随价格修改变化。
+    for k in ("reportNo", "productCode", "goodsCode", "businessCode", "code"):
+        v = d.get(k) or it.get(k)
+        if v not in (None, ""):
+            return json.dumps([k, _norm_txt(v)], ensure_ascii=False, separators=(",", ":"))
+    return json.dumps([
+        _norm_txt(it.get("title") or it.get("name") or ""),
+        _norm_txt(it.get("firstLevel", "")),
+        _norm_txt(it.get("secondLevel", "")),
+    ], ensure_ascii=False, separators=(",", ":"))
+
+
+def diff_items(prev_items, cur_items, detail_limit=60):
+    """统一四家运营商 Diff：ID 精确匹配 + 稳定业务键兜底 + 完整字段比较。
+
+    匹配优先级：
+      1. 相同非空 ID；
+      2. 相同稳定业务键（标题+一级+二级），解决官方 ID 每轮漂移；
+      3. 未匹配的新旧条目分别计入 added/removed。
+
+    这样「价格/流量/权益发生变化」会稳定落到 modified，不会被错误算成
+    added+removed；同时 ID 漂移也不会制造假上下架。
+    """
+    old = list(prev_items or [])
+    new = list(cur_items or [])
+    used_old, used_new = set(), set()
+    pairs = []
+
+    old_by_id, new_by_id = {}, {}
+    for i, x in enumerate(old):
+        k = _item_id(x)
+        if k and k not in old_by_id:
+            old_by_id[k] = i
+    for i, x in enumerate(new):
+        k = _item_id(x)
+        if k and k not in new_by_id:
+            new_by_id[k] = i
+    for k, oi in old_by_id.items():
+        ni = new_by_id.get(k)
+        if ni is not None:
+            used_old.add(oi); used_new.add(ni); pairs.append((oi, ni, "id"))
+
+    old_by_key, new_by_key = {}, {}
+    for i, x in enumerate(old):
+        if i not in used_old:
+            old_by_key.setdefault(stable_business_key(x), []).append(i)
+    for i, x in enumerate(new):
+        if i not in used_new:
+            new_by_key.setdefault(stable_business_key(x), []).append(i)
+    for k in set(old_by_key) & set(new_by_key):
+        for oi, ni in zip(old_by_key[k], new_by_key[k]):
+            used_old.add(oi); used_new.add(ni); pairs.append((oi, ni, "stable"))
+
+    added = [x for i, x in enumerate(new) if i not in used_new]
+    removed = [x for i, x in enumerate(old) if i not in used_old]
+    modified = []
+    modified_pairs = []
+    for oi, ni, match_type in pairs:
+        a, b = old[oi], new[ni]
+        diffs = field_diff_items(a, b)
+        if diffs:
+            modified.append(b)
+            modified_pairs.append((a, b, diffs, match_type))
+
+    md = {}
+    for old_it, new_it, diffs, _ in modified_pairs[:detail_limit]:
+        key = new_it.get("title") or new_it.get("name") or _item_id(new_it)
+        if key:
+            md[key] = diffs
+
+    raw_added = len([x for x in new if _item_id(x) and _item_id(x) not in old_by_id])
+    raw_removed = len([x for x in old if _item_id(x) and _item_id(x) not in new_by_id])
+    return {
+        "added_items": added,
+        "removed_items": removed,
+        "modified_items": modified,
+        "modified_details": md,
+        "raw_added": raw_added,
+        "raw_removed": raw_removed,
+        "matched": len(pairs),
+    }
 
 
 def item_fields(it):
