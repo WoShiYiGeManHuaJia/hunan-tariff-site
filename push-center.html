@@ -224,6 +224,30 @@ code{
     </div>
   </div>
   <div class="sec">
+    <div class="sect">⏰ 每天自动定时推送（GitHub 云端）</div>
+    <div class="chcard" style="padding:12px">
+      <div class="tiny" style="line-height:1.9;margin-bottom:10px">
+        <b>GitHub 云端</b>＝让 GitHub 网站替你 <b>24 小时挂定时任务</b>：电脑关机、手机不开终端，到点照样抓取并推送。<br>
+        本站站长已配好（每天 10:00 / 20:00 自动推）。<b>想自己接一套，三步搞定：</b>
+      </div>
+      <div class="stepw">
+        <div class="stept">第 1 步 · <b>Fork 仓库</b></div>
+        <div class="tiny">打开本站源码仓库 → 右上角点 <b>Fork</b>，复制一份到你自己账号。</div>
+      </div>
+      <div class="stepw" style="margin-top:8px">
+        <div class="stept">第 2 步 · <b>填密钥</b></div>
+        <div class="tiny">进你 Fork 的仓库 → <b>Settings → Secrets and variables → Actions → New repository secret</b>，把你在上方「推送渠道」填的 Webhook 按名添加（<code>DINGTALK_WEBHOOK</code> / <code>FEISHU_WEBHOOK</code> / <code>WECOM_WEBHOOK</code> / SMTP 系列等，只填你要用的）。</div>
+      </div>
+      <div class="stepw" style="margin-top:8px">
+        <div class="stept">第 3 步 · <b>开启自动推送</b></div>
+        <div class="tiny">点 <b>Actions</b> → 左侧选 <b>Tariff Notify</b> → <b>Enable workflow</b> → <b>Run workflow</b>，约 10 秒收到第一条消息，之后每天 10:00 / 20:00 自动推。</div>
+      </div>
+      <div class="tiny" style="margin-top:10px;line-height:1.8;color:var(--text-secondary)">
+        🔒 密钥只存你自己仓库的 Secrets，<b>加密存储、只写不读</b>，作者和其他人都看不到。
+      </div>
+    </div>
+  </div>
+  <div class="sec">
     <div class="sect">🛠 自己创建</div>
     <div class="chcard" style="padding:12px">
       <div class="tiny" style="line-height:1.9;margin-bottom:12px">
