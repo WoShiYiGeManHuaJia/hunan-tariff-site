@@ -1141,9 +1141,10 @@ function histDraw(list) {
       );
     }
     const open = gidx === 0; // 倒序后首条即最新，默认展开（展示各省摘要，各省明细默认收起）
+    const fresh = gidx === 0; // 最新一条标记
     return (
-      '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
-      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
+      '<div class="tl-item' + (open ? " open fresh" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
+      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") + "</div><span class=\"tl-arrow\"></span></div>" +
       '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
     );
   }).join("") + "</div>";
