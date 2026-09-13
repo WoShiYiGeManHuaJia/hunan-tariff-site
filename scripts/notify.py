@@ -75,14 +75,17 @@ def _trunc_bytes(s, limit):
     b = s.encode("utf-8")
     if len(b) <= limit:
         return s
-    cut = b[:limit]
+    suffix = "\n\n…（内容过长已截断，完整数据请访问网站）"
+    suffix_b = suffix.encode("utf-8")
+    budget = max(0, limit - len(suffix_b))
+    cut = b[:budget]
     # 回退到最近的完整字符边界
     for _ in range(4):
         try:
-            return cut.decode("utf-8") + "\n\n…（内容过长已截断，完整数据请访问网站）"
+            return cut.decode("utf-8") + suffix
         except UnicodeDecodeError:
             cut = cut[:-1]
-    return cut.decode("utf-8", "ignore")
+    return cut.decode("utf-8", "ignore") + suffix
 
 
 def md_to_text(md):
