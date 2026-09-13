@@ -5,6 +5,7 @@
 的业务，若不统一过滤，这些脏数据会被当成真实变更写进 history 并推送到钉钉。
 此前电信站已出现官方测试数据落库（见 history 中的「【测试】…请忽略」）。
 """
+import os
 import re
 import json
 
@@ -50,15 +51,15 @@ def filter_test_items(items: list, verbose: bool = True) -> list:
 # 单条 entry 最多保留多少条变化名称/详情明细。
 # 一次接口大变动可能产生数百个变更，全量塞进 history 会让文件膨胀到几十 MB
 # （联通 history.json 曾达 42MB，前端需一次性全量下载）。
-HIST_DETAIL_LIMIT = int(__import__("os").getenv("HIST_DETAIL_LIMIT") or "20")
-HIST_NAME_LIMIT = int(__import__("os").getenv("HIST_NAME_LIMIT") or "30")
+HIST_DETAIL_LIMIT = int(os.getenv("HIST_DETAIL_LIMIT") or "20")
+HIST_NAME_LIMIT = int(os.getenv("HIST_NAME_LIMIT") or "30")
 # *_list 是联通/广电保存的「精简详情对象数组」，每个元素含 serviceContent 等长文本。
 # 一个板块曾存到 1164 个元素（约 0.4MB），是 history 膨胀的真正元凶
 # —— 首版只限制了 _names/_details，漏掉 _list 导致压缩几乎无效（42MB→26MB）。
-HIST_LIST_LIMIT = int(__import__("os").getenv("HIST_LIST_LIMIT") or "12")
+HIST_LIST_LIMIT = int(os.getenv("HIST_LIST_LIMIT") or "12")
 
 
-_DETAIL_TEXT_LIMIT = int(__import__("os").getenv("HIST_DETAIL_TEXT_LIMIT") or "200")
+_DETAIL_TEXT_LIMIT = int(os.getenv("HIST_DETAIL_TEXT_LIMIT") or "200")
 
 
 def _clip_detail(o):
@@ -143,18 +144,16 @@ def slim_change(change: dict) -> dict:
 # ── 联通/电信/广电：字段级修改明细 ──
 # 这三家的 history 只存 modified_names / modified_list（精简对象），
 # 没有 {field, from, to}，前端也就无法做「修改前后」对比，只能弹当前配置。
-import re as _re2
-
 _SKIP_FIELDS = {"timestamp", "responseContent", "data"}
 
 
 def _norm_txt(v):
     x = "" if v is None else str(v)
-    x = _re2.sub(r"<br\s*/?>", " ", x, flags=_re2.I)
-    x = _re2.sub(r"</?p[^>]*>", " ", x, flags=_re2.I)
-    x = _re2.sub(r"<[^>]*>", "", x)
-    x = _re2.sub(r"&(?:nbsp|amp|lt|gt|quot|#39);", " ", x, flags=_re2.I)
-    return _re2.sub(r"\s+", " ", x).strip()
+    x = re.sub(r"<br\s*/?>", " ", x, flags=re.I)
+    x = re.sub(r"</?p[^>]*>", " ", x, flags=re.I)
+    x = re.sub(r"<[^>]*>", "", x)
+    x = re.sub(r"&(?:nbsp|amp|lt|gt|quot|#39);", " ", x, flags=re.I)
+    return re.sub(r"\s+", " ", x).strip()
 
 
 def _item_id(it):
@@ -164,17 +163,18 @@ def _item_id(it):
 
 
 def stable_business_key(it):
-    """稳定业务键：优先标题+分类；不要把价格放进去。
+    """返回用于跨轮次/跨板块匹配的稳定业务身份。
 
-    价格、流量、权益等字段变化应该被识别为 modified，而不是
-    「旧业务下架 + 新业务新增」。因此稳定键绝不能包含 fee 或 detail。
+    注意：价格、流量、权益、reportNo 等可能变化的字段绝不进入主身份键。
+    reportNo 只在 diff_items 中作为“唯一且同分类”的辅助候选，避免编号变更
+    或多个业务共用编号时把一个业务误判成新增+下架。
     """
     d = it.get("detail") if isinstance(it.get("detail"), dict) else {}
-    # 官方稳定业务编号优先；例如 reportNo/code 等通常不会随价格修改变化。
-    for k in ("reportNo", "productCode", "goodsCode", "businessCode", "code"):
+    # 比标题更可靠的产品实体编号；不要把 reportNo 当作唯一身份。
+    for k in ("productCode", "goodsCode", "businessCode", "code"):
         v = d.get(k) or it.get(k)
         if v not in (None, ""):
-            return json.dumps([k, _norm_txt(v)], ensure_ascii=False, separators=(",", ":"))
+            return json.dumps(["code", k, _norm_txt(v)], ensure_ascii=False, separators=(",", ":"))
     return json.dumps([
         _norm_txt(it.get("title") or it.get("name") or ""),
         _norm_txt(it.get("firstLevel", "")),
@@ -182,51 +182,60 @@ def stable_business_key(it):
     ], ensure_ascii=False, separators=(",", ":"))
 
 
+def _aux_report_key(it):
+    """reportNo 辅助匹配键：只有在同一编号+分类唯一时才使用。"""
+    d = it.get("detail") if isinstance(it.get("detail"), dict) else {}
+    v = d.get("reportNo") or it.get("reportNo")
+    if v in (None, ""):
+        return ""
+    return json.dumps([_norm_txt(v), _norm_txt(it.get("firstLevel", "")),
+                       _norm_txt(it.get("secondLevel", ""))], ensure_ascii=False, separators=(",", ":"))
+
+
 def diff_items(prev_items, cur_items, detail_limit=60):
-    """统一四家运营商 Diff：ID 精确匹配 + 稳定业务键兜底 + 完整字段比较。
+    """统一四家运营商 Diff：ID → 强稳定身份 → 唯一 reportNo 辅助匹配。
 
-    匹配优先级：
-      1. 相同非空 ID；
-      2. 相同稳定业务键（标题+一级+二级），解决官方 ID 每轮漂移；
-      3. 未匹配的新旧条目分别计入 added/removed。
-
-    这样「价格/流量/权益发生变化」会稳定落到 modified，不会被错误算成
-    added+removed；同时 ID 漂移也不会制造假上下架。
+    同一业务即使价格/流量/权益变化，也会落到 modified；官方 ID 漂移也不会
+    制造假新增/下架。所有候选匹配都要求“一对一”，避免重复业务被字典覆盖。
     """
-    old = list(prev_items or [])
-    new = list(cur_items or [])
-    used_old, used_new = set(), set()
-    pairs = []
+    old, new = list(prev_items or []), list(cur_items or [])
+    used_old, used_new, pairs = set(), set(), []
 
-    old_by_id, new_by_id = {}, {}
-    for i, x in enumerate(old):
-        k = _item_id(x)
-        if k and k not in old_by_id:
-            old_by_id[k] = i
-    for i, x in enumerate(new):
-        k = _item_id(x)
-        if k and k not in new_by_id:
-            new_by_id[k] = i
-    for k, oi in old_by_id.items():
-        ni = new_by_id.get(k)
-        if ni is not None:
+    def unique_map(items, key_fn, allowed):
+        m = {}
+        for i, x in enumerate(items):
+            if i not in allowed:
+                k = key_fn(x)
+                if k:
+                    m.setdefault(k, []).append(i)
+        return m
+
+    # 1) 非空 ID 精确匹配；重复 ID 不强行匹配，避免覆盖。
+    om = unique_map(old, _item_id, set())
+    nm = unique_map(new, _item_id, set())
+    for k in set(om) & set(nm):
+        if len(om[k]) == 1 and len(nm[k]) == 1:
+            oi, ni = om[k][0], nm[k][0]
             used_old.add(oi); used_new.add(ni); pairs.append((oi, ni, "id"))
 
-    old_by_key, new_by_key = {}, {}
-    for i, x in enumerate(old):
-        if i not in used_old:
-            old_by_key.setdefault(stable_business_key(x), []).append(i)
-    for i, x in enumerate(new):
-        if i not in used_new:
-            new_by_key.setdefault(stable_business_key(x), []).append(i)
-    for k in set(old_by_key) & set(new_by_key):
-        for oi, ni in zip(old_by_key[k], new_by_key[k]):
+    # 2) 稳定业务身份匹配；同 key 多条时按出现顺序一对一配对。
+    om = unique_map(old, stable_business_key, used_old)
+    nm = unique_map(new, stable_business_key, used_new)
+    for k in set(om) & set(nm):
+        for oi, ni in zip(om[k], nm[k]):
             used_old.add(oi); used_new.add(ni); pairs.append((oi, ni, "stable"))
+
+    # 3) reportNo 仅作最后的辅助：必须 key 唯一，防止共用编号误合并。
+    om = unique_map(old, _aux_report_key, used_old)
+    nm = unique_map(new, _aux_report_key, used_new)
+    for k in set(om) & set(nm):
+        if len(om[k]) == 1 and len(nm[k]) == 1:
+            oi, ni = om[k][0], nm[k][0]
+            used_old.add(oi); used_new.add(ni); pairs.append((oi, ni, "report"))
 
     added = [x for i, x in enumerate(new) if i not in used_new]
     removed = [x for i, x in enumerate(old) if i not in used_old]
-    modified = []
-    modified_pairs = []
+    modified, modified_pairs = [], []
     for oi, ni, match_type in pairs:
         a, b = old[oi], new[ni]
         diffs = field_diff_items(a, b)
@@ -240,18 +249,14 @@ def diff_items(prev_items, cur_items, detail_limit=60):
         if key:
             md[key] = diffs
 
-    raw_added = len([x for x in new if _item_id(x) and _item_id(x) not in old_by_id])
-    raw_removed = len([x for x in old if _item_id(x) and _item_id(x) not in new_by_id])
+    raw_added = len(added)
+    raw_removed = len(removed)
     return {
-        "added_items": added,
-        "removed_items": removed,
-        "modified_items": modified,
-        "modified_details": md,
-        "raw_added": raw_added,
-        "raw_removed": raw_removed,
+        "added_items": added, "removed_items": removed,
+        "modified_items": modified, "modified_details": md,
+        "raw_added": raw_added, "raw_removed": raw_removed,
         "matched": len(pairs),
     }
-
 
 def item_fields(it):
     """把一个条目展平为 {字段名: 值}（顶层字段 + detail 内部字段）。"""
@@ -305,12 +310,10 @@ def modified_details_for(pmap, mods, limit=60):
 # 表现为单次数千条假变化，且清空历史后下一轮照样复现。
 #
 # 判据：单板块 (新增+下架) / 基线总量 超过阈值 → 认定是采样抖动而非真实变动。
-import os as _os
-
 # 用 `or` 而非 getenv 默认值：前者对「变量被设为空串」同样生效
 # （workflow 里 ${{ vars.X }} 未配置时展开为空串，会把默认值顶掉）
-NOISE_RATIO = float(_os.getenv("NOISE_RATIO") or "0.3")     # 变化率阈值 30%
-NOISE_MIN_ABS = int(__import__("os").getenv("NOISE_MIN_ABS") or "50")    # 绝对条数门槛（小额变化不误伤）
+NOISE_RATIO = float(os.getenv("NOISE_RATIO") or "0.3")     # 变化率阈值 30%
+NOISE_MIN_ABS = int(os.getenv("NOISE_MIN_ABS") or "50")    # 绝对条数门槛（小额变化不误伤）
 
 
 def is_sampling_noise(sec_result, base_total):
