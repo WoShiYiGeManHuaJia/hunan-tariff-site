@@ -20,7 +20,7 @@ import time
 import datetime
 
 # 源站(移动网关) TLS legacy renegotiation 兼容(与 main.py 同款处理)
-_SSL_CNF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "openssl_legacy.cnf")
+_SSL_CNF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mobile", "openssl_legacy.cnf")
 if os.path.exists(_SSL_CNF):
     os.environ.setdefault("OPENSSL_CONF", _SSL_CNF)
 
