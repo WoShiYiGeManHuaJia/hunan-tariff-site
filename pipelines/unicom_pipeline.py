@@ -13,7 +13,7 @@
 import json, time, os, sys, urllib.request, http.cookiejar, hashlib, argparse
 
 from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
-                             modified_details_for, filter_test_items, slim_change, diff_items)
+                             modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key)
 
 PROG_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_API = "https://m.client.10010.com/servicequerybusiness/queryTariffNew/"
@@ -269,8 +269,8 @@ def digest_item(it):
 
 
 def digest_stable(it):
-    """稳定指纹：不含 id（接口 id 可能逐轮漂移），用 标题+资费+一级分类+二级分类 标识业务实体。"""
-    return json.dumps([it.get("title", ""), it.get("fee", ""), it.get("firstLevel", ""), it.get("secondLevel", "")], ensure_ascii=False)
+    """跨板块业务身份；与公共 Diff 使用同一套键，价格变化不会造成身份变化。"""
+    return stable_business_key(it)
 
 
 def _brief(it):
@@ -292,84 +292,23 @@ def _brief(it):
     return out
 
 def diff_scope(prev, cur):
-    p_items = prev.get("items") or []
-    c_items = cur.get("items") or []
-    # 统一 diff：ID 精确匹配 + stable_business_key 兜底 + 完整字段比较；
-    # 价格/流量/权益变化识别为 modified 而非误判上下架，ID 漂移不产生假上下架。
-    r = diff_items(p_items, c_items, detail_limit=int(os.getenv("UNICOM_DETAILS_LIMIT") or "200"))
+    r = diff_items(prev.get("items") or [], cur.get("items") or [], detail_limit=60)
     added, removed, modified = r["added_items"], r["removed_items"], r["modified_items"]
-    # 全量对称错位护栏：id 层面大面积漂移（>50%），但稳定业务键层面净变化为 0 → 实为 id 漂移的基线错位，重建基线不记变化
-    raw_added, raw_removed = r["raw_added"], r["raw_removed"]
-    raw_n = raw_added + raw_removed
-    total_n = len(p_items) + len(c_items)
+    total_n = len(prev.get("items") or []) + len(cur.get("items") or [])
+    raw_n = r["raw_added"] + r["raw_removed"]
     if total_n > 0 and raw_n / total_n > 0.5 and not added and not removed and not modified:
         return {"shifted": True, "added": 0, "removed": 0, "modified": 0,
                 "added_names": [], "removed_names": [], "modified_names": [],
                 "added_list": [], "removed_list": [], "modified_list": [],
-                "raw_added": raw_added, "raw_removed": raw_removed}
-    # names 已全量展示，详情快照保留合理上限即可（对齐移动端策略，防止巨量变更撑爆 history）
-    _DET_LIMIT = int(os.getenv("UNICOM_DETAILS_LIMIT") or "200")
-    _det = {_title_key(x): field_snapshot(x) for x in added}
-    _rde = {_title_key(x): field_snapshot(x) for x in removed}
-    # ★ 此前本字典里 "modified_details" 出现两次，后者静默覆盖前者，
-    #   使 modified_details_for() 的产出被整个丢弃（dict 字面量重复 key 取最后）。
-    #   现在只保留一份，并统一按 _DET_LIMIT 裁剪。
-    _mde = r["modified_details"]
-    return {
-        "added": len(added), "removed": len(removed), "modified": len(modified),
-        "added_names": [x.get("title", "") for x in added],
-        "removed_names": [x.get("title", "") for x in removed],
-        "modified_names": [x.get("title", "") for x in modified],
-        "added_details": dict(list(_det.items())[:_DET_LIMIT]),
-        "removed_details": dict(list(_rde.items())[:_DET_LIMIT]),
-        "modified_details": dict(list(_mde.items())[:_DET_LIMIT]),
-        "added_list": [_brief(x) for x in added],
-        "removed_list": [_brief(x) for x in removed],
-        "modified_list": [_brief(x) for x in modified],
-    }
-
-
-def _title_key(it):
-    return it.get("title", "") or it.get("name", "")
-
-
-def field_snapshot(it):
-    """把一条资费条目转为可读字段快照（新增/下架详情弹窗用，对齐移动站 added/removed_details 结构）"""
-    d = it.get("detail") or {}
-    snap = {}
-    for k in ("title", "fee", "firstLevel", "secondLevel"):
-        v = it.get(k, "")
-        v = "" if v is None else v
-        if v != "":
-            snap[k] = v
-    for k in ("feesStandard", "feeUnit", "minute", "commonData", "dataUnit", "orientTraffic",
-              "validPeriod", "saleChnl", "serviceContent", "codeType", "reportNo", "extraFees",
-              "useScope", "broadBand", "sms", "onlinePeriod"):
-        v = d.get(k, "")
-        v = "" if v is None else v
-        if v != "" and v != "0":
-            snap[k] = v
-    return snap
-
-
-def field_diff(old, new):
-    """字段级修改明细：比较新旧条目的平铺字段，返回 [{field, from, to}]（修改详情弹窗用）"""
-    def _flat(it):
-        base = field_snapshot(it)
-        d = it.get("detail") or {}
-        for k in d:
-            if k not in base:
-                base[k] = d[k] if d[k] is not None else ""
-        return base
-    fo, fn = _flat(old), _flat(new)
-    diff = []
-    for k in fo:
-        vo, vn = fo.get(k), fn.get(k)
-        so, sn = ("" if vo is None else str(vo)), ("" if vn is None else str(vn))
-        if so != sn:
-            diff.append({"field": k, "from": so, "to": sn})
-    return diff
-
+                "raw_added": r["raw_added"], "raw_removed": r["raw_removed"]}
+    return {"added": len(added), "removed": len(removed), "modified": len(modified),
+            "added_names": [x.get("title", "") for x in added][:20],
+            "removed_names": [x.get("title", "") for x in removed][:20],
+            "modified_names": [x.get("title", "") for x in modified][:20],
+            "modified_details": r["modified_details"],
+            "added_list": [_brief(x) for x in added[:24]],
+            "removed_list": [_brief(x) for x in removed[:24]],
+            "modified_list": [_brief(x) for x in modified[:24]]}
 
 def load(path):
     with open(path, encoding="utf-8") as f:
@@ -529,6 +468,10 @@ def main():
         if prev_use is None:
             print("  %s 首次，建基线（不记变化）" % sc)
             continue
+        if prev_use.get("items"):
+            kept = filter_test_items(prev_use["items"], verbose=False)
+            if len(kept) != len(prev_use["items"]):
+                prev_use = dict(prev_use, items=kept)
         r = diff_scope(prev_use, cur_use)
         _bt = len((prev_use or {}).get("items") or [])
         if is_sampling_noise(r, _bt):
