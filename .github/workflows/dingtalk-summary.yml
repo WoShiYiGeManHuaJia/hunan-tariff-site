@@ -53,8 +53,8 @@ permissions:
 
 # 去重：同一时刻只允许一个 Tariff Notify 运行。
 # 之前手动触发时脚本把 204 误判为失败并重试 10 次，导致连发 10 条钉钉。
-# 这里 cancel-in-progress: false —— 新任务排队等旧的跑完，而不是并发跑多个
-# （并发会让多个 notify 同时读到同一份 history，推送内容重复）。
+# concurrency 让新任务排队等旧的跑完，而不是并发跑多个
+#（并发会让多个 notify 同时读到同一份 history，推送内容重复）。
 concurrency:
   group: tariff-notify
   cancel-in-progress: false
@@ -135,7 +135,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           rm -rf snapshots
           cp -r pipelines/mobile/snapshots ./snapshots 2>/dev/null || true
-          N=$(ls snapshots/*.json 2>/dev/null | wc -l)
+          N=$(find snapshots -maxdepth 1 -type f -name "*.json" ! -name "peaks.json" | wc -l)
           echo "移动快照文件数: $N"
           if [ "$N" -eq 0 ]; then
             echo "::warning::移动本轮无快照，保留现有 data/"
@@ -220,8 +220,9 @@ jobs:
             echo "无变化"
           else
             git commit -q -m "notify fetch+push $(date -u +%FT%TZ)"
+            PUSHED=0
             for i in 1 2 3 4 5; do
-              if git push origin main; then echo "已推送"; break; fi
+              if git push origin main; then echo "已推送"; PUSHED=1; break; fi
               echo "[warn] push 失败，重新对齐后重试 ($i/5)"
               git fetch origin main
               git reset --hard FETCH_HEAD
@@ -232,6 +233,10 @@ jobs:
               git commit -q -m "notify fetch+push retry$i $(date -u +%FT%TZ)" || true
               sleep 8
             done
+            if [ "$PUSHED" -ne 1 ]; then
+              echo "::error::连续5次 git push 均失败"
+              exit 1
+            fi
           fi
 
   # ══════════ 推送 ══════════
