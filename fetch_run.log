@@ -1,31 +1,535 @@
-=== 开始 2026-09-12T18:10:56Z ===
-模式=focus 重点省=hunan,guangdong
+=== 开始 2026-09-13T01:44:27Z ===
+模式=full 重点省=hunan,guangdong
                total        used        free      shared  buff/cache   available
-Mem:           15989        1019       12682          40        2648       14970
+Mem:           15988        1436       12264          41        2650       14552
 Swap:           3071           0        3071
-== 任务数: 3 ==
+== 任务数: 32 ==
 === 抓取 quanguo (prov=- city=-) ===
     round 1 page 1: ret 500 cum 500 (+500)
-    round 6 page 6: ret 500 cum 907 (+407)
-    round 12 page 12: ret 500 cum 907 (+0)
-    round 18 page 18: ret 500 cum 907 (+0)
-    round 20 page 20: ret 500 cum 907 (+0)
-    round 21 page 1: ret 500 cum 907 (+0)
-    round 24 page 4: ret 500 cum 907 (+0)
-    round 30 page 10: ret 500 cum 907 (+0)
-    round 36 page 16: ret 500 cum 907 (+0)
-    round 40 page 20: ret 500 cum 907 (+0)
-    round 41 page 1: ret 500 cum 907 (+0)
-    round 42 page 2: ret 500 cum 907 (+0)
-    round 48 page 8: ret 500 cum 907 (+0)
-    round 54 page 14: ret 500 cum 907 (+0)
-    round 60 page 20: ret 500 cum 907 (+0)
+    round 2 page 2: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1000 (+0)
+    round 12 page 12: ret 500 cum 1000 (+0)
+    round 18 page 18: ret 500 cum 1000 (+0)
+    round 20 page 20: ret 500 cum 1000 (+0)
+    round 21 page 1: ret 500 cum 1000 (+0)
+    round 24 page 4: ret 500 cum 1000 (+0)
+    round 30 page 10: ret 500 cum 1000 (+0)
+    round 36 page 16: ret 500 cum 1000 (+0)
+    round 40 page 20: ret 500 cum 1000 (+0)
+    round 41 page 1: ret 500 cum 1000 (+0)
+    round 42 page 2: ret 500 cum 1000 (+0)
+    round 48 page 8: ret 500 cum 1000 (+0)
+    round 54 page 14: ret 500 cum 1000 (+0)
+    round 60 page 20: ret 500 cum 1000 (+0)
     收敛: 已跑 60 轮且连续 30 轮无新增，终止
-  scope quanguo 列表共 907 条，抓明细...
-  明细 907 条
+  scope quanguo 列表共 1000 条，抓明细...
+  明细 1000 条
+=== 抓取 beijing (prov=011 city=110) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1000 (+0)
+    round 12 page 12: ret 500 cum 1000 (+0)
+    round 18 page 18: ret 500 cum 1000 (+0)
+    round 20 page 20: ret 500 cum 1000 (+0)
+    round 21 page 1: ret 500 cum 1000 (+0)
+    round 24 page 4: ret 500 cum 1000 (+0)
+    round 30 page 10: ret 500 cum 1000 (+0)
+    round 36 page 16: ret 500 cum 1000 (+0)
+    round 40 page 20: ret 500 cum 1000 (+0)
+    round 41 page 1: ret 500 cum 1000 (+0)
+    round 42 page 2: ret 500 cum 1000 (+0)
+    round 48 page 8: ret 500 cum 1000 (+0)
+    round 54 page 14: ret 500 cum 1000 (+0)
+    round 60 page 20: ret 500 cum 1000 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope beijing 列表共 1000 条，抓明细...
+  明细 1000 条
+=== 抓取 tianjin (prov=013 city=130) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1000 (+0)
+    round 12 page 12: ret 500 cum 1000 (+0)
+    round 18 page 18: ret 500 cum 1000 (+0)
+    round 20 page 20: ret 500 cum 1000 (+0)
+    round 21 page 1: ret 500 cum 1000 (+0)
+    round 24 page 4: ret 500 cum 1000 (+0)
+    round 30 page 10: ret 500 cum 1000 (+0)
+    round 36 page 16: ret 500 cum 1000 (+0)
+    round 40 page 20: ret 500 cum 1000 (+0)
+    round 41 page 1: ret 500 cum 1000 (+0)
+    round 42 page 2: ret 500 cum 1000 (+0)
+    round 48 page 8: ret 500 cum 1000 (+0)
+    round 54 page 14: ret 500 cum 1000 (+0)
+    round 60 page 20: ret 500 cum 1000 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope tianjin 列表共 1000 条，抓明细...
+  明细 1000 条
+=== 抓取 hebei (prov=018 city=180) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1000 (+0)
+    round 12 page 12: ret 500 cum 1000 (+0)
+    round 18 page 18: ret 500 cum 1000 (+0)
+    round 20 page 20: ret 500 cum 1000 (+0)
+    round 21 page 1: ret 500 cum 1000 (+0)
+    round 24 page 4: ret 500 cum 1000 (+0)
+    round 30 page 10: ret 500 cum 1000 (+0)
+    round 36 page 16: ret 500 cum 1000 (+0)
+    round 40 page 20: ret 500 cum 1000 (+0)
+    round 41 page 1: ret 500 cum 1000 (+0)
+    round 42 page 2: ret 500 cum 1000 (+0)
+    round 48 page 8: ret 500 cum 1000 (+0)
+    round 54 page 14: ret 500 cum 1000 (+0)
+    round 60 page 20: ret 500 cum 1000 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope hebei 列表共 1000 条，抓明细...
+  明细 1000 条
+=== 抓取 shanxi (prov=019 city=190) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1000 (+0)
+    round 12 page 12: ret 500 cum 1000 (+0)
+    round 18 page 18: ret 500 cum 1000 (+0)
+    round 20 page 20: ret 500 cum 1000 (+0)
+    round 21 page 1: ret 500 cum 1000 (+0)
+    round 24 page 4: ret 500 cum 1000 (+0)
+    round 30 page 10: ret 500 cum 1000 (+0)
+    round 36 page 16: ret 500 cum 1000 (+0)
+    round 40 page 20: ret 500 cum 1000 (+0)
+    round 41 page 1: ret 500 cum 1000 (+0)
+    round 42 page 2: ret 500 cum 1000 (+0)
+    round 48 page 8: ret 500 cum 1000 (+0)
+    round 54 page 14: ret 500 cum 1000 (+0)
+    round 60 page 20: ret 500 cum 1000 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope shanxi 列表共 1000 条，抓明细...
+  明细 1000 条
+=== 抓取 neimenggu (prov=010 city=101) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1000 (+0)
+    round 12 page 12: ret 500 cum 1000 (+0)
+    round 18 page 18: ret 500 cum 1000 (+0)
+    round 20 page 20: ret 500 cum 1000 (+0)
+    round 21 page 1: ret 500 cum 1000 (+0)
+    round 24 page 4: ret 500 cum 1000 (+0)
+    round 30 page 10: ret 500 cum 1000 (+0)
+    round 36 page 16: ret 500 cum 1000 (+0)
+    round 40 page 20: ret 500 cum 1000 (+0)
+    round 41 page 1: ret 500 cum 1000 (+0)
+    round 42 page 2: ret 500 cum 1000 (+0)
+    round 48 page 8: ret 500 cum 1000 (+0)
+    round 54 page 14: ret 500 cum 1000 (+0)
+    round 60 page 20: ret 500 cum 1000 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope neimenggu 列表共 1000 条，抓明细...
+  明细 1000 条
+=== 抓取 liaoning (prov=091 city=910) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 6 page 6: ret 500 cum 500 (+0)
+    round 7 page 7: ret 500 cum 1000 (+500)
+    round 12 page 12: ret 500 cum 1000 (+0)
+    round 18 page 18: ret 500 cum 1000 (+0)
+    round 20 page 20: ret 500 cum 1000 (+0)
+    round 21 page 1: ret 500 cum 1000 (+0)
+    round 24 page 4: ret 500 cum 1000 (+0)
+    round 30 page 10: ret 500 cum 1000 (+0)
+    round 36 page 16: ret 500 cum 1000 (+0)
+    round 40 page 20: ret 500 cum 1000 (+0)
+    round 41 page 1: ret 500 cum 1000 (+0)
+    round 42 page 2: ret 500 cum 1000 (+0)
+    round 47 page 7: ret 500 cum 1500 (+500)
+    round 48 page 8: ret 500 cum 1500 (+0)
+    round 54 page 14: ret 500 cum 1500 (+0)
+    round 60 page 20: ret 500 cum 1500 (+0)
+    round 61 page 1: ret 500 cum 1500 (+0)
+    round 66 page 6: ret 500 cum 1500 (+0)
+    round 72 page 12: ret 500 cum 1500 (+0)
+    收敛: 已跑 77 轮且连续 30 轮无新增，终止
+  scope liaoning 列表共 1500 条，抓明细...
+  明细 1500 条
+=== 抓取 jilin (prov=090 city=901) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 884 (+384)
+    round 6 page 6: ret 500 cum 884 (+0)
+    round 12 page 12: ret 500 cum 884 (+0)
+    round 18 page 18: ret 500 cum 884 (+0)
+    round 20 page 20: ret 500 cum 884 (+0)
+    round 21 page 1: ret 500 cum 884 (+0)
+    round 24 page 4: ret 500 cum 884 (+0)
+    round 30 page 10: ret 500 cum 884 (+0)
+    round 36 page 16: ret 500 cum 884 (+0)
+    round 40 page 20: ret 500 cum 884 (+0)
+    round 41 page 1: ret 500 cum 884 (+0)
+    round 42 page 2: ret 500 cum 884 (+0)
+    round 48 page 8: ret 500 cum 884 (+0)
+    round 54 page 14: ret 500 cum 884 (+0)
+    round 60 page 20: ret 500 cum 884 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope jilin 列表共 884 条，抓明细...
+  明细 884 条
+=== 抓取 heilongjiang (prov=097 city=971) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1000 (+0)
+    round 12 page 12: ret 500 cum 1000 (+0)
+    round 18 page 18: ret 500 cum 1000 (+0)
+    round 20 page 20: ret 500 cum 1000 (+0)
+    round 21 page 1: ret 500 cum 1000 (+0)
+    round 24 page 4: ret 500 cum 1000 (+0)
+    round 30 page 10: ret 500 cum 1000 (+0)
+    round 36 page 16: ret 500 cum 1000 (+0)
+    round 40 page 20: ret 500 cum 1000 (+0)
+    round 41 page 1: ret 500 cum 1000 (+0)
+    round 42 page 2: ret 500 cum 1000 (+0)
+    round 48 page 8: ret 500 cum 1000 (+0)
+    round 54 page 14: ret 500 cum 1000 (+0)
+    round 60 page 20: ret 500 cum 1000 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope heilongjiang 列表共 1000 条，抓明细...
+  明细 1000 条
+=== 抓取 shanghai (prov=031 city=310) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 6 page 6: ret 500 cum 841 (+341)
+    round 12 page 12: ret 500 cum 841 (+0)
+    round 18 page 18: ret 500 cum 841 (+0)
+    round 20 page 20: ret 500 cum 841 (+0)
+    round 21 page 1: ret 500 cum 841 (+0)
+    round 24 page 4: ret 500 cum 841 (+0)
+    round 30 page 10: ret 500 cum 841 (+0)
+    round 36 page 16: ret 500 cum 841 (+0)
+    round 40 page 20: ret 500 cum 841 (+0)
+    round 41 page 1: ret 500 cum 841 (+0)
+    round 42 page 2: ret 500 cum 841 (+0)
+    round 48 page 8: ret 500 cum 841 (+0)
+    round 54 page 14: ret 500 cum 841 (+0)
+    round 60 page 20: ret 500 cum 841 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope shanghai 列表共 841 条，抓明细...
+  明细 841 条
+=== 抓取 jiangsu (prov=034 city=330) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 857 (+357)
+    round 6 page 6: ret 500 cum 857 (+0)
+    round 12 page 12: ret 500 cum 857 (+0)
+    round 18 page 18: ret 500 cum 857 (+0)
+    round 20 page 20: ret 500 cum 857 (+0)
+    round 21 page 1: ret 500 cum 857 (+0)
+    round 24 page 4: ret 500 cum 857 (+0)
+    round 30 page 10: ret 500 cum 857 (+0)
+    round 36 page 16: ret 500 cum 857 (+0)
+    round 40 page 20: ret 500 cum 857 (+0)
+    round 41 page 1: ret 500 cum 857 (+0)
+    round 42 page 2: ret 500 cum 857 (+0)
+    round 48 page 8: ret 500 cum 857 (+0)
+    round 54 page 14: ret 500 cum 857 (+0)
+    round 60 page 20: ret 500 cum 857 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope jiangsu 列表共 857 条，抓明细...
+  明细 857 条
+=== 抓取 zhejiang (prov=036 city=360) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 792 (+292)
+    round 6 page 6: ret 500 cum 792 (+0)
+    round 12 page 12: ret 500 cum 792 (+0)
+    round 18 page 18: ret 0 cum 792 (+0)
+    round 20 page 20: ret 500 cum 792 (+0)
+    round 21 page 1: ret 500 cum 792 (+0)
+    round 24 page 4: ret 500 cum 792 (+0)
+    round 30 page 10: ret 500 cum 792 (+0)
+    round 36 page 16: ret 500 cum 792 (+0)
+    round 40 page 20: ret 500 cum 792 (+0)
+    round 41 page 1: ret 500 cum 792 (+0)
+    round 42 page 2: ret 500 cum 792 (+0)
+    round 48 page 8: ret 500 cum 792 (+0)
+    round 54 page 14: ret 500 cum 792 (+0)
+    round 60 page 20: ret 500 cum 792 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope zhejiang 列表共 792 条，抓明细...
+  明细 792 条
+  [过滤] 剔除测试/作废数据 2 条：浙江-宽带200M包二年500元-测试、浙江-宽带200M包月-35元-测试
+=== 抓取 anhui (prov=030 city=300) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 906 (+406)
+    round 6 page 6: ret 500 cum 906 (+0)
+    round 12 page 12: ret 500 cum 906 (+0)
+    round 18 page 18: ret 500 cum 906 (+0)
+    round 20 page 20: ret 500 cum 906 (+0)
+    round 21 page 1: ret 500 cum 906 (+0)
+    round 24 page 4: ret 500 cum 906 (+0)
+    round 30 page 10: ret 500 cum 906 (+0)
+    round 36 page 16: ret 500 cum 906 (+0)
+    round 40 page 20: ret 500 cum 906 (+0)
+    round 41 page 1: ret 500 cum 906 (+0)
+    round 42 page 2: ret 500 cum 906 (+0)
+    round 48 page 8: ret 500 cum 906 (+0)
+    round 54 page 14: ret 500 cum 906 (+0)
+    round 60 page 20: ret 500 cum 906 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope anhui 列表共 906 条，抓明细...
+  明细 906 条
+=== 抓取 fujian (prov=038 city=380) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 777 (+277)
+    round 6 page 6: ret 500 cum 777 (+0)
+    round 12 page 12: ret 500 cum 777 (+0)
+    round 18 page 18: ret 500 cum 777 (+0)
+    round 20 page 20: ret 500 cum 777 (+0)
+    round 21 page 1: ret 500 cum 777 (+0)
+    round 24 page 4: ret 500 cum 777 (+0)
+    round 30 page 10: ret 500 cum 777 (+0)
+    round 36 page 16: ret 500 cum 777 (+0)
+    round 40 page 20: ret 500 cum 777 (+0)
+    round 41 page 1: ret 500 cum 777 (+0)
+    round 42 page 2: ret 500 cum 777 (+0)
+    round 48 page 8: ret 500 cum 777 (+0)
+    round 54 page 14: ret 500 cum 777 (+0)
+    round 60 page 20: ret 500 cum 777 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope fujian 列表共 777 条，抓明细...
+  明细 777 条
+=== 抓取 jiangxi (prov=075 city=740) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1000 (+0)
+    round 7 page 7: ret 500 cum 1355 (+355)
+    round 12 page 12: ret 500 cum 1355 (+0)
+    round 18 page 18: ret 500 cum 1355 (+0)
+    round 20 page 20: ret 500 cum 1355 (+0)
+    round 21 page 1: ret 500 cum 1355 (+0)
+    round 24 page 4: ret 500 cum 1355 (+0)
+    round 30 page 10: ret 500 cum 1355 (+0)
+    round 36 page 16: ret 500 cum 1355 (+0)
+    round 40 page 20: ret 500 cum 1355 (+0)
+    round 41 page 1: ret 500 cum 1355 (+0)
+    round 42 page 2: ret 500 cum 1355 (+0)
+    round 48 page 8: ret 500 cum 1355 (+0)
+    round 54 page 14: ret 500 cum 1355 (+0)
+    round 60 page 20: ret 500 cum 1355 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope jiangxi 列表共 1355 条，抓明细...
+  明细 1355 条
+=== 抓取 shandong (prov=017 city=150) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 1000 (+500)
+    round 6 page 6: ret 500 cum 1325 (+325)
+    round 12 page 12: ret 500 cum 1325 (+0)
+    round 18 page 18: ret 500 cum 1325 (+0)
+    round 20 page 20: ret 500 cum 1325 (+0)
+    round 21 page 1: ret 500 cum 1325 (+0)
+    round 24 page 4: ret 500 cum 1325 (+0)
+    round 30 page 10: ret 500 cum 1325 (+0)
+    round 36 page 16: ret 500 cum 1325 (+0)
+    round 40 page 20: ret 500 cum 1325 (+0)
+    round 41 page 1: ret 500 cum 1325 (+0)
+    round 42 page 2: ret 500 cum 1325 (+0)
+    round 44 page 4: ret 500 cum 1579 (+254)
+    round 48 page 8: ret 500 cum 1579 (+0)
+    round 54 page 14: ret 500 cum 1579 (+0)
+    round 60 page 20: ret 500 cum 1579 (+0)
+    round 61 page 1: ret 500 cum 1579 (+0)
+    round 66 page 6: ret 500 cum 1579 (+0)
+    round 72 page 12: ret 500 cum 1579 (+0)
+    收敛: 已跑 74 轮且连续 30 轮无新增，终止
+  scope shandong 列表共 1579 条，抓明细...
+  明细 1579 条
+=== 抓取 henan (prov=076 city=760) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 823 (+323)
+    round 6 page 6: ret 500 cum 823 (+0)
+    round 12 page 12: ret 500 cum 823 (+0)
+    round 18 page 18: ret 500 cum 823 (+0)
+    round 20 page 20: ret 500 cum 823 (+0)
+    round 21 page 1: ret 500 cum 823 (+0)
+    round 24 page 4: ret 500 cum 823 (+0)
+    round 30 page 10: ret 500 cum 823 (+0)
+    round 36 page 16: ret 500 cum 823 (+0)
+    round 40 page 20: ret 500 cum 823 (+0)
+    round 41 page 1: ret 500 cum 823 (+0)
+    round 42 page 2: ret 500 cum 823 (+0)
+    round 48 page 8: ret 500 cum 823 (+0)
+    round 54 page 14: ret 500 cum 823 (+0)
+    round 60 page 20: ret 500 cum 823 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope henan 列表共 823 条，抓明细...
+  明细 823 条
+=== 抓取 hubei (prov=071 city=710) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 6 page 6: ret 500 cum 822 (+322)
+    round 12 page 12: ret 500 cum 822 (+0)
+    round 18 page 18: ret 500 cum 822 (+0)
+    round 20 page 20: ret 500 cum 822 (+0)
+    round 21 page 1: ret 500 cum 822 (+0)
+    round 24 page 4: ret 500 cum 822 (+0)
+    round 30 page 10: ret 500 cum 822 (+0)
+    round 36 page 16: ret 500 cum 822 (+0)
+    round 40 page 20: ret 500 cum 822 (+0)
+    round 41 page 1: ret 500 cum 822 (+0)
+    round 42 page 2: ret 500 cum 822 (+0)
+    round 48 page 8: ret 500 cum 822 (+0)
+    round 54 page 14: ret 500 cum 822 (+0)
+    round 60 page 20: ret 500 cum 822 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope hubei 列表共 822 条，抓明细...
+  明细 822 条
 === 抓取 hunan (prov=074 city=741) ===
     round 1 page 1: ret 500 cum 500 (+500)
-    round 3 page 3: ret 500 cum 677 (+177)
+    round 2 page 2: ret 500 cum 842 (+342)
+    round 6 page 6: ret 500 cum 842 (+0)
+    round 12 page 12: ret 500 cum 842 (+0)
+    round 18 page 18: ret 500 cum 842 (+0)
+    round 20 page 20: ret 500 cum 842 (+0)
+    round 21 page 1: ret 500 cum 842 (+0)
+    round 24 page 4: ret 500 cum 842 (+0)
+    round 30 page 10: ret 500 cum 842 (+0)
+    round 36 page 16: ret 500 cum 842 (+0)
+    round 40 page 20: ret 500 cum 842 (+0)
+    round 41 page 1: ret 500 cum 842 (+0)
+    round 42 page 2: ret 500 cum 842 (+0)
+    round 48 page 8: ret 500 cum 842 (+0)
+    round 54 page 14: ret 500 cum 842 (+0)
+    round 60 page 20: ret 500 cum 842 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope hunan 列表共 842 条，抓明细...
+  明细 842 条
+=== 抓取 guangdong (prov=051 city=510) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 863 (+363)
+    round 6 page 6: ret 500 cum 863 (+0)
+    round 12 page 12: ret 500 cum 863 (+0)
+    round 18 page 18: ret 500 cum 863 (+0)
+    round 20 page 20: ret 500 cum 863 (+0)
+    round 21 page 1: ret 500 cum 863 (+0)
+    round 24 page 4: ret 500 cum 863 (+0)
+    round 30 page 10: ret 500 cum 863 (+0)
+    round 36 page 16: ret 500 cum 863 (+0)
+    round 40 page 20: ret 500 cum 863 (+0)
+    round 41 page 1: ret 500 cum 863 (+0)
+    round 42 page 2: ret 500 cum 863 (+0)
+    round 48 page 8: ret 500 cum 863 (+0)
+    round 54 page 14: ret 500 cum 863 (+0)
+    round 60 page 20: ret 500 cum 863 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope guangdong 列表共 863 条，抓明细...
+  明细 863 条
+=== 抓取 guangxi (prov=059 city=588) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 751 (+251)
+    round 6 page 6: ret 500 cum 751 (+0)
+    round 12 page 12: ret 500 cum 751 (+0)
+    round 18 page 18: ret 500 cum 751 (+0)
+    round 20 page 20: ret 500 cum 751 (+0)
+    round 21 page 1: ret 500 cum 751 (+0)
+    round 24 page 4: ret 500 cum 751 (+0)
+    round 30 page 10: ret 500 cum 751 (+0)
+    round 36 page 16: ret 500 cum 751 (+0)
+    round 40 page 20: ret 500 cum 751 (+0)
+    round 41 page 1: ret 500 cum 751 (+0)
+    round 42 page 2: ret 500 cum 1251 (+500)
+    round 43 page 3: ret 500 cum 1331 (+80)
+    round 45 page 5: ret 500 cum 1541 (+210)
+    round 47 page 7: ret 500 cum 2041 (+500)
+    round 48 page 8: ret 500 cum 2041 (+0)
+    round 54 page 14: ret 500 cum 2041 (+0)
+    round 60 page 20: ret 500 cum 2041 (+0)
+    round 61 page 1: ret 500 cum 2041 (+0)
+    round 66 page 6: ret 500 cum 2041 (+0)
+    round 72 page 12: ret 500 cum 2041 (+0)
+    收敛: 已跑 77 轮且连续 30 轮无新增，终止
+  scope guangxi 列表共 2041 条，抓明细...
+  明细 2041 条
+=== 抓取 hainan (prov=050 city=501) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 1000 (+500)
+    round 5 page 5: ret 500 cum 1500 (+500)
+    round 6 page 6: ret 500 cum 1500 (+0)
+    round 12 page 12: ret 500 cum 1500 (+0)
+    round 18 page 18: ret 500 cum 1500 (+0)
+    round 20 page 20: ret 500 cum 1500 (+0)
+    round 21 page 1: ret 500 cum 1500 (+0)
+    round 24 page 4: ret 500 cum 1500 (+0)
+    round 30 page 10: ret 500 cum 1500 (+0)
+    round 36 page 16: ret 500 cum 1500 (+0)
+    round 40 page 20: ret 500 cum 1500 (+0)
+    round 41 page 1: ret 500 cum 1500 (+0)
+    round 42 page 2: ret 500 cum 1500 (+0)
+    round 48 page 8: ret 500 cum 1500 (+0)
+    round 54 page 14: ret 500 cum 1500 (+0)
+    round 57 page 17: ret 500 cum 1622 (+122)
+    round 60 page 20: ret 500 cum 1622 (+0)
+    round 61 page 1: ret 500 cum 1622 (+0)
+    round 66 page 6: ret 500 cum 1622 (+0)
+    round 72 page 12: ret 500 cum 1622 (+0)
+    round 78 page 18: ret 500 cum 1622 (+0)
+    round 80 page 20: ret 500 cum 1622 (+0)
+    round 81 page 1: ret 500 cum 1622 (+0)
+    round 84 page 4: ret 500 cum 1622 (+0)
+    收敛: 已跑 87 轮且连续 30 轮无新增，终止
+  scope hainan 列表共 1622 条，抓明细...
+  明细 1622 条
+=== 抓取 chongqing (prov=083 city=831) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 680 (+180)
+    round 6 page 6: ret 500 cum 680 (+0)
+    round 12 page 12: ret 500 cum 680 (+0)
+    round 18 page 18: ret 500 cum 680 (+0)
+    round 20 page 20: ret 500 cum 680 (+0)
+    round 21 page 1: ret 500 cum 680 (+0)
+    round 24 page 4: ret 500 cum 680 (+0)
+    round 30 page 10: ret 500 cum 680 (+0)
+    round 36 page 16: ret 500 cum 680 (+0)
+    round 40 page 20: ret 500 cum 680 (+0)
+    round 41 page 1: ret 500 cum 680 (+0)
+    round 42 page 2: ret 500 cum 680 (+0)
+    round 48 page 8: ret 500 cum 680 (+0)
+    round 54 page 14: ret 500 cum 680 (+0)
+    round 60 page 20: ret 500 cum 680 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope chongqing 列表共 680 条，抓明细...
+  明细 680 条
+=== 抓取 sichuan (prov=081 city=810) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 592 (+92)
+    round 6 page 6: ret 500 cum 592 (+0)
+    round 12 page 12: ret 500 cum 592 (+0)
+    round 18 page 18: ret 500 cum 592 (+0)
+    round 20 page 20: ret 500 cum 592 (+0)
+    round 21 page 1: ret 500 cum 592 (+0)
+    round 24 page 4: ret 500 cum 592 (+0)
+    round 30 page 10: ret 500 cum 592 (+0)
+    round 36 page 16: ret 500 cum 592 (+0)
+    round 40 page 20: ret 500 cum 592 (+0)
+    round 41 page 1: ret 500 cum 592 (+0)
+    round 42 page 2: ret 500 cum 592 (+0)
+    round 48 page 8: ret 500 cum 592 (+0)
+    round 54 page 14: ret 500 cum 592 (+0)
+    round 60 page 20: ret 500 cum 592 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope sichuan 列表共 592 条，抓明细...
+  明细 592 条
+=== 抓取 guizhou (prov=085 city=785) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 6 page 6: ret 500 cum 500 (+0)
+    round 7 page 7: ret 500 cum 641 (+141)
+    round 12 page 12: ret 500 cum 641 (+0)
+    round 18 page 18: ret 500 cum 641 (+0)
+    round 20 page 20: ret 500 cum 641 (+0)
+    round 21 page 1: ret 500 cum 641 (+0)
+    round 24 page 4: ret 500 cum 641 (+0)
+    round 30 page 10: ret 500 cum 641 (+0)
+    round 36 page 16: ret 500 cum 641 (+0)
+    round 40 page 20: ret 500 cum 641 (+0)
+    round 41 page 1: ret 500 cum 641 (+0)
+    round 42 page 2: ret 500 cum 641 (+0)
+    round 48 page 8: ret 500 cum 641 (+0)
+    round 54 page 14: ret 500 cum 641 (+0)
+    round 60 page 20: ret 500 cum 641 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope guizhou 列表共 641 条，抓明细...
+  明细 641 条
+=== 抓取 yunnan (prov=086 city=730) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 4 page 4: ret 500 cum 677 (+177)
     round 6 page 6: ret 500 cum 677 (+0)
     round 12 page 12: ret 500 cum 677 (+0)
     round 18 page 18: ret 500 cum 677 (+0)
@@ -41,34 +545,149 @@ Swap:           3071           0        3071
     round 54 page 14: ret 500 cum 677 (+0)
     round 60 page 20: ret 500 cum 677 (+0)
     收敛: 已跑 60 轮且连续 30 轮无新增，终止
-  scope hunan 列表共 677 条，抓明细...
+  scope yunnan 列表共 677 条，抓明细...
   明细 677 条
-=== 抓取 guangdong (prov=051 city=510) ===
+=== 抓取 xizang (prov=079 city=790) ===
     round 1 page 1: ret 500 cum 500 (+500)
-    round 2 page 2: ret 500 cum 721 (+221)
-    round 6 page 6: ret 500 cum 721 (+0)
-    round 12 page 12: ret 500 cum 721 (+0)
-    round 18 page 18: ret 500 cum 721 (+0)
-    round 20 page 20: ret 500 cum 721 (+0)
-    round 21 page 1: ret 500 cum 721 (+0)
-    round 24 page 4: ret 500 cum 721 (+0)
-    round 30 page 10: ret 500 cum 721 (+0)
-    round 36 page 16: ret 500 cum 721 (+0)
-    round 40 page 20: ret 500 cum 721 (+0)
-    round 41 page 1: ret 500 cum 721 (+0)
-    round 42 page 2: ret 500 cum 721 (+0)
-    round 48 page 8: ret 500 cum 721 (+0)
-    round 54 page 14: ret 500 cum 721 (+0)
-    round 60 page 20: ret 500 cum 721 (+0)
+    round 2 page 2: ret 500 cum 584 (+84)
+    round 6 page 6: ret 500 cum 584 (+0)
+    round 12 page 12: ret 500 cum 584 (+0)
+    round 18 page 18: ret 500 cum 584 (+0)
+    round 20 page 20: ret 500 cum 584 (+0)
+    round 21 page 1: ret 500 cum 584 (+0)
+    round 24 page 4: ret 500 cum 584 (+0)
+    round 30 page 10: ret 500 cum 584 (+0)
+    round 36 page 16: ret 500 cum 584 (+0)
+    round 40 page 20: ret 500 cum 584 (+0)
+    round 41 page 1: ret 500 cum 584 (+0)
+    round 42 page 2: ret 500 cum 584 (+0)
+    round 48 page 8: ret 500 cum 584 (+0)
+    round 54 page 14: ret 500 cum 584 (+0)
+    round 60 page 20: ret 500 cum 584 (+0)
     收敛: 已跑 60 轮且连续 30 轮无新增，终止
-  scope guangdong 列表共 721 条，抓明细...
-  明细 721 条
-    >> 采样噪声：本轮增删 1377 条，超过基线 114%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
-    >> 采样噪声：本轮增删 176 条，超过基线 40%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
-检测到变化: {'quanguo': 'add907/rm0/mod0', 'hunan': 'add0/rm0/mod0', 'guangdong': 'add0/rm0/mod0'}
-latest.json 已生成: quanguo=907 prov_total=956 sections=3
-完成，history 共 6 条
---- 管线结束 exit=0 2026-09-12T18:17:33Z ---
+  scope xizang 列表共 584 条，抓明细...
+  明细 584 条
+=== 抓取 shaanxi (prov=084 city=840) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 3 page 3: ret 500 cum 662 (+162)
+    round 6 page 6: ret 500 cum 662 (+0)
+    round 12 page 12: ret 500 cum 662 (+0)
+    round 18 page 18: ret 500 cum 662 (+0)
+    round 20 page 20: ret 500 cum 662 (+0)
+    round 21 page 1: ret 500 cum 662 (+0)
+    round 24 page 4: ret 500 cum 662 (+0)
+    round 30 page 10: ret 500 cum 662 (+0)
+    round 36 page 16: ret 500 cum 662 (+0)
+    round 40 page 20: ret 500 cum 662 (+0)
+    round 41 page 1: ret 500 cum 662 (+0)
+    round 42 page 2: ret 500 cum 662 (+0)
+    round 48 page 8: ret 500 cum 662 (+0)
+    round 54 page 14: ret 500 cum 662 (+0)
+    round 60 page 20: ret 500 cum 662 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope shaanxi 列表共 662 条，抓明细...
+  明细 662 条
+=== 抓取 gansu (prov=087 city=870) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 4 page 4: ret 500 cum 741 (+241)
+    round 6 page 6: ret 500 cum 741 (+0)
+    round 12 page 12: ret 500 cum 741 (+0)
+    round 18 page 18: ret 500 cum 741 (+0)
+    round 20 page 20: ret 500 cum 741 (+0)
+    round 21 page 1: ret 500 cum 741 (+0)
+    round 24 page 4: ret 500 cum 741 (+0)
+    round 30 page 10: ret 500 cum 741 (+0)
+    round 36 page 16: ret 500 cum 741 (+0)
+    round 40 page 20: ret 500 cum 741 (+0)
+    round 41 page 1: ret 500 cum 741 (+0)
+    round 42 page 2: ret 500 cum 741 (+0)
+    round 48 page 8: ret 500 cum 741 (+0)
+    round 54 page 14: ret 500 cum 741 (+0)
+    round 60 page 20: ret 500 cum 741 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope gansu 列表共 741 条，抓明细...
+  明细 741 条
+=== 抓取 qinghai (prov=070 city=700) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 4 page 4: ret 500 cum 668 (+168)
+    round 6 page 6: ret 500 cum 668 (+0)
+    round 12 page 12: ret 500 cum 668 (+0)
+    round 18 page 18: ret 500 cum 668 (+0)
+    round 20 page 20: ret 500 cum 668 (+0)
+    round 21 page 1: ret 500 cum 668 (+0)
+    round 24 page 4: ret 500 cum 668 (+0)
+    round 30 page 10: ret 500 cum 668 (+0)
+    round 36 page 16: ret 500 cum 668 (+0)
+    round 40 page 20: ret 500 cum 668 (+0)
+    round 41 page 1: ret 500 cum 668 (+0)
+    round 42 page 2: ret 500 cum 668 (+0)
+    round 48 page 8: ret 500 cum 668 (+0)
+    round 54 page 14: ret 500 cum 668 (+0)
+    round 60 page 20: ret 500 cum 668 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope qinghai 列表共 668 条，抓明细...
+  明细 668 条
+=== 抓取 ningxia (prov=088 city=880) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 2 page 2: ret 500 cum 669 (+169)
+    round 6 page 6: ret 500 cum 669 (+0)
+    round 12 page 12: ret 500 cum 669 (+0)
+    round 18 page 18: ret 500 cum 669 (+0)
+    round 20 page 20: ret 500 cum 669 (+0)
+    round 21 page 1: ret 500 cum 669 (+0)
+    round 24 page 4: ret 500 cum 669 (+0)
+    round 30 page 10: ret 500 cum 669 (+0)
+    round 36 page 16: ret 500 cum 669 (+0)
+    round 40 page 20: ret 500 cum 669 (+0)
+    round 41 page 1: ret 500 cum 669 (+0)
+    round 42 page 2: ret 500 cum 669 (+0)
+    round 48 page 8: ret 500 cum 669 (+0)
+    round 54 page 14: ret 500 cum 669 (+0)
+    round 60 page 20: ret 500 cum 669 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope ningxia 列表共 669 条，抓明细...
+  明细 669 条
+=== 抓取 xinjiang (prov=089 city=890) ===
+    round 1 page 1: ret 500 cum 500 (+500)
+    round 4 page 4: ret 500 cum 652 (+152)
+    round 6 page 6: ret 500 cum 652 (+0)
+    round 12 page 12: ret 500 cum 652 (+0)
+    round 18 page 18: ret 500 cum 652 (+0)
+    round 20 page 20: ret 500 cum 652 (+0)
+    round 21 page 1: ret 500 cum 652 (+0)
+    round 24 page 4: ret 500 cum 652 (+0)
+    round 30 page 10: ret 500 cum 652 (+0)
+    round 36 page 16: ret 500 cum 652 (+0)
+    round 40 page 20: ret 500 cum 652 (+0)
+    round 41 page 1: ret 500 cum 652 (+0)
+    round 42 page 2: ret 500 cum 652 (+0)
+    round 48 page 8: ret 500 cum 652 (+0)
+    round 54 page 14: ret 500 cum 652 (+0)
+    round 60 page 20: ret 500 cum 652 (+0)
+    收敛: 已跑 60 轮且连续 30 轮无新增，终止
+  scope xinjiang 列表共 652 条，抓明细...
+  明细 652 条
+    >> 采样噪声：本轮增删 105 条，超过基线 55%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 236 条，超过基线 138%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 194 条，超过基线 95%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 298 条，超过基线 168%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 153 条，超过基线 65%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 508 条，超过基线 157%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 1012 条，超过基线 385%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 1064 条，超过基线 376%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 346 条，超过基线 138%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 1188 条，超过基线 191%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 454 条，超过基线 261%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 506 条，超过基线 188%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 1286 条，超过基线 476%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 1027 条，超过基线 491%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 231 条，超过基线 63%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 218 条，超过基线 303%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+    >> 采样噪声：本轮增删 107 条，超过基线 36%（阈值 30%），判定为接口随机采样抖动，非真实业务变动，已忽略明细
+检测到变化: {'quanguo': 'add1000/rm0/mod0', 'liaoning': 'add49/rm0/mod0', 'jilin': 'add0/rm0/mod0', 'heilongjiang': 'add21/rm14/mod0', 'shanghai': 'add0/rm0/mod0', 'jiangsu': 'add0/rm0/mod0', 'zhejiang': 'add0/rm0/mod0', 'anhui': 'add0/rm0/mod0', 'fujian': 'add0/rm0/mod0', 'jiangxi': 'add0/rm0/mod0', 'shandong': 'add0/rm0/mod0', 'henan': 'add0/rm0/mod0', 'hubei': 'add0/rm0/mod0', 'hunan': 'add0/rm0/mod0', 'guangdong': 'add0/rm0/mod0', 'guangxi': 'add0/rm0/mod0', 'hainan': 'add0/rm0/mod0', 'chongqing': 'add0/rm0/mod0', 'sichuan': 'add0/rm0/mod0', 'guizhou': 'add0/rm0/mod0', 'yunnan': 'add13/rm31/mod0', 'xizang': 'add0/rm32/mod0', 'shaanxi': 'add4/rm37/mod0', 'gansu': 'add7/rm43/mod0', 'qinghai': 'add15/rm32/mod0', 'ningxia': 'add0/rm37/mod0', 'xinjiang': 'add3/rm40/mod0'}
+latest.json 已生成: quanguo=1000 prov_total=11606 sections=32
+完成，history 共 7 条
+--- 管线结束 exit=0 2026-09-13T03:12:13Z ---
                total        used        free      shared  buff/cache   available
-Mem:           15989         935       12754          44        2664       15054
+Mem:           15988         992       12689          48        2676       14996
 Swap:           3071           0        3071
