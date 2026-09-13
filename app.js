@@ -997,6 +997,8 @@ let histShown = 0;          // 当前已渲染条数
 let histAll = [];            // 全量历史数组
 let histFilter = "";
 function histDraw(list) {
+  // 历史按时间升序存储（旧→新），此处局部倒序，令最新变化展示在最上方（手机端体验）
+  list = Array.isArray(list) ? list.slice().reverse() : list;
   const box = $("historyBox");
   histShown = Math.min(histShown, list.length);
   const slice = list.slice(0, histShown);
@@ -1034,7 +1036,7 @@ function histDraw(list) {
         "</span></div></div>"
       );
     }
-    const open = gidx === list.length - 1; // 默认展开最新一条（展示各省摘要，各省明细默认收起）
+    const open = gidx === 0; // 倒序后首条即最新，默认展开（展示各省摘要，各省明细默认收起）
     return (
       '<div class="tl-item' + (open ? " open" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
       '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div><span class=\"tl-arrow\"></span></div>" +
