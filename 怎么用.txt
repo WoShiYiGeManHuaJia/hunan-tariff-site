@@ -1,0 +1,44 @@
+资费变化抓取 · 源码包
+=====================
+
+目录说明
+  pipelines/mobile/              移动抓取（加密接口 + 快照对比）
+  pipelines/unicom_pipeline.py   联通
+  pipelines/telecom_pipeline.py  电信
+  pipelines/gb_pipeline.py       广电
+  pipelines/pipeline_common.py   四家共用：diff / history / 构建
+  pipelines/scripts/announce_fetch.py  公告抓取
+  scripts/build_site.py          生成站点数据
+  scripts/dingtalk_summary.py    汇总推送（钉钉/飞书/企微/邮件）
+  scripts/notify.py              单条通知
+  scripts/push_once.py           本地跑一次推送
+  scripts/rebuild_latest.py      按现有数据重建 latest.json
+  .github/workflows/             云端定时抓取与推送配置
+
+跑一次（本地）
+  pip install -r requirements.txt
+  # 只需 pycryptodome（移动/电信解密）；其余用标准库 urllib
+
+  # 联通（全量）
+  python3 pipelines/unicom_pipeline.py --prev-dir unicom/data --out-dir unicom/data
+
+  # 联通（只抓重点省份 + 全国）
+  python3 pipelines/unicom_pipeline.py --prev-dir unicom/data --out-dir unicom/data \
+      --scopes quanguo,hunan,guangdong
+
+  # 移动（TRACK_PROVINCES 指定重点省份）
+  cd pipelines/mobile && TRACK_PROVINCES=hunan,guangdong python3 main.py --once
+
+推送
+  python3 scripts/push_once.py                    # 单条
+  SINCE_HOURS=24 python3 scripts/dingtalk_summary.py   # 汇总最近 24 小时
+
+云端定时
+  把 .github/workflows 放进自己的仓库，
+  配 Secrets（DINGTALK_WEBHOOK 等）
+  与 Variables（FOCUS_PROVS / SCRAPE_MODE / NOTIFY_MODE），
+  再到 Actions 里启用对应 workflow。
+
+注意
+  · 数据文件（data/ unicom/ telecom/ gb/）不在包内，需自己跑出来。
+  · FOCUS_PROVS 填省份拼音，逗号分隔；「全国」板块默认始终抓取。
