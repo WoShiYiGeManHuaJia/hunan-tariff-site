@@ -1206,7 +1206,7 @@ function histDraw(list) {
     const fresh = gidx === 0; // 最新一条标记
     return (
       '<div class="tl-item' + (open ? " open fresh" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
-      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") + "</div><span class=\"tl-arrow\"></span></div>" +
+      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") + '<span class=\"tl-arrow\"></span></div>' +
       '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
     );
   }).join("") + "</div>";
