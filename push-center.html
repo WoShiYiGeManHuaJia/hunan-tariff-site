@@ -265,8 +265,10 @@ code{
       <button id="dCopy" class="btn pri" style="margin-top:8px">📋 复制「安装」命令</button>
       <textarea id="dCmd" class="codebox" rows="5" readonly style="margin-top:8px"></textarea>
       <div class="stepw" style="margin-top:14px">
-        <div class="stept">第 2 步（必做）· 先选好每天推送时间，再运行 <code>crontab -e</code> 把生成的行粘进去保存</div>
+        <div class="stept">第 2 步（必做）· 先点下面红按钮复制并运行 <code>crontab -e</code>，再把定时行粘进去保存</div>
       </div>
+      <button id="cronECopy" class="btn danger" style="margin-top:8px;width:100%;background:color-mix(in srgb,var(--destructive) 14%,transparent);border:1px solid var(--destructive);color:var(--destructive);font-weight:700">❗ 复制并运行 crontab -e（必须先做这一步）</button>
+      <div class="tiny" style="margin-top:6px;line-height:1.7;color:var(--destructive);font-weight:600">⚠ 必须先运行上面这条命令打开定时编辑器，把下面生成的定时行粘进去并保存，定时才会生效；不要跳过。</div>
       <div class="fld" style="margin-top:8px">
         <label>每天推送时间（点 ＋ 添加，最多 4 个）</label>
         <div id="cronTimes"></div>
@@ -558,6 +560,7 @@ renderCronTimes();
 refreshDevice();
 $('dCopy').addEventListener('click',function(){refreshDevice();const v=$('dCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制，粘贴到终端执行')}});
 $('cronCopy').addEventListener('click',function(){refreshDevice();const v=$('cronCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制定时行，粘贴到 crontab 里')}});
+$('cronECopy').addEventListener('click',function(){copy('crontab -e','已复制 crontab -e，粘贴到终端按回车打开定时编辑器')});
 $('cronAdd').addEventListener('click',addCronTime);
 $('tabCloud').addEventListener('click',function(){switchTab('cloud')});
 $('tabDevice').addEventListener('click',function(){switchTab('device');refreshDevice()});
