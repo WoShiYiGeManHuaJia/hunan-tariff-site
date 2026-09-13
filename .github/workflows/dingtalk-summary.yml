@@ -266,22 +266,27 @@ jobs:
 
       - name: 推送汇总（多通道）
         env:
-          # 钉钉
+          # ── 通道开关说明 ──
+          # 定时触发（10:00/20:00）：推全部已配置通道（钉钉/飞书/企微/邮件）。
+          # 站长手动触发（workflow_dispatch，即「我让你推送」）：只推站长自己的
+          # 钉钉；飞书/企微/邮件置空后 notify.py 会自动跳过，避免打扰网页访客。
+          # 注：网页访客在 push-center.html 里的配置只存在各自浏览器 localStorage，
+          #     由访客浏览器直连官方接口推送，与本 workflow 无关（见 push-center.html）。
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET:  ${{ secrets.DINGTALK_SECRET }}
-          # 飞书
-          FEISHU_WEBHOOK:   ${{ secrets.FEISHU_WEBHOOK }}
-          FEISHU_SECRET:    ${{ secrets.FEISHU_SECRET }}
-          # 企业微信机器人
-          WECOM_WEBHOOK:    ${{ secrets.WECOM_WEBHOOK }}
-          # 邮件
-          SMTP_HOST:        ${{ secrets.SMTP_HOST }}
-          SMTP_PORT:        ${{ secrets.SMTP_PORT }}
-          SMTP_USER:        ${{ secrets.SMTP_USER }}
-          SMTP_PASS:        ${{ secrets.SMTP_PASS }}
-          MAIL_TO:          ${{ secrets.MAIL_TO }}
-          MAIL_FROM:        ${{ secrets.MAIL_FROM }}
-          MAIL_FROM_NAME:   ${{ secrets.MAIL_FROM_NAME }}
+          # 飞书（仅定时推送；手动触发置空跳过）
+          FEISHU_WEBHOOK:   ${{ github.event_name == 'workflow_dispatch' && '' || secrets.FEISHU_WEBHOOK }}
+          FEISHU_SECRET:    ${{ github.event_name == 'workflow_dispatch' && '' || secrets.FEISHU_SECRET }}
+          # 企业微信机器人（仅定时推送；手动触发置空跳过）
+          WECOM_WEBHOOK:    ${{ github.event_name == 'workflow_dispatch' && '' || secrets.WECOM_WEBHOOK }}
+          # 邮件（仅定时推送；手动触发置空跳过）
+          SMTP_HOST:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.SMTP_HOST }}
+          SMTP_PORT:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.SMTP_PORT }}
+          SMTP_USER:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.SMTP_USER }}
+          SMTP_PASS:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.SMTP_PASS }}
+          MAIL_TO:          ${{ github.event_name == 'workflow_dispatch' && '' || secrets.MAIL_TO }}
+          MAIL_FROM:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.MAIL_FROM }}
+          MAIL_FROM_NAME:   ${{ github.event_name == 'workflow_dispatch' && '' || secrets.MAIL_FROM_NAME }}
           # 通用
           SINCE_HOURS:      ${{ github.event.inputs.hours || '24' }}
           # 仓库未配置 vars 时这里会是空串，必须给默认值
