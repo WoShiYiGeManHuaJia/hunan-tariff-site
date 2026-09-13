@@ -1139,7 +1139,7 @@ function renderHistory() {
 
 /* ========== 更新公告弹窗（每个设备仅显示一次，几大站共用同一标记） ========== */
 (function () {
-  var KEY = "marvis_site_notice_20260912v3";
+  var KEY = "marvis_site_notice_20260913v4";
   var done = false;
   try { done = !!localStorage.getItem(KEY); } catch (e) {}
   if (done) return;
@@ -1169,15 +1169,13 @@ function renderHistory() {
   var card = document.createElement("div");
   card.className = "notice-card";
   card.innerHTML =
-    '<div class="notice-top"><span class="notice-ico">📢</span><h3>资费站更新公告</h3><span class="notice-tag">2026.09.12</span></div>' +
+    '<div class="notice-top"><span class="notice-ico">📢</span><h3>资费站更新公告</h3><span class="notice-tag">2026.09.13</span></div>' +
     '<div class="notice-body"><p>本次更新主要内容：</p><ul class="notice-list">' +
-    "<li>修复：联通 / 电信 / 广电「变化历史」一直加载中打不开的问题。</li>" +
-    "<li>修改的套餐：新增「修改前 / 修改后」字段对比表，改动处高亮显示。</li>" +
-    "<li>下架的套餐：完整展示资费配置，不再只提示「已下架看不了」。</li>" +
-    "<li>修复：部分字段显示为英文（如上线日期、退订方式、违约责任等）。</li>" +
-    "<li>修复：联通一次冒出数千条异常变化，已加入噪声识别并重建基线。</li>" +
-    "<li>变化历史改为上滑加载；联通数据大幅瘦身，打开更快。</li>" +
-    '</ul></div>' +
+"<li>半重构代码：整体架构重新整理，运行更稳定、维护更方便。</li>" +
+"<li>全部代码开源：源码已公开，可自行部署与二次开发。</li>" +
+"<li>修复联通数据异常：已清空变化历史，需再跑几轮采集数据验证恢复。</li>" +
+"<li>新增网页自定义配置推送（push-center.html），推送通道可自配。</li>" +
+'</ul></div>' +
     '<div class="notice-ft"><button class="notice-ok" id="notice-ok-btn">知道了</button></div>';
   var mask = document.createElement("div");
   mask.className = "notice-mask";
