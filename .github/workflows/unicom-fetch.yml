@@ -82,6 +82,7 @@ jobs:
           EC=$?
           set -e
           echo "--- 管线结束 exit=$EC $(date -u +%FT%TZ) ---" >> fetch_run.log
+          if [ "$EC" -ne 0 ]; then echo "::error::联通管线失败"; tail -120 fetch_run.log; exit "$EC"; fi
           free -m >> fetch_run.log 2>&1 || true
           tail -80 fetch_run.log
 
@@ -122,8 +123,9 @@ jobs:
             echo "无变化"
           else
             git commit -q -m "unicom fetch $(date -u +%FT%TZ)"
+            PUSHED=0
             for i in 1 2 3 4 5; do
-              if git push origin main; then echo "已推送"; break; fi
+              if git push origin main; then echo "已推送"; PUSHED=1; break; fi
               echo "[warn] push 失败，重新对齐后重试 ($i/5)"
               git fetch origin main
               git reset --hard FETCH_HEAD
@@ -133,5 +135,9 @@ jobs:
               git commit -q -m "unicom fetch $(date -u +%FT%TZ) retry$i" || true
               sleep 8
             done
+            if [ "$PUSHED" -ne 1 ]; then
+              echo "::error::连续5次 git push 均失败"
+              exit 1
+            fi
           fi
           ls -la fetch_run.log 2>/dev/null | head -2
