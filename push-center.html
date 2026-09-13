@@ -177,12 +177,8 @@ code{
         <label>点选省份（已选 <span id="fpCount">0</span> 个）</label>
         <div id="fpPick" class="hrow" style="gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
         <button id="fpMore" class="pill" style="border-style:dashed">展开全部省份 ▼</button>
-      </div>
-      <div class="fld">
-        <label>抓取范围（全国 + 下列省份）</label>
-        <div class="hrow" style="gap:6px;flex-wrap:wrap;align-items:center">
-          <span class="pill on" style="cursor:default">全国</span>
-          <span id="fpSel" class="sub"></span>
+        <div class="tiny" style="margin-top:8px;line-height:1.8">
+          实际抓取：<b>全国</b> + <span id="fpSel">—</span>
         </div>
       </div>
       <div class="fld">
@@ -197,7 +193,7 @@ code{
     <div class="sect">⚡ 快捷推送</div>
     <div class="quick">
       <div class="tiny" style="line-height:1.85;margin-bottom:10px">
-        <b>怎么用</b>：在<b>上面</b>打开开关、填好对应配置，然后点「<b>生成命令</b>」，复制后<b>粘贴到终端按回车</b>就发出去了。<br>
+        <b>怎么用</b>：在<b>上面</b>打开开关、填好对应配置，然后点「<b>📋 复制命令</b>」，<b>粘贴到终端按回车</b>就发出去了。<br>
         不想开终端？点「<b>浏览器直发</b>」（钉钉 / 飞书支持，点一下消息就到群里）。
       </div>
       <div class="fld"><label>标题（可留空）</label><input id="qTitle" class="inp" placeholder="资费变化通知" value="资费变化通知"></div>
@@ -211,14 +207,8 @@ code{
     </div>
   </div>
   <div class="sec">
-    <div class="sect">推送内容</div>
+    <div class="sect">推送内容 · 实时预览</div>
     <div class="chcard" style="padding:12px">
-      <div class="fld"><label>关注省份（消息里逐个列出这些省的明细）</label>
-        <div class="hrow" style="gap:6px;flex-wrap:wrap;align-items:center">
-          <span id="fp" class="hrow" style="gap:6px;flex-wrap:wrap"></span>
-          <span class="tiny" style="color:var(--text-secondary)">跟随上方「重点省份」，在上面改即可</span>
-        </div>
-      </div>
       <div class="grid2">
         <div class="fld"><label>统计时长（小时）</label><input id="sinceHours" class="inp" type="number" min="1" max="168" value="24"></div>
         <div class="fld"><label>消息格式</label><select id="pushFmt" class="inp"><option value="detail" selected>明细（列关注省份）</option><option value="digest">汇总（只报总数）</option></select></div>
@@ -227,13 +217,10 @@ code{
       <div class="hrow" style="margin-top:12px;gap:16px">
         <label class="hrow" style="gap:6px;font-size:12px"><input type="checkbox" id="pushSkipEmpty" checked> 四家都无变化时不推送</label>
       </div>
-    </div>
-  </div>
-  <div class="sec">
-    <div class="sect">消息预览</div>
-    <div class="prev">
-      <div class="hrow" style="justify-content:space-between;margin-bottom:10px"><span class="sub" id="prevCh">—</span><span class="tiny">示例数据 · 实际以当日抓取为准</span></div>
-      <div class="bubble" id="prevBody">—</div>
+      <div class="prev" style="margin-top:14px">
+        <div class="hrow" style="justify-content:space-between;margin-bottom:10px"><span class="sub" id="prevCh">—</span><span class="tiny">示例数据 · 改上面即时刷新</span></div>
+        <div class="bubble" id="prevBody">—</div>
+      </div>
     </div>
   </div>
   <div class="sec">
@@ -538,12 +525,6 @@ function fpRender(){
  const more=$('fpMore');
  more.textContent=fpExpanded?('收起 ▲'):('展开全部省份 ▼（共 '+all.length+' 个）');
  more.onclick=function(){fpExpanded=!fpExpanded;fpRender()};
- const mir=$('fp');
- if(mir){
-  mir.innerHTML='';
-  if(!n){const t=document.createElement('span');t.className='tiny';t.textContent='（未选，消息只报全国与总数）';mir.appendChild(t)}
-  else{fpList().forEach(function(c){const t=document.createElement('span');t.className='pill on';t.style.cursor='default';t.textContent=provName(c);mir.appendChild(t)})}
- }
  try{renderPrev()}catch(e){}
  try{refreshQuick()}catch(e){}
 }
