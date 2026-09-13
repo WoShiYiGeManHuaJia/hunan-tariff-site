@@ -248,6 +248,27 @@ code{
     </div>
   </div>
   <div class="sec">
+    <div class="sect">🔧 自己在设备上定时（路由器 / 电脑 / NAS）</div>
+    <div class="chcard" style="padding:12px">
+      <div class="tiny" style="line-height:1.9;margin-bottom:12px">
+        想让<b>你自己的设备</b>到点自己跑、不依赖 GitHub？复制下面第一条命令，在<b>终端</b>粘贴执行，一次装好并写入你上方的推送配置；再加一行定时任务，就每天自动抓取并推送。<br>
+        密钥只写在你自己的设备上，<b>不上传任何服务器</b>。「GitHub 云端」和「自己在设备上」二选一即可，两边都配也行。
+      </div>
+      <button id="dCopy" class="btn pri">📋 复制「安装」命令</button>
+      <textarea id="dCmd" class="codebox" rows="5" readonly style="margin-top:8px"></textarea>
+      <div class="stepw" style="margin-top:14px">
+        <div class="stept">然后「添加定时」：在终端执行 <code>crontab -e</code>，把下面这行粘进去保存</div>
+      </div>
+      <button id="cronCopy" class="btn" style="margin-top:10px">📋 复制定时行</button>
+      <textarea id="cronCmd" class="codebox" rows="2" readonly style="margin-top:8px"></textarea>
+      <div class="tiny" style="margin-top:10px;line-height:1.8;color:var(--text-secondary)">
+        行为说明：每天 <b>9:00</b> 自动推送（把开头 <code>0 9 * * *</code> 改成 <code>0 10 * * *</code> 就是 10:00）。<br>
+        <b>OpenWrt 路由器</b>：<code>opkg update && opkg install cron</code>，然后在「系统 → 计划任务」里加同一行（或命令行 <code>crontab -e</code>）。<br>
+        建议：先执行「安装」命令（会发一条测试消息），确认群里有消息了，再加定时行更稳。
+      </div>
+    </div>
+  </div>
+  <div class="sec">
     <div class="sect">🛠 自己创建</div>
     <div class="chcard" style="padding:12px">
       <div class="tiny" style="line-height:1.9;margin-bottom:12px">
@@ -455,6 +476,26 @@ function qCmdText(){
 }
 function refreshQuick(){if($('qCmd'))$('qCmd').value=qCmdText()}
 $('qCopy').addEventListener('click',function(){refreshQuick();if(!$('qCmd').value.startsWith('#')){copy($('qCmd').value,'已复制，粘贴到终端按回车')}else{$('qStat').textContent='请先启用推送渠道并填好 Webhook';$('qStat').style.color='var(--destructive)'}});
+
+/* ===== 自己在设备上定时（路由器 / 电脑 / NAS）=====
+   第一条命令：装脚本 + 写入上方配置 + 发一条测试
+   第二条：crontab 定时行，每天 9:00 自动推送 */
+function devInstallCmd(){
+ if(!qEnv().length)return '# 请先在上方「推送渠道」里启用至少一个并填好 Webhook';
+ const envs=envPairs().map(function(x){return shq(x[0]+'='+x[1])}).join(' ');
+ const base='cd ~/tariff-push 2>/dev/null || (mkdir -p ~/tariff-push && cd ~/tariff-push'
+   +' && '+dl('notify.py')+' && '+dl('push_once.py')+'); cd ~/tariff-push';
+ return base+' && printf '+shq('%s\n')+' '+envs+' > .env'
+   +' && python3 push_once.py --test';
+}
+function devCronLine(){
+ if(!qEnv().length)return '# 请先在上方启用并填好推送渠道';
+ return '0 9 * * * cd ~/tariff-push && python3 push_once.py >> ~/tariff-push/cron.log 2>&1';
+}
+function refreshDevice(){if($('dCmd'))$('dCmd').value=devInstallCmd();if($('cronCmd'))$('cronCmd').value=devCronLine()}
+refreshDevice();
+$('dCopy').addEventListener('click',function(){refreshDevice();const v=$('dCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制，粘贴到终端执行')}});
+$('cronCopy').addEventListener('click',function(){refreshDevice();const v=$('cronCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制定时行，粘贴到 crontab 里')}});
 $('qTitle').addEventListener('input',refreshQuick);
 $('qText').addEventListener('input',refreshQuick);
 async function qSend(){
