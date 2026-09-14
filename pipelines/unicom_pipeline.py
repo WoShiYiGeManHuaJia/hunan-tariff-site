@@ -376,10 +376,24 @@ WARMUP_FILL = float(os.getenv("UNICOM_WARMUP_FILL") or "0.90")  # 池完整度�
 FILL_MARGIN = float(os.getenv("UNICOM_FILL_MARGIN") or "1.5")   # 补齐量容差倍数
 TOTAL_EMA = float(os.getenv("UNICOM_TOTAL_EMA") or "0.7")       # 全集估计平滑系数
 
-MISS_CONFIRM_MIN = int(os.getenv("UNICOM_MISS_CONFIRM_MIN") or "3")
+# ★ 收敛判定（彻底修复「永远无变化」）：不能只看完整度，必须看池是否已停止增长。
+#   池按几何级数逼近全集，完整度永远 <100%、增长率永远 >0；
+#   只有「连续多轮几乎不再有新条目进来」才说明残余未采到的业务已耗尽，
+#   此后"新见到"即为真新增。
+PLATEAU_GROW = float(os.getenv("UNICOM_PLATEAU_GROW") or "0.003")   # 单轮增长率阈值
+PLATEAU_NEED = int(os.getenv("UNICOM_PLATEAU_NEED") or "3")         # 需连续几轮
+MIN_CONVERGE_ROUNDS = int(os.getenv("UNICOM_MIN_ROUNDS") or "4")
+FORCE_ROUNDS = int(os.getenv("UNICOM_FORCE_ROUNDS") or "12")        # 兜底：绝不无限沉默
+
+MISS_CONFIRM_MIN = int(os.getenv("UNICOM_MISS_CONFIRM_MIN") or "6")
 MISS_CONFIRM_MAX = int(os.getenv("UNICOM_MISS_CONFIRM_MAX") or "40")
-# 可接受的误判概率（把存量业务误判成已下架）
-MISS_FP_TARGET = float(os.getenv("UNICOM_MISS_FP") or "0.01")
+# 可接受的误判概率（把存量业务误判成已下架）。
+# ★ 2026-09-14 加严 0.01 → 0.0001：
+#   采样率 65% 时，容忍 1% 误判只需连续 5 轮未采到，但 0.35^5≈0.5%，
+#   2000 条里就有约 10 条被误删；下一轮重新采到又被当成"新增"报出来，
+#   形成「假下架 → 假新增」循环（实测每轮凭空多出 5~12 条）。
+#   按 0.0001 反推需连续约 9 轮未采到，误判降到 0.2 条以下，循环消除。
+MISS_FP_TARGET = float(os.getenv("UNICOM_MISS_FP") or "0.0001")
 # 阈值平滑系数（越大越迟钝：0.8 表示新采样率只占 20% 权重）
 NEED_EMA = float(os.getenv("UNICOM_NEED_EMA") or "0.8")
 # 池体积上限（条），超限时按 miss 从大到小淘汰，防止无限膨胀
@@ -493,9 +507,18 @@ def pool_update(scope, cur_items, pool, meta=None):
     est_total = (TOTAL_EMA * prev_est + (1 - TOTAL_EMA) * est_raw) if prev_est else est_raw
     expected_fill = max(0.0, est_total - pool_n_before) * p if p > 0 else 0.0
     fill_ratio = (float(pool_n_before) / est_total) if est_total > 0 else 0.0
-    converged = bool(m0.get("converged")) or (est_total > 0 and fill_ratio >= WARMUP_FILL)
-    warmup = not converged
     grow = (float(len(added)) / float(pool_n_before)) if pool_n_before else 1.0
+
+    # 收敛判定：连续 PLATEAU_NEED 轮增长率 <= PLATEAU_GROW，视为池已补齐。
+    plateau = int(m0.get("plateau") or 0)
+    plateau = plateau + 1 if grow <= PLATEAU_GROW else 0
+    plateau_ok = (plateau >= PLATEAU_NEED) and (rounds >= MIN_CONVERGE_ROUNDS)
+    forced = rounds >= FORCE_ROUNDS
+    converged = bool(m0.get("converged")) or plateau_ok or forced
+    warmup = not converged
+    # 池已补齐（连续多轮几乎零增长）→ 残余补齐噪声可忽略，不再扣减
+    if bool(m0.get("converged")) or plateau_ok:
+        expected_fill = 0.0
 
     for fp, rec in list(recs.items()):
         if fp in cur_fps:
@@ -510,12 +533,13 @@ def pool_update(scope, cur_items, pool, meta=None):
 
     meta[scope] = {"need": need, "pool": len(recs), "rounds": rounds,
                    "grow": round(grow, 4), "est_total": round(est_total, 1),
-                   "fill": round(fill_ratio, 3), "converged": converged}
+                   "fill": round(fill_ratio, 3), "plateau": plateau,
+                   "converged": converged}
     if warmup:
-        print("    [预热 %d 轮] 池内 %d / 全集约 %d（完整度 %.0f%% < %.0f%%）；"
-              "本轮新见 %d 条，其中约 %d 条属建池补齐 → 不计入资费变化"
+        print("    [预热 %d 轮] 池内 %d / 全集约 %d（完整度 %.0f%%）；"
+              "本轮新见 %d 条、增长 %.2f%%，其中约 %d 条属建池补齐 → 不计入资费变化"
               % (rounds, pool_n_before, int(est_total), 100.0 * fill_ratio,
-                 100.0 * WARMUP_FILL, len(added), int(expected_fill)))
+                 len(added), 100.0 * grow, int(expected_fill)))
         return [], [], False, True
     # 已收敛：仍可能有零星补齐，只报显著超出补齐预期的部分
     excess = int(len(added) - expected_fill * FILL_MARGIN)
@@ -528,6 +552,8 @@ def pool_update(scope, cur_items, pool, meta=None):
         print("    [已收敛] 本轮新见 %d 条，扣除补齐预期 %d 条，按 %d 条计"
               % (len(added), int(expected_fill * FILL_MARGIN), excess))
         added = added[:excess]
+    if (not warmup) and len(added) and expected_fill == 0.0:
+        print("    [已收敛·池已补齐] 本轮新见 %d 条，全部计为新增" % len(added))
     if need != MISS_CONFIRM_MIN:
         print("    [命中 %d / 池内 %d] 采样率约 %.0f%%，下架确认需连续 %d 轮未采到"
               % (hit_n, pool_n_before,
