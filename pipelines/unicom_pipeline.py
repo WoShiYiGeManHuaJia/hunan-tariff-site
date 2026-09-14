@@ -521,9 +521,15 @@ def pool_update(scope, cur_items, pool, meta=None):
     forced = rounds >= FORCE_ROUNDS
     converged = bool(m0.get("converged")) or plateau_ok or forced
     warmup = not converged
-    # 池已补齐（连续多轮几乎零增长）→ 残余补齐噪声可忽略，不再扣减
-    if bool(m0.get("converged")) or plateau_ok:
+    # 只有「真平台收敛」（连续多轮零增长，池确实不涨了）才认为噪声归零。
+    # ★ 强制收敛（FORCE_ROUNDS 兜底）时池仍在涨，若也把噪声归零，
+    #   每轮新见到的几十条会全部当成新增报出来 —— 正是要避免的假新增。
+    #   因此强制收敛仍走统计扣减，靠 FILL_MARGIN 保留超出预期部分的真变化。
+    if plateau_ok or bool(m0.get("converged")) and (m0.get("plateau") or 0) >= PLATEAU_NEED:
         expected_fill = 0.0
+        true_plateau = True
+    else:
+        true_plateau = False
 
     for fp, rec in list(recs.items()):
         if fp in cur_fps:
@@ -557,7 +563,7 @@ def pool_update(scope, cur_items, pool, meta=None):
         print("    [已收敛] 本轮新见 %d 条，扣除补齐预期 %d 条，按 %d 条计"
               % (len(added), int(expected_fill * FILL_MARGIN), excess))
         added = added[:excess]
-    if (not warmup) and len(added) and expected_fill == 0.0:
+    if (not warmup) and len(added) and true_plateau:
         print("    [已收敛·池已补齐] 本轮新见 %d 条，全部计为新增" % len(added))
     if need != MISS_CONFIRM_MIN:
         print("    [命中 %d / 池内 %d] 采样率约 %.0f%%，下架确认需连续 %d 轮未采到"
