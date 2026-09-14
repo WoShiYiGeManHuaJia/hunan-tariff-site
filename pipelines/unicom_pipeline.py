@@ -380,10 +380,15 @@ TOTAL_EMA = float(os.getenv("UNICOM_TOTAL_EMA") or "0.7")       # 全集估计�
 #   池按几何级数逼近全集，完整度永远 <100%、增长率永远 >0；
 #   只有「连续多轮几乎不再有新条目进来」才说明残余未采到的业务已耗尽，
 #   此后"新见到"即为真新增。
-PLATEAU_GROW = float(os.getenv("UNICOM_PLATEAU_GROW") or "0.003")   # 单轮增长率阈值
+# 0.003 实测过严：随机采样偶尔捞到一批老业务，单轮增长就冲到 0.4%~5%，
+#   连续计数被反复清零，plateau 永远攒不够，只能等 FORCE_ROUNDS 兜底。
+#   放宽到 1%：湖南（池 1412 / 全集估 1418，仅差 6 条）单轮最多涨 0.42%，
+#   可稳定达标；而广东/全网仍以 5%/轮增长，自然被挡在门外继续建池，
+#   不会提前收敛去报假新增 —— 正好实现「谁满了谁先报」。
+PLATEAU_GROW = float(os.getenv("UNICOM_PLATEAU_GROW") or "0.01")      # 单轮增长率阈值
 PLATEAU_NEED = int(os.getenv("UNICOM_PLATEAU_NEED") or "3")         # 需连续几轮
 MIN_CONVERGE_ROUNDS = int(os.getenv("UNICOM_MIN_ROUNDS") or "4")
-FORCE_ROUNDS = int(os.getenv("UNICOM_FORCE_ROUNDS") or "12")        # 兜底：绝不无限沉默
+FORCE_ROUNDS = int(os.getenv("UNICOM_FORCE_ROUNDS") or "10")        # 兜底：绝不无限沉默
 
 MISS_CONFIRM_MIN = int(os.getenv("UNICOM_MISS_CONFIRM_MIN") or "6")
 MISS_CONFIRM_MAX = int(os.getenv("UNICOM_MISS_CONFIRM_MAX") or "40")
