@@ -189,6 +189,7 @@ def summarize(hist, since):
     """
     tot_add = tot_rm = tot_mod = 0
     secs = []
+    batches = []
     latest = None
     latest_dt = None
     for e in hist:
@@ -214,8 +215,64 @@ def summarize(hist, since):
             tot_rm += r
             tot_mod += m
             note = v.get("note")
+            # 批量同改说明：同一个字段同一种改法改了很多条时，提炼一句人话
+            if m:
+                for d in batch_notes(v):
+                    batches.append((sec_cn(k), d))
             secs.append((sec_cn(k), a, r, m, note, str(k).strip().lower()))
-    return tot_add, tot_rm, tot_mod, secs
+    return tot_add, tot_rm, tot_mod, secs, batches
+
+
+def _short(v, n=28):
+    """把字段值压缩成短串，避免超长把消息撑爆。"""
+    t = str(v or "").strip().replace("\n", " ")
+    return t if len(t) <= n else t[:n] + "…"
+
+
+def batch_notes(sec_obj, min_items=5, min_ratio=0.6):
+    """识别「批量同改」：同一个字段、同一种改法，一次性改了很多条。
+
+    移动常做这类操作（实测广东 113 条「下线日期」统一从 2026年9月30日
+    延到 2026年12月31日）。汇总只报「修改 113」，用户看不出是真改还是
+    又出 bug，还得再来问。这里自动提炼成一句人话附在下面。
+
+    返回形如：  广东：113 条均为「下线日期」2026年9月30日 → 2026年12月31日
+    """
+    bef = sec_obj.get("modified_before") or {}
+    aft = sec_obj.get("modified_after") or {}
+    if not isinstance(bef, dict) or not isinstance(aft, dict) or not bef:
+        return []
+    groups = {}
+    changed = 0
+    for name, b in bef.items():
+        a = aft.get(name)
+        if not isinstance(b, dict) or not isinstance(a, dict):
+            continue
+        changed += 1
+        for f in set(b) | set(a):
+            if b.get(f) != a.get(f):
+                key = (str(f), str(b.get(f)), str(a.get(f)))
+                groups.setdefault(key, []).append(name)
+    if not changed or not groups:
+        return []
+    # 占比最大的那种改法
+    (field, old, new), names = max(groups.items(), key=lambda kv: len(kv[1]))
+    cnt = len(names)
+    if cnt < min_items or cnt < changed * min_ratio:
+        return []
+    if old and new:
+        desc = "%d 条均为「%s」%s → %s" % (cnt, field, _short(old), _short(new))
+    else:
+        desc = "%d 条均为「%s」变更" % (cnt, field)
+    rest = changed - cnt
+    if rest > 0:
+        desc += "（另有 %d 条其他改动）" % rest
+    # before/after 明细未必覆盖全部修改条数（实测 113 条只记了 60 条明细），
+    # 说明里要点明，否则用户拿 60 去对 113 会以为漏了一半。
+    total = int(sec_obj.get("modified") or 0)
+    if total and total > changed:
+        desc += "；该板块共修改 %d 条，明细仅记录 %d 条" % (total, changed)
+    return [desc]
 
 
 def send_ding(title, text):
@@ -299,7 +356,7 @@ def main():
 
     for path, name, icon in SITES:
         hist = load_history(path)
-        a, r, m, secs = summarize(hist, since)
+        a, r, m, secs, batches = summarize(hist, since)
         grand[0] += a; grand[1] += r; grand[2] += m
         if not (a or r or m):
             # 说清「查过了但没变化」，而不是干巴巴一句「无变化」——
@@ -316,6 +373,9 @@ def main():
             continue
         any_change = True
         lines.append("- %s **%s**：新增 %d、下架 %d、修改 %d" % (icon, name, a, r, m))
+        # 批量同改：附一句说明，避免只看到一个大数字却不知道改了什么
+        for sec_name, desc in batches[:3]:
+            lines.append("　└ %s：%s" % (sec_name, desc))
         # 推送只要总览：不列省份明细。
         # 明细请在网站「变化历史」查看（那里是完整分省数据，同源同口径）。
 

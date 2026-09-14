@@ -32,6 +32,19 @@ def _nochange_notify_disabled() -> bool:
     return os.getenv("NOCHANGE_NOTIFY", "").strip() == "0"
 
 
+def _self_notify_disabled() -> bool:
+    """抓取管线「自推送」开关。
+
+    移动管线跑完会自己发一条钉钉（单板块详细 / 多省汇总 / 无变化心跳），
+    而 Tariff Notify 汇总又会基于同一份 history 再发一条 —— 两条内容高度
+    重复，用户一次收到两条（实测 20:11 汇总 + 20:57 抓取自推）。
+
+    SELF_NOTIFY=0 时抓取管线只抓取、不推送，推送统一交给汇总任务，
+    保证「一次变化只推一条」。默认保持原行为（单独运行脚本时仍会推送）。
+    """
+    return os.getenv("SELF_NOTIFY", "").strip() == "0"
+
+
 def _is_abnormal_drop(section: str, new_items: list) -> bool:
     """本次抓取数量骤减（<上次70%）视为异常，跳过对比，避免误报下架"""
     old = snapshot.load_snapshot(section)
@@ -126,6 +139,11 @@ def run_once(send_mail=True):
         skipped_this_round = True
     else:
         skipped_this_round = False
+
+    if _self_notify_disabled():
+        if send_mail:
+            print("[notify] SELF_NOTIFY=0：抓取管线不推送，统一由 Tariff Notify 汇总推送")
+        send_mail = False
 
     if reports:
         print(f"[变化] 检测到 {len(reports)} 个板块有变更")

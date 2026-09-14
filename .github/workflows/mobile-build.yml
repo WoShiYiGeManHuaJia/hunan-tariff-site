@@ -51,6 +51,10 @@ jobs:
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          # 抓取管线不再自己推送：它与 Tariff Notify 汇总基于同一份 history，
+          # 各发一条 → 用户一次收到两条（实测 20:11 汇总 + 20:57 抓取自推）。
+          # 关掉后推送统一由汇总任务负责，保证「一次变化只推一条」。
+          SELF_NOTIFY: "0"
         run: |
           set -e
           cd pipelines/mobile
