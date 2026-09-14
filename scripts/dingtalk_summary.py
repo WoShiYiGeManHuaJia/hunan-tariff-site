@@ -316,28 +316,8 @@ def main():
             continue
         any_change = True
         lines.append("- %s **%s**：新增 %d、下架 %d、修改 %d" % (icon, name, a, r, m))
-        # 列出全部有变化的省份，与网站「变化历史」同源同口径。
-        # 不再按 FOCUS_SEC 筛选，也不再只取「变化最大的前几个」——
-        # 那会让钉钉与网站看起来数据不一致（网站列全省，钉钉只给总数）。
-        agg = {}
-        for x in secs:
-            k = x[5]
-            if k not in agg:
-                agg[k] = [0, 0, 0, 0, None]
-            agg[k][0] += x[1]; agg[k][1] += x[2]; agg[k][2] += x[3]
-            agg[k][3] = agg[k][0] + agg[k][1] + agg[k][2]
-            if x[4]:
-                agg[k][4] = x[4]
-        ordered = sorted(agg.items(), key=lambda kv: -kv[1][3])
-        for k, (a2, r2, m2, w, note) in ordered:
-            if note:
-                lines.append("  - %s：%s" % (sec_cn(k), note[:60]))
-                continue
-            seg = []
-            if a2: seg.append("新增%d" % a2)
-            if r2: seg.append("下架%d" % r2)
-            if m2: seg.append("修改%d" % m2)
-            lines.append("  - %s：%s" % (sec_cn(k), "/".join(seg) or "有变化"))
+        # 推送只要总览：不列省份明细。
+        # 明细请在网站「变化历史」查看（那里是完整分省数据，同源同口径）。
 
     lines.append("")
     lines.append("**合计**：新增 %d、下架 %d、修改 %d" % tuple(grand))
