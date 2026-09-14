@@ -364,6 +364,18 @@ POOL_FILE = "_pool.json"
 #   · 采样 10% 时阈值 4 误判率高达 66%
 # 故改为按本轮采样率自适应：误判概率压到 1% 以下所需的轮数。
 MISS_CONFIRM_FIXED = os.getenv("UNICOM_MISS_CONFIRM")
+# 预热期阈值：池未收敛前不记变化。
+# 联通接口 pageSize 硬限 500，单轮只返回随机子集，冷启动那一轮只能采到一小部分。
+# 第二轮采到「池里没有的」会全部算成新增 —— 实测湖南冷启动 383 条 → 第二轮 1229 条，
+# 凭空多出「新增 846」，其实都是早就在售的老业务，只是第一轮没被采到。
+# 因此池需要多轮补齐；在增长收敛前，added/removed 一律不记为变化。
+# 统计口径：用命中率估采样率 p，推算「本轮本该补齐几条」，超出部分才算真新增。
+# 单靠「增长率」不够 —— 池按指数逼近全集，增长率永远 >0（实测收敛后仍有 1~5%），
+# 按增长率设阈值会在池仅 88% 时就误判收敛，继续报 59/22/25 这类假新增。
+WARMUP_FILL = float(os.getenv("UNICOM_WARMUP_FILL") or "0.90")  # 池完整度达此比例才算收敛
+FILL_MARGIN = float(os.getenv("UNICOM_FILL_MARGIN") or "1.5")   # 补齐量容差倍数
+TOTAL_EMA = float(os.getenv("UNICOM_TOTAL_EMA") or "0.7")       # 全集估计平滑系数
+
 MISS_CONFIRM_MIN = int(os.getenv("UNICOM_MISS_CONFIRM_MIN") or "3")
 MISS_CONFIRM_MAX = int(os.getenv("UNICOM_MISS_CONFIRM_MAX") or "40")
 # 可接受的误判概率（把存量业务误判成已下架）
@@ -428,10 +440,11 @@ def save_pool(datadir, pool, meta=None):
 def pool_update(scope, cur_items, pool, meta=None):
     """用本轮采集结果更新累积池。
 
-    返回 (added_items, removed_items, is_coldstart)
+    返回 (added_items, removed_items, is_coldstart, is_warmup)
       added       —— 首次见到的业务（真新增候选）
       removed     —— 连续 MISS_CONFIRM 轮未再采到（确认真下架）
       is_coldstart—— 本板块首次建池，本轮只建基线、不记任何变化
+      is_warmup   —— 池仍在补齐（增长率未收敛），本轮同样不记变化
     """
     if meta is None:
         meta = {}
@@ -440,7 +453,7 @@ def pool_update(scope, cur_items, pool, meta=None):
         pool[scope] = {}
         for x in cur_items:
             pool[scope][digest_stable(x)] = {"item": x, "miss": 0}
-        return [], [], True
+        return [], [], True, True
 
     recs = pool[scope]
     pool_n_before = len(recs)      # 更新前池内量，用于估算采样率
@@ -467,21 +480,59 @@ def pool_update(scope, cur_items, pool, meta=None):
     need = int(round(NEED_EMA * (prev_need if prev_need else need_raw)
                      + (1 - NEED_EMA) * need_raw))
     need = max(MISS_CONFIRM_MIN, min(MISS_CONFIRM_MAX, need))
-    meta[scope] = {"need": need, "pool": len(recs)}
+
+    # 预热期判定：单轮采样只看到随机子集，池补齐期间「首次见到」≠ 真新增。
+    #   p         = 命中已见条数 / 池内条数        （采样率）
+    #   est_total = 本轮总条数 / p                （全集规模估计）
+    #   expected  = (est_total - 池内) * p        （本轮"本该"补齐几条）
+    m0 = meta.get(scope) or {}
+    rounds = int(m0.get("rounds") or 0) + 1
+    p = (float(hit_n) / float(pool_n_before)) if pool_n_before else 0.0
+    est_raw = (float(len(cur_items)) / p) if p > 0 else 0.0
+    prev_est = float(m0.get("est_total") or 0)
+    est_total = (TOTAL_EMA * prev_est + (1 - TOTAL_EMA) * est_raw) if prev_est else est_raw
+    expected_fill = max(0.0, est_total - pool_n_before) * p if p > 0 else 0.0
+    fill_ratio = (float(pool_n_before) / est_total) if est_total > 0 else 0.0
+    converged = bool(m0.get("converged")) or (est_total > 0 and fill_ratio >= WARMUP_FILL)
+    warmup = not converged
+    grow = (float(len(added)) / float(pool_n_before)) if pool_n_before else 1.0
+
     for fp, rec in list(recs.items()):
         if fp in cur_fps:
             continue
         miss = int(rec.get("miss") or 0) + 1
-        if miss >= need:
+        # 预热期池不完整，miss 计数不可信，此时绝不判下架
+        if (not warmup) and miss >= need:
             removed.append(rec.get("item") or {})
             recs.pop(fp, None)
         else:
             rec["miss"] = miss
+
+    meta[scope] = {"need": need, "pool": len(recs), "rounds": rounds,
+                   "grow": round(grow, 4), "est_total": round(est_total, 1),
+                   "fill": round(fill_ratio, 3), "converged": converged}
+    if warmup:
+        print("    [预热 %d 轮] 池内 %d / 全集约 %d（完整度 %.0f%% < %.0f%%）；"
+              "本轮新见 %d 条，其中约 %d 条属建池补齐 → 不计入资费变化"
+              % (rounds, pool_n_before, int(est_total), 100.0 * fill_ratio,
+                 100.0 * WARMUP_FILL, len(added), int(expected_fill)))
+        return [], [], False, True
+    # 已收敛：仍可能有零星补齐，只报显著超出补齐预期的部分
+    excess = int(len(added) - expected_fill * FILL_MARGIN)
+    if excess <= 0:
+        if len(added):
+            print("    [已收敛] 本轮新见 %d 条，未超出补齐预期 %d 条 → 不报"
+                  % (len(added), int(expected_fill * FILL_MARGIN)))
+        return [], removed, False, False
+    if excess < len(added):
+        print("    [已收敛] 本轮新见 %d 条，扣除补齐预期 %d 条，按 %d 条计"
+              % (len(added), int(expected_fill * FILL_MARGIN), excess))
+        added = added[:excess]
     if need != MISS_CONFIRM_MIN:
         print("    [命中 %d / 池内 %d] 采样率约 %.0f%%，下架确认需连续 %d 轮未采到"
               % (hit_n, pool_n_before,
                  100.0 * hit_n / pool_n_before if pool_n_before else 0, need))
-    return added, removed, False
+    return added, removed, False, False
 
 
 def pool_items(pool, scope):
@@ -662,9 +713,12 @@ def main():
             # 省板块对比口径：剔除全网产品（与原逻辑一致）
             cur_items = [x for x in cur_items if digest_stable(x) not in qu_fp]
         cur_items = filter_test_items(cur_items, verbose=False)
-        added, removed, cold = pool_update(sc, cur_items, pool, meta)
+        added, removed, cold, warm = pool_update(sc, cur_items, pool, meta)
         if cold:
             print("  %s 首次，累积池建基线（不记变化），入池 %d 条" % (sc, len(pool.get(sc) or {})))
+            continue
+        if warm:
+            print("  %s 池补齐中，本轮不记变化（池内 %d 条）" % (sc, len(pool.get(sc) or {})))
             continue
         if not added and not removed:
             print("  %s 无变化（池内 %d 条）" % (sc, len(pool.get(sc) or {})))
