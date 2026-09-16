@@ -394,6 +394,17 @@ def main():
 
     text = "\n".join(lines)
     print(text)
+
+    # 本轮无变化时：定时触发直接跳过推送，不再把上一轮的旧变化当新消息重发。
+    # （曾导致每天两次都收到昨晚同一条内容，误以为推送延迟了 12 小时。）
+    # 手动触发（workflow_dispatch）仍然照常推 —— 那是站长主动要看，不是自动播报。
+    ev = os.getenv("GITHUB_EVENT_NAME", "").strip()
+    skip = (not any_change) and ev == "schedule" and not os.getenv("FORCE_PUSH")
+    if skip:
+        print("\n⏭ 本轮四家均无变化（定时触发）→ 跳过推送，不再重发旧内容。")
+        print("   如需强制推送，设置 FORCE_PUSH=1（或在网页手动 Run workflow）。")
+        return
+
     title = "资费汇总 新增%d 下架%d 修改%d" % tuple(grand)
     send_notify(title, text)
 
