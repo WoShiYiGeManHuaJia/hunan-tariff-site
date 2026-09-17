@@ -28,7 +28,11 @@ on:
   schedule:
     # focus 模式下各家耗时：移动 ~4 分 / 电信广电 ~5 分 / 联通 ~7 分，
     # 三家在本 workflow 内顺序跑约 20 分钟，10:00 与 20:00 推送前有足够余量。
-    - cron: "0 2 * * *"      # 北京 10:00
+    #   午场必须排在早间抓取(移动08:47/电信广电09:17/联通09:37)之后。
+    #   原 北京10:00 比抓取还早，且 GitHub 定时任务常延迟数小时，
+    #   导致推送时当日数据尚未抓完，只能报「昨天的变化」。
+    #   现改到北京16:00，并配合下方 fresh 检查兜底（数据陈旧则本轮自抓再推）。
+    - cron: "0 8 * * *"      # 北京 16:00
     #   晚场必须排在晚间抓取(移动20:47/电信广电21:17/联通21:37)之后：
     #   原 北京20:00 比抓取还早47分钟，只能报当天早上08:47的数据，整整旧12小时。
     - cron: "0 14 * * *"     # 北京 22:00
@@ -62,16 +66,77 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ══════════ 抓取（仅「手动推送」/「全量推送」/定时自动模式）══════════
+  # ══════════ 数据新鲜度检查（仅定时推送时）═════════
+  # GitHub 的 schedule 会延迟（今天早间抓取名义 08:47、实际 13:27 才跑完），
+  # 若推送时当日数据还没抓完，就会把上一轮旧内容当「今日变化」推走。
+  # 这里先量一下数据年龄，陈旧则让下面的 fetch 本轮自抓一遍再推。
+  fresh:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      stale:  ${{ steps.chk.outputs.stale }}
+      age:    ${{ steps.chk.outputs.age }}
+      newest: ${{ steps.chk.outputs.newest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - id: chk
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, datetime
+          pats = ["data/latest.json", "unicom/data/latest.json",
+                  "telecom/data/latest.json", "gb/data/latest.json"]
+          keys = ["updated", "updated_at", "generated_at", "time", "date"]
+          now = datetime.datetime.utcnow()
+          best, src = None, ""
+          for p in pats:
+              if not os.path.exists(p):
+                  continue
+              try:
+                  j = json.load(open(p, encoding="utf-8"))
+              except Exception:
+                  continue
+              s = ""
+              for k in keys:
+                  if isinstance(j, dict) and j.get(k):
+                      s = str(j[k]); break
+              if not s:
+                  continue
+              try:
+                  t = datetime.datetime.strptime(s[:19], "%Y-%m-%d %H:%M:%S")
+              except Exception:
+                  continue
+              if best is None or t > best:
+                  best, src = t, p
+          out = os.environ["GITHUB_OUTPUT"]
+          if best is None:
+              print("[fresh] 未找到任何时间戳，判定陈旧")
+              with open(out, "a") as f:
+                  f.write("stale=true\nage=999\nnewest=none\n")
+          else:
+              age = (now - best).total_seconds() / 3600.0
+              stale = "true" if age >= 6 else "false"
+              print("[fresh] 最新数据 %s (%s)，距今 %.1f 小时 -> stale=%s"
+                    % (best, src, age, stale))
+              with open(out, "a") as f:
+                  f.write("stale=%s\nage=%.1f\nnewest=%s\n" % (stale, age, best))
+          PYEOF
+
+  # ══════════ 抓取（手动 / 定时且数据陈旧时）══════════
   fetch:
-    # 只在手动触发且选了「手动推送(重点省)」/「全量推送」时才抓取。
-    # 定时触发不抓取：当日的抓取由三个抓取 workflow 在 08:47/09:17/09:37
-    # 完成（范围由 SCRAPE_MODE 决定），本 workflow 定时只负责推送，
-    # 避免同一天重复抓两遍。
+    needs: fresh
+    # 手动触发且选了「手动推送(重点省)」/「全量推送」→ 抓取；
+    # 定时触发 → 当日抓取本由三个 workflow 在 08:47/09:17/09:37 完成，
+    #   但若它们被 GitHub 延迟、数据仍陈旧（fresh.stale=true），本轮自己
+    #   抓一遍再推，避免推成「昨天的变化」。
     if: >-
-      github.event_name == 'workflow_dispatch' && (
-        contains(github.event.inputs.action, '重点省') ||
-        contains(github.event.inputs.action, '全量')
+      always() && (
+        (github.event_name == 'workflow_dispatch' && (
+          contains(github.event.inputs.action, '重点省') ||
+          contains(github.event.inputs.action, '全量')
+        )) ||
+        (github.event_name == 'schedule' && needs.fresh.outputs.stale == 'true')
       )
     runs-on: ubuntu-latest
     timeout-minutes: 180
