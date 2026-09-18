@@ -468,3 +468,6 @@ body.dark .cmp-wrap{border-color:#2a3546}
 .tl-addbadge{font-size:11px;font-weight:700;color:#fff;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:999px;padding:1px 7px;white-space:nowrap;}
 .tl-chips-sum{margin:2px 0 4px;}
 .tl-chips-sum .chip{font-size:11px;padding:1px 7px;}
+
+/* 历史「全部收起」按钮：与省份筛选同排，尺寸收紧不抢视觉 */
+.hist-collapse-btn{padding:6px 12px;font-size:12.5px;border-radius:9px;margin-left:auto;flex:none;}
