@@ -463,3 +463,8 @@ body.dark .cmp-wrap{border-color:#2a3546}
   .tl-sec-entry .tl-sec-head{padding:9px 12px;}
 }
 
+
+/* 变化历史：含新增轮次的徽标 + 折叠态汇总 chips */
+.tl-addbadge{font-size:11px;font-weight:700;color:#fff;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:999px;padding:1px 7px;white-space:nowrap;}
+.tl-chips-sum{margin:2px 0 4px;}
+.tl-chips-sum .chip{font-size:11px;padding:1px 7px;}
