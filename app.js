@@ -283,6 +283,7 @@ function fillProvSelects() {
     hfEl.addEventListener("change", () => { syncProvTxt("hProvFilter"); renderHistory(); });
     syncProvTxt("hProvFilter");
     const hBtn = $("hProvFilterBtn"); if (hBtn) hBtn.addEventListener("click", () => openProvPicker("hProvFilter"));
+    const cBtn = $("hCollapseAll"); if (cBtn) cBtn.addEventListener("click", histToggleAll);
   }
 }
 
@@ -997,6 +998,12 @@ const HIST_PAGE = 10;      // 历史每次渲染条数（渐变加载，避免�
 let histShown = 0;          // 当前已渲染条数
 let histAll = [];            // 全量历史数组
 let histFilter = "";
+/* 折叠状态持久化：此前每次 histDraw 都用默认值重建 DOM，用户手动收起的条目
+   会在「上滑加载更多 / 切换省份筛选」触发重渲染时被重新展开，表现为「收不回去」。
+   现以 ts 为键记录用户的显式操作，重渲染时优先采用覆盖值。 */
+const histOpenOverride = new Map();   // ts -> bool（整条时间线）
+const histSecOverride = new Map();    // ts + "|" + sec -> bool（省份明细）
+let histForceCollapse = false;        // 「全部收起」按下后，新条目也默认收起
 function histDraw(list) {
   // 历史按时间升序存储（旧→新）：此处仅对本轮渲染做反向副本，且始终基于同一份原始升序数组重排，
   // 避免「加载更多」时把已反转数组再次 reverse 导致顺序翻回升序（bug: 最新日期掉到底部、角标错位）。
@@ -1007,6 +1014,7 @@ function histDraw(list) {
   const slice = list.slice(0, histShown);
   let html = '<div class="tl">' + slice.map((r, idx) => {
     const gidx = list.indexOf(r);             // 全局下标（用于判定最新一条默认展开）
+    const tsKey0 = String(r.ts || ("#" + gidx));
     const entries = [];
     const sumChips = [];   // 折叠态也能一眼看到「哪个省 + 变了多少」
     let hasAdd = false;    // 本轮是否含「新增」：新增是高价值信号，默认展开，避免被海量「修改」淹没
@@ -1029,9 +1037,11 @@ function histDraw(list) {
         if (d.removed) sumChips.push('<span class="chip del">' + esc(head) + " 下架" + d.removed + "</span>");
         if (d.modified) sumChips.push('<span class="chip mod">' + esc(head) + " 改" + d.modified + "</span>");
       }
+      const secKey = tsKey0 + "|" + sec;
+      const secOpen = histSecOverride.get(secKey) === true;
       entries.push(
-        '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
-        '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
+        '<div class="tl-sec-entry' + (secOpen ? " open" : "") + '" data-sec="' + esc(sec) + '">' +
+        '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="' + secOpen + '" data-sec="' + esc(sec) + '" data-ts="' + esc(tsKey0) + '">' +
         '<b>' + esc(head) + "</b>" +
         '<span class="tl-sec-chips">' + chips.join("") + "</span>" +
         '<span class="tl-sec-arrow"></span></div>' +
@@ -1047,10 +1057,13 @@ function histDraw(list) {
         "</span></div></div>"
       );
     }
-    const open = gidx === 0 || hasAdd; // 最新一条 + 含「新增」的轮次默认展开（各省明细仍默认收起）
-    const fresh = gidx === 0; // 最新一条标记
+    const tsKey = String(r.ts || ("#" + gidx));
+    const fresh = gidx === 0; // 最新一条标记（红点/红时间只给真正最新的一条）
+    const open = histOpenOverride.has(tsKey)
+      ? histOpenOverride.get(tsKey)
+      : (histForceCollapse ? false : (gidx === 0 || hasAdd));
     return (
-      '<div class="tl-item' + (open ? " open fresh" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
+      '<div class="tl-item' + (open ? " open" : "") + (fresh ? " fresh" : "") + '" data-ts="' + esc(tsKey0) + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
       '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") + (hasAdd && !fresh ? '<span class=\"tl-addbadge\">\u542b\u65b0\u589e</span>' : "") + '<span class=\"tl-arrow\"></span></div>' +
       (sumChips.length ? '<div class="tl-chips tl-chips-sum">' + sumChips.join("") + "</div>" : "") +
       '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
@@ -1059,11 +1072,15 @@ function histDraw(list) {
   if (histShown < list.length) {
     html += '<div class="hist-more" id="histSentinel"><span class="hist-hint">上滑加载更多（剩余 ' + (list.length - histShown) + " 条）…</span></div>";
   }
+  const _keepScroll = box.scrollTop;   // 重渲染会重建 DOM，滚动位置会被重置到顶部
   box.innerHTML = html;
+  if (_keepScroll) box.scrollTop = _keepScroll;
   box.querySelectorAll(".tl-item").forEach((item) => {
+    const itemKey = item.dataset.ts || ((item.querySelector(".tl-time") || {}).textContent || "");
     const toggle = () => {
       const open = item.classList.toggle("open");
       item.setAttribute("aria-expanded", open ? "true" : "false");
+      histOpenOverride.set(itemKey, open);   // 记住用户选择，避免重渲染后被弹回
     };
     item.addEventListener("click", (e) => {
       if (e.target.closest && e.target.closest("a")) return;
@@ -1074,10 +1091,12 @@ function histDraw(list) {
     });
     // 省份级折叠：点击省标题行，仅展开该省明细（捕获阶段 + stopPropagation 避免误触整条展开）
     item.querySelectorAll(".tl-sec-head").forEach((head) => {
+      const secKey2 = (head.dataset.ts || itemKey || "") + "|" + (head.dataset.sec || "");
       const toggleSec = () => {
         const entry = head.parentElement;
         const open = entry.classList.toggle("open");
         head.setAttribute("aria-expanded", open ? "true" : "false");
+        if (itemKey) histSecOverride.set(secKey2, open);
       };
       head.addEventListener("click", (e) => {
         if (e.target.closest && e.target.closest("a")) return;
@@ -1090,6 +1109,19 @@ function histDraw(list) {
     });
   });
   setupHistAutoLoad(histRaw);
+}
+
+/* 全部收起 / 全部展开：一键把所有轮次收成只剩时间戳（摘要 chip 仍可见） */
+function histToggleAll() {
+  const box = $("historyBox");
+  if (!box) return;
+  const anyOpen = box.querySelectorAll(".tl-item.open").length > 0;
+  histForceCollapse = !!anyOpen;
+  histOpenOverride.clear();
+  histSecOverride.clear();
+  const btn = $("hCollapseAll");
+  if (btn) btn.textContent = histForceCollapse ? "全部展开" : "全部收起";
+  histDraw(histAll);
 }
 
 /* 上滑自动加载：哨兵进入视口即追加下一页，无需点按钮 */
