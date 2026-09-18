@@ -99,8 +99,11 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .loading{color:var(--sub);text-align:center;padding:30px 0;font-size:14px;}
 .empty{color:var(--sub);text-align:center;padding:30px 0;font-size:14px;}
 .tl{position:relative;padding-left:20px;border-left:2px solid var(--blue2);margin-left:8px;}
-.tl-item{position:relative;padding:12px 0 16px;cursor:pointer;}
-.tl-item::before{content:"";position:absolute;left:-25px;top:18px;width:10px;height:10px;border-radius:50%;background:var(--blue2);}
+.tl-item{position:relative;padding:13px 14px 15px;margin-bottom:14px;cursor:pointer;background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(13,139,236,.07);transition:box-shadow .18s ease,border-color .18s ease;}
+.tl-item:last-child{margin-bottom:0;}
+.tl-item:hover{border-color:rgba(13,139,236,.34);box-shadow:0 4px 14px rgba(13,139,236,.12);}
+.tl-item.open{background:#fff;border-color:rgba(13,139,236,.30);box-shadow:0 4px 16px rgba(13,139,236,.12);}
+.tl-item::before{content:"";position:absolute;left:-25px;top:19px;width:10px;height:10px;border-radius:50%;background:var(--blue2);}
 .tl-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .tl-time{font-size:13px;font-weight:700;color:var(--blue-dark);}
 .tl-arrow{flex:none;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--blue2);transition:transform .18s ease;margin-right:2px;opacity:.75;}
@@ -111,7 +114,7 @@ main{max-width:960px;margin:0 auto;padding:16px;min-height:70vh;}
 .chip.del{background:#fdeeef;color:#b3383c;}
 .chip.mod{background:#fff6e5;color:#a06b00;}
 .tl-body{display:none;font-size:13px;color:var(--sub);margin-top:6px;padding:10px 14px;background:#fafcfe;border:1px solid var(--line);border-radius:10px;}
-.tl-item.open .tl-body{display:block;animation:fade .2s ease;}
+.tl-item.open .tl-body{display:block;animation:fade .2s ease;background:transparent;border:none;padding:2px 0 0;margin-top:8px;}
 .tl-sec-title{font-size:12.5px;font-weight:700;color:var(--blue-dark);margin:10px 0 2px;}
 .tl-sec{margin-bottom:4px;}
 .tl-sec .chip{display:inline-block;margin:2px 0;padding:1px 9px;font-size:12px;}
@@ -450,13 +453,13 @@ body.dark .cmp-wrap{border-color:#2a3546}
   #historyBox{max-height:calc(100dvh - 230px);min-height:140px;}
 }
 /* ===== 历史页 UI 增强（2026-09-13 版本号 bump 后追加） ===== */
-.tl-item.fresh::before{width:14px;height:14px;background:linear-gradient(135deg,#ff5b5b,#e2365e);box-shadow:0 0 0 4px rgba(226,54,94,.16);left:-27px;top:15px;}
+.tl-item.fresh::before{width:14px;height:14px;background:linear-gradient(135deg,#ff5b5b,#e2365e);box-shadow:0 0 0 4px rgba(226,54,94,.16);left:-27px;top:16px;}
 .tl-item.fresh .tl-time{color:#d0264f;}
 .tl-fresh{flex:none;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#ff5b5b,#e2365e);padding:1px 8px;border-radius:10px;letter-spacing:.5px;box-shadow:0 1px 3px rgba(226,54,94,.3);}
 .tl-item .tl-head{gap:8px;}
 .tl{border-left:2px solid transparent;border-image:linear-gradient(180deg,var(--blue2) 0%,rgba(13,139,236,.28) 100%) 1;}
 @media(max-width:768px){
-  .tl-item{padding:10px 0 14px;}
+  .tl-item{padding:12px 12px 14px;margin-bottom:13px;}
   .tl-time{font-size:13.5px;}
   .tl-item.fresh::before{left:-27px;}
   .tl-fresh{font-size:10.5px;}
@@ -472,3 +475,9 @@ body.dark .cmp-wrap{border-color:#2a3546}
 
 /* 历史「全部收起」按钮：与省份筛选同排，尺寸收紧不抢视觉 */
 .hist-collapse-btn{padding:6px 12px;font-size:12.5px;border-radius:9px;margin-left:auto;flex:none;}
+
+/* 变化历史：每条时间条目独立卡片化（拉开间距 + 加框），展开后取消内层嵌套框 */
+body.dark .tl-item{background:var(--card);border-color:var(--line);box-shadow:0 2px 8px rgba(0,0,0,.35);}
+body.dark .tl-item:hover{border-color:rgba(71,176,245,.45);}
+body.dark .tl-item.open{background:var(--card);border-color:rgba(71,176,245,.42);box-shadow:0 4px 16px rgba(0,0,0,.45);}
+body.dark .tl-item.open .tl-body{background:transparent;border:none;}
