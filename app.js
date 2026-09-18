@@ -1021,7 +1021,6 @@ function histDraw(list) {
          按折叠态隐藏的 CSS，导致收起时照样刷屏；展开后又与省份行内的 chip 重复，
          整屏全是数字。逐省数量改为只在展开后的省份行里显示。 */
     let totAdd = 0, totDel = 0, totMod = 0;
-    let hasAdd = false;    // 本轮是否含「新增」：新增是高价值信号，默认展开，避免被海量「修改」淹没
     SECTIONS.forEach((secObj) => {
       const sec = secObj.section;
       if (histFilter && histFilter !== sec) return;
@@ -1035,7 +1034,6 @@ function histDraw(list) {
       // 无变化的板块不再占位（31 省全列会把真实变化淹没）；
       // 整批无变化时由下方给出一行提示。
       if (!chips.length) return;
-      if (d.added) hasAdd = true;
       totAdd += Number(d.added || 0);
       totDel += Number(d.removed || 0);
       totMod += Number(d.modified || 0);
@@ -1061,16 +1059,20 @@ function histDraw(list) {
     }
     const tsKey = String(r.ts || ("#" + gidx));
     const fresh = gidx === 0; // 最新一条标记（红点/红时间只给真正最新的一条）
+    /* 默认展开规则：只有最新一条（gidx===0）默认展开，其余全部收起、需手动点开。
+       ★ 此前这里还额外加了「本轮含新增就自动展开」的条件，导致打开历史页时多条
+         历史同时摊开、满屏都是逐省数据。现恢复为「仅最新一条」。
+       用户的手动开合由 histOpenOverride 记忆，不会被重渲染覆盖。 */
     const open = histOpenOverride.has(tsKey)
       ? histOpenOverride.get(tsKey)
-      : (histForceCollapse ? false : (gidx === 0 || hasAdd));
+      : (histForceCollapse ? false : (gidx === 0));
     return (
       '<div class="tl-item' + (open ? " open" : "") + (fresh ? " fresh" : "") + '" data-ts="' + esc(tsKey0) + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
       '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
       (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") +
-      (totAdd ? '<span class=\"tl-addbadge\">\u542b\u65b0\u589e ' + totAdd + '</span>' : "") +
-      (totMod ? '<span class=\"tl-modbadge\">\u542b\u6539\u52a8 ' + totMod + '</span>' : "") +
-      (totDel ? '<span class=\"tl-delbadge\">\u542b\u4e0b\u67b6 ' + totDel + '</span>' : "") +
+      (totAdd ? '<span class=\"tl-addbadge\">\u542b\u65b0\u589e</span>' : "") +
+      (totMod ? '<span class=\"tl-modbadge\">\u542b\u6539\u52a8</span>' : "") +
+      (totDel ? '<span class=\"tl-delbadge\">\u542b\u4e0b\u67b6</span>' : "") +
       '<span class=\"tl-arrow\"></span></div>' +
       '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
     );
