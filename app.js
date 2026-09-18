@@ -1008,6 +1008,8 @@ function histDraw(list) {
   let html = '<div class="tl">' + slice.map((r, idx) => {
     const gidx = list.indexOf(r);             // 全局下标（用于判定最新一条默认展开）
     const entries = [];
+    const sumChips = [];   // 折叠态也能一眼看到「哪个省 + 变了多少」
+    let hasAdd = false;    // 本轮是否含「新增」：新增是高价值信号，默认展开，避免被海量「修改」淹没
     SECTIONS.forEach((secObj) => {
       const sec = secObj.section;
       if (histFilter && histFilter !== sec) return;
@@ -1021,6 +1023,12 @@ function histDraw(list) {
       // 无变化的板块不再占位（31 省全列会把真实变化淹没）；
       // 整批无变化时由下方给出一行提示。
       if (!chips.length) return;
+      if (d.added) hasAdd = true;
+      if (sumChips.length < 8) {
+        if (d.added) sumChips.push('<span class="chip add">' + esc(head) + " 新增" + d.added + "</span>");
+        if (d.removed) sumChips.push('<span class="chip del">' + esc(head) + " 下架" + d.removed + "</span>");
+        if (d.modified) sumChips.push('<span class="chip mod">' + esc(head) + " 改" + d.modified + "</span>");
+      }
       entries.push(
         '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
         '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
@@ -1039,11 +1047,12 @@ function histDraw(list) {
         "</span></div></div>"
       );
     }
-    const open = gidx === 0; // 倒序后首条即最新，默认展开（展示各省摘要，各省明细默认收起）
+    const open = gidx === 0 || hasAdd; // 最新一条 + 含「新增」的轮次默认展开（各省明细仍默认收起）
     const fresh = gidx === 0; // 最新一条标记
     return (
       '<div class="tl-item' + (open ? " open fresh" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
-      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") + '<span class=\"tl-arrow\"></span></div>' +
+      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") + (hasAdd && !fresh ? '<span class=\"tl-addbadge\">\u542b\u65b0\u589e</span>' : "") + '<span class=\"tl-arrow\"></span></div>' +
+      (sumChips.length ? '<div class="tl-chips tl-chips-sum">' + sumChips.join("") + "</div>" : "") +
       '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
     );
   }).join("") + "</div>";
