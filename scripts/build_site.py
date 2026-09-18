@@ -444,10 +444,36 @@ def main():
         if old_items is None:
             rec[sec] = {"note": "baseline"}
             continue
-        # 字段结构升级检测：旧/新快照字段键集合不一致时重建基线，避免一次性全量 modified 误报
+        # 字段结构升级检测：旧/新快照字段键集合不一致（如新增「短信」字段）时，
+        # 逐条比对会把存量条目全判成 modified——新字段在旧侧为空，属误报。
+        # 但 added/removed 以业务名为 key 求差集，与字段结构无关，是真实变化。
+        # ★ 曾因这里直接重建基线，把「全民百G礼包网龄版」5 个真新增一并吞掉，
+        #   故改为只抑制 modified，保留 added/removed。
         if _structure_upgraded(old_items, items):
-            print(f"  [升级] 板块 {sec} 字段结构变化，重建基线不计数")
-            rec[sec] = {"note": "baseline"}
+            _a, _r, _m, _md, _mb, _ma = diff_items(old_items, items)
+            print(f"  [升级] 板块 {sec} 字段结构变化：抑制 {len(_m)} 条 modified 误报，"
+                  f"保留真实新增 {len(_a)} / 下架 {len(_r)}")
+            if _a or _r:
+                has_change = True
+                rec[sec] = {
+                    "added": len(_a),
+                    "removed": len(_r),
+                    "modified": 0,
+                    "added_names": [name_of(x) for x in _a],
+                    "removed_names": [name_of(x) for x in _r],
+                    "modified_names": [],
+                    "note": "structure_upgraded",
+                }
+                if _a:
+                    rec[sec]["added_details"] = {
+                        name_of(x): (x.get("fields") or {}) for x in _a
+                    }
+                if _r:
+                    rec[sec]["removed_details"] = {
+                        name_of(x): (x.get("fields") or {}) for x in _r
+                    }
+            else:
+                rec[sec] = {"note": "baseline"}
             continue
         # 抓取降级防护：本轮条数远低于基线（源站限流/降级/返回空）时，
         # 直接 diff 会产生「整板块下架」的假变化（曾出现 quanguo 一次性 -1541）。

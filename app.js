@@ -667,6 +667,7 @@ function itemHtml(it, idx) {
   if (scope) facts.push("<span>适用：" + esc(scope) + "</span>");
   if (f["国内通话"]) facts.push("<span>通话 <b>" + esc(f["国内通话"]) + "</b></span>");
   if (f["国内通用流量"]) facts.push("<span>流量 <b>" + esc(f["国内通用流量"]) + "</b></span>");
+  if (f["短信"]) facts.push("<span>短信 <b>" + esc(f["短信"]) + "</b></span>");
   if (f["宽带"] && f["宽带"] !== "無" && f["宽带"] !== "无") facts.push("<span>宽带 <b>" + esc(f["宽带"]) + "</b></span>");
   return (
     '<div class="item">' +

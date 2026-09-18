@@ -13,6 +13,7 @@ import concurrent.futures
 import json
 import os
 import random
+import re
 import ssl
 import threading
 import time
@@ -103,7 +104,7 @@ PROV_CN = {
 FIELD_KEYS = [
     "资费标准", "方案编号", "资费类型", "归属", "适用范围", "适用地区", "销售渠道",
     "上线日期", "下线日期", "有效期限", "在网要求", "退订方式", "违约责任",
-    "国内通话", "国内通用流量", "定向流量", "宽带", "移动高清", "权益",
+    "国内通话", "国内通用流量", "短信", "定向流量", "宽带", "移动高清", "权益",
     "超出资费说明", "其他服务内容", "其他说明",
 ]
 
@@ -174,6 +175,11 @@ def _nm_to_fields(nm):
     f["违约责任"] = _s(nm.get("responsibility"))
     f["国内通话"] = ("%s分钟" % _s(nm.get("call"))) if _s(nm.get("call")) else ""
     f["国内通用流量"] = _s(nm.get("data")) + _s(nm.get("dataUnit"))
+    # 短信（条）：电信/联通/广电同源接口字段名均为 sms，移动沿用同一命名；
+    # 个别版本接口用别名，逐个兜底。取不到再从「其他服务内容」正文中补。
+    _sms_raw = (_s(nm.get("sms")) or _s(nm.get("SMS")) or _s(nm.get("shortMessage"))
+                or _s(nm.get("message")) or _s(nm.get("noteNum")))
+    f["短信"] = ("%s条" % _sms_raw) if (_sms_raw and _sms_raw not in ("0", "null")) else ""
     f["定向流量"] = _s(nm.get("orientTraffic")) + _s(nm.get("orientTrafficUnit"))
     f["宽带"] = _s(nm.get("brandwidth"))
     f["移动高清"] = _s(nm.get("iptv"))
@@ -181,6 +187,11 @@ def _nm_to_fields(nm):
     f["超出资费说明"] = _s(nm.get("extraFees"))
     f["其他服务内容"] = _s(nm.get("otherContent"))
     f["其他说明"] = _s(nm.get("others"))   # 官方「其他说明」详情正文（多行），此前遗漏未采集
+    # 兜底：接口未直出短信数时，从「其他服务内容」正文里补（如"短信1000条"）
+    if not f["短信"]:
+        _m = re.search(r"短信\s*(\d+)\s*条", f["其他服务内容"] or "")
+        if _m:
+            f["短信"] = "%s条" % _m.group(1)
     return f
 
 
