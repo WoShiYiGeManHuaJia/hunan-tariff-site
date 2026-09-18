@@ -1016,7 +1016,11 @@ function histDraw(list) {
     const gidx = list.indexOf(r);             // 全局下标（用于判定最新一条默认展开）
     const tsKey0 = String(r.ts || ("#" + gidx));
     const entries = [];
-    const sumChips = [];   // 折叠态也能一眼看到「哪个省 + 变了多少」
+    /* 整条级别汇总（不带省份名）：折叠态只显示这个，一眼看出本轮有新/改/下架。
+       ★ 此前这里输出的是「广东 新增49」「广东 改492」这类逐省 chip，且没有任何
+         按折叠态隐藏的 CSS，导致收起时照样刷屏；展开后又与省份行内的 chip 重复，
+         整屏全是数字。逐省数量改为只在展开后的省份行里显示。 */
+    let totAdd = 0, totDel = 0, totMod = 0;
     let hasAdd = false;    // 本轮是否含「新增」：新增是高价值信号，默认展开，避免被海量「修改」淹没
     SECTIONS.forEach((secObj) => {
       const sec = secObj.section;
@@ -1032,11 +1036,9 @@ function histDraw(list) {
       // 整批无变化时由下方给出一行提示。
       if (!chips.length) return;
       if (d.added) hasAdd = true;
-      if (sumChips.length < 8) {
-        if (d.added) sumChips.push('<span class="chip add">' + esc(head) + " 新增" + d.added + "</span>");
-        if (d.removed) sumChips.push('<span class="chip del">' + esc(head) + " 下架" + d.removed + "</span>");
-        if (d.modified) sumChips.push('<span class="chip mod">' + esc(head) + " 改" + d.modified + "</span>");
-      }
+      totAdd += Number(d.added || 0);
+      totDel += Number(d.removed || 0);
+      totMod += Number(d.modified || 0);
       const secKey = tsKey0 + "|" + sec;
       const secOpen = histSecOverride.get(secKey) === true;
       entries.push(
@@ -1064,8 +1066,12 @@ function histDraw(list) {
       : (histForceCollapse ? false : (gidx === 0 || hasAdd));
     return (
       '<div class="tl-item' + (open ? " open" : "") + (fresh ? " fresh" : "") + '" data-ts="' + esc(tsKey0) + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
-      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") + (hasAdd && !fresh ? '<span class=\"tl-addbadge\">\u542b\u65b0\u589e</span>' : "") + '<span class=\"tl-arrow\"></span></div>' +
-      (sumChips.length ? '<div class="tl-chips tl-chips-sum">' + sumChips.join("") + "</div>" : "") +
+      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" +
+      (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") +
+      (totAdd ? '<span class=\"tl-addbadge\">\u542b\u65b0\u589e ' + totAdd + '</span>' : "") +
+      (totMod ? '<span class=\"tl-modbadge\">\u542b\u6539\u52a8 ' + totMod + '</span>' : "") +
+      (totDel ? '<span class=\"tl-delbadge\">\u542b\u4e0b\u67b6 ' + totDel + '</span>' : "") +
+      '<span class=\"tl-arrow\"></span></div>' +
       '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
     );
   }).join("") + "</div>";
