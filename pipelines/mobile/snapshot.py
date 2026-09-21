@@ -141,7 +141,7 @@ def diff(old_items: list, new_items: list) -> dict:
         changed = _changed(old[oi], new[ni])
         if changed:
             modified.append({"name": _parse_name(new[ni]), "old": _mobile_fields(old[oi]), "new": _mobile_fields(new[ni]), "changed": changed})
-    return {"added": added, "removed": removed, "modified": modified}
+    return {"added": added, "removed": removed, "modified": modified, "restored": []}
 
 # ── 下线日期核验（假下架第二层防护）──
 # 数量护栏（main.py 的 ABNORMAL_DROP_RATIO）只能拦「大幅缩水」，
@@ -200,6 +200,54 @@ def _drop_fake_removed(removed: list, section: str) -> list:
     return kept
 
 
+# ── 上线日期核验（假新增对称防护）──
+# 与假下架同理：某轮分类被限流降级只采到部分数据，缺量快照被存成新基线；
+# 下轮恢复全量后，那批「本就存在、只是上一轮没采到」的存量业务会被判成新增。
+# 实测全站 848 条「新增」中 384 条上线日期早于记录日数十至上百天（湖南 09-13
+# 「甄选青春福袋」上线日期 2025-09-06，相差 372 天），均为漏采补录而非真上架。
+# 设为 0 可关闭（源站日期口径变更时）；阈值天数用 STALE_ONLINE_DAYS 调整。
+REJECT_STALE_ONLINE = os.getenv("REJECT_STALE_ONLINE", "1").strip() != "0"
+STALE_ONLINE_DAYS = int(os.getenv("STALE_ONLINE_DAYS", "7") or 7)
+
+
+def _is_stale_added(item) -> bool:
+    """按「上线日期」判断一条被判新增的业务是否其实是存量漏采。
+
+    返回 True(上线已久→补录) / False(确属近期上新) / None(无法判断→按新增保留)。
+    无该字段或不可解析时返回 None，宁可保留也不误删。
+    """
+    f = item.get("fields") if isinstance(item, dict) else None
+    if not isinstance(f, dict):
+        return None
+    d = _parse_cn_date(f.get("上线日期"))
+    if d is None:
+        return None
+    return (datetime.date.today() - d).days > STALE_ONLINE_DAYS
+
+
+def _drop_stale_added(added: list, section: str):
+    """把「上线日期已久」的假新增从 added 移入 restored（补录）。
+
+    返回 (真新增, 补录)。补录不冒充"新增"计数、不进变更推送，
+    仅写入报告供排查，避免历史数据丢失。
+    """
+    if not REJECT_STALE_ONLINE or not added:
+        return added, []
+    real, restored = [], []
+    for x in added:
+        if _is_stale_added(x) is True:      # 上线已久 → 上一轮漏采的补录
+            restored.append(x)
+        else:                                # 真近期上新 或 无法判断 → 保留
+            real.append(x)
+    if restored:
+        names = [_parse_name(x) for x in restored[:3]]
+        print(f"  [核验] 板块 {section} 新增中识别补录 {len(restored)} 条"
+              f"（上线日期早于今日 {STALE_ONLINE_DAYS} 天以上，属漏采补录非真上架）："
+              f"{'、'.join(n for n in names if n)}"
+              f"{'…' if len(restored) > 3 else ''}")
+    return real, restored
+
+
 def check_section(section: str, new_data: dict):
     """对比某板块变化，返回变化报告 dict 或 None。
     若旧快照格式与新数据不兼容（如升级前的字符串快照），先重建基线不通知。"""
@@ -217,6 +265,11 @@ def check_section(section: str, new_data: dict):
     d = diff(old.get("items") if old else [], new_data.get("items", []))
     # 第二层：逐条核验下线日期，剔除「仍在售却被判下架」的条目
     d["removed"] = _drop_fake_removed(d["removed"], section)
+    # 对称核验：把「上线日期已久」的漏采补录从"新增"移到 restored，不冒充上架
+    d["added"], d["restored"] = _drop_stale_added(d["added"], section)
+    if d["restored"]:
+        print(f"  [补录] 板块 {section} {len(d['restored'])} 条，不计入新增、不推送")
+    # 只有补录而无真变化时视为无变化，不发通知（补录信息仍随报告返回供排查）
     has_change = bool(d["added"] or d["removed"] or d["modified"])
     report = {
         "section": section,
@@ -224,6 +277,7 @@ def check_section(section: str, new_data: dict):
         "added": d["added"],
         "removed": d["removed"],
         "modified": d["modified"],
+        "restored": d["restored"],
         "keep_old": None if not old else old.get("timestamp"),
     }
     save_snapshot(section, new_data)
