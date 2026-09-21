@@ -1,0 +1,35 @@
+name: Clean Fake Added
+# 一次性/按需清洗：把 history.json 里「上线日期已久」的漏采补录
+# 从 added 重分类到 restored，避免老套餐被误报成新上架。
+# 幂等：已清洗过的记录会自动跳过，可重复运行。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 清洗假新增
+        run: python clean_fake_added.py
+
+      - name: 提交结果
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- data/history.json; then
+            echo "无变化，不提交"
+          else
+            git add data/history.json
+            git commit -m "chore: 清洗历史假新增（漏采补录重分类为 restored）"
+            git push
+          fi
