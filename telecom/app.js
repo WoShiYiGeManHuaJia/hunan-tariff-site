@@ -924,6 +924,7 @@ function renderHistory() {
         return;
       }
       histAll = list;
+      if (typeof renderTopChange === "function") renderTopChange();
       histDraw(list);
     }).catch((e) => {
       $("historyBox").innerHTML = '<div class="empty">历史数据加载失败：' + esc(e.message) + "</div>";
@@ -944,12 +945,112 @@ function fetchNoCache(file) {
     .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then((j) => { delete cache[file]; return j; });
 }
-function openModal(title, html) { $("modalTitle").textContent = title; $("modalBody").innerHTML = html; $("modalMask").classList.add("show"); }
+function openModal(title, html) { $("modalTitle").textContent = title; $("modalBody").innerHTML = html; $("modalMask").classList.add("show"); if (typeof enhanceCmp === "function") enhanceCmp(); }
 function closeModal() { $("modalMask").classList.remove("show"); $("modalMask").classList.remove("warn"); }
 
 /* 切换运营商弹窗（75% 透明度，移动/联通/电信导航） */
 function openSwitch() { $("switchMask").classList.add("show"); }
 function closeSwitch() { $("switchMask").classList.remove("show"); }
+
+/* ===== v19-A：对比弹窗改动行强化（只高亮真改动的行） ===== */
+function enhanceCmp(){
+  var body = document.getElementById("modalBody");
+  if(!body) return;
+  var tb = body.querySelector(".cmp-table");
+  if(!tb) return;
+  var tbody = tb.tBodies && tb.tBodies[0];
+  if(!tbody || !tbody.rows.length) return;
+  if(tbody.getAttribute("data-enh") === "1") return;
+  tbody.setAttribute("data-enh", "1");
+  var diff = [], same = [];
+  Array.prototype.forEach.call(tbody.rows, function(tr){
+    var isD = tr.classList.contains("cmp-diff");
+    if(isD){
+      var th = tr.cells[0];
+      if(th && !th.querySelector(".cmp-tag")){
+        var s = document.createElement("span");
+        s.className = "cmp-tag"; s.textContent = "改了";
+        th.appendChild(s);
+      }
+      diff.push(tr);
+    }else{
+      tr.classList.add("cmp-same");
+      Array.prototype.forEach.call(tr.cells, function(td, i){
+        if(i === 0) return;
+        td.classList.add("cmp-plain");
+      });
+      same.push(tr);
+    }
+  });
+  /* 改动行排到最前，一眼就能看到 */
+  diff.concat(same).forEach(function(tr){ tbody.appendChild(tr); });
+
+  var bar = document.createElement("div");
+  bar.className = "cmp-bar";
+  var info = document.createElement("span");
+  info.className = "cmp-count";
+  info.innerHTML = diff.length
+    ? ('共 <b>' + diff.length + '</b> 处改动' + (same.length ? '（另有 ' + same.length + ' 项未变，已淡出）' : ''))
+    : "两版字段完全一致，无差异";
+  bar.appendChild(info);
+  if(diff.length){
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.className = "cmp-toggle"; btn.textContent = "只看改动";
+    btn.setAttribute("data-only", "0");
+    btn.addEventListener("click", function(){
+      var next = btn.getAttribute("data-only") !== "1";
+      btn.setAttribute("data-only", next ? "1" : "0");
+      btn.textContent = next ? "显示全部" : "只看改动";
+      Array.prototype.forEach.call(tbody.rows, function(tr){
+        tr.style.display = (next && !tr.classList.contains("cmp-diff")) ? "none" : "";
+      });
+    });
+    bar.appendChild(btn);
+  }
+  tb.parentNode.insertBefore(bar, tb);
+}
+
+/* ===== v19-B：顶栏右侧「最新变动」速览 ===== */
+function renderTopChange(){
+  var el = document.getElementById("topChange");
+  if(!el) return;
+  var list = (typeof histAll !== "undefined" && Array.isArray(histAll)) ? histAll : null;
+  var rec = (list && list.length) ? list[0] : null;
+  if(!rec){ el.hidden = true; return; }
+  var a = 0, m = 0, r = 0;
+  Object.keys(rec).forEach(function(k){
+    if(k === "ts") return;
+    var d = rec[k];
+    if(!d || typeof d !== "object") return;
+    ["added", "modified", "removed"].forEach(function(f){
+      var v = d[f];
+      if(Array.isArray(v)) { var n = v.length; }
+      else if(v && typeof v === "object") { n = Object.keys(v).length; }
+      else { n = 0; }
+      if(f === "added") a += n; else if(f === "modified") m += n; else r += n;
+    });
+  });
+  el.hidden = false;
+  if(!a && !m && !r){
+    el.className = "top-change none";
+    el.innerHTML = '<i class="tc-add"></i>本轮无变化';
+    el.title = "最新一轮检测：全国与各省均无变化";
+  }else{
+    el.className = "top-change";
+    var h = "";
+    if(a) h += '<i class="tc-add"></i>上架 ' + a;
+    if(m) h += '<i class="tc-mod"></i>修改 ' + m;
+    if(r) h += '<i class="tc-del"></i>下架 ' + r;
+    el.innerHTML = h;
+    el.title = "最新一轮检测变动，点击查看变化历史";
+  }
+  el.onclick = function(){
+    var t = document.querySelector('.tab[data-view="history"]');
+    if(t){ t.click(); }
+    try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch(e){ window.scrollTo(0,0); }
+  };
+}
+
 function initModal() {
   $("modalClose").addEventListener("click", closeModal);
   $("modalOk").addEventListener("click", closeModal);
