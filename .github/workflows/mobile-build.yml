@@ -91,6 +91,11 @@ jobs:
           if [ "$EC" -ne 0 ]; then echo "::error::移动抓取失败"; exit "$EC"; fi
           ls -la snapshots/ | head -5
 
+      - name: 清洗历史假新增（漏采补录重分类，幂等）
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          python clean_fake_added.py || echo "[警告] 清洗脚本未执行成功，继续构建"
+
       - name: 构建站点数据
         run: |
           set -e
