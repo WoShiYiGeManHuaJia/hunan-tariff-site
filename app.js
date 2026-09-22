@@ -1159,11 +1159,7 @@ function histDraw(list) {
         (totDel ? '<i class="b-del" title="有下架"></i>' : "") +
         (!totAdd && !totMod && !totDel ? '<i class="b-none" title="无变化"></i>' : "") +
       "</span>" +
-      '<span class="tl-nums">' +
-        (totAdd ? '<span class="chip add">上架 ' + totAdd + "</span>" : "") +
-        (totMod ? '<span class="chip mod">修改 ' + totMod + "</span>" : "") +
-        (totDel ? '<span class="chip del">下架 ' + totDel + "</span>" : "") +
-      "</span>" +
+      /* ★ 时间后不再输出数量：折叠看色条，展开后数量在各省行显示，避免重复堆叠 */
       '<span class=\"tl-arrow\"></span></div>' +
       '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
     );
