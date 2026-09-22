@@ -826,3 +826,5 @@ main{max-width:1080px;margin:0 auto;padding:16px;min-height:70vh;position:relati
 
 /* ---------- 原生 select（已被自定义弹窗替代，仅作数据载体） ---------- */
 .f-sel,.prov-sel{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+.ui-ver{opacity:.55;font-size:12px;font-weight:600;letter-spacing:.2px}
