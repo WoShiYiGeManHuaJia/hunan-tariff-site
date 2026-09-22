@@ -1,216 +1,2067 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light" data-op="telecom">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<title>中国电信资费专区 · 数据一览</title>
-<link rel="stylesheet" href="./style.css?v=20260922v19">
-  <link rel="icon" type="image/webp" href="telecom_logo.webp">
-  <meta name="description" content="中国电信资费专区 · 湖南及全国公开资费数据一览，支持实时检索、资费对比与变化历史追踪。">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="资费监控站">
-  <meta property="og:title" content="中国电信资费专区">
-  <meta property="og:description" content="中国电信资费专区 · 湖南及全国公开资费数据一览，支持实时检索、资费对比与变化历史追踪。">
-  <meta property="og:url" content="https://woshiyigemanhuajia.github.io/hunan-tariff-site/telecom/">
-  <meta property="og:image" content="https://woshiyigemanhuajia.github.io/hunan-tariff-site/telecom/telecom_logo.webp">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="中国电信资费专区">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>中国电信资费监控 · 数据一览</title>
+<style>
+:root{
+  --op1:#0085d0; --op2:#4cc9f0; --op3:#2dd4a7; --op1d:#0067b3;
+  --bg1:#061021; --bg2:#0a1c31; --bg3:#0e2540;
+  --glass:rgba(255,255,255,.09);
+  --glass2:rgba(255,255,255,.12);
+  --glass3:rgba(255,255,255,.17);
+  --bd:rgba(255,255,255,.13);
+  --bd2:rgba(255,255,255,.24);
+  --tx:#f7fbff; --tx2:#d9e5f3; --tx3:#b0c1d8;
+  --ac:var(--op2); --ac2:var(--op1); --ac3:var(--op3); --ac4:var(--op2);
+  --ac2t:var(--op2); --ac3t:var(--op3);
+  --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
+  --sh:0 18px 46px rgba(0,0,0,.42);
+  --sh2:0 26px 60px rgba(0,0,0,.5);
+  --r:20px; --r2:14px; --blur:22px;
+
+
+  --soft1:rgba(0,190,255,.14); --soft2:rgba(94,233,196,.14); --softb1:rgba(0,190,255,.32); --softb2:rgba(94,233,196,.32);
+  --k-flow:#5ee9a4; --k-call:#5cc8ff; --k-dir:#4cd8ea; --k-bb:#b79cff; --k-tv:#ff8ec4; --k-rt:#ffcf70; --k-on:#5ee9a4; --k-off:#ff8a95;}
+[data-op="unicom"]{ --op1:#e2231a; --op2:#ff7a45; --op3:#ffb199; --op1d:#c4160c; }
+[data-op="telecom"]{ --op1:#0057b8; --op2:#00a0e9; --op3:#4ad3c8; --op1d:#004494; }
+[data-op="broadnet"]{ --op1:#c8102e; --op2:#ff4d6d; --op3:#ff9bb0; --op1d:#a50c24; }
+
+[data-theme="light"]{
+  --bg1:#e8f2fb; --bg2:#f4f9fe; --bg3:#ffffff;
+  --glass:rgba(255,255,255,.68);
+  --glass2:rgba(255,255,255,.82);
+  --glass3:rgba(255,255,255,.93);
+  --bd:rgba(255,255,255,.9);
+  --bd2:rgba(0,0,0,.14);
+  --tx:#08202f; --tx2:#33566f; --tx3:#557089;
+  --ac:var(--op1d); --ac2:var(--op1d); --ac3:var(--op1d); --ac4:var(--op1d);
+  --ac2t:var(--op1d); --ac3t:var(--op1d);
+  --ok:#059669; --warn:#b45309; --bad:#e11d48;
+  --sh:0 14px 36px rgba(0,40,80,.14);
+  --sh2:0 22px 50px rgba(0,40,80,.2);
+  --soft1:rgba(0,133,208,.10); --soft2:rgba(45,212,167,.14); --softb1:rgba(0,133,208,.28); --softb2:rgba(45,212,167,.32);
+  --k-flow:#0f7a46; --k-call:#0067b3; --k-dir:#00808f; --k-bb:#6433e0; --k-tv:#c2185b; --k-rt:#9a5b00; --k-on:#0f7a46; --k-off:#c5221f;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  min-height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  color:var(--tx);background:var(--bg1);overflow-x:hidden;
+  transition:background .45s ease,color .45s ease;
+  padding-bottom:calc(28px + env(safe-area-inset-bottom));
+}
+
+/* ---------- 极光背景 ---------- */
+.aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.aurora::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(1200px 800px at 20% -10%,var(--bg2),transparent 60%),
+             radial-gradient(1000px 700px at 90% 10%,var(--bg3),transparent 60%),
+             linear-gradient(180deg,var(--bg1),var(--bg2));
+  transition:background .45s ease}
+.blob{position:absolute;border-radius:50%;filter:blur(72px);opacity:.4;mix-blend-mode:screen;transition:background .6s ease}
+[data-theme="light"] .blob{opacity:.32;mix-blend-mode:multiply;filter:blur(60px)}
+.b1{width:460px;height:460px;background:var(--op1);top:-120px;left:-90px;animation:fl1 22s ease-in-out infinite}
+.b2{width:380px;height:380px;background:var(--op2);top:22%;right:-120px;animation:fl2 26s ease-in-out infinite}
+.b3{width:420px;height:420px;background:var(--op3);bottom:-140px;left:18%;animation:fl3 30s ease-in-out infinite}
+.b4{width:300px;height:300px;background:var(--op2);top:52%;left:52%;animation:fl1 24s ease-in-out infinite reverse;opacity:.28}
+@keyframes fl1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(70px,60px) scale(1.14)}}
+@keyframes fl2{0%,100%{transform:translate(0,0) scale(1.06)}50%{transform:translate(-80px,50px) scale(.92)}}
+@keyframes fl3{0%,100%{transform:translate(0,0) scale(.96)}50%{transform:translate(60px,-70px) scale(1.12)}}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.035;
+  background-image:radial-gradient(rgba(255,255,255,.9) 1px,transparent 1px);background-size:3px 3px}
+[data-theme="light"] .grain{opacity:.02;background-image:radial-gradient(rgba(0,0,0,.7) 1px,transparent 1px)}
+
+.glass{background:var(--glass);backdrop-filter:blur(var(--blur)) saturate(165%);
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(165%);
+  border:1px solid var(--bd);box-shadow:var(--sh);border-radius:var(--r)}
+.wrap{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:0 16px}
+
+/* ---------- 顶栏 ---------- */
+.nav{position:sticky;top:0;z-index:40;margin:12px 0 0;border-radius:var(--r);padding:12px 16px}
+.nav-in{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.logo{width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--op1),var(--op2));
+  box-shadow:0 8px 20px rgba(0,0,0,.32);font-weight:800;color:#ffffff;font-size:15px;letter-spacing:-.5px;
+  transition:background .45s ease}
+.brand-t{min-width:0}
+.brand-n{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+.brand-s{font-size:11px;color:var(--tx3);margin-top:2px;white-space:nowrap}
+.nav-sp{flex:1 1 auto}
+.nav-mid{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:11px;min-width:0}
+.nav-sep{width:1px;height:15px;background:var(--bd);flex:none}
+.nav-cnt{font-size:11.5px;color:var(--tx3);white-space:nowrap}
+.nav-cnt b{color:var(--tx2);font-weight:800;font-size:12.5px}
+@media(max-width:900px){
+  .nav-mid{order:3;flex:1 1 100%;justify-content:flex-start;margin-top:2px}
+}
+@media(max-width:520px){ .nav-cnt{display:none} .nav-sep{display:none} }
+.nav-act{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.upd{font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:5px;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 2.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}70%{box-shadow:0 0 0 8px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+
+.btn{position:relative;overflow:hidden;cursor:pointer;font-size:13px;font-weight:600;
+  padding:9px 15px;border-radius:12px;border:1px solid var(--bd2);background:var(--glass2);color:var(--tx);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  transition:transform .22s cubic-bezier(.4,0,.2,1),box-shadow .22s,border-color .22s,background .22s;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{transform:translateY(-2px);border-color:var(--ac);box-shadow:0 10px 24px rgba(0,0,0,.2)}
+.btn:active{transform:translateY(0) scale(.97)}
+.btn.pri{background:linear-gradient(135deg,var(--op1),var(--op2));color:#ffffff;border-color:transparent;
+  box-shadow:0 10px 26px rgba(0,0,0,.28);transition:background .45s ease}
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.45);transform:scale(0);pointer-events:none;animation:rp .6s ease-out}
+.btn.pri .ripple{background:rgba(255,255,255,.3)}
+@keyframes rp{to{transform:scale(2.6);opacity:0}}
+
+/* ---------- Tab（可自由滑动） ---------- */
+.tabs-wrap{position:relative}
+.tabs{position:relative;display:flex;gap:4px;padding:6px;margin:12px 0 0;border-radius:16px;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  touch-action:pan-x;overscroll-behavior-x:contain;scroll-behavior:smooth}
+.tabs::-webkit-scrollbar{display:none}
+.tab{position:relative;z-index:2;flex:none;cursor:pointer;font-size:13.5px;font-weight:600;
+  padding:10px 16px;border-radius:11px;border:0;background:transparent;color:var(--tx2);
+  transition:color .25s;white-space:nowrap}
+.tab.on{color:var(--tx)}
+.tab:hover{color:var(--tx)}
+.ind{position:absolute;z-index:1;top:6px;bottom:6px;left:0;width:0;border-radius:11px;
+  background:var(--glass3);border:1px solid var(--bd2);
+  box-shadow:0 6px 18px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .42s cubic-bezier(.34,1.4,.4,1),width .42s cubic-bezier(.34,1.4,.4,1)}
+[data-theme="light"] .ind{background:#fff;box-shadow:0 6px 18px rgba(80,90,140,.18)}
+.tabs-edge{position:absolute;top:0;bottom:0;width:22px;pointer-events:none;z-index:3;opacity:0;transition:opacity .3s}
+.tabs-edge.l{left:0;background:linear-gradient(90deg,var(--bg2),transparent)}
+.tabs-edge.r{right:0;background:linear-gradient(270deg,var(--bg2),transparent)}
+
+.view{display:none}
+.view.on{display:block;animation:vin .5s cubic-bezier(.22,1,.36,1)}
+@keyframes vin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- 统计 ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}
+.stat{position:relative;overflow:hidden;padding:18px;border-radius:var(--r);
+  background:var(--glass);border:1px solid var(--bd);box-shadow:var(--sh);
+  backdrop-filter:blur(var(--blur)) saturate(165%);-webkit-backdrop-filter:blur(var(--blur)) saturate(165%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s,border-color .3s}
+.stat::before{content:'';position:absolute;inset:0;border-radius:var(--r);padding:1px;
+  background:linear-gradient(135deg,rgba(255,255,255,.35),transparent 40%,transparent 60%,rgba(255,255,255,.12));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.7}
+.stat::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 32%,rgba(255,255,255,.13) 48%,transparent 64%);
+  transform:translateX(-130%);transition:transform .85s cubic-bezier(.4,0,.2,1)}
+.stat:hover{transform:translateY(-5px);box-shadow:var(--sh2);border-color:var(--bd2)}
+.stat:hover::after{transform:translateX(130%)}
+.stat-ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:16px;margin-bottom:12px;
+  background:var(--glass3);border:1px solid var(--bd)}
+.stat-n{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1.05;font-variant-numeric:tabular-nums;
+  color:var(--tx)}
+.stat.a .stat-n{color:var(--op1)}
+.stat.b .stat-n{color:var(--op2)}
+.stat-l{font-size:12px;color:var(--tx3);margin-top:6px;font-weight:500}
+
+.panel{padding:18px;border-radius:var(--r);margin:14px 0}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.pt{font-size:15px;font-weight:700;margin:0;letter-spacing:-.2px}
+.ps{font-size:11.5px;color:var(--tx3);font-weight:400}
+
+.bars{display:flex;flex-direction:column;gap:11px}
+.bar{display:grid;grid-template-columns:88px 1fr 54px;align-items:center;gap:12px;font-size:12.5px}
+.bar-l{color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-t{height:9px;border-radius:99px;background:var(--glass2);overflow:hidden;border:1px solid var(--bd)}
+.bar-f{height:100%;border-radius:99px;width:0;transition:width 1.1s cubic-bezier(.22,1,.36,1)}
+.bar-v{text-align:right;color:var(--tx2);font-variant-numeric:tabular-nums;font-weight:600}
+
+/* ---------- 工具栏 ---------- */
+.tool{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:14px;border-radius:var(--r);margin:14px 0}
+.search{position:relative;flex:1 1 240px;min-width:180px}
+.search input{width:100%;padding:11px 14px 11px 38px;border-radius:12px;border:1px solid var(--bd2);
+  background:var(--glass2);color:var(--tx);font-size:13.5px;outline:none;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:border-color .25s,box-shadow .25s}
+.search input:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+.search input::placeholder{color:var(--tx3)}
+.search .si{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:15px}
+.seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--glass2);border:1px solid var(--bd)}
+.seg button{cursor:pointer;border:0;background:transparent;color:var(--tx2);font-size:12.5px;font-weight:600;
+  padding:8px 12px;border-radius:9px;transition:all .25s;white-space:nowrap}
+.seg button.on{background:var(--glass3);color:var(--tx);box-shadow:0 4px 12px rgba(0,0,0,.18)}
+[data-theme="light"] .seg button.on{background:#fff;box-shadow:0 3px 10px rgba(80,90,140,.16)}
+.hint{font-size:12px;color:var(--tx3);margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* ---------- 自定义选择器（替代原生 select） ---------- */
+.pick{position:relative;overflow:hidden;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+  padding:9px 13px;border-radius:12px;border:1px solid var(--bd2);background:var(--glass2);color:var(--tx);
+  font-size:13px;font-weight:600;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  transition:transform .2s cubic-bezier(.4,0,.2,1),border-color .2s,box-shadow .2s;white-space:nowrap;max-width:100%}
+.pick:hover{transform:translateY(-2px);border-color:var(--ac)}
+.pick:active{transform:scale(.97)}
+.pick .pk-t{overflow:hidden;text-overflow:ellipsis}
+.pick .pk-s{font-size:11px;color:var(--tx3);font-variant-numeric:tabular-nums;font-weight:500}
+.pick .pk-a{font-size:10px;color:var(--tx3);transition:transform .3s;margin-left:1px}
+.pick.open .pk-a{transform:rotate(180deg)}
+.pick.acc{border-color:rgba(255,255,255,.3)}
+
+/* ---------- 列表卡片 ---------- */
+.list{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}
+.card{position:relative;overflow:hidden;padding:16px;border-radius:var(--r);cursor:pointer;
+  background:var(--glass);border:1px solid var(--bd);box-shadow:var(--sh);
+  backdrop-filter:blur(var(--blur)) saturate(165%);-webkit-backdrop-filter:blur(var(--blur)) saturate(165%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1),box-shadow .32s,border-color .32s;
+  animation:cin .5s cubic-bezier(.22,1,.36,1) backwards}
+@keyframes cin{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+.card::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 34%,rgba(255,255,255,.12) 49%,transparent 62%);
+  transform:translateX(-130%);transition:transform .8s cubic-bezier(.4,0,.2,1)}
+.card:hover{transform:translateY(-5px);box-shadow:var(--sh2);border-color:var(--bd2);z-index:3}
+.card:hover::after{transform:translateX(130%)}
+.ct{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px}
+.cn{font-size:14px;font-weight:700;line-height:1.4;letter-spacing:-.2px;flex:1;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cp{display:flex;align-items:baseline;gap:3px;margin-bottom:11px}
+.cpv{font-size:25px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;
+  color:var(--op1)}
+.cpu{font-size:11.5px;color:var(--tx3);font-weight:600}
+.cg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tag{font-size:11px;padding:4px 9px;border-radius:8px;background:var(--glass2);border:1px solid var(--bd);color:var(--tx2);white-space:nowrap}
+.tag.hl{background:var(--glass3);border-color:var(--bd2);color:var(--tx)}
+.cf{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:11px;border-top:1px solid var(--bd)}
+.cfd{font-size:11.5px;color:var(--tx3)}
+.badge{font-size:11px;font-weight:700;padding:4px 9px;border-radius:8px;flex:none;letter-spacing:.2px}
+.b1t{background:rgba(255,255,255,.10);color:var(--ac2t);border:1px solid rgba(255,255,255,.22)}
+.b2t{background:rgba(255,255,255,.08);color:var(--tx2);border:1px solid rgba(255,255,255,.18)}
+.b3t{background:rgba(255,255,255,.06);color:var(--tx2);border:1px solid rgba(255,255,255,.16)}
+.bo{font-size:10.5px;padding:3px 8px;border-radius:7px;background:var(--glass2);border:1px solid var(--bd);color:var(--tx3);flex:none}
+[data-theme="light"] .b1t,[data-theme="light"] .b2t,[data-theme="light"] .b3t{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.1);color:var(--tx2)}
+
+.pagerwrap{display:flex;align-items:center;gap:6px;margin:18px 0;max-width:100%}
+.pagerwrap>.pg.nav{flex:0 0 auto}
+.pager{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;padding:4px 2px;flex:1 1 auto;min-width:0;
+  overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y;overscroll-behavior-x:contain;scrollbar-width:none;-ms-overflow-style:none;
+  scroll-snap-type:x proximity;justify-content:center}
+.pager::-webkit-scrollbar{display:none;height:0}
+.pager>*{scroll-snap-align:center}
+.pg.nav{min-width:38px;font-size:15px;font-weight:800}
+.pg{flex:0 0 auto}
+.pg.dots{cursor:default;min-width:20px;padding:0 3px;background:none;border-color:transparent;color:var(--tx3);letter-spacing:1px}
+.pg.dots:hover{transform:none;border-color:transparent;color:var(--tx3)}
+.pg{cursor:pointer;min-width:36px;height:36px;padding:0 10px;border-radius:11px;border:1px solid var(--bd);
+  background:var(--glass);color:var(--tx2);font-size:13px;font-weight:600;
+  backdrop-filter:blur(12px);transition:all .25s;display:inline-flex;align-items:center;justify-content:center}
+.pg:hover:not(:disabled){transform:translateY(-2px);border-color:var(--ac);color:var(--tx)}
+.pg.on{background:linear-gradient(135deg,var(--op1),var(--op2));color:#ffffff;border-color:transparent}
+.pg:disabled{opacity:.35;cursor:not-allowed}
+
+.tl{position:relative;padding-left:26px}
+.tl::before{content:'';position:absolute;left:8px;top:6px;bottom:6px;width:2px;border-radius:2px;
+  background:linear-gradient(180deg,var(--op1),var(--op2),transparent)}
+.ti{position:relative;margin-bottom:14px;padding:15px;border-radius:var(--r2);
+  background:var(--glass);border:1px solid var(--bd);box-shadow:var(--sh);
+  backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s}
+.ti:hover{transform:translateX(4px);box-shadow:var(--sh2)}
+.ti::before{content:'';position:absolute;left:-22px;top:20px;width:10px;height:10px;border-radius:50%;
+  background:var(--op1);box-shadow:0 0 0 3px rgba(255,255,255,.14)}
+.ti-t{font-size:12.5px;font-weight:700;color:var(--tx);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ti-ts{font-size:11.5px;color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nums}
+.ti-r{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:9px}
+.ti-p{font-size:12px;color:var(--tx);margin-bottom:7px;font-weight:700}
+.ti-n{font-size:11.5px;color:var(--tx2);line-height:1.7;padding-left:2px}
+.ti-n span{display:block}
+.pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;letter-spacing:.2px}
+.p-add{background:rgba(52,211,153,.16);color:var(--ok);border:1px solid rgba(52,211,153,.3)}
+.p-del{background:rgba(251,113,133,.14);color:var(--bad);border:1px solid rgba(251,113,133,.28)}
+.p-mod{background:rgba(251,191,36,.14);color:var(--warn);border:1px solid rgba(251,191,36,.28)}
+.p-rst{background:rgba(148,163,184,.16);color:#cbd5e1;border:1px solid rgba(148,163,184,.35)}
+[data-theme="light"] .p-rst{background:rgba(71,85,105,.1);color:#475569;border-color:rgba(71,85,105,.3)}
+
+/* ---------- 变更业务 chip（可点击） ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;
+  padding:6px 11px;border-radius:11px;font-size:12.5px;line-height:1.45;text-align:left;
+  font-family:inherit;font-weight:600;cursor:pointer;
+  background:var(--glass2);border:1px solid var(--bd2);color:var(--tx);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  transition:transform .22s cubic-bezier(.4,0,.2,1),box-shadow .22s,border-color .22s,color .22s,background .22s}
+.chip:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.28);border-color:var(--bd2);color:var(--tx);background:var(--glass2)}
+.chip:active{transform:translateY(0) scale(.98)}
+.chip .cic{font-size:11.5px;flex:0 0 auto;opacity:1}
+.chip .cn{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .cd{font-size:10.5px;flex:0 0 auto;opacity:.95;font-weight:800}
+.chip.c-add{border-color:rgba(52,211,153,.45);background:rgba(52,211,153,.13);color:#7ff0c4}
+.chip.c-add:hover{background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.5)}
+.chip.c-del{border-color:rgba(251,113,133,.42);background:rgba(251,113,133,.12);color:#ff97a8}
+.chip.c-del:hover{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.46)}
+.chip.c-mod{border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.13);color:#ffd166}
+.chip.c-mod:hover{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.5)}
+.chip.has-diff .cd::after{content:'⇄';margin-left:3px;font-size:11px}
+[data-theme="light"] .chip.c-add{color:#047857;border-color:rgba(5,150,105,.4);background:rgba(5,150,105,.1)}
+[data-theme="light"] .chip.c-del{color:#be123c;border-color:rgba(225,29,72,.35);background:rgba(225,29,72,.09)}
+[data-theme="light"] .chip.c-mod{color:#92400e;border-color:rgba(180,83,9,.38);background:rgba(180,83,9,.1)}
+.chip.c-rst{border-color:rgba(148,163,184,.45);background:rgba(148,163,184,.14);color:#cbd5e1}
+.chip.c-rst:hover{background:rgba(148,163,184,.16);border-color:rgba(148,163,184,.5)}
+[data-theme="light"] .chip.c-rst{color:#475569;border-color:rgba(71,85,105,.4);background:rgba(71,85,105,.1)}
+[data-theme="light"] .chip{background:var(--glass2);border-color:var(--bd2);color:var(--tx)}
+[data-theme="light"] .chip .cd{opacity:1}
+.cs{font-size:11.5px;color:var(--tx2);line-height:1.55;margin-top:8px;padding-left:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tag.hl i{font-style:normal;font-weight:800;opacity:.68;margin-right:3px}
+.tag.qty{color:var(--tx3);background:rgba(127,159,191,.12);border:1px solid var(--bd2)}
+[data-theme="light"] .tag.qty{background:rgba(51,86,111,.08)}
+.ti-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;user-select:none;padding:2px 0}
+.ti-hd:active{opacity:.7}
+.ti-ar{display:inline-block;width:13px;font-size:11px;color:var(--tx3);transition:transform .22s cubic-bezier(.34,1.56,.64,1);flex:none}
+.ti.open>.ti-hd>.ti-ar{transform:rotate(90deg)}
+.ti-ti{font-size:12.5px;font-weight:700;color:var(--tx)}
+.mini-bars{display:inline-flex;gap:3px;align-items:center;vertical-align:middle;margin-left:1px}
+.mini-bars i{display:block;width:13px;height:4px;border-radius:2px;opacity:.95;flex:0 0 auto}
+.mini-bars i.b-add{background:var(--ok);box-shadow:0 0 6px rgba(52,211,153,.55)}
+.mini-bars i.b-mod{background:#fbbf24;box-shadow:0 0 6px rgba(251,191,36,.55)}
+.mini-bars i.b-del{background:var(--bad);box-shadow:0 0 6px rgba(251,113,133,.55)}
+.mini-bars i.b-rst{background:#94a3b8;box-shadow:0 0 6px rgba(148,163,184,.45)}
+.ti.open .mini-bars i{width:16px;height:5px}
+.ti-sum{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.ti-bd{margin-top:11px}
+.tg{margin-top:10px;border-top:1px dashed var(--bd2);padding-top:9px}
+.tg:first-child{margin-top:0;border-top:0;padding-top:0}
+.tg-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;user-select:none}
+.tg-hd:active{opacity:.7}
+.tg.open>.tg-hd>.ti-ar{transform:rotate(90deg)}
+.tg-hd .ti-p{margin-bottom:0}
+.tg-bd{margin-top:8px}
+.tgl{font-size:11.5px;font-weight:700;color:var(--ac2t);background:var(--glass2);border:1px solid var(--bd2);border-radius:999px;padding:5px 11px;cursor:pointer;transition:.18s;white-space:nowrap}
+.tgl:hover{background:var(--glass3);border-color:var(--ac);transform:translateY(-1px)}
+.ti-sec{margin-top:11px}
+.ti-sec:first-of-type{margin-top:0}
+.ti-sec-t{font-size:11.5px;font-weight:800;color:var(--tx2);margin-bottom:0;display:flex;align-items:center;gap:6px}
+.more{margin-top:6px;font-size:11.5px;color:var(--ac2t);background:none;border:0;cursor:pointer;
+  font-family:inherit;font-weight:600;padding:4px 2px}
+.more:hover{text-decoration:underline}
+.chip.x{display:none}
+
+/* ---------- 修改前后完整字段对比表 ---------- */
+.cmp-note{font-size:11.5px;color:var(--tx3);margin-bottom:9px;line-height:1.6}
+.cmp-wrap{border-radius:13px;overflow:hidden;border:1px solid var(--bd);background:var(--glass)}
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px}
+.cmp-table thead th{font-size:11px;font-weight:700;color:var(--tx2);text-align:left;
+  padding:8px 11px;background:var(--glass2);border-bottom:1px solid var(--bd);white-space:nowrap}
+.cmp-table tbody th{text-align:left;font-weight:600;color:var(--tx2);font-size:11.5px;
+  padding:8px 11px;vertical-align:top;white-space:nowrap;border-bottom:1px solid var(--bd)}
+.cmp-table td{padding:8px 11px;vertical-align:top;line-height:1.6;color:var(--tx2);
+  border-bottom:1px solid var(--bd);word-break:break-word}
+.cmp-table tbody tr:last-child th,.cmp-table tbody tr:last-child td{border-bottom:0}
+/* 未变动行：中性、弱化 */
+.cmp-old{color:var(--tx2)}
+.cmp-new{color:var(--tx2)}
+.cmp-table tbody tr:not(.cmp-diff) th,.cmp-table tbody tr:not(.cmp-diff) td{opacity:.55}
+/* 变动行：强高亮 */
+.cmp-table tr.cmp-diff{background:linear-gradient(90deg,rgba(251,191,36,.22),rgba(251,191,36,.06));
+  box-shadow:inset 0 0 0 1px rgba(251,191,36,.30)}
+.cmp-table tr.cmp-diff th{color:var(--tx);font-weight:800;position:relative}
+.cmp-table tr.cmp-diff th::before{content:'';position:absolute;left:0;top:4px;bottom:4px;
+  width:4px;border-radius:3px;background:linear-gradient(180deg,var(--warn),var(--op2));
+  box-shadow:0 0 9px rgba(251,191,36,.65)}
+.cmp-flag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.3px;
+  padding:1.5px 6px;border-radius:6px;margin-right:6px;vertical-align:1px;
+  background:rgba(251,191,36,.20);color:var(--warn);border:1px solid rgba(251,191,36,.42)}
+.cmp-table tr.cmp-diff .cmp-old{color:var(--bad);font-weight:600;
+  text-decoration:line-through;text-decoration-color:rgba(251,113,133,.8);
+  text-decoration-thickness:1.5px;background:rgba(251,113,133,.11)}
+.cmp-table tr.cmp-diff .cmp-new{color:var(--ok);font-weight:700;background:rgba(52,211,153,.13)}
+.cmp-table tr.cmp-sep th{font-size:10.5px;font-weight:600;color:var(--tx3);text-align:center;
+  padding:7px 11px;background:var(--glass2);letter-spacing:.3px;opacity:.9}
+.cmp-badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 10px;border-radius:8px;
+  background:rgba(251,191,36,.18);color:var(--warn);border:1px solid rgba(251,191,36,.4);margin-right:6px}
+.cmp-table td[data-l]::before{content:none}
+@media(max-width:640px){
+  .cmp-table thead{display:none}
+  .cmp-table tr{display:block;padding:9px 11px;border-bottom:1px solid var(--bd)}
+  .cmp-table tbody th{display:block;padding:0 0 6px;border:0;white-space:normal;position:relative}
+  .cmp-table tr.cmp-diff th::before{display:none}
+  .cmp-table tr.cmp-diff{border-left:4px solid var(--warn);
+    box-shadow:inset 0 0 0 1px rgba(251,191,36,.26)}
+  .cmp-table tr.cmp-diff .cmp-old,.cmp-table tr.cmp-diff .cmp-new{border-radius:7px;padding:4px 8px}
+  .cmp-table td{display:flex;gap:7px;align-items:flex-start;padding:3px 0;border:0}
+  .cmp-table td[data-l]::before{content:attr(data-l);flex:0 0 auto;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;margin-top:1px}
+  .cmp-table td.cmp-old[data-l]::before{background:rgba(251,113,133,.15);color:var(--bad)}
+  .cmp-table td.cmp-new[data-l]::before{background:rgba(52,211,153,.16);color:var(--ok)}
+}
+
+/* ---------- 字段对比 ---------- */
+.dfhd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.dfbadge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:9px}
+.dfmeta{font-size:11px;color:var(--tx3)}
+.dfrow{padding:11px 13px;border-radius:13px;margin-bottom:9px;
+  background:var(--glass);border:1px solid var(--bd);
+  animation:dfin .34s cubic-bezier(.22,1,.36,1) both}
+@keyframes dfin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.df-f{font-size:11.5px;font-weight:700;color:var(--tx);margin-bottom:7px;
+  display:flex;align-items:center;gap:6px}
+.df-f::before{content:'';width:3px;height:12px;border-radius:2px;background:linear-gradient(180deg,var(--op1),var(--op2))}
+.df-v{display:flex;flex-direction:column;gap:6px}
+.df-line{display:flex;align-items:flex-start;gap:7px;font-size:12.5px;line-height:1.6;word-break:break-word}
+.df-tag{flex:0 0 auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;margin-top:1px}
+.df-old{background:rgba(251,113,133,.15);color:var(--bad)}
+.df-new{background:rgba(52,211,153,.16);color:var(--ok)}
+.df-txt{flex:1 1 auto;min-width:0}
+.df-oldv{color:var(--tx2);text-decoration:line-through;text-decoration-color:rgba(251,113,133,.6);opacity:.85}
+.df-newv{color:var(--tx);font-weight:600}
+.df-arrow{text-align:center;color:var(--tx3);font-size:12px;margin:1px 0 1px 3px}
+.dfnone{padding:14px;border-radius:12px;background:var(--glass);border:1px dashed var(--bd2);
+  font-size:12.5px;color:var(--tx3);text-align:center}
+.dfcur{margin-top:14px}
+.dfcur-t{font-size:11.5px;font-weight:700;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+@media(max-width:640px){
+  .chip{font-size:11.5px;padding:5px 9px}
+  .df-line{font-size:12px}
+}
+
+.an{display:flex;flex-direction:column;gap:11px}
+.ai{padding:15px;border-radius:var(--r2);background:var(--glass);border:1px solid var(--bd);
+  box-shadow:var(--sh);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s,border-color .3s;text-decoration:none;color:inherit;display:block}
+.ai:hover{transform:translateY(-3px);box-shadow:var(--sh2);border-color:var(--bd2)}
+.ai-t{font-size:13.5px;font-weight:700;margin-bottom:7px;letter-spacing:-.2px}
+.ai-d{font-size:11px;color:var(--tx2);margin-bottom:8px;font-variant-numeric:tabular-nums}
+.ai-s{font-size:12px;color:var(--tx2);line-height:1.65;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+.ab{font-size:13px;line-height:1.9;color:var(--tx2)}
+.ab b{color:var(--tx)}
+.ab ul{padding-left:20px;margin:10px 0}
+.ab li{margin-bottom:7px}
+
+/* ---------- 弹窗（统一玻璃风） ---------- */
+.mask{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
+  padding:18px;background:rgba(4,7,18,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.mask.on{display:flex;animation:fin .28s ease}
+@keyframes fin{from{opacity:0}to{opacity:1}}
+.modal{width:min(620px,100%);max-height:84vh;overflow:hidden;display:flex;flex-direction:column;
+  border-radius:var(--r);background:var(--glass3);border:1px solid var(--bd2);
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+  backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
+  animation:min .38s cubic-bezier(.22,1.2,.36,1)}
+[data-theme="light"] .modal{background:rgba(255,255,255,.95)}
+@keyframes min{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+.mh{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--bd);flex:none}
+.mh h3{margin:0;font-size:14.5px;font-weight:700;flex:1;letter-spacing:-.2px;line-height:1.45}
+.mx{cursor:pointer;width:30px;height:30px;border-radius:9px;border:1px solid var(--bd);
+  background:var(--glass2);color:var(--tx2);font-size:17px;line-height:1;transition:all .22s;flex:none}
+.mx:hover{background:var(--bad);color:#fff;border-color:transparent;transform:rotate(90deg)}
+.mb{padding:16px 18px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mf{padding:13px 18px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:9px;flex:none}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:10px 14px;font-size:12.5px;margin:0}
+.dv-hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.dv-price,.dv-code{position:relative;padding:11px 13px;border-radius:13px;border:1px solid var(--bd);background:var(--glass2);overflow:hidden}
+.dv-price::after,.dv-code::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
+.dv-price::after{background:linear-gradient(180deg,var(--c1),var(--c2))}
+.dv-code::after{background:var(--c1)}
+.dv-lb{display:block;font-size:10.5px;font-weight:700;color:var(--tx3);letter-spacing:.4px;margin-bottom:3px}
+.dv-price{background:linear-gradient(135deg,var(--soft1),var(--glass2))}
+.dv-price b{font-size:20px;font-weight:900;letter-spacing:-.2px;color:var(--c1)}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .stat-n{background:linear-gradient(135deg,var(--tx),var(--tx2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .stat.a .stat-n{background:linear-gradient(135deg,var(--op2),var(--op1));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .stat.b .stat-n{background:linear-gradient(135deg,var(--op3),var(--op2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .cpv{background:linear-gradient(135deg,var(--op2),var(--op1));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+}
+.dv-code b{font-size:14px;font-weight:800;color:var(--c1);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.3px}
+.dv-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.dv-tag{font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;border:1px solid transparent}
+.dv-tag.t-own{color:var(--c1);background:var(--soft1);border-color:var(--softb1)}
+.dv-tag.t-typ{color:var(--c2);background:var(--soft2);border-color:var(--softb2)}
+.dv-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.dv-col{min-width:0}
+.dv-sec{font-size:10.5px;font-weight:800;color:var(--tx3);letter-spacing:.6px;padding:6px 0 7px;border-bottom:1px solid var(--bd);margin-bottom:2px}
+.dv-r{display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:start;padding:8px 2px;border-bottom:1px dashed var(--bd2)}
+.dv-r:last-child{border-bottom:0}
+.dv-k{font-size:11.5px;font-weight:700;color:var(--tx2);text-align:right;line-height:1.5;padding-top:1px}
+.dv-v{font-size:12.5px;color:var(--tx);line-height:1.65;word-break:break-word;font-weight:600}
+.dv-v.c-flow{color:var(--k-flow);font-weight:800}
+.dv-v.c-call{color:var(--k-call);font-weight:800}
+.dv-v.c-dir{color:var(--k-dir);font-weight:800}
+.dv-v.c-bb{color:var(--k-bb);font-weight:800}
+.dv-v.c-tv{color:var(--k-tv);font-weight:800}
+.dv-v.c-rt{color:var(--k-rt);font-weight:800}
+.dv-v.c-on{color:var(--k-on);font-weight:800}
+.dv-v.c-off{color:var(--k-off);font-weight:800}
+.dv-none{padding:20px 0;text-align:center;color:var(--tx3);font-size:12.5px}
+
+.kv dt{color:var(--tx2);font-weight:700}
+.kv dd{margin:0;color:var(--tx);line-height:1.7;word-break:break-word}
+
+/* 选择弹窗 */
+.pk-search{padding:12px 18px;border-bottom:1px solid var(--bd);flex:none}
+.pk-search .search{flex:1 1 auto;min-width:0}
+.optlist{display:flex;flex-direction:column;gap:7px}
+.opt{position:relative;overflow:hidden;cursor:pointer;display:flex;align-items:center;gap:11px;width:100%;
+  padding:12px 14px;border-radius:13px;border:1px solid var(--bd);background:var(--glass);color:var(--tx);
+  font-size:13.5px;font-weight:600;text-align:left;
+  transition:transform .18s cubic-bezier(.4,0,.2,1),background .2s,border-color .2s,box-shadow .2s;
+  animation:oin .34s cubic-bezier(.22,1,.36,1) backwards}
+@keyframes oin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.opt:hover{transform:translateX(3px);background:var(--glass2);border-color:var(--bd2)}
+.opt:active{transform:scale(.985)}
+.opt .opt-ic{width:30px;height:30px;border-radius:10px;flex:none;display:grid;place-items:center;font-size:13px;
+  background:var(--glass2);border:1px solid var(--bd);transition:all .25s}
+.opt .opt-l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt .opt-s{font-size:11.5px;color:var(--tx3);font-variant-numeric:tabular-nums;font-weight:500;flex:none}
+.opt .opt-ck{width:20px;height:20px;border-radius:50%;flex:none;border:1.5px solid var(--bd2);
+  display:grid;place-items:center;font-size:11px;color:transparent;transition:all .25s}
+.opt.on{background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.06));border-color:var(--ac);
+  box-shadow:0 8px 22px rgba(0,0,0,.22)}
+.opt.on .opt-ic{background:linear-gradient(135deg,var(--op1),var(--op2));color:#fff;border-color:transparent}
+.opt.on .opt-ck{background:linear-gradient(135deg,var(--op1),var(--op2));border-color:transparent;color:#fff}
+[data-theme="light"] .opt.on{background:rgba(255,255,255,.9)}
+.opt-empty{padding:26px 10px;text-align:center;color:var(--tx3);font-size:13px}
+
+/* 运营商标签 */
+.opgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
+.opc{position:relative;overflow:hidden;cursor:pointer;padding:16px;border-radius:var(--r2);text-align:left;
+  border:1px solid var(--bd);background:var(--glass);color:var(--tx);
+  transition:transform .22s cubic-bezier(.4,0,.2,1),box-shadow .22s,border-color .22s;
+  animation:oin .34s cubic-bezier(.22,1,.36,1) backwards}
+.opc:hover{transform:translateY(-3px);box-shadow:var(--sh2);border-color:var(--bd2)}
+.opc.on{border-color:var(--op1);box-shadow:0 10px 26px rgba(0,0,0,.24)}
+.opc-top{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.opc-logo{width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;
+  color:#fff;font-weight:800;font-size:15px}
+.opc-n{font-size:14px;font-weight:700;letter-spacing:-.2px}
+.opc-s{font-size:11px;color:var(--tx3);margin-top:2px}
+.opc .opt-ck{position:absolute;top:14px;right:14px;width:20px;height:20px;border-radius:50%;
+  border:1.5px solid var(--bd2);display:grid;place-items:center;font-size:11px;color:transparent;transition:all .25s}
+.opc.on .opt-ck{background:linear-gradient(135deg,var(--op1),var(--op2));border-color:transparent;color:#fff}
+.st{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px}
+.st.ok{background:rgba(52,211,153,.16);color:var(--ok);border:1px solid rgba(52,211,153,.28)}
+.st.no{background:rgba(255,255,255,.08);color:var(--tx3);border:1px solid var(--bd)}
+
+.sk{padding:16px;border-radius:var(--r);background:var(--glass);border:1px solid var(--bd);overflow:hidden}
+.skl{height:12px;border-radius:6px;margin-bottom:10px;
+  background:linear-gradient(90deg,var(--glass2) 25%,var(--glass3) 50%,var(--glass2) 75%);
+  background-size:200% 100%;animation:sk 1.3s infinite}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,90px);z-index:99;
+  padding:12px 20px;border-radius:14px;background:var(--glass3);border:1px solid var(--bd2);
+  box-shadow:0 16px 40px rgba(0,0,0,.4);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  font-size:13px;font-weight:600;opacity:0;transition:all .42s cubic-bezier(.34,1.3,.4,1);pointer-events:none;
+  display:flex;align-items:center;gap:9px;max-width:90vw}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+[data-theme="light"] .toast{background:#fff}
+
+.empty{grid-column:1/-1;padding:34px 18px;border-radius:var(--r);text-align:center;
+  background:var(--glass);border:1px dashed var(--bd2);color:var(--tx3);font-size:13px;line-height:1.8}
+.empty .ei{font-size:30px;display:block;margin-bottom:10px;opacity:.7}
+
+@media(max-width:1100px){ .list{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:820px){
+  .stats{grid-template-columns:repeat(2,1fr);gap:11px}
+  .stat-n{font-size:26px}
+  .nav{padding:11px 13px}
+  .brand-s{display:none}
+  .wrap{padding:0 12px}
+  .tool{padding:12px}
+  .search{flex:1 1 100%;order:-1}
+  .hint{margin-left:0;width:100%}
+  .bar{grid-template-columns:74px 1fr 46px;gap:9px;font-size:12px}
+  .kv{grid-template-columns:84px 1fr}
+  .dv-cols{grid-template-columns:1fr}
+  .dv-hero{grid-template-columns:1fr}
+  .dv-r{grid-template-columns:76px 1fr;gap:10px}
+  .dv-price b{font-size:19px}
+  .opgrid{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .list{grid-template-columns:1fr}
+  .stat-n{font-size:24px}
+  .stat{padding:15px}
+  .logo{width:34px;height:34px;font-size:13px}
+  .brand-n{font-size:14px}
+  .nav-act .btn{padding:8px 12px;font-size:12.5px}
+  .upd{display:none}
+  .tabs{padding:5px}
+  .tab{padding:9px 13px;font-size:13px}
+  .modal{max-height:88vh;border-radius:18px}
+  .cpv{font-size:23px}
+  .mask{padding:14px;align-items:center;justify-content:center}
+  .modal{width:100%;max-height:80vh;animation:min .38s cubic-bezier(.22,1.2,.36,1)}
+  .mf{padding-bottom:calc(13px + env(safe-area-inset-bottom))}
+}
+@media(prefers-reduced-motion:reduce){ *{animation-duration:.01ms !important;transition-duration:.01ms !important} }
+
+/* ===== 站点增强 ===== */
+.tab{position:relative}
+.an-dot{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;
+  border-radius:9px;background:#ff4757;color:#fff;font-size:10px;font-weight:800;line-height:16px;
+  text-align:center;box-shadow:0 2px 8px rgba(255,71,87,.5);display:none;z-index:5}
+.ai{cursor:pointer}
+.ai-more{margin-top:8px;font-size:12px;color:var(--ac);font-weight:700}
+.an-dv-d{font-size:12px;color:var(--tx3);margin-bottom:10px}
+.an-dv-c{font-size:13.5px;line-height:1.85;color:var(--tx2);word-break:break-word}
+.an-dv-c p{margin:0 0 10px}
+.an-dv-c img{max-width:100%;height:auto;border-radius:8px}
+.an-dv-l{margin-top:14px;padding-top:12px;border-top:1px dashed var(--bd2)}
+.an-dv-l a{color:var(--ac);font-weight:700;text-decoration:none}
+a.opc{text-decoration:none;display:block}
+
+</style>
 </head>
 <body>
-<div class="blob b1"></div>
-<div class="blob b2"></div>
-<div class="blob b3"></div>
-<div class="blob b4"></div>
+<div class="aurora"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
+<div class="grain"></div>
 
-<header class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">
-      <span class="brand-logo"><img src="telecom_logo.webp" alt="中国电信资费专区"></span>
-      <div class="brand-text">
-        <div class="brand-name">中国电信资费专区</div>
-        <div class="brand-sub">湖南 · 全国 资费数据一览</div>
+<div class="wrap">
+  <header class="nav glass">
+    <div class="nav-in">
+      <div class="brand">
+        <div class="logo" id="logo">电</div>
+        <div class="brand-t">
+          <div class="brand-n" id="brandN">中国电信资费监控</div>
+          <div class="brand-s" id="brandS">全网 · 各省资费数据一览</div>
+        </div>
+      </div>
+      <div class="nav-mid">
+        <div class="upd"><span class="dot"></span><span id="updTxt">加载中…</span></div>
+        <span class="nav-sep"></span>
+        <div class="nav-cnt">在架 <b id="navCnt">—</b> 条</div>
+      </div>
+      <div class="nav-act">
+        <button class="btn pri" data-act="check">检测资费</button>
+        <button class="btn" id="opBtn" data-act="op"><span id="opBtnTxt">电信</span> ▾</button>
+        <button class="btn" data-act="theme">深色</button>
       </div>
     </div>
-    <div class="topbar-actions">
-      <div class="update-time" id="updateTime" title="数据快照更新时间">加载中…</div>
-      <div class="topbar-btns">
-        <button class="glass-btn" id="refreshBtn" title="检测最新快照与历史变化">检测资费</button>
-        <button class="glass-btn" id="switchBtn" title="切换运营商站点">切换<span class="arr">›</span></button>
-        <button class="glass-btn" id="themeBtn" title="切换深色/浅色模式">深色</button>
-      </div>
-      <button class="top-change" id="topChange" type="button" title="最新一轮检测变动，点击查看变化历史" hidden>加载中…</button>
-    </div>
-  </div>
-  <nav class="tabs">
-    <button class="tab active" data-view="overview">数据总览</button>
-    <button class="tab" data-view="quanguo">全国资费</button>
-    <button class="tab" data-view="prov">湖南资费</button>
-    <button class="tab" data-view="history">变化历史</button>
-    <button class="tab" data-view="about">关于</button>
+  </header>
+
+  <div class="tabs-wrap">
+  <nav class="tabs glass" id="tabs">
+    <span class="ind" id="ind"></span>
+    <button class="tab on" data-v="overview">数据总览</button>
+    <button class="tab" data-v="quanguo">全国资费</button>
+    <button class="tab" data-v="prov">省份资费</button>
+    <button class="tab" data-v="history">变化历史</button>
+    <button class="tab" data-v="announce"><span id="anTabTxt">电信公告</span><span class="an-dot" id="anDot"></span></button>
+    <button class="tab" data-v="about">关于</button>
   </nav>
-</header>
+  <span class="tabs-edge l"></span><span class="tabs-edge r"></span>
+  </div>
 
-<main>
-  <!-- 数据总览 -->
-  <section id="view-overview" class="view active">
-    <div class="stat-grid">
-      <div class="stat-card"><div class="stat-num" id="stTotal">-</div><div class="stat-label">全国资费总数</div></div>
-      <div class="stat-card"><div class="stat-num" id="stAllProv">-</div><div class="stat-label" id="stAllProvLabel">湖南资费总数</div></div>
-      <div class="stat-card accent"><div class="stat-num" id="stQuanguo">-</div><div class="stat-label" id="stQuanguoLabel">本省资费总数</div></div>
-      <div class="stat-card accent2"><div class="stat-num" id="stGq">-</div><div class="stat-label" id="stGqLabel">本省在售资费</div></div>
-    </div>
-    <div class="panel">
-      <h2 class="panel-title">湖南资费统计
-        <button type="button" class="prov-pick" id="oProvBtn" title="切换省份查看该省资费统计"><span class="prov-name" id="oProvTxt">加载中…</span><span class="prov-caret">▾</span></button>
-<select id="oProv" class="sel prov-sel" title="切换省份查看该省资费统计" hidden></select>
-        <span class="panel-sub" id="distDesc">分类分布</span>
-      </h2>
-      <div class="stat-card"><div class="stat-num" id="opTotal">-</div><div class="stat-label" id="opLabel">湖南资费总数</div></div>
-      <div class="bars" id="distBars"></div>
-    </div>
-  </section>
+  
 
-  <!-- 全国资费 -->
-  <section id="view-quanguo" class="view">
-    <div class="toolbar">
-      <div class="sort-bar" id="qSortBar">
-        <span class="sort-tit">排序</span>
-        <button type="button" class="sort-btn" data-sort="time">最新上架</button>
-        <button type="button" class="sort-btn" data-sort="price">按价格</button>
-        <button type="button" class="sort-btn" data-sort="zero">零元业务</button>
-        <button type="button" class="sort-btn s-dir" data-sort="dir">降序 ↓</button>
+  <main>
+    <section class="view on" id="v-overview">
+      <div class="stats">
+        <div class="stat"><div class="stat-ic">🌐</div><div class="stat-n" data-num="1558">0</div><div class="stat-l">全网通用资费</div></div>
+        <div class="stat"><div class="stat-ic">🗺️</div><div class="stat-n" data-num="42818">0</div><div class="stat-l">31 省资费合计（去重）</div></div>
+        <div class="stat a"><div class="stat-ic">👤</div><div class="stat-n" id="stPersonal">0</div><div class="stat-l" id="stPersonalL">本省个人资费</div></div>
+        <div class="stat b"><div class="stat-ic">🏢</div><div class="stat-n" id="stGq">0</div><div class="stat-l" id="stGqL">本省政企资费</div></div>
       </div>
-      
-      <button type="button" class="f-pick" data-fpick="qScope" title="搜索范围"><span>全局搜索</span><span class="f-caret">▾</span></button>
-      <select id="qScope" class="sel f-sel" title="搜索范围" hidden><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
-      <input type="search" id="qSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
-      <button type="button" class="f-pick" data-fpick="qType" title="类型"><span>全部类型</span><span class="f-caret">▾</span></button>
-      <select id="qType" class="sel f-sel" title="类型" hidden><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option><option>国际/港澳台资费</option></select>
-      <button type="button" class="f-pick" data-fpick="qSub" title="二级分类"><span>全部二级分类</span><span class="f-caret">▾</span></button>
-      <select id="qSub" class="sel f-sel" title="二级分类" hidden><option value="">全部二级分类</option></select>
-      <button class="btn" id="qReload">重新加载</button>
-      <span class="count-hint" id="qCount"></span>
-    </div>
-    <div class="list" id="qList"><div class="loading">加载全国资费数据…</div></div>
-    <div class="pager" id="qPager"></div>
-  </section>
 
-  <!-- 湖南资费 -->
-  <section id="view-prov" class="view">
-    <div class="toolbar">
-      <div class="sort-bar" id="pSortBar">
-        <span class="sort-tit">排序</span>
-        <button type="button" class="sort-btn" data-sort="time">最新上架</button>
-        <button type="button" class="sort-btn" data-sort="price">按价格</button>
-        <button type="button" class="sort-btn" data-sort="zero">零元业务</button>
-        <button type="button" class="sort-btn s-dir" data-sort="dir">降序 ↓</button>
+      <div class="panel glass">
+        <div class="ph">
+          <h2 class="pt">省份资费统计</h2>
+          <button class="pick" id="ovProv" data-pick="prov" data-target="ov"><span class="pk-t">湖南</span><span class="pk-s"></span><i class="pk-a">▾</i></button>
+          <span class="ps" id="ovDesc">六大类分布</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+          <div class="stat" style="flex:1 1 200px;padding:14px">
+            <div class="stat-n" id="ovTotal" style="font-size:26px">0</div>
+            <div class="stat-l" id="ovTotalL">本省资费总数</div>
+          </div>
+        </div>
+        <div class="bars" id="ovBars"></div>
       </div>
-      <label class="prov-label" for="pProv">省份：</label>
-      <button type="button" class="prov-pick" id="pProvBtn" title="自助选择其他省份"><span class="prov-name" id="pProvTxt">加载中…</span><span class="prov-caret">▾</span></button>
-<select id="pProv" class="sel prov-sel" title="自助选择其他省份" hidden></select>
-      
-      <button type="button" class="f-pick" data-fpick="pScope" title="搜索范围"><span>全局搜索</span><span class="f-caret">▾</span></button>
-      <select id="pScope" class="sel f-sel" title="搜索范围" hidden><option value="all">全局搜索</option><option value="name">仅业务名称</option></select>
-      <input type="search" id="pSearch" class="search-box" placeholder="搜索名称/资费标准/说明关键词…">
-      <button type="button" class="f-pick" data-fpick="pType" title="类型"><span>全部类型</span><span class="f-caret">▾</span></button>
-      <select id="pType" class="sel f-sel" title="类型" hidden><option value="">全部类型</option><option>套餐</option><option>加装包</option><option>营销活动</option></select>
-      <button type="button" class="f-pick" data-fpick="pSub" title="二级分类"><span>全部二级分类</span><span class="f-caret">▾</span></button>
-      <select id="pSub" class="sel f-sel" title="二级分类" hidden><option value="">全部二级分类</option></select>
-      <button class="btn" id="pReload">重新加载</button>
-      <span class="count-hint" id="pCount"></span>
-    </div>
-    <div class="list" id="pList"><div class="loading">加载湖南资费数据…</div></div>
-    <div class="pager" id="pPager"></div>
-  </section>
 
-  <!-- 变化历史 -->
-  <section id="view-history" class="view">
-    <div class="panel">
-      <h2 class="panel-title">资费变更时间线</h2>
-      <div class="toolbar htl">
-        <label class="prov-label" for="hProvFilter">省份：</label>
-        <button type="button" class="prov-pick" id="hProvFilterBtn" title="按省份筛选变化历史"><span class="prov-name" id="hProvFilterTxt">全部省份</span><span class="prov-caret">▾</span></button>
-<select id="hProvFilter" class="sel prov-sel" title="按省份筛选变化历史" hidden></select>
+      <div class="panel glass">
+        <div class="ph"><h2 class="pt">各省资费总量排行</h2><span class="ps">Top 12</span></div>
+        <div class="bars" id="rankBars"></div>
       </div>
-      <div id="historyBox"><div class="loading">加载历史记录…</div></div>
-    </div>
-  </section>
+    </section>
 
-  <!-- 关于 -->
-  <section id="view-about" class="view">
-    <div class="panel">
-      <div class="about-banner"><img src="telecom_logo.webp" alt="中国电信"></div>
-      <h2 class="panel-title">关于本页</h2>
-      <div class="about-text">
-        <p>本页面展示中国电信「全国资费」及湖南的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
-        <ul>
-          <li><b>数据来源：</b>中国电信官网公开资费专区（rateZone）</li>
-          <li><b>省份范围：</b>湖南 + 全国（集团资费公示），默认湖南</li>
-          <li><b>更新方式：</b>自动定时抓取比对，有变化即刷新本页</li>
-          <li><b>数据口径：</b>以官网「适用对象」「适用地区」字段为准，仅供参考</li>
-          <li><b>免责声明：</b>展示内容可能存在延迟或误差，办理业务请以营业厅 / 10000 官方信息为准</li>
-        </ul>
+    <section class="view" id="v-quanguo">
+      <div class="tool glass" data-scope="q">
+        <div class="search"><span class="si">⌕</span><input type="search" data-f="search" placeholder="搜索名称 / 资费标准 / 说明关键词…"></div>
+        <button class="pick" data-pick="own" data-scope="q"><span class="pk-t">全部归属</span><i class="pk-a">▾</i></button>
+        <button class="pick" data-pick="type" data-scope="q"><span class="pk-t">全部类型</span><i class="pk-a">▾</i></button>
+        <div class="seg" data-f="sort">
+          <button class="on" data-s="time">最新上架</button>
+          <button data-s="price">按价格</button>
+          <button data-s="zero">零元业务</button>
+        </div>
+        <button class="btn" data-f="dir" data-dir="desc">最新在前 ↓</button>
+        <span class="hint" id="qHint"></span>
       </div>
-    </div>
-  </section>
-</main>
+      <div class="list" id="qList" data-scope="q"></div>
+      <div class="pagerwrap"><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="qPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button></div>
+    </section>
 
-<footer class="foot">中国电信资费监控面板 · 数据仅供个人学习参考</footer>
-
-<!-- 切换运营商弹窗 -->
-<div class="modal-mask" id="switchMask">
-  <div class="modal-card">
-    <div class="modal-head"><span>切换运营商</span><button class="modal-close" id="switchClose" title="关闭">×</button></div>
-    <div class="modal-body">
-      <div class="switch-list" id="switchList">
-        <a class="sw-item sw-m" href="../index.html" title="中国移动官网&监控">移动</a>
-        <a class="sw-item sw-u" href="../unicom/" title="中国联通官网&监控">联通</a>
-        <a class="sw-item sw-t on" href="../telecom/" title="中国电信官网&监控">电信</a>
-        <a class="sw-item sw-g" href="../gb/" title="中国广电官网&监控">广电</a>
+    <section class="view" id="v-prov">
+      <div class="tool glass" data-scope="p">
+        <div class="search"><span class="si">⌕</span><input type="search" data-f="search" placeholder="搜索名称 / 资费标准 / 说明关键词…"></div>
+        <button class="pick" id="pvProv" data-pick="prov" data-target="pv"><span class="pk-t">湖南</span><span class="pk-s"></span><i class="pk-a">▾</i></button>
+        <button class="pick" data-pick="own" data-scope="p"><span class="pk-t">全部归属</span><i class="pk-a">▾</i></button>
+        <button class="pick" data-pick="type" data-scope="p"><span class="pk-t">全部类型</span><i class="pk-a">▾</i></button>
+        <div class="seg" data-f="sort">
+          <button class="on" data-s="time">最新上架</button>
+          <button data-s="price">按价格</button>
+          <button data-s="zero">零元业务</button>
+        </div>
+        <button class="btn" data-f="dir" data-dir="desc">最新在前 ↓</button>
+        <span class="hint" id="pHint"></span>
       </div>
-    </div>
+      <div class="list" id="pList" data-scope="p"></div>
+      <div class="pagerwrap"><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="pPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button></div>
+    </section>
+
+    <section class="view" id="v-history">
+      <div class="panel glass">
+        <div class="ph">
+          <h2 class="pt">资费变更时间线</h2>
+          <button class="pick" id="hProv" data-pick="hprov"><span class="pk-t">全部省份</span><i class="pk-a">▾</i></button>
+          <button class="tgl" id="hTogAll" type="button">全部展开</button>
+          <span class="ps" id="hHint"></span>
+        </div>
+        <div class="tl" id="tlBox"></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-announce">
+      <div class="panel glass">
+        <div class="ph"><h2 class="pt" id="anTitle">湖南移动公告</h2><span class="ps" id="anDesc">来源：官网公告</span></div>
+        <div class="an" id="anBox"></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-about">
+      <div class="panel glass">
+        <div class="ph"><h2 class="pt">关于本页</h2></div>
+        <div class="ab">
+          <p>本页面展示中国移动「全网资费」及各省（默认湖南）的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
+          <ul>
+            <li><b>数据来源：</b>中国移动官网公开资费专区</li>
+            <li><b>省份切换：</b>「省份资费」页可自助选择其他省份，默认湖南；变化历史同样按省份标注</li>
+            <li><b>更新方式：</b>自动定时抓取比对，有变化即刷新本页</li>
+            <li><b>数据口径：</b>以官网「适用地区」「适用范围」字段为准，仅供参考</li>
+            <li><b>运营商：</b>顶部可切换运营商主题，目前仅中国移动已接入抓取数据</li>
+            <li><b>免责声明：</b>展示内容可能存在延迟或误差，办理业务请以营业厅 / 官方客服信息为准</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="mh"><h3 id="mTitle">资费详情</h3><button class="mx" id="mx">×</button></div>
+    <div class="mb"><div class="dv" id="mBody"></div></div>
+    <div class="mf"><button class="btn" id="mCopy">复制名称</button><button class="btn pri" id="mOk">关闭</button></div>
   </div>
 </div>
 
-<!-- 检测结果弹窗 -->
-<div class="modal-mask" id="modalMask">
-  <div class="modal-card">
-    <div class="modal-head"><span id="modalTitle">检测结果</span><button class="modal-close" id="modalClose" title="关闭">×</button></div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-foot"><button class="btn" id="modalOk">知道了</button></div>
+<!-- 通用选择弹窗 -->
+<div class="mask" id="pkMask">
+  <div class="modal">
+    <div class="mh"><h3 id="pkTitle">请选择</h3><button class="mx" id="pkX">×</button></div>
+    <div class="pk-search" id="pkSearchWrap"><div class="search"><span class="si">⌕</span><input type="search" id="pkSearch" placeholder="搜索…"></div></div>
+    <div class="mb"><div class="optlist" id="pkBody"></div></div>
   </div>
 </div>
 
-
-
-<!-- 省份选择弹窗（顶部固定搜索栏 + 可滚动省份网格） -->
-<div class="modal-mask" id="provMask">
-  <div class="prov-card">
-    <div class="prov-head">
-      <span class="prov-title">选择省份</span>
-      <button class="modal-close" id="provClose" title="关闭">×</button>
+<!-- 变更详情弹窗 -->
+<div class="mask" id="hmMask">
+  <div class="modal">
+    <div class="mh"><h3 id="hmTitle">变更详情</h3><button class="mx" id="hmX">×</button></div>
+    <div class="mb">
+      <div class="dfhd" id="hmHead"></div>
+      <div id="hmDiff"></div>
+      <div class="dfcur" id="hmCurWrap" style="display:none">
+        <div class="dfcur-t">◈ 当前档案字段</div>
+        <dl class="kv" id="hmCur"></dl>
+      </div>
     </div>
-    <div class="prov-searchbar">
-      <span class="prov-search-ico">⌕</span>
-      <input type="search" id="provSearch" class="prov-search" placeholder="搜索省份名称，如：湖南、广东…" autocomplete="off">
-    </div>
-    <div class="prov-gridbox" id="provGrid"></div>
+    <div class="mf"><button class="btn" id="hmCopy">复制名称</button><button class="btn pri" id="hmOk">关闭</button></div>
   </div>
 </div>
 
-<!-- 通用单选选择弹窗（类型 / 二级分类 / 搜索范围） -->
-<div class="modal-mask" id="genMask">
-  <div class="gen-card">
-    <div class="gen-head"><span class="gen-title" id="genTitle">选择</span><button class="modal-close" id="genClose" title="关闭">×</button></div>
-    <div class="gen-listbox" id="genList"></div>
+<!-- 运营商弹窗 -->
+<div class="mask" id="opMask">
+  <div class="modal">
+    <div class="mh"><h3>切换运营商</h3><button class="mx" id="opX">×</button></div>
+    <div class="mb"><div class="opgrid" id="opGrid"></div></div>
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
 
-<script src="./app.js?v=20260922v19"></script>
-<script src="../common-extras.js?v=20260922c"></script>
+<script>
+"use strict";
+var D = { updated:"", stats:{}, sections:[], prov_stats:{}, hunan_dist:{}, quanguo_dist:{},
+            items:[], qitems:null, history:[], announce:{updated:"",count:0,items:[]} };
+var DATA_BASE = "./data/";
+var REAL_OK = false;
+function __j(u){
+  return fetch(u, {cache:"no-store"}).then(function(r){
+    if(!r.ok){ throw new Error(u + " HTTP " + r.status); }
+    return r.json();
+  });
+}
+function __loadSec(sec){
+  return __j(DATA_BASE + sec + ".json").then(function(j){ return (j && j.items) ? j.items : []; });
+}
+function __tag(arr){
+  if(!arr){ return; }
+  for(var i=0;i<arr.length;i++){ arr[i].__i = i; }
+}
+function __isMove(it){ return !!(it && it.name && it.fields); }
+function __nz(v){
+  if(v === undefined || v === null){ return ""; }
+  var s = String(v);
+  return (s === "无" || s === "null" || s === "undefined") ? "" : s;
+}
+function __normItem(it){
+  if(!it){ return null; }
+  if(__isMove(it)){ return it; }          // 移动：已是目标结构，原样返回
+  var d = (it && it.detail) || {};
+  var f = {};
+  function set(k, v){ var s = __nz(v); if(s !== "" && s !== "0"){ f[k] = s; } }
+  var fee = __nz(d.feesStandard) || __nz(it.fee);
+  if(fee){ f["资费标准"] = fee + (__nz(d.feeUnit) || "元/月"); }
+  set("方案编号", d.reportNo);
+  // 注意：firstLevelType/secondLevelType 是数字代码(1/2)，不可直接当文字用
+  set("资费类型", d.codeType || it.secondLevel || it.firstLevel);
+  set("归属", it.firstLevel || d.codeType);
+  set("适用范围", d.useScope);
+  set("销售渠道", d.saleChnl);
+  set("上线日期", d.onDate);
+  set("下线日期", d.offDate);
+  set("有效期限", d.validPeriod);
+  set("在网要求", d.inNetReq || d.onlinePeriod);
+  set("退订方式", d.unsubscribe);
+  set("违约责任", d.responsibility);
+  var du = __nz(d.dataUnit) || "GB";
+  if(__nz(d.minute) && __nz(d.minute) !== "0"){ f["国内通话"] = __nz(d.minute) + "分钟"; }
+  if(__nz(d.commonData) && __nz(d.commonData) !== "0"){ f["国内通用流量"] = __nz(d.commonData) + du; }
+  if(__nz(d.sms) && __nz(d.sms) !== "0"){ f["国内短信"] = __nz(d.sms) + "条"; }
+  if(__nz(d.orientTraffic) && __nz(d.orientTraffic) !== "0"){ f["定向流量"] = __nz(d.orientTraffic) + du; }
+  if(__nz(d.broadBand)){ f["宽带"] = __nz(d.broadBand); }
+  if(__nz(d.iptv)){ f["移动高清"] = __nz(d.iptv); }
+  set("超出资费说明", d.extraFees);
+  set("其他服务内容", d.serviceContent);
+  set("其他说明", d.otherNotes);
+  var nm = __nz(it.title) || __nz(d.name) || __nz(it.name);
+  if(!nm){ return null; }
+  return { name: nm, fields: f };
+}
+function __normItems(arr){
+  var o = [];
+  (arr || []).forEach(function(x){
+    var n = __normItem(x);
+    if(n){ o.push(n); }
+  });
+  return o;
+}
+function __normHist(raw){
+  var out = [];
+  (raw || []).forEach(function(h){
+    if(!h || !h.ts){ return; }
+    var cs = [];
+    Object.keys(h).forEach(function(k){
+      if(k === "ts"){ return; }
+      var v = h[k];
+      if(!v || typeof v !== "object"){ return; }
+      var c = { prov:k, name:(NAME_MAP[k] || k),
+                added:0, removed:0, modified:0, restored:0,
+                added_names:[], removed_names:[], modified_names:[], restored_names:[] };
+      Object.keys(v).forEach(function(kk){ c[kk] = v[kk]; });
+      cs.push(c);
+    });
+    out.push({ ts:h.ts, changes:cs });
+  });
+  return out;
+}
+function __distOf(items){
+  var d = {};
+  (items || []).forEach(function(it){
+    var f = (it && it.fields) || {};
+    var own = f["归属"] || "其他", tp = f["资费类型"] || "其他";
+    if(!d[own]){ d[own] = {}; }
+    d[own][tp] = (d[own][tp] || 0) + 1;
+  });
+  return d;
+}
+function __fail(e){
+  var box = document.getElementById("tlBox");
+  var msg = "数据加载失败：" + ((e && e.message) ? e.message : e);
+  if(box){ box.innerHTML = '<div style="padding:18px;color:#ff8a95;font-size:13px">' + msg + "</div>"; }
+  var t = document.getElementById("toast");
+  if(t){ t.textContent = msg; t.classList.add("on"); }
+}
+function __bootReal(){
+  return Promise.all([
+    __j(DATA_BASE + "latest.json"),
+    __j(DATA_BASE + "history.json").catch(function(){ return []; }),
+    __j(DATA_BASE + "announce.json").catch(function(){ return {updated:"",count:0,items:[]}; })
+  ]).then(function(rs){
+    var latest = rs[0] || {}, hist = rs[1] || [], ann = rs[2] || {};
+    D.updated = latest.updated || "";
+    var ps = latest.prov_stats || {};
+    var def = latest.default || "hunan";
+    var hd = latest.dist || {};
+    var hp = 0, hg = 0;
+    Object.keys(hd).forEach(function(k){
+      var t = hd[k] || {}, s = 0;
+      Object.keys(t).forEach(function(x){ s += (t[x] || 0); });
+      if(k.indexOf("政企") >= 0){ hg += s; } else { hp += s; }
+    });
+    var psDef = ps[def] || {};
+    D.stats = {
+      quanguo_total: latest.quanguo_total || 0,
+      prov_total: latest.prov_total || 0,
+      hunan_total: latest.hunan_total || 0,
+      hunan_personal: hp || psDef.personal || 0,
+      hunan_gq: hg || psDef.gq || 0,
+      prov_count: Object.keys(ps).length
+    };
+    D.sections = latest.sections || [];
+    D.prov_stats = ps;
+    D.hunan_dist = hd;
+    D.quanguo_dist = latest.prov_dist || {};
+    D.history = hist || [];
+    D.announce = (ann && ann.items) ? ann : {updated:"", count:0, items:[]};
+    rebuildProv();
+    state.prov = def;
+    // 全国资费单独一份
+    var qp = __loadSec("quanguo").then(function(qi){ D.qitems = qi || []; __tag(D.qitems); })
+              .catch(function(){ D.qitems = null; });
+    var pp = __loadSec(def).then(function(pi){ D.items = pi || []; __tag(D.items); });
+    return Promise.all([qp, pp]);
+  }).then(function(){
+    // 归一化：非移动站点结构(title/fee/detail) -> 统一结构(name/fields)
+    D.items = __normItems(D.items); __tag(D.items);
+    if(D.qitems){ D.qitems = __normItems(D.qitems); __tag(D.qitems); }
+    // 历史：{ts, 省名:{...}} -> {ts, changes:[...]}
+    D.history = __normHist(D.history);
+    // 统计兜底（部分站点 latest 无 hunan_total / dist）
+    if(!D.stats.hunan_total){ D.stats.hunan_total = D.items.length; }
+    if(!D.stats.quanguo_total && D.qitems){ D.stats.quanguo_total = D.qitems.length; }
+    var emptyD = true;
+    for(var kk in D.hunan_dist){ if(D.hunan_dist.hasOwnProperty(kk)){ emptyD = false; break; } }
+    if(emptyD){ D.hunan_dist = __distOf(D.items); }
+    emptyD = true;
+    for(var k2 in D.quanguo_dist){ if(D.quanguo_dist.hasOwnProperty(k2)){ emptyD = false; break; } }
+    if(emptyD && D.qitems){ D.quanguo_dist = __distOf(D.qitems); }
+    REAL_OK = true;
+    boot();
+    paintAnnDot();
+  }).catch(__fail);
+}
 
+var OPS = [
+  { key:"mobile", name:"中国移动", short:"移动", logo:"移", c1:"#0085d0", c2:"#4cc9f0", ready:true, src:"实时抓取 · 自动更新", href:"../index.html" },
+  { key:"unicom", name:"中国联通", short:"联通", logo:"联", c1:"#e2231a", c2:"#ff7a45", ready:true, src:"实时抓取 · 自动更新", href:"../unicom/" },
+  { key:"telecom", name:"中国电信", short:"电信", logo:"电", c1:"#0057b8", c2:"#00a0e9", ready:true, src:"实时抓取 · 自动更新", href:"./index.html" },
+  { key:"broadnet", name:"中国广电", short:"广电", logo:"广", c1:"#c8102e", c2:"#ff4d6d", ready:true, src:"实时抓取 · 自动更新", href:"../gb/" }
+];
+var OP_MAP = {};
+OPS.forEach(function(o){ OP_MAP[o.key] = o; });
+
+var PROV = [], PROV_MAP = {}, NAME_MAP = {};
+function rebuildProv(){
+  PROV = (D.sections || []).filter(function(s){ return s.section !== "quanguo"; });
+  PROV_MAP = {}; NAME_MAP = {};
+  PROV.forEach(function(s){ PROV_MAP[s.section] = s; });
+  (D.sections || []).forEach(function(s){ NAME_MAP[s.section] = s.name; });
+}
+rebuildProv();
+
+var state = {
+  view:"overview", prov:"hunan", op:"telecom",
+  q:{ search:"", own:"", type:"", sort:"time", dir:"desc", page:1 },
+  p:{ search:"", own:"", type:"", sort:"time", dir:"desc", page:1 },
+  h:""
+};
+
+/* ---------- 工具 ---------- */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function f(it,k){ var o = it.fields || {}; return o[k] || ""; }
+function priceOf(it){ var m = String(f(it,"资费标准")).match(/(\d+(?:\.\d+)?)\s*元/); return m ? parseFloat(m[1]) : null; }
+function priceMain(it){
+  var s = String(f(it,"资费标准")), p = priceOf(it);
+  if(p === null){ return { v: s || "—", u:"" }; }
+  var m = s.match(/\d+(?:\.\d+)?\s*元\s*(.*)$/);
+  return { v:String(p), u:(m && m[1]) ? ("元" + m[1]) : "元" };
+}
+function dateKey(it){
+  var s = String(f(it,"上线日期")), m = s.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+  if(m){ return m[1] + "-" + ("0"+m[2]).slice(-2) + "-" + ("0"+m[3]).slice(-2); }
+  m = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if(m){ return m[1] + "-" + ("0"+m[2]).slice(-2) + "-" + ("0"+m[3]).slice(-2); }
+  return s.slice(0,10);
+}
+function typeBadge(t){
+  if(t === "套餐"){ return "b1t"; }
+  if(t === "加装包"){ return "b2t"; }
+  if(t === "营销活动"){ return "b3t"; }
+  return "bo";
+}
+function fmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function hasData(){ return OP_MAP[state.op].ready; }
+
+/* ---------- 数字滚动 ---------- */
+function countUp(el, target){
+  var dur = 1100, t0 = null;
+  var ease = function(x){ return 1 - Math.pow(1 - x, 3); };
+  function step(ts){
+    if(t0 === null){ t0 = ts; }
+    var p = Math.min((ts - t0) / dur, 1);
+    el.textContent = fmt(Math.round(target * ease(p)));
+    if(p < 1){ requestAnimationFrame(step); }
+  }
+  requestAnimationFrame(step);
+}
+function setNum(el, v){ if(el){ countUp(el, v); } }
+function setDash(el){ if(el){ el.textContent = "—"; } }
+
+/* ---------- 分布条 ---------- */
+function renderBars(box, dist){
+  var rows = [];
+  Object.keys(dist || {}).forEach(function(own){
+    var sub = dist[own] || {};
+    Object.keys(sub).forEach(function(t){ rows.push({ label: own.slice(0,2) + " · " + t, v: sub[t], t:t }); });
+  });
+  rows.sort(function(a,b){ return b.v - a.v; });
+  var max = rows.length ? rows[0].v : 1;
+  var colors = { "套餐":"linear-gradient(90deg,var(--op1),var(--op2))",
+                 "加装包":"linear-gradient(90deg,var(--op2),var(--op1))",
+                 "营销活动":"linear-gradient(90deg,var(--op3),var(--op2))" };
+  box.innerHTML = rows.map(function(r){
+    var pct = max ? (r.v / max * 100) : 0;
+    return '<div class="bar"><div class="bar-l">' + esc(r.label) + '</div>' +
+      '<div class="bar-t"><div class="bar-f" data-w="' + pct.toFixed(1) + '" style="background:' + (colors[r.t] || colors["套餐"]) + '"></div></div>' +
+      '<div class="bar-v">' + fmt(r.v) + '</div></div>';
+  }).join("");
+  requestAnimationFrame(function(){
+    var fs = box.querySelectorAll(".bar-f");
+    for(var i=0;i<fs.length;i++){ fs[i].style.width = fs[i].getAttribute("data-w") + "%"; }
+  });
+}
+function renderRank(){
+  var arr = PROV.map(function(s){
+    var st = (D.prov_stats || {})[s.section] || {};
+    return { name:s.name, v:st.total || s.total || 0, key:s.section };
+  }).sort(function(a,b){ return b.v - a.v; }).slice(0,12);
+  var max = arr.length ? arr[0].v : 1;
+  var box = document.getElementById("rankBars");
+  box.innerHTML = arr.map(function(r){
+    var pct = max ? (r.v / max * 100) : 0, on = r.key === state.prov;
+    return '<div class="bar"><div class="bar-l"' + (on ? ' style="color:var(--ac);font-weight:700"' : '') + '>' + esc(r.name) + '</div>' +
+      '<div class="bar-t"><div class="bar-f" data-w="' + pct.toFixed(1) + '" style="background:linear-gradient(90deg,var(--op1),var(--op2))"></div></div>' +
+      '<div class="bar-v">' + fmt(r.v) + '</div></div>';
+  }).join("");
+  requestAnimationFrame(function(){
+    var fs = box.querySelectorAll(".bar-f");
+    for(var i=0;i<fs.length;i++){ fs[i].style.width = fs[i].getAttribute("data-w") + "%"; }
+  });
+}
+
+/* ---------- 总览 ---------- */
+function renderOverview(){
+  var st = (D.prov_stats || {})[state.prov] || {};
+  var name = NAME_MAP[state.prov] || state.prov;
+  var sp = document.getElementById("stPersonal"), sg = document.getElementById("stGq"), ot = document.getElementById("ovTotal");
+  if(hasData()){
+    setNum(sp, st.personal || 0); setNum(sg, st.gq || 0); setNum(ot, st.total || 0);
+    document.getElementById("stPersonalL").textContent = name + " · 个人资费";
+    document.getElementById("stGqL").textContent = name + " · 政企资费";
+    document.getElementById("ovTotalL").textContent = name + "资费总数";
+    document.getElementById("ovDesc").textContent = name + " · 六大类分布";
+    renderBars(document.getElementById("ovBars"), st.dist || {});
+    renderRank();
+  } else {
+    setDash(sp); setDash(sg); setDash(ot);
+    document.getElementById("stPersonalL").textContent = "暂无数据";
+    document.getElementById("stGqL").textContent = "暂无数据";
+    document.getElementById("ovTotalL").textContent = "暂无数据";
+    document.getElementById("ovDesc").textContent = "抓取脚本待接入";
+    document.getElementById("ovBars").innerHTML = emptyBox("该运营商暂无统计分布数据");
+    document.getElementById("rankBars").innerHTML = emptyBox("该运营商暂无排行数据");
+  }
+}
+function emptyBox(txt){
+  return '<div class="empty"><span class="ei">🛰️</span>' + esc(txt) + '<br><span style="font-size:11.5px;opacity:.75">界面与交互已就绪，接入抓取后自动填充</span></div>';
+}
+
+/* ---------- 列表 ---------- */
+function filtered(scope){
+  var s = state[scope], arr = ((scope === "q" && D.qitems) ? D.qitems : D.items).slice();
+  var kw = s.search.trim().toLowerCase();
+  if(kw){
+    arr = arr.filter(function(it){
+      var hit = String(it.name || "").toLowerCase().indexOf(kw) >= 0;
+      if(!hit){
+        var o = it.fields || {};
+        for(var k in o){
+          if(Object.prototype.hasOwnProperty.call(o,k) && String(o[k]).toLowerCase().indexOf(kw) >= 0){ hit = true; break; }
+        }
+      }
+      return hit;
+    });
+  }
+  var own = (s.own === "全部归属") ? "" : s.own;
+  var typ = (s.type === "全部类型") ? "" : s.type;
+  if(own){ arr = arr.filter(function(it){ return f(it,"归属") === own; }); }
+  if(typ){ arr = arr.filter(function(it){ return f(it,"资费类型") === typ; }); }
+  var dir = s.dir === "asc" ? 1 : -1;
+  arr.sort(function(a,b){
+    var r = 0;
+    if(s.sort === "price"){
+      var pa = priceOf(a), pb = priceOf(b);
+      if(pa === null && pb === null){ r = 0; }
+      else if(pa === null){ r = 1; }
+      else if(pb === null){ r = -1; }
+      else { r = pa - pb; }
+    } else if(s.sort === "zero"){
+      r = (priceOf(a) === 0 ? 0 : 1) - (priceOf(b) === 0 ? 0 : 1);
+      if(r === 0){ r = dateKey(b) > dateKey(a) ? -1 : 1; }
+    } else {
+      r = dateKey(b) > dateKey(a) ? -1 : (dateKey(b) < dateKey(a) ? 1 : 0);
+    }
+    return r * dir;
+  });
+  return arr;
+}
+function dirLabel(sort, dir){
+  if(sort === "time"){ return dir === "desc" ? "最新在前 ↓" : "最早在前 ↑"; }
+  return dir === "desc" ? "降序 ↓" : "升序 ↑";
+}
+function cutV(v, n){
+  var x = String(v || "").replace(/\s+/g, " ").trim();
+  if(!x){ return ""; }
+  return x.length > n ? x.slice(0, n) + "…" : x;
+}
+function briefOf(it){
+  var out = [];
+  var add = function(k, v, n){
+    var x = cutV(v, n || 14);
+    if(x){ out.push({k:k, v:x}); }
+  };
+  add("流量", f(it,"国内通用流量"));
+  add("通话", f(it,"国内通话"));
+  add("宽带", f(it,"宽带"));
+  add("定向", f(it,"定向流量"));
+  add("高清", f(it,"移动高清"));
+  var sm = f(it,"其他服务内容") + " " + f(it,"权益");
+  var m = sm.match(/(\d[\d,]*)\s*条(?:国内)?短信/);
+  if(m){ add("短信", m[1] + "条"); }
+  var qy = f(it,"权益");
+  if(qy && out.length < 6){ add("权益", qy, 12); }
+  return out;
+}
+function briefTxt(b){
+  var o = [];
+  for(var i = 0; i < b.length; i++){ o.push(b[i].k + " " + b[i].v); }
+  return o.join(" · ");
+}
+function cardHTML(it, i){
+  var pm = priceMain(it);
+  var gi = (typeof it.__i === "number") ? it.__i : i;
+  var t = f(it,"资费类型");
+  var b = briefOf(it);
+  var show = b.slice(0,4), rest = b.length - show.length;
+  var d = dateKey(it);
+  var sc = f(it,"适用范围") || "";
+  return '<article class="card" data-idx="' + gi + '" style="animation-delay:' + Math.min(i*22,400) + 'ms">' +
+    '<div class="ct"><div class="cn">' + esc(it.name) + "</div>" +
+    '<span class="badge ' + typeBadge(t) + '">' + esc(t || "—") + "</span></div>" +
+    '<div class="cp"><span class="cpv">' + esc(pm.v) + '</span><span class="cpu">' + esc(pm.u) + "</span></div>" +
+    (show.length ? '<div class="cg">' + show.map(function(x){
+        return '<span class="tag hl"><i>' + esc(x.k) + "</i>" + esc(x.v) + "</span>";
+      }).join("") + (rest > 0 ? '<span class="tag qty">+' + rest + "</span>" : "") + "</div>" : "") +
+    (sc ? '<div class="cs">' + esc(sc) + "</div>" : "") +
+    '<div class="cf"><span class="bo">' + esc(f(it,"归属") || "—") + "</span>" +
+    '<span class="cfd">' + (d ? "上线 " + esc(d) : "") + "</span></div></article>";
+}
+function skeleton(n){
+  var one = '<div class="sk"><div class="skl" style="width:70%"></div><div class="skl" style="width:45%;height:22px"></div><div class="skl" style="width:85%"></div><div class="skl" style="width:55%"></div></div>';
+  return new Array(n + 1).join(one);
+}
+function pgSeq(page, pages, n){
+  var out = [], i;
+  if(pages <= n){ for(i = 1; i <= pages; i++){ out.push(i); } return out; }
+  if(n < 5){ n = 5; }
+  var target = n - 2, st = 2, en = pages - 1, dots;
+  for(dots = 2; dots >= 0; dots--){
+    var mid = target - dots; if(mid < 1){ mid = 1; }
+    st = page - Math.floor((mid - 1) / 2); en = st + mid - 1;
+    if(st < 2){ st = 2; en = st + mid - 1; }
+    if(en > pages - 1){ en = pages - 1; st = en - mid + 1; if(st < 2){ st = 2; } }
+    if((st > 2 ? 1 : 0) + (en < pages - 1 ? 1 : 0) === dots){ break; }
+  }
+  out.push(1);
+  if(st > 2){ out.push(0); }
+  for(i = st; i <= en; i++){ out.push(i); }
+  if(en < pages - 1){ out.push(0); }
+  out.push(pages);
+  return out;
+}
+function pgCenter(pager){
+  if(!pager || !pager.querySelector){ return; }
+  var act = pager.querySelector(".pg.on");
+  if(!act){ return; }
+  var pr = pager.getBoundingClientRect(), ar = act.getBoundingClientRect();
+  var d = (ar.left + ar.right) / 2 - (pr.left + pr.right) / 2;
+  if(Math.abs(d) < 2){ return; }
+  if(pager.scrollTo){ pager.scrollTo({ left: pager.scrollLeft + d, behavior: "smooth" }); }
+  else { pager.scrollLeft += d; }
+}
+function renderList(scope){
+  var s = state[scope];
+  var box = document.getElementById(scope === "q" ? "qList" : "pList");
+  var pager = document.getElementById(scope === "q" ? "qPager" : "pPager");
+  var hint = document.getElementById(scope === "q" ? "qHint" : "pHint");
+  if(!hasData()){
+    box.innerHTML = emptyBox("中国" + OP_MAP[state.op].short + "暂无资费数据");
+    pager.innerHTML = ""; hint.textContent = "";
+    return;
+  }
+  box.innerHTML = skeleton(6);
+  pager.innerHTML = "";
+  var arr = filtered(scope), per = 12;
+  var pages = Math.max(1, Math.ceil(arr.length / per));
+  if(s.page > pages){ s.page = pages; }
+  var slice = arr.slice((s.page-1)*per, s.page*per);
+  setTimeout(function(){
+    if(!slice.length){
+      box.innerHTML = '<div class="empty"><span class="ei">🔍</span>没有匹配的资费，换个关键词试试' +
+        '<div style="margin-top:12px"><button class="btn" data-f="clearf" data-scope="' + scope + '">清除全部筛选</button></div></div>';
+    } else {
+      box.innerHTML = slice.map(function(it,i){ return cardHTML(it,i); }).join("");
+    }
+    hint.textContent = "共 " + fmt(arr.length) + " 条 · 第 " + s.page + "/" + pages + " 页 · 左右滑动翻页";
+    var btns = [];
+    for(var k = 1; k <= pages; k++){
+      btns.push('<button class="pg' + (k === s.page ? " on" : "") + '" data-pg="' + k + '">' + k + "</button>");
+    }
+    pager.innerHTML = btns.join("");
+    pager.style.justifyContent = "center";
+    var wrap = pager.closest ? pager.closest(".pagerwrap") : null;
+    if(wrap){
+      var pv2 = wrap.querySelector('[data-pg="prev"]'), nx2 = wrap.querySelector('[data-pg="next"]');
+      if(pv2){ pv2.disabled = (s.page === 1); }
+      if(nx2){ nx2.disabled = (s.page === pages); }
+    }
+    if(pager.scrollWidth > pager.clientWidth + 2){ pager.style.justifyContent = "flex-start"; }
+    pgCenter(pager);
+  }, 220);
+}
+
+
+/* ---------- 列表左右滑动翻页 ---------- */
+(function(){
+  var sx = 0, sy = 0, st = 0, act = null;
+  document.addEventListener("touchstart", function(e){
+    var t = e.target;
+    var l = (t && t.closest) ? t.closest("#qList,#pList") : null;
+    if(!l){ return; }
+    act = l; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+  }, { passive:true });
+  document.addEventListener("touchend", function(e){
+    if(!act){ return; }
+    var l = act; act = null;
+    var t = e.changedTouches && e.changedTouches[0];
+    if(!t){ return; }
+    var dx = t.clientX - sx, dy = t.clientY - sy;
+    if(Date.now() - st > 900){ return; }
+    if(Math.abs(dx) < 55 || Math.abs(dy) >= Math.abs(dx)){ return; }
+    var ps = l.id === "qList" ? "q" : "p";
+    var arr = filtered(ps), per = 12;
+    var pages = Math.max(1, Math.ceil(arr.length / per));
+    var np = dx < 0 ? state[ps].page + 1 : state[ps].page - 1;
+    if(np < 1 || np > pages){ return; }
+    state[ps].page = np;
+    renderList(ps);
+    var top = l.getBoundingClientRect().top + window.scrollY - 140;
+    window.scrollTo({ top: top, behavior: "smooth" });
+  }, { passive:true });
+})();
+
+/* ---------- 历史 / 公告 ---------- */
+var HIST_LIMIT = 8;
+function secHtml(hi, ci, type, arr, diffs){
+  if(!arr || !arr.length){ return ""; }
+  var cls = type === "add" ? "c-add" : (type === "del" ? "c-del" : (type === "rst" ? "c-rst" : "c-mod"));
+  var ic  = type === "add" ? "\uff0b" : (type === "del" ? "\uff0d" : (type === "rst" ? "\u21ba" : "\u270e"));
+  var chips = arr.map(function(n, bi){
+    var nd = (type === "mod" && diffs && diffs[n]) ? diffs[n].length : 0;
+    return '<button class="chip ' + cls + (nd ? " has-diff" : "") + (bi >= HIST_LIMIT ? " x" : "") + '"' +
+      ' data-hi="' + hi + '" data-ci="' + ci + '" data-t="' + type + '" data-bi="' + bi + '">' +
+      '<span class="cic">' + ic + '</span><span class="cn">' + esc(n) + "</span>" +
+      '<span class="cd">' + (nd ? nd + "\u9879" : "") + "</span></button>";
+  }).join("");
+  var more = "";
+  if(arr.length > HIST_LIMIT){
+    more = '<button class="more" data-more="1">\u5c55\u5f00\u5168\u90e8 ' + arr.length + " \u4e2a</button>";
+  }
+  return '<div class="ti-sec"><div class="chips">' + chips + "</div>" + more + "</div>";
+}
+var HIST_OPEN = {}, HIST_POPEN = {}, HIST_INIT = false, HIST_ALL = false;
+function histBars(cs){
+  var a = 0, r = 0, m = 0, s = 0;
+  cs.forEach(function(x){ a += x.c.added || 0; r += x.c.removed || 0; m += x.c.modified || 0; s += x.c.restored || 0; });
+  var o = "";
+  if(a){ o += '<i class="b-add" title="\u6709\u65b0\u589e"></i>'; }
+  if(m){ o += '<i class="b-mod" title="\u6709\u4fee\u6539"></i>'; }
+  if(r){ o += '<i class="b-del" title="\u6709\u4e0b\u67b6"></i>'; }
+  if(s){ o += '<i class="b-rst" title="\u6709\u8865\u5f55"></i>'; }
+  if(!o){ o = '<i class="b-rst" title="\u65e0\u53d8\u5316"></i>'; }
+  return '<span class="mini-bars">' + o + '</span>';
+}
+function provBlock(hi, ci, c){
+  var pills = "";
+  if(c.added){ pills += '<span class="pill p-add">\u4e0a\u67b6 ' + c.added + '</span>'; }
+  if(c.modified){ pills += '<span class="pill p-mod">\u4fee\u6539 ' + c.modified + '</span>'; }
+  if(c.removed){ pills += '<span class="pill p-del">\u4e0b\u67b6 ' + c.removed + '</span>'; }
+  if(c.restored){ pills += '<span class="pill p-rst">\u8865\u5f55 ' + c.restored + '</span>'; }
+  if(!pills){ pills = '<span class="pill p-rst">\u65e0\u53d8\u5316</span>'; }
+  var md = c.modified_details || {};
+  var body = "";
+  body += secHtml(hi, ci, "mod", c.modified_names || [], md);
+  body += secHtml(hi, ci, "add", c.added_names || [], md);
+  body += secHtml(hi, ci, "del", c.removed_names || [], md);
+  body += secHtml(hi, ci, "rst", c.restored_names || [], md);
+  if(!body){ body = '<div style="font-size:11.5px;color:var(--tx3)">本次无明细业务</div>'; }
+  var op = !!HIST_POPEN[hi + "_" + ci];
+  return '<div class="tg' + (op ? " open" : "") + '" data-pk="' + hi + "_" + ci + '">' +
+    '<div class="tg-hd" data-tog="prov" data-hi="' + hi + '" data-ci="' + ci + '">' +
+      '<span class="ti-ar">▸</span><span class="ti-p">' + esc(c.name) + "</span>" +
+      '<div class="ti-r">' + pills + "</div></div>" +
+    '<div class="tg-bd"' + (op ? "" : ' style="display:none"') + ">" + body + "</div></div>";
+}
+function renderHistory(){
+  var box = document.getElementById("tlBox"), hint = document.getElementById("hHint");
+  var tg = document.getElementById("hTogAll");
+  if(!hasData()){
+    box.innerHTML = emptyBox("中国" + OP_MAP[state.op].short + "暂无变更记录");
+    hint.textContent = ""; if(tg){ tg.style.display = "none"; } return;
+  }
+  if(tg){ tg.style.display = ""; }
+  var list = [];
+  D.history.forEach(function(h, hi){
+    if(state.h){
+      var hit = false;
+      for(var i = 0; i < h.changes.length; i++){
+        if(h.changes[i].prov === state.h){ hit = true; break; }
+      }
+      if(!hit){ return; }
+    }
+    list.push({ h:h, hi:hi });
+  });
+  hint.textContent = "共 " + list.length + " 次变更记录";
+  if(!list.length){ box.innerHTML = '<div style="color:var(--tx3);font-size:13px">暂无变更记录</div>'; return; }
+  if(!HIST_INIT){
+    HIST_INIT = true;
+    HIST_ALL = false;
+    for(var q0 = 0; q0 < list.length; q0++){ HIST_OPEN[list[q0].hi] = (q0 === 0); }
+    HIST_POPEN = {};
+  }
+  box.innerHTML = list.map(function(o){
+    var h = o.h, hi = o.hi, cs = [];
+    h.changes.forEach(function(c, ci){
+      if(state.h && c.prov !== state.h){ return; }
+      cs.push({ c:c, ci:ci });
+    });
+    var op = !!HIST_OPEN[hi];
+    return '<div class="ti' + (op ? " open" : "") + '" data-hi="' + hi + '">' +
+      '<div class="ti-hd" data-tog="rec" data-hi="' + hi + '">' +
+        '<span class="ti-ar">▸</span><span class="ti-ti">资费变更</span>' +
+        '<span class="ti-ts">' + esc(h.ts) + "</span>" +
+        '<span class="ti-sum">' + histBars(cs) + "</span></div>" +
+      '<div class="ti-bd"' + (op ? "" : ' style="display:none"') + ">" +
+        cs.map(function(x){ return provBlock(hi, x.ci, x.c); }).join("") +
+      "</div></div>";
+  }).join("");
+  if(tg){ tg.textContent = HIST_ALL ? "全部收起" : "全部展开"; }
+}
+function histToggleAll(){
+  HIST_ALL = !HIST_ALL;
+  var tl = document.getElementById("tlBox");
+  if(!tl){ return; }
+  var recs = tl.querySelectorAll(".ti");
+  for(var i = 0; i < recs.length; i++){
+    var rec = recs[i];
+    var hi = parseInt(rec.getAttribute("data-hi"), 10);
+    HIST_OPEN[hi] = HIST_ALL;
+    rec.classList.toggle("open", HIST_ALL);
+    var bd = rec.querySelector(".ti-bd");
+    if(bd){ bd.style.display = HIST_ALL ? "" : "none"; }
+    var ps = rec.querySelectorAll(".tg");
+    for(var j = 0; j < ps.length; j++){
+      var pk = ps[j].getAttribute("data-pk");
+      HIST_POPEN[pk] = HIST_ALL;
+      ps[j].classList.toggle("open", HIST_ALL);
+      var pbd = ps[j].querySelector(".tg-bd");
+      if(pbd){ pbd.style.display = HIST_ALL ? "" : "none"; }
+    }
+  }
+  var tg2 = document.getElementById("hTogAll");
+  if(tg2){ tg2.textContent = HIST_ALL ? "全部收起" : "全部展开"; }
+}
+function renderAnnounce(){
+  var a = D.announce || {};
+  var box = document.getElementById("anBox"), desc = document.getElementById("anDesc");
+  var op = OP_MAP[state.op];
+  document.getElementById("anTitle").textContent = hasData() ? "湖南移动公告" : (op.name + "公告");
+  document.getElementById("anTabTxt").textContent = hasData() ? "湖南公告" : (op.short + "公告");
+  if(!hasData()){
+    desc.textContent = "暂无接入";
+    box.innerHTML = emptyBox(op.name + "公告源待接入");
+    return;
+  }
+  desc.textContent = "来源：湖南移动官网公告 · 更新于 " + (a.updated || "—");
+  var items = a.items || [];
+  if(!items.length){ box.innerHTML = '<div style="color:var(--tx3);font-size:13px">暂无公告</div>'; return; }
+  box.innerHTML = items.map(function(x, i){
+    return '<div class="ai" data-ai="' + i + '" role="button" tabindex="0">' +
+      '<div class="ai-t">' + esc(x.title) + "</div>" +
+      '<div class="ai-d">' + esc(x.date || "") + "</div>" +
+      '<div class="ai-s">' + esc(x.summary || "") + "</div>" +
+      '<div class="ai-more">查看完整内容 ›</div></div>';
+  }).join("");
+}
+
+/* ---------- 视图切换 ---------- */
+function setView(v){
+  state.view = v;
+  if(v === "announce"){ markAnnRead(); }
+  var tabs = document.querySelectorAll(".tab");
+  for(var i=0;i<tabs.length;i++){
+    var on = tabs[i].getAttribute("data-v") === v;
+    tabs[i].classList.toggle("on", on);
+    if(on){ moveInd(tabs[i], true); }
+  }
+  var vs = document.querySelectorAll(".view");
+  for(var j=0;j<vs.length;j++){ vs[j].classList.toggle("on", vs[j].id === "v-" + v); }
+  if(v === "overview"){ renderOverview(); }
+  if(v === "history"){ HIST_INIT = false; renderHistory(); }
+  if(v === "announce"){ renderAnnounce(); }
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+/* 仅在切换 tab / 尺寸变化时居中；滚动时不再回拉，避免滑动被锁死 */
+function moveInd(el, center){
+  var ind = document.getElementById("ind"), box = document.getElementById("tabs");
+  if(!ind || !el){ return; }
+  ind.style.width = el.offsetWidth + "px";
+  ind.style.transform = "translateX(" + el.offsetLeft + "px)";
+  if(center){
+    try{
+      var want = el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2;
+      if(want < 0){ want = 0; }
+      box.scrollTo({ left:want, behavior:"smooth" });
+    }catch(e){}
+  }
+  updateEdges();
+}
+function updateEdges(){
+  var box = document.getElementById("tabs");
+  var max = box.scrollWidth - box.clientWidth;
+  var x = box.scrollLeft;
+  var l = document.querySelector(".tabs-edge.l"), r = document.querySelector(".tabs-edge.r");
+  if(l){ l.style.opacity = x > 4 ? "1" : "0"; }
+  if(r){ r.style.opacity = x < max - 4 ? "1" : "0"; }
+}
+
+/* ---------- Toast ---------- */
+var toastTimer = null;
+function toast(msg){
+  var t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove("on"); }, 2200);
+}
+
+/* ---------- 详情弹窗 ---------- */
+var curDetail = null;
+function openDetail(idx, scope){
+  var arr = ((scope === "q" && D.qitems) ? D.qitems : D.items);
+  var it = arr[idx];
+  if(!it){ return; }
+  curDetail = it;
+  document.getElementById("mTitle").textContent = it.name || "资费详情";
+  document.getElementById("mBody").innerHTML = dvHtml(it);
+  document.getElementById("mask").classList.add("on");
+}
+var DV_L = ["国内通话","国内通用流量","定向流量","宽带","移动高清","权益"];
+var DV_R = ["适用范围","适用地区","上线日期","下线日期","有效期限","在网要求","销售渠道","退订方式","违约责任","超出资费说明","其他服务内容","其他说明"];
+var DV_C = {"国内通话":"c-call","国内通用流量":"c-flow","定向流量":"c-dir","宽带":"c-bb","移动高清":"c-tv","权益":"c-rt","上线日期":"c-on","下线日期":"c-off"};
+var DV_ALL = DV_L.concat(DV_R);
+function dvRow(k, v){
+  var c = DV_C[k] || "";
+  return '<div class="dv-r"><div class="dv-k">' + esc(k) + '</div>' +
+         '<div class="dv-v ' + c + '">' + esc(v) + '</div></div>';
+}
+function dvHtml(it){
+  var o = it.fields || {}, html = "";
+  var price = o["资费标准"] || "", code = o["方案编号"] || "";
+  if(price || code){
+    html += '<div class="dv-hero">' +
+      (price ? '<div class="dv-price"><span class="dv-lb">资费标准</span><b>' + esc(price) + '</b></div>' : '') +
+      (code  ? '<div class="dv-code"><span class="dv-lb">方案编号</span><b>' + esc(code) + '</b></div>' : '') +
+      '</div>';
+  }
+  var tg = [];
+  if(o["归属"]) tg.push('<span class="dv-tag t-own">' + esc(o["归属"]) + '</span>');
+  if(o["资费类型"]) tg.push('<span class="dv-tag t-typ">' + esc(o["资费类型"]) + '</span>');
+  if(tg.length) html += '<div class="dv-tags">' + tg.join("") + '</div>';
+  var L = [], R = [], rest = [], seen = {};
+  DV_L.forEach(function(k){ seen[k] = 1; if(o[k]){ L.push(dvRow(k, o[k])); } });
+  DV_R.forEach(function(k){ seen[k] = 1; if(o[k]){ R.push(dvRow(k, o[k])); } });
+  Object.keys(o).forEach(function(k){
+    if(seen[k] || k === "资费标准" || k === "方案编号" || k === "归属" || k === "资费类型"){ return; }
+    var v = o[k]; if(v === "" || v == null){ return; }
+    rest.push(dvRow(k, v));
+  });
+  var hasL = L.length > 0, hasR = (R.length + rest.length) > 0;
+  if(!hasL && !hasR){ return html + '<div class="dv-none">该业务暂无详细字段</div>'; }
+  html += '<div class="dv-cols">';
+  html += '<div class="dv-col">' + (hasL ? '<div class="dv-sec">通信资源</div>' + L.join("") : '') + '</div>';
+  html += '<div class="dv-col">' + (hasR ? '<div class="dv-sec">办理说明</div>' + R.join("") + rest.join("") : '') + '</div>';
+  html += '</div>';
+  return html;
+}
+function closeModal(){ document.getElementById("mask").classList.remove("on"); }
+
+/* ---------- 变更详情弹窗 ---------- */
+var curHist = null;
+function openHistDetail(hi, ci, type, bi){
+  var h = D.history[hi]; if(!h){ return; }
+  var c = h.changes[ci]; if(!c){ return; }
+  var md = c.modified_details || {};
+  var arr = type === "add" ? (c.added_names || [])
+          : (type === "del" ? (c.removed_names || [])
+          : (type === "rst" ? (c.restored_names || []) : (c.modified_names || [])));
+  var name = arr[bi];
+  if(!name){ return; }
+  curHist = { name:name, type:type, prov:c.name || "", ts:h.ts || "" };
+  document.getElementById("hmTitle").textContent = name;
+  var tl = type === "add" ? "新增上架" : (type === "del" ? "下线停售"
+        : (type === "rst" ? "漏采补录" : "字段修改"));
+  var tc = type === "add" ? "p-add" : (type === "del" ? "p-del" : (type === "rst" ? "p-rst" : "p-mod"));
+  document.getElementById("hmHead").innerHTML =
+    '<span class="pill ' + tc + '">' + tl + '</span>' +
+    '<span class="dfmeta">' + esc(c.name || "") + " \u00b7 " + esc(h.ts || "") + "</span>";
+  var rows = (type === "mod") ? (md[name] || []) : [];
+  var box = document.getElementById("hmDiff");
+  var bf = (type === "mod") ? ((c.modified_before || {})[name] || null) : null;
+  var af = (type === "mod") ? ((c.modified_after || {})[name] || null) : null;
+  if(bf || af){
+    box.innerHTML = cmpHtml(bf, af, rows.length);
+  } else if(rows.length){
+    box.innerHTML = rows.map(function(r, i){
+      return '<div class="dfrow" style="animation-delay:' + Math.min(i * 45, 270) + 'ms">' +
+        '<div class="df-f">' + esc(r.field) + "</div>" +
+        '<div class="df-v">' +
+        '<div class="df-line"><span class="df-tag df-old">修改前</span><span class="df-txt df-oldv">' + esc(r["from"] || "（空）") + "</span></div>" +
+        '<div class="df-arrow">\u2193</div>' +
+        '<div class="df-line"><span class="df-tag df-new">修改后</span><span class="df-txt df-newv">' + esc(r.to || "（空）") + "</span></div>" +
+        "</div></div>";
+    }).join("");
+  } else {
+    box.innerHTML = '<div class="dfnone">' +
+      (type === "mod" ? "该业务本次未记录字段级差异"
+        : (type === "add" ? "新增业务：无「修改前」记录"
+        : (type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
+        : "已下线业务：无「修改后」记录"))) + "</div>";
+  }
+  var cur = null;
+  for(var i = 0; i < D.items.length; i++){
+    if(D.items[i].name === name){ cur = D.items[i]; break; }
+  }
+  var wrap = document.getElementById("hmCurWrap"), dl = document.getElementById("hmCur");
+  if(cur && cur.fields){
+    var html = "";
+    Object.keys(cur.fields).forEach(function(k){
+      var v = cur.fields[k];
+      if(v === "" || v == null){ return; }
+      html += "<dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd>";
+    });
+    if(html){ dl.innerHTML = html; wrap.style.display = ""; }
+    else { wrap.style.display = "none"; }
+  } else { wrap.style.display = "none"; }
+  document.getElementById("hmMask").classList.add("on");
+}
+function closeHist(){ document.getElementById("hmMask").classList.remove("on"); curHist = null; }
+function cmpHtml(bf, af, nDiff){
+  bf = bf || {}; af = af || {};
+  var keys = [];
+  Object.keys(bf).forEach(function(k){ if(keys.indexOf(k) < 0){ keys.push(k); } });
+  Object.keys(af).forEach(function(k){ if(keys.indexOf(k) < 0){ keys.push(k); } });
+  var rows = keys.map(function(k){
+    var b = (bf[k] == null || bf[k] === "") ? "\u2014" : String(bf[k]);
+    var a = (af[k] == null || af[k] === "") ? "\u2014" : String(af[k]);
+    return { k:k, b:b, a:a, same:(b === a) };
+  });
+  var changed = rows.filter(function(r){ return !r.same; });
+  var unchanged = rows.filter(function(r){ return r.same; });
+  var nd = changed.length || nDiff || 0;
+  var trs = changed.map(function(r){
+    return '<tr class="cmp-diff"><th><span class="cmp-flag">改动</span>' + esc(r.k) + "</th>" +
+      '<td data-l="修改前" class="cmp-old">' + esc(r.b) + "</td>" +
+      '<td data-l="修改后" class="cmp-new">' + esc(r.a) + "</td></tr>";
+  }).join("");
+  if(changed.length && unchanged.length){
+    trs += '<tr class="cmp-sep"><th colspan="3">以下 ' + unchanged.length + " 项未变动</th></tr>";
+  }
+  trs += unchanged.map(function(r){
+    return '<tr><th>' + esc(r.k) + "</th>" +
+      '<td data-l="修改前" class="cmp-old">' + esc(r.b) + "</td>" +
+      '<td data-l="修改后" class="cmp-new">' + esc(r.a) + "</td></tr>";
+  }).join("");
+  var note = nd
+    ? '<span class="cmp-badge">共 ' + nd + " 处改动</span>已排在最前并高亮，其余为未变动字段"
+    : "该业务修改前后完整字段对比（本次未记录到字段级差异）";
+  return '<div class="cmp-note">' + note + "</div>" +
+    '<div class="cmp-wrap"><table class="cmp-table">' +
+    '<thead><tr><th>字段</th><th>修改前</th><th>修改后</th></tr></thead>' +
+    "<tbody>" + trs + "</tbody></table></div>";
+}
+
+/* ---------- 通用选择弹窗 ---------- */
+var pkCfg = null;
+function openPicker(cfg){
+  pkCfg = cfg;
+  document.getElementById("pkTitle").textContent = cfg.title || "请选择";
+  var wrap = document.getElementById("pkSearchWrap");
+  wrap.style.display = (cfg.options.length > 8) ? "" : "none";
+  var si = document.getElementById("pkSearch");
+  si.value = "";
+  renderPickList("");
+  document.getElementById("pkMask").classList.add("on");
+  if(cfg.options.length > 8){ setTimeout(function(){ si.focus(); }, 260); }
+}
+function renderPickList(kw){
+  var box = document.getElementById("pkBody");
+  if(!pkCfg){ return; }
+  var k = String(kw || "").trim().toLowerCase();
+  var list = pkCfg.options.filter(function(o){
+    if(!k){ return true; }
+    return String(o.label).toLowerCase().indexOf(k) >= 0;
+  });
+  if(!list.length){
+    box.innerHTML = '<div class="opt-empty">没有匹配的选项</div>';
+    return;
+  }
+  box.innerHTML = list.map(function(o,i){
+    var on = o.value === pkCfg.value;
+    return '<button class="opt' + (on ? " on" : "") + '" data-v="' + esc(o.value) + '" style="animation-delay:' + Math.min(i*16,260) + 'ms">' +
+      '<span class="opt-ic">' + esc(o.icon || "◈") + "</span>" +
+      '<span class="opt-l">' + esc(o.label) + "</span>" +
+      (o.sub ? '<span class="opt-s">' + esc(o.sub) + "</span>" : "") +
+      '<span class="opt-ck">✓</span></button>';
+  }).join("");
+}
+function closePicker(){
+  document.getElementById("pkMask").classList.remove("on");
+  pkCfg = null;
+}
+function provOptions(){
+  return PROV.map(function(s){
+    return { value:s.section, label:s.name, sub:fmt(s.total), icon:"📍" };
+  });
+}
+function simpleOptions(arr){
+  return arr.map(function(x){ return { value:x, label:x, icon:"◈" }; });
+}
+function setPickText(el, txt, sub){
+  if(!el){ return; }
+  var t = el.querySelector(".pk-t"), s = el.querySelector(".pk-s");
+  if(t){ t.textContent = txt; }
+  if(s){ s.textContent = sub || ""; }
+}
+
+/* ---------- 运营商 ---------- */
+function renderOpGrid(){
+  var box = document.getElementById("opGrid");
+  box.innerHTML = OPS.map(function(o,i){
+    var on = o.key === state.op;
+    return '<a class="opc' + (on ? " on" : "") + '" data-op="' + o.key + '" href="' + esc(o.href) + '" style="animation-delay:' + (i*50) + 'ms">' +
+      '<span class="opt-ck">✓</span>' +
+      '<div class="opc-top"><div class="opc-logo" style="background:linear-gradient(135deg,' + o.c1 + ',' + o.c2 + ')">' + esc(o.logo) + "</div>" +
+      "<div><div class=\"opc-n\">" + esc(o.name) + '</div><div class="opc-s">' + esc(o.src) + "</div></div></div>" +
+      '<span class="st ' + (o.ready ? "ok" : "no") + '">' + (o.ready ? "● 已接入数据" : "○ 待接入") + "</span></a>";
+  }).join("");
+}
+function applyOp(key){
+  var o = OP_MAP[key];
+  if(!o){ return; }
+  state.op = key;
+  document.documentElement.setAttribute("data-op", key);
+  document.getElementById("logo").textContent = o.logo;
+  document.getElementById("brandN").textContent = o.name + "资费监控";
+  document.getElementById("brandS").textContent = o.ready ? "全网 · 各省资费数据一览" : "界面已就绪 · 数据待接入";
+  document.getElementById("opBtnTxt").textContent = o.short;
+  renderOpGrid();
+  renderOverview();
+  renderList("q"); renderList("p");
+  renderHistory(); renderAnnounce();
+  var on = document.querySelector(".tab.on");
+  if(on){ moveInd(on, false); }
+  toast(o.ready ? ("已切换到" + o.name) : (o.name + "：界面已就绪，暂无抓取数据"));
+}
+
+/* ---------- 事件 ---------- */
+document.addEventListener("click", function(e){
+  var el = e.target;
+  var b = el.closest ? el.closest(".btn") : null;
+  if(b){
+    var rect = b.getBoundingClientRect();
+    var size = Math.max(rect.width, rect.height);
+    var r = document.createElement("span");
+    r.className = "ripple";
+    r.style.width = r.style.height = size + "px";
+    r.style.left = (e.clientX - rect.left - size/2) + "px";
+    r.style.top = (e.clientY - rect.top - size/2) + "px";
+    b.appendChild(r);
+    setTimeout(function(){ if(r.parentNode){ r.parentNode.removeChild(r); } }, 620);
+  }
+  var act = (b && b.getAttribute("data-act")) || (el.getAttribute ? el.getAttribute("data-act") : null);
+  if(act){
+    if(act === "theme"){
+      var root = document.documentElement;
+      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      var tb = document.querySelector('[data-act="theme"]');
+      if(tb){ tb.textContent = next === "dark" ? "浅色" : "深色"; }
+      toast(next === "dark" ? "已切换到深色模式" : "已切换到浅色模式");
+      return;
+    }
+    if(act === "check"){ toast("正在检测最新资费…（预览版未接入后端）"); return; }
+    if(act === "op"){ renderOpGrid(); document.getElementById("opMask").classList.add("on"); return; }
+  }
+  /* 关闭按钮 */
+  if(el.id === "mx" || el.id === "mOk"){ closeModal(); return; }
+  if(el.id === "hTogAll"){ histToggleAll(); return; }
+  var togEl = el.closest ? el.closest("[data-tog]") : null;
+  if(togEl){
+    var kind = togEl.getAttribute("data-tog");
+    if(kind === "rec"){
+      var rec = togEl.parentNode;
+      var bd = rec.querySelector(".ti-bd");
+      if(bd){
+        var on = bd.style.display === "none";
+        bd.style.display = on ? "" : "none";
+        rec.classList.toggle("open", on);
+        HIST_OPEN[parseInt(togEl.getAttribute("data-hi"), 10)] = on;
+      }
+    } else if(kind === "prov"){
+      var grp = togEl.parentNode;
+      var pbd = grp.querySelector(".tg-bd");
+      if(pbd){
+        var on2 = pbd.style.display === "none";
+        pbd.style.display = on2 ? "" : "none";
+        grp.classList.toggle("open", on2);
+        HIST_POPEN[grp.getAttribute("data-pk")] = on2;
+      }
+    }
+    return;
+  }
+  var chip = el.closest ? el.closest(".chip") : null;
+  if(chip){
+    openHistDetail(
+      parseInt(chip.getAttribute("data-hi"), 10),
+      parseInt(chip.getAttribute("data-ci"), 10),
+      chip.getAttribute("data-t"),
+      parseInt(chip.getAttribute("data-bi"), 10));
+    return;
+  }
+  var mbtn = el.closest ? el.closest(".more") : null;
+  if(mbtn){
+    var sec = mbtn.parentNode;
+    if(sec){
+      var cs3 = sec.querySelectorAll(".chip");
+      for(var q = 0; q < cs3.length; q++){ cs3[q].classList.remove("x"); }
+    }
+    mbtn.style.display = "none";
+    return;
+  }
+  if(el.id === "hmX" || el.id === "hmOk"){ closeHist(); return; }
+  if(el.id === "hmMask"){ closeHist(); return; }
+  if(el.id === "hmCopy" && curHist){
+    var htxt = curHist.name || "";
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(htxt).then(function(){ toast("已复制业务名称"); }, function(){ toast("复制失败"); });
+    } else { toast("当前浏览器不支持复制"); }
+    return;
+  }
+  if(el.id === "pkX"){ closePicker(); return; }
+  if(el.id === "opX"){ document.getElementById("opMask").classList.remove("on"); return; }
+  if(el.id === "hmMask"){ closeHist(); return; }
+  var mkEl = el.closest ? el.closest(".mask") : null;
+  if(mkEl && el === mkEl){
+    if(mkEl.id === "mask"){ closeModal(); }
+    else if(mkEl.id === "pkMask"){ closePicker(); }
+    else if(mkEl.id === "opMask"){ document.getElementById("opMask").classList.remove("on"); }
+    else if(mkEl.id === "hmMask"){ closeHist(); }
+    return;
+  }
+  if(el.id === "mCopy" && curDetail){
+    var txt = curDetail.name || "";
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast("已复制资费名称"); }, function(){ toast("复制失败"); });
+    } else { toast("当前浏览器不支持复制"); }
+    return;
+  }
+  /* 运营商卡片 */
+  var opc = el.closest ? el.closest(".opc") : null;
+  if(opc){
+    applyOp(opc.getAttribute("data-op"));
+    document.getElementById("opMask").classList.remove("on");
+    return;
+  }
+  /* 选择项 */
+  var opt = el.closest ? el.closest(".opt") : null;
+  if(opt && pkCfg){
+    var v = opt.getAttribute("data-v");
+    pkCfg.onPick(v);
+    closePicker();
+    return;
+  }
+  /* 选择器按钮 */
+  var pk = el.closest ? el.closest(".pick") : null;
+  if(pk){
+    var kind = pk.getAttribute("data-pick");
+    if(kind === "prov"){
+      var target = pk.getAttribute("data-target");
+      openPicker({ title:"选择省份", value:state.prov, options:provOptions(), onPick:function(v){
+        state.prov = v;
+        var other = document.getElementById(target === "ov" ? "pvProv" : "ovProv");
+        setPickText(document.getElementById("ovProv"), NAME_MAP[v], fmt((PROV_MAP[v] || {}).total || 0));
+        setPickText(document.getElementById("pvProv"), NAME_MAP[v], fmt((PROV_MAP[v] || {}).total || 0));
+        if(other){ /* 两个联动，已统一设置 */ }
+        renderOverview();
+        toast("正在加载 " + (NAME_MAP[v] || v) + " 数据…");
+        __loadSec(v).then(function(it){
+          D.items = __normItems(it);
+          __tag(D.items);
+          state.p.search = ""; state.p.own = ""; state.p.type = ""; state.p.page = 1;
+          var _ps = document.getElementById("pSearch"); if(_ps){ _ps.value = ""; }
+          var _po = document.querySelector('.pick[data-scope="p"][data-pick="own"]'); if(_po){ setPickText(_po, "全部归属", ""); }
+          var _pt = document.querySelector('.pick[data-scope="p"][data-pick="type"]'); if(_pt){ setPickText(_pt, "全部类型", ""); }
+          renderList("p");
+          toast("已切换到 " + (NAME_MAP[v] || v) + "（" + D.items.length + " 条）");
+        }).catch(function(){ toast("该省数据加载失败"); });
+      }});
+      return;
+    }
+    if(kind === "hprov"){
+      openPicker({ title:"筛选省份", value:state.h, options:[{value:"",label:"全部省份",icon:"🌐"}].concat(provOptions()), onPick:function(v){
+        state.h = v;
+        setPickText(document.getElementById("hProv"), v ? (NAME_MAP[v] || v) : "全部省份", "");
+        renderHistory();
+      }});
+      return;
+    }
+    if(kind === "own" || kind === "type"){
+      var sc = pk.getAttribute("data-scope");
+      var isOwn = kind === "own";
+      var opts = isOwn ? ["全部归属","个人资费","政企资费"] : ["全部类型","套餐","加装包","营销活动"];
+      openPicker({ title:isOwn ? "选择归属" : "选择类型", value:state[sc][kind], options:simpleOptions(opts), onPick:function(v){
+        state[sc][kind] = (v === "全部归属" || v === "全部类型") ? "" : v;
+        state[sc].page = 1;
+        setPickText(pk, v || (isOwn ? "全部归属" : "全部类型"), "");
+        renderList(sc);
+      }});
+      return;
+    }
+  }
+  /* Tab */
+  var tab = el.closest ? el.closest(".tab") : null;
+  if(tab){ setView(tab.getAttribute("data-v")); return; }
+  /* 卡片 */
+  var card = el.closest ? el.closest(".card") : null;
+  if(card){
+    var _lst = card.closest ? card.closest("[data-scope]") : null;
+    var _sc = _lst ? (_lst.getAttribute("data-scope") || "p") : "p";
+    openDetail(parseInt(card.getAttribute("data-idx"), 10), _sc);
+    return;
+  }
+  /* 排序 */
+  var sb = el.closest ? el.closest(".seg button") : null;
+  if(sb){
+    var seg = sb.parentNode;
+    var scope = seg.parentNode.getAttribute("data-scope");
+    var bs = seg.querySelectorAll("button");
+    for(var i=0;i<bs.length;i++){ bs[i].classList.toggle("on", bs[i] === sb); }
+    state[scope].sort = sb.getAttribute("data-s");
+    var dbtn = seg.parentNode.querySelector('[data-f="dir"]');
+    if(dbtn){ dbtn.setAttribute("data-dir", state[scope].dir); dbtn.textContent = dirLabel(state[scope].sort, state[scope].dir); }
+    state[scope].page = 1;
+    renderList(scope);
+    return;
+  }
+  /* 升降序 */
+  var db = el.getAttribute ? el.getAttribute("data-f") : null;
+  if(db === "dir"){
+    var sc2 = el.closest(".tool").getAttribute("data-scope");
+    state[sc2].dir = state[sc2].dir === "desc" ? "asc" : "desc";
+    el.setAttribute("data-dir", state[sc2].dir);
+    el.textContent = dirLabel(state[sc2].sort, state[sc2].dir);
+    state[sc2].page = 1;
+    renderList(sc2);
+    return;
+  }
+  /* 清除全部筛选 */
+  var cf = el.getAttribute ? el.getAttribute("data-f") : null;
+  if(cf === "clearf"){
+    var sc3 = el.getAttribute("data-scope") || "p";
+    state[sc3].search = ""; state[sc3].own = ""; state[sc3].type = ""; state[sc3].page = 1;
+    var tb = document.querySelector('#' + (sc3 === "q" ? "v-quanguo" : "v-prov") + ' .tool');
+    if(tb){
+      var inp = tb.querySelector('input[data-f="search"]');
+      if(inp){ inp.value = ""; }
+      var ps2 = tb.querySelectorAll(".pick");
+      for(var pi = 0; pi < ps2.length; pi++){
+        var pk2 = ps2[pi].getAttribute("data-pick");
+        if(pk2 === "own"){ setPickText(ps2[pi], "全部归属", ""); }
+        if(pk2 === "type"){ setPickText(ps2[pi], "全部类型", ""); }
+      }
+    }
+    renderList(sc3);
+    toast("已清除筛选");
+    return;
+  }
+  /* 分页 */
+  var pg = el.getAttribute ? el.getAttribute("data-pg") : null;
+  if(pg){
+    var pbox = el.closest(".pagerwrap") || el.closest(".pager");
+    var _inner = pbox && pbox.querySelector ? pbox.querySelector(".pager") : null;
+    var _pid = (_inner && _inner.id) || (pbox && pbox.id) || "";
+    var ps = _pid === "qPager" ? "q" : "p";
+    if(pg === "prev"){ state[ps].page = Math.max(1, state[ps].page - 1); }
+    else if(pg === "next"){ state[ps].page = state[ps].page + 1; }
+    else { state[ps].page = parseInt(pg, 10); }
+    renderList(ps);
+    var top = pbox.getBoundingClientRect().top + window.scrollY - 140;
+    window.scrollTo({ top:top, behavior:"smooth" });
+    return;
+  }
+});
+
+document.addEventListener("input", function(e){
+  var t = e.target;
+  if(t.id === "pkSearch"){ renderPickList(t.value); return; }
+  var fl = t.getAttribute ? t.getAttribute("data-f") : null;
+  if(fl === "search"){
+    var sc = t.closest(".tool").getAttribute("data-scope");
+    state[sc].search = t.value;
+    state[sc].page = 1;
+    renderList(sc);
+  }
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape"){ closeModal(); closePicker(); document.getElementById("opMask").classList.remove("on"); }
+});
+window.addEventListener("resize", function(){
+  var on = document.querySelector(".tab.on");
+  if(on){ moveInd(on, false); }
+});
+document.getElementById("tabs").addEventListener("scroll", function(){ updateEdges(); }, { passive:true });
+
+/* ---------- 启动 ---------- */
+function boot(){
+  D.items.forEach(function(x,n){ x.__i = n; });
+  document.getElementById("updTxt").textContent = "更新于 " + (D.updated || "—");
+  (function(){
+    var nc = document.getElementById("navCnt");
+    if(!nc){ return; }
+    var t = 0;
+    if(D.stats){ t = D.stats.total || D.stats.hunan_total || 0; }
+    if(!t && D.items){ t = D.items.length; }
+    nc.textContent = fmt(t);
+  })();
+  var nums = document.querySelectorAll("[data-num]");
+  for(var i=0;i<nums.length;i++){ countUp(nums[i], parseInt(nums[i].getAttribute("data-num"), 10)); }
+  setPickText(document.getElementById("ovProv"), NAME_MAP[state.prov], fmt((PROV_MAP[state.prov] || {}).total || 0));
+  setPickText(document.getElementById("pvProv"), NAME_MAP[state.prov], fmt((PROV_MAP[state.prov] || {}).total || 0));
+  renderOpGrid();
+  renderOverview();
+  renderList("q");
+  renderList("p");
+  renderHistory();
+  renderAnnounce();
+  setTimeout(function(){
+    var on = document.querySelector(".tab.on");
+    if(on){ moveInd(on, false); }
+  }, 60);
+}
+
+/* ---------- 公告未读红点 ---------- */
+function annItems(){ return (D.announce && D.announce.items) ? D.announce.items : []; }
+function __ls(k, v){
+  try{
+    if(v === undefined){ return localStorage.getItem(k); }
+    localStorage.setItem(k, v);
+  }catch(e){}
+  return null;
+}
+function annUnread(){
+  var its = annItems();
+  if(!its.length){ return 0; }
+  var last = __ls("ann_last_" + state.op) || "";
+  var n = 0;
+  for(var i=0;i<its.length;i++){
+    if(String(its[i].id) === last){ break; }
+    n++;
+  }
+  return n;
+}
+function markAnnRead(){
+  var its = annItems();
+  if(its.length){ __ls("ann_last_" + state.op, String(its[0].id)); }
+  paintAnnDot();
+}
+function paintAnnDot(){
+  var d = document.getElementById("anDot");
+  if(!d){ return; }
+  var n = annUnread();
+  if(n > 0){ d.textContent = n > 99 ? "99+" : String(n); d.style.display = ""; }
+  else { d.style.display = "none"; d.textContent = ""; }
+}
+function openAnn(i){
+  var x = annItems()[i];
+  if(!x){ return; }
+  var body = '<div class="an-dv">' +
+    '<div class="an-dv-d">' + esc(x.date || "") + "</div>" +
+    '<div class="an-dv-c">' + (x.content || x.summary || "（暂无正文）") + "</div>" +
+    (x.page_url ? '<div class="an-dv-l"><a href="' + esc(x.page_url) + '" target="_blank" rel="noopener">查看原文 ↗</a></div>' : "") +
+    "</div>";
+  document.getElementById("mTitle").textContent = x.title || "公告详情";
+  document.getElementById("mBody").innerHTML = body;
+  var cp = document.getElementById("mCopy");
+  if(cp){ cp.style.display = "none"; }
+  document.getElementById("mask").classList.add("on");
+}
+document.addEventListener("click", function(e){
+  var ai = e.target && e.target.closest ? e.target.closest(".ai") : null;
+  if(ai){
+    openAnn(parseInt(ai.getAttribute("data-ai"), 10));
+    return;
+  }
+}, true);
+
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", __bootReal);
+} else {
+  __bootReal();
+}
+</script>
 </body>
 </html>
