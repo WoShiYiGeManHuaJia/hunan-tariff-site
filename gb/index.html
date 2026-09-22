@@ -628,6 +628,8 @@ a.opc{text-decoration:none;display:block}
         <div class="upd"><span class="dot"></span><span id="updTxt">加载中…</span></div>
         <span class="nav-sep"></span>
         <div class="nav-cnt">在架 <b id="navCnt">—</b> 条</div>
+        <span class="nav-sep"></span>
+        <div class="nav-cnt">最近变更 <b id="navChg">—</b></div>
       </div>
       <div class="nav-act">
         <button class="btn pri" data-act="check">检测资费</button>
@@ -1373,6 +1375,17 @@ function renderHistory(){
     HIST_ALL = false;
     for(var q0 = 0; q0 < list.length; q0++){ HIST_OPEN[list[q0].hi] = (q0 === 0); }
     HIST_POPEN = {};
+    /* ★ 修复「历史数据看起来缺失」：有变化的省份默认展开。
+       原先省份块全部默认折叠，展开一条记录只看到「湖南 下架 6」却看不到具体业务名，
+       需要再点一次省份才出现，容易被误认为业务名称数据丢失。
+       无变化的省份仍保持折叠，避免记录展开后信息堆叠。 */
+    list.forEach(function(o){
+      o.h.changes.forEach(function(c, ci0){
+        if(state.h && c.prov !== state.h){ return; }
+        var n0 = (c.added || 0) + (c.modified || 0) + (c.removed || 0) + (c.restored || 0);
+        HIST_POPEN[o.hi + "_" + ci0] = !!n0;
+      });
+    });
   }
   box.innerHTML = list.map(function(o){
     var h = o.h, hi = o.hi, cs = [];
@@ -1980,6 +1993,17 @@ document.getElementById("tabs").addEventListener("scroll", function(){ updateEdg
 function boot(){
   D.items.forEach(function(x,n){ x.__i = n; });
   document.getElementById("updTxt").textContent = "更新于 " + (D.updated || "—");
+  (function(){
+    var nx = document.getElementById("navChg");
+    if(!nx){ return; }
+    var t = 0;
+    if(D.history && D.history.length){
+      (D.history[0].changes || []).forEach(function(c){
+        t += (c.added || 0) + (c.modified || 0) + (c.removed || 0);
+      });
+    }
+    nx.textContent = t ? (t + " 条") : "—";
+  })();
   (function(){
     var nc = document.getElementById("navCnt");
     if(!nc){ return; }
