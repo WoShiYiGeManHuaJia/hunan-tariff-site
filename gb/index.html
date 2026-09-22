@@ -16,6 +16,7 @@
   --tx:#f7fbff; --tx2:#d9e5f3; --tx3:#b0c1d8;
   --ac:var(--op2); --ac2:var(--op1); --ac3:var(--op3); --ac4:var(--op2);
   --ac2t:var(--op2); --ac3t:var(--op3);
+  --c1:var(--op1); --c2:var(--op2);
   --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
   --sh:0 18px 46px rgba(0,0,0,.42);
   --sh2:0 26px 60px rgba(0,0,0,.5);
@@ -437,18 +438,25 @@ body{
 
 /* ---------- 弹窗（统一玻璃风） ---------- */
 .mask{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
-  padding:18px;background:rgba(4,7,18,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  padding:18px;background:rgba(2,6,14,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .mask.on{display:flex;animation:fin .28s ease}
 @keyframes fin{from{opacity:0}to{opacity:1}}
-.modal{width:min(620px,100%);max-height:84vh;overflow:hidden;display:flex;flex-direction:column;
-  border-radius:var(--r);background:var(--glass3);border:1px solid var(--bd2);
+.modal{position:relative;width:min(620px,100%);max-height:84vh;overflow:hidden;display:flex;flex-direction:column;
+  border-radius:var(--r);background:linear-gradient(168deg,#173152 0%,#112440 46%,#0b1930 100%);
+  border:1px solid var(--bd2);
   box-shadow:0 30px 80px rgba(0,0,0,.55);
-  backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
+  backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);
   animation:min .38s cubic-bezier(.22,1.2,.36,1)}
-[data-theme="light"] .modal{background:rgba(255,255,255,.95)}
+.modal::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;z-index:7;
+  background:linear-gradient(90deg,var(--op1) 0%,var(--op2) 48%,var(--op3) 100%)}
+[data-theme="light"] .modal{background:#ffffff;box-shadow:0 30px 80px rgba(0,40,80,.22)}
+[data-theme="light"] .mask{background:rgba(18,48,80,.44)}
 @keyframes min{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
-.mh{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--bd);flex:none}
+.mh{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--bd);flex:none;
+  background:linear-gradient(120deg,var(--soft1) 0%,rgba(255,255,255,0) 72%)}
 .mh h3{margin:0;font-size:14.5px;font-weight:700;flex:1;letter-spacing:-.2px;line-height:1.45}
+.mh h3::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;
+  vertical-align:middle;background:linear-gradient(135deg,var(--op1),var(--op2));box-shadow:0 0 0 3px var(--soft1)}
 .mx{cursor:pointer;width:30px;height:30px;border-radius:9px;border:1px solid var(--bd);
   background:var(--glass2);color:var(--tx2);font-size:17px;line-height:1;transition:background .2s,border-color .2s,transform .2s .22s;flex:none}
 .mx:hover{background:var(--bad);color:#fff;border-color:transparent;transform:rotate(90deg)}
@@ -461,8 +469,8 @@ body{
 .dv-price::after{background:linear-gradient(180deg,var(--c1),var(--c2))}
 .dv-code::after{background:var(--c1)}
 .dv-lb{display:block;font-size:10.5px;font-weight:700;color:var(--tx3);letter-spacing:.4px;margin-bottom:3px}
-.dv-price{background:linear-gradient(135deg,var(--soft1),var(--glass2))}
-.dv-price b{font-size:20px;font-weight:900;letter-spacing:-.2px;color:var(--c1)}
+.dv-price{background:linear-gradient(135deg,var(--soft1),var(--glass2));border-color:var(--softb1)}
+.dv-price b{font-size:22px;font-weight:900;letter-spacing:-.2px;color:var(--c1)}
 @supports ((-webkit-background-clip:text) or (background-clip:text)){
   .stat-n{background:linear-gradient(135deg,var(--tx),var(--tx2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
   .stat.a .stat-n{background:linear-gradient(135deg,var(--op2),var(--op1));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
@@ -476,9 +484,16 @@ body{
 .dv-tag.t-typ{color:var(--c2);background:var(--soft2);border-color:var(--softb2)}
 .dv-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
 .dv-col{min-width:0}
-.dv-sec{font-size:10.5px;font-weight:800;color:var(--tx3);letter-spacing:.6px;padding:6px 0 7px;border-bottom:1px solid var(--bd);margin-bottom:2px}
+.dv-sec{font-size:10.5px;font-weight:800;color:var(--c2);letter-spacing:.6px;padding:7px 0 8px;
+  border-bottom:1px solid var(--bd);margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.dv-sec::before{content:'';width:3px;height:12px;border-radius:2px;flex:none;
+  background:linear-gradient(180deg,var(--op2),var(--op1))}
 .dv-r{display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:start;padding:8px 2px;border-bottom:1px dashed var(--bd2)}
 .dv-r:last-child{border-bottom:0}
+.dv-r{border-radius:9px;transition:background .18s}
+.dv-r:hover{background:var(--glass2)}
+.dv-v.c-flow,.dv-v.c-call,.dv-v.c-dir,.dv-v.c-bb,.dv-v.c-tv,.dv-v.c-rt,.dv-v.c-on,.dv-v.c-off{
+  display:inline-block;padding:2px 9px;border-radius:8px;background:var(--glass2);border:1px solid var(--bd)}
 .dv-k{font-size:11.5px;font-weight:700;color:var(--tx2);text-align:right;line-height:1.5;padding-top:1px}
 .dv-v{font-size:12.5px;color:var(--tx);line-height:1.65;word-break:break-word;font-weight:600}
 .dv-v.c-flow{color:var(--k-flow);font-weight:800}
@@ -552,6 +567,7 @@ body{
   display:flex;align-items:center;gap:9px;max-width:90vw}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 [data-theme="light"] .toast{background:#fff}
+[data-theme="dark"] .toast{background:#17293f}
 
 .empty{grid-column:1/-1;padding:34px 18px;border-radius:var(--r);text-align:center;
   background:var(--glass);border:1px dashed var(--bd2);color:var(--tx3);font-size:13px;line-height:1.8}
@@ -620,8 +636,12 @@ a.opc{text-decoration:none;display:block}
 
 /* ---- 移动端性能优化：列表卡片毛玻璃在手机上会逐帧重算模糊，是滚动/点击卡顿主因 ---- */
 @media (max-width:820px){
-  .card,.chip,.pg,.ti,.btn,.ai,.pick,.nav,.glass,.stat,.search input{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  .card,.chip,.pg,.ti,.btn,.ai,.pick,.nav,.glass,.stat,.search input,.modal,.mask,.toast{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
   .nav,.glass,.stat,.search input{background:var(--glass3)!important}
+  html[data-theme="dark"] .nav,html[data-theme="dark"] .glass,html[data-theme="dark"] .stat,
+  html[data-theme="dark"] .search input,html[data-theme="dark"] .card{background:rgba(13,30,51,.96)!important}
+  html[data-theme="light"] .nav,html[data-theme="light"] .glass,html[data-theme="light"] .stat,
+  html[data-theme="light"] .search input,html[data-theme="light"] .card{background:rgba(255,255,255,.95)!important}
   .card{contain:layout style paint}
   /* 光斑 filter:blur(72px)+mix-blend-mode:screen+永久循环动画，手机上 GPU 全程满载，
      是点击/滚动卡顿的真正元凶。移动端直接停用（body 自带多层 radial-gradient，观感保留） */
