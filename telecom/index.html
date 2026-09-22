@@ -243,9 +243,9 @@ body{
 .pager{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;padding:4px 2px;flex:1 1 auto;min-width:0;
   overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
   touch-action:pan-x pan-y;overscroll-behavior-x:contain;scrollbar-width:none;-ms-overflow-style:none;
-  scroll-snap-type:x proximity;justify-content:center}
+  justify-content:flex-start}
 .pager::-webkit-scrollbar{display:none;height:0}
-.pager>*{scroll-snap-align:center}
+.pager>*{flex:0 0 auto}
 .pg.nav{min-width:38px;font-size:15px;font-weight:800}
 .pg{flex:0 0 auto}
 .pg.dots{cursor:default;min-width:20px;padding:0 3px;background:none;border-color:transparent;color:var(--tx3);letter-spacing:1px}
@@ -617,6 +617,16 @@ a.opc{text-decoration:none;display:block}
   font-size:12.5px;color:var(--c1);background:var(--glass);border:1px dashed var(--bd);
   font-family:inherit;transition:.2s}
 .ti-more:hover{background:var(--glass2);transform:translateY(-1px)}
+
+/* ---- 移动端性能优化：列表卡片毛玻璃在手机上会逐帧重算模糊，是滚动/点击卡顿主因 ---- */
+@media (max-width:820px){
+  .card,.chip,.pg,.ti,.btn,.ai,.pick{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  .card{contain:layout style paint}
+  .aurora span{animation:none!important}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body>
@@ -707,7 +717,7 @@ a.opc{text-decoration:none;display:block}
         <span class="hint" id="qHint"></span>
       </div>
       <div class="list" id="qList" data-scope="q"></div>
-      <div class="pagerwrap"><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="qPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button></div>
+      <div class="pagerwrap"><button class="pg nav" data-pg="first" aria-label="首页">«</button><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="qPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button><button class="pg nav" data-pg="last" aria-label="末页">»</button></div>
     </section>
 
     <section class="view" id="v-prov">
@@ -725,7 +735,7 @@ a.opc{text-decoration:none;display:block}
         <span class="hint" id="pHint"></span>
       </div>
       <div class="list" id="pList" data-scope="p"></div>
-      <div class="pagerwrap"><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="pPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button></div>
+      <div class="pagerwrap"><button class="pg nav" data-pg="first" aria-label="首页">«</button><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="pPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button><button class="pg nav" data-pg="last" aria-label="末页">»</button></div>
     </section>
 
     <section class="view" id="v-history">
@@ -950,6 +960,26 @@ function __bootReal(){
     D.quanguo_dist = latest.prov_dist || {};
     D.history = hist || [];
     D.announce = (ann && ann.items) ? ann : {updated:"", count:0, items:[]};
+    /* 部分站点(联通/电信/广电) 只有 onsale+total，无 personal/gq；dist 为一级结构。
+       这里在内存中补齐，保证统计卡与分布图有数据，不改动任何原始数据文件 */
+    (function(){
+      Object.keys(ps).forEach(function(k){
+        var v = ps[k] || {};
+        if(v.personal === undefined && v.gq === undefined){
+          var ons = (v.onsale === undefined || v.onsale === null) ? (v.total || 0) : v.onsale;
+          v.personal = ons;
+          v.gq = Math.max(0, (v.total || 0) - ons);
+          v.__l1 = "在售资费"; v.__l2 = "停售资费";
+        }
+        var d2 = v.dist || {}, flat = false;
+        Object.keys(d2).forEach(function(x){ if(typeof d2[x] === "number"){ flat = true; } });
+        if(flat){
+          var nd = {};
+          Object.keys(d2).forEach(function(x){ if(typeof d2[x] === "number"){ nd[x] = d2[x]; } });
+          v.dist = { "业务类型": nd };
+        }
+      });
+    })();
     rebuildProv();
     state.prov = def;
     // 全国资费单独一份
@@ -1042,6 +1072,7 @@ function countUp(el, target){
   var dur = 1100, t0 = null;
   var ease = function(x){ return 1 - Math.pow(1 - x, 3); };
   function step(ts){
+    if(typeof ts !== "number"){ ts = (window.performance && performance.now) ? performance.now() : Date.now(); }
     if(t0 === null){ t0 = ts; }
     var p = Math.min((ts - t0) / dur, 1);
     el.textContent = fmt(Math.round(target * ease(p)));
@@ -1057,7 +1088,7 @@ function renderBars(box, dist){
   var rows = [];
   Object.keys(dist || {}).forEach(function(own){
     var sub = dist[own] || {};
-    Object.keys(sub).forEach(function(t){ rows.push({ label: own.slice(0,2) + " · " + t, v: sub[t], t:t }); });
+    Object.keys(sub).forEach(function(t){ rows.push({ label: (own === "业务类型" ? t : own.slice(0,2) + " · " + t), v: sub[t], t:t }); });
   });
   rows.sort(function(a,b){ return b.v - a.v; });
   var max = rows.length ? rows[0].v : 1;
@@ -1101,8 +1132,8 @@ function renderOverview(){
   var sp = document.getElementById("stPersonal"), sg = document.getElementById("stGq"), ot = document.getElementById("ovTotal");
   if(hasData()){
     setNum(sp, st.personal || 0); setNum(sg, st.gq || 0); setNum(ot, st.total || 0);
-    document.getElementById("stPersonalL").textContent = name + " · 个人资费";
-    document.getElementById("stGqL").textContent = name + " · 政企资费";
+    document.getElementById("stPersonalL").textContent = st.__l1 ? (name + " · " + st.__l1) : (name + " · 个人资费");
+    document.getElementById("stGqL").textContent = st.__l2 ? (name + " · " + st.__l2) : (name + " · 政企资费");
     document.getElementById("ovTotalL").textContent = name + "资费总数";
     document.getElementById("ovDesc").textContent = name + " · 六大类分布";
     renderBars(document.getElementById("ovBars"), st.dist || {});
@@ -1254,13 +1285,12 @@ function renderList(scope){
     pager.innerHTML = ""; hint.textContent = "";
     return;
   }
-  box.innerHTML = skeleton(6);
-  pager.innerHTML = "";
   var arr = filtered(scope), per = 12;
   var pages = Math.max(1, Math.ceil(arr.length / per));
   if(s.page > pages){ s.page = pages; }
   var slice = arr.slice((s.page-1)*per, s.page*per);
-  setTimeout(function(){
+  pager.innerHTML = "";
+  (function(){
     if(!slice.length){
       box.innerHTML = '<div class="empty"><span class="ei">🔍</span>没有匹配的资费，换个关键词试试' +
         '<div style="margin-top:12px"><button class="btn" data-f="clearf" data-scope="' + scope + '">清除全部筛选</button></div></div>';
@@ -1273,16 +1303,19 @@ function renderList(scope){
       btns.push('<button class="pg' + (k === s.page ? " on" : "") + '" data-pg="' + k + '">' + k + "</button>");
     }
     pager.innerHTML = btns.join("");
-    pager.style.justifyContent = "center";
+    pager.style.justifyContent = "flex-start";
     var wrap = pager.closest ? pager.closest(".pagerwrap") : null;
     if(wrap){
       var pv2 = wrap.querySelector('[data-pg="prev"]'), nx2 = wrap.querySelector('[data-pg="next"]');
+      var f2 = wrap.querySelector('[data-pg="first"]'), l2 = wrap.querySelector('[data-pg="last"]');
       if(pv2){ pv2.disabled = (s.page === 1); }
       if(nx2){ nx2.disabled = (s.page === pages); }
+      if(f2){ f2.disabled = (s.page === 1); }
+      if(l2){ l2.disabled = (s.page === pages); }
     }
-    if(pager.scrollWidth > pager.clientWidth + 2){ pager.style.justifyContent = "flex-start"; }
+    if(pages <= 9){ pager.style.justifyContent = "center"; }
     pgCenter(pager);
-  }, 220);
+  })();
 }
 
 
@@ -2067,6 +2100,8 @@ document.addEventListener("click", function(e){
     var ps = _pid === "qPager" ? "q" : "p";
     if(pg === "prev"){ state[ps].page = Math.max(1, state[ps].page - 1); }
     else if(pg === "next"){ state[ps].page = state[ps].page + 1; }
+    else if(pg === "first"){ state[ps].page = 1; }
+    else if(pg === "last"){ state[ps].page = 2147483647; }
     else { state[ps].page = parseInt(pg, 10); }
     renderList(ps);
     var top = pbox.getBoundingClientRect().top + window.scrollY - 140;
@@ -2083,7 +2118,8 @@ document.addEventListener("input", function(e){
     var sc = t.closest(".tool").getAttribute("data-scope");
     state[sc].search = t.value;
     state[sc].page = 1;
-    renderList(sc);
+    if(t.__db){ clearTimeout(t.__db); }
+    t.__db = setTimeout(function(){ renderList(sc); }, 180);
   }
 });
 document.addEventListener("keydown", function(e){
