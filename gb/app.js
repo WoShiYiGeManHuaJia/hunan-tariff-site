@@ -501,6 +501,7 @@ function itemHtml(it, idx) {
   if (d.useScope) facts.push("<span>适用：" + esc(String(d.useScope).slice(0, 24)) + "</span>");
   if (d.minute && d.minute !== "0") facts.push('<span class="k-call">语音 <b>' + esc(d.minute) + " 分钟</b></span>");
   if (d.commonData && d.commonData !== "0") facts.push('<span class="k-flow">流量 <b>' + esc(d.commonData + (d.dataUnit || "GB")) + "</b></span>");
+  if (d.broadBand && d.broadBand !== "无" && d.broadBand !== "0") facts.push('<span class="k-bb">宽带 <b>' + esc(d.broadBand) + "</b></span>");
   const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "有效期", "销售渠道", "上线日期", "下线日期", "在网要求", "退订方式", "违约责任", "停售状态", "业务编码", "套餐内容", "适用对象", "其他收费"];
   const rows = detailRows(it);
   // 官方「其他说明」字段(otherNotes)固定折叠为「其他说明」，与移动站一致；其余常规字段在主表展示
@@ -543,8 +544,7 @@ function itemHtml(it, idx) {
         '<span class="tag type-sub">' + esc(secondLevelOf(it)) + "</span>" +
         '<span class="tag fee-tag">' + esc(f.fee) + "</span>" +
       "</div>" +
-      (f.extras ? '<div class="item-facts">' + f.extras + "</div>" : "") +
-      (shownFacts.length ? '<div class="item-facts">' + shownFacts.join("") + "</div>" : "") +
+      (facts.length ? '<div class="item-facts">' + facts.join("") + "</div>" : "") +
       '<div class="detail"><table>' + filteredRows + otherRows + '</table>' + noteBlock + '</div>' +
     "</div>"
   );
