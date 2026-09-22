@@ -5,18 +5,20 @@
 (function () {
   var KEY = "trf_dark";
   var btn = document.getElementById("themeBtn");
+  var ROOTEL = document.documentElement;
   function themeApply(dark) {
-    document.body.classList.toggle("dark", dark);
+    ROOTEL.setAttribute("data-theme", dark ? "dark" : "light");
+    document.body.classList.toggle("dark", dark);   /* 兼容旧选择器 */
     if (btn) btn.textContent = dark ? "浅色" : "深色";
     try { localStorage.setItem(KEY, dark ? "1" : "0"); } catch (e) {}
   }
   var saved = null;
   try { saved = localStorage.getItem(KEY); } catch (e) {}
-  var dark = saved != null ? saved === "1"
-    : !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  /* 默认浅色：仅在用户显式存过「深色」时才走深色 */
+  var dark = saved != null ? saved === "1" : false;
   themeApply(dark);
   if (btn) btn.addEventListener("click", function () {
-    themeApply(!document.body.classList.contains("dark"));
+    themeApply(ROOTEL.getAttribute("data-theme") !== "dark");
   });
 })();
 const DATA = "./data/";
@@ -168,6 +170,7 @@ function goTab(v) {
   $("view-" + v).classList.add("active");
   if (TAB_SHOWN[v]) return;
   TAB_SHOWN[v] = true;
+  if (v === "announce") annMarkRead();
   if (v === "overview") renderOverview();
   else if (v === "quanguo") renderList("quanguo");
   else if (v === "prov") { ensureSections(); renderList("prov"); }
@@ -253,7 +256,7 @@ function liveSec() {
   return (el && el.value) || DEF_SECTION;
 }
 function getSt(section) {
-  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", scope: "all", type: "", sub: "" };
+  if (!listState[section]) listState[section] = { items: null, page: 1, q: "", scope: "all", type: "", sub: "", sort: "time" };
   return listState[section];
 }
 function domMap(section) {
@@ -395,7 +398,12 @@ function syncSortUI(bar, st) {
   const z = bar.querySelector('.sort-btn[data-sort="zero"]');
   if (z) z.classList.toggle("active", !!st.zero);
   const d = bar.querySelector('.sort-btn[data-sort="dir"]');
-  if (d) d.textContent = (st.order == null ? -1 : st.order) < 0 ? "降序 ↓" : "升序 ↑";
+  if (d) {
+    var asc = (st.order == null ? -1 : st.order) > 0;
+    d.textContent = (st.sort === "time")
+      ? (asc ? "最早在前 ↑" : "最新在前 ↓")
+      : (asc ? "升序 ↑" : "降序 ↓");
+  }
 }
 
 function filterItems(st) {
@@ -468,13 +476,7 @@ function drawList(section) {
       });
     });
   }
-  pagerEl.innerHTML =
-    '<button ' + (st.page <= 1 ? "disabled" : "") + ' data-p="-1">上一页</button>' +
-    '<span class="page-info">第 ' + st.page + " / " + totalPages + " 页</span>" +
-    '<button ' + (st.page >= totalPages ? "disabled" : "") + ' data-p="1">下一页</button>';
-  pagerEl.querySelectorAll("button[data-p]").forEach((b) => {
-    b.addEventListener("click", () => { st.page += Number(b.dataset.p); drawList(section); window.scrollTo({ top: 0, behavior: "smooth" }); });
-  });
+  drawPager(pagerEl, st, totalPages, section);
 }
 
 function friendlyFees(item) {
@@ -497,18 +499,31 @@ function itemHtml(it, idx) {
   const facts = [];
   if (d.serviceContent) facts.push("<span>内容：" + esc(String(d.serviceContent).slice(0, 40)) + "</span>");
   if (d.useScope) facts.push("<span>适用：" + esc(String(d.useScope).slice(0, 24)) + "</span>");
-  if (d.minute && d.minute !== "0") facts.push("<span>语音 <b>" + esc(d.minute) + " 分钟</b></span>");
-  if (d.commonData && d.commonData !== "0") facts.push("<span>流量 <b>" + esc(d.commonData + (d.dataUnit || "GB")) + "</b></span>");
+  if (d.minute && d.minute !== "0") facts.push('<span class="k-call">语音 <b>' + esc(d.minute) + " 分钟</b></span>");
+  if (d.commonData && d.commonData !== "0") facts.push('<span class="k-flow">流量 <b>' + esc(d.commonData + (d.dataUnit || "GB")) + "</b></span>");
   const mainKeys = ["资费类型", "月费标准", "语音", "流量", "短信", "定向流量", "宽带", "有效期", "销售渠道", "上线日期", "下线日期", "在网要求", "退订方式", "违约责任", "停售状态", "业务编码", "套餐内容", "适用对象", "其他收费"];
   const rows = detailRows(it);
   // 官方「其他说明」字段(otherNotes)固定折叠为「其他说明」，与移动站一致；其余常规字段在主表展示
   const NOTE_KEYS = ["其他说明"];
   const noteRows = rows.filter(([k, v]) => v && NOTE_KEYS.indexOf(k) >= 0);
   const notNotes = rows.filter(([k, v]) => !(v && NOTE_KEYS.indexOf(k) >= 0));
-  const filteredRows = notNotes.filter(([k]) => mainKeys.indexOf(k) >= 0).map(([k, v]) =>
-    '<tr><th>' + esc(k) + '</th><td>' + esc(v) + "</td></tr>").join("");
-  const otherRows = notNotes.filter(([k]) => mainKeys.indexOf(k) < 0).map(([k, v]) =>
-    '<tr><th>' + esc(k) + '</th><td>' + esc(v) + "</td></tr>").join("");
+  const vclsOf = (k) => {
+    if (k === "流量") return "v-flow";
+    if (k === "语音" || k === "通话") return "v-call";
+    if (k === "短信") return "v-sms";
+    if (k === "宽带") return "v-bb";
+    if (k === "定向流量") return "v-dir";
+    if (k === "上线日期") return "v-on";
+    if (k === "下线日期") return "v-off";
+    if (k === "权益" || k === "其他服务内容") return "v-rt";
+    return "";
+  };
+  const rowHtml = (k, v) => {
+    const vc = vclsOf(k);
+    return '<tr><th>' + esc(k) + '</th><td' + (vc ? ' class="' + vc + '"' : "") + ">" + esc(v) + "</td></tr>";
+  };
+  const filteredRows = notNotes.filter(([k]) => mainKeys.indexOf(k) >= 0).map(([k, v]) => rowHtml(k, v)).join("");
+  const otherRows = notNotes.filter(([k]) => mainKeys.indexOf(k) < 0).map(([k, v]) => rowHtml(k, v)).join("");
   const noteHtml = noteRows.map(([k, v]) =>
     '<div class="note-item"><div class="note-label">' + esc(k) + '</div>' +
     '<div class="note-text">' + esc(v) + "</div></div>"
@@ -529,7 +544,7 @@ function itemHtml(it, idx) {
         '<span class="tag fee-tag">' + esc(f.fee) + "</span>" +
       "</div>" +
       (f.extras ? '<div class="item-facts">' + f.extras + "</div>" : "") +
-      (facts.length ? '<div class="item-facts">' + facts.join("") + "</div>" : "") +
+      (shownFacts.length ? '<div class="item-facts">' + shownFacts.join("") + "</div>" : "") +
       '<div class="detail"><table>' + filteredRows + otherRows + '</table>' + noteBlock + '</div>' +
     "</div>"
   );
@@ -1111,6 +1126,7 @@ function histDraw(list) {
   let html = '<div class="tl">' + slice.map((r, idx) => {
     const gidx = list.indexOf(r);             // 全局下标（用于判定最新一条默认展开）
     const entries = [];
+    let totAdd = 0, totMod = 0, totDel = 0;
     SECTIONS.forEach((secObj) => {
       const sec = secObj.section;
       if (histFilter && histFilter !== sec) return;
@@ -1124,6 +1140,7 @@ function histDraw(list) {
       // 无变化的板块不再占位展示（31 省全列一遍会让真实变化被淹没）；
       // 整个批次都没有变化时，下方给出一行「本轮全部无变化」提示。
       if (!chips.length) return;
+      totAdd += Number(d.added || 0); totMod += Number(d.modified || 0); totDel += Number(d.removed || 0);
       entries.push(
         '<div class="tl-sec-entry' + (chips.length === 1 && chips[0].indexOf("none") >= 0 ? " nochange" : "") + '">' +
         '<div class="tl-sec-head" tabindex="0" role="button" aria-expanded="false">' +
@@ -1146,7 +1163,19 @@ function histDraw(list) {
     const fresh = gidx === 0; // 最新一条标记
     return (
       '<div class="tl-item' + (open ? " open fresh" : "") + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
-      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") + '<span class=\"tl-arrow\"></span></div>' +
+      '<div class="tl-head"><div class="tl-time">' + esc(r.ts || "") + "</div>" + (fresh ? '<span class=\"tl-fresh\">\u6700\u65b0</span>' : "") +
+      '<span class="tl-bars">' +
+        (totAdd ? '<i class="b-add" title="有新增"></i>' : "") +
+        (totMod ? '<i class="b-mod" title="有修改"></i>' : "") +
+        (totDel ? '<i class="b-del" title="有下架"></i>' : "") +
+        (!totAdd && !totMod && !totDel ? '<i class="b-none" title="无变化"></i>' : "") +
+      "</span>" +
+      '<span class="tl-nums">' +
+        (totAdd ? '<span class="chip add">上架 ' + totAdd + "</span>" : "") +
+        (totMod ? '<span class="chip mod">修改 ' + totMod + "</span>" : "") +
+        (totDel ? '<span class="chip del">下架 ' + totDel + "</span>" : "") +
+      "</span>" +
+      '<span class=\"tl-arrow\"></span></div>' +
       '<div class="tl-sec-list">' + entries.join("") + "</div></div>"
     );
   }).join("") + "</div>";
@@ -1222,3 +1251,110 @@ function setupHistAutoLoad(list) {
   }, opt);
   histObserver.observe(sentinel);
 }
+
+/* ---------- 分页：页码全部渲染、可横向滑动；‹ › 与页码信息固定在两侧 ---------- */
+const PAGER_MAX_BTN = 40;   // 超过该页数时只渲染当前页附近的窗口（避免 DOM 过大）
+function drawPager(pagerEl, st, totalPages, section) {
+  if (!pagerEl) return;
+  /* 外层容器：左右固定区 + 中间可滑动页码区（只建一次） */
+  let wrap = pagerEl.parentElement && pagerEl.parentElement.classList.contains("pagerwrap")
+    ? pagerEl.parentElement : null;
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.className = "pagerwrap";
+    pagerEl.parentNode.insertBefore(wrap, pagerEl);
+    wrap.appendChild(pagerEl);
+    const fix = document.createElement("div");
+    fix.className = "pager-fix";
+    fix.innerHTML = '<button type="button" data-go="prev" title="上一页">‹</button>' +
+                    '<span class="page-info"></span>' +
+                    '<button type="button" data-go="next" title="下一页">›</button>';
+    wrap.insertBefore(fix, pagerEl);
+  }
+  const wrapFix = wrap.querySelector(".pager-fix");
+  const pvBtn = wrapFix ? wrapFix.querySelector('[data-go="prev"]') : null;
+  const nxBtn = wrapFix ? wrapFix.querySelector('[data-go="next"]') : null;
+  const info = wrapFix ? wrapFix.querySelector(".page-info") : null;
+  if (info) info.textContent = "第 " + st.page + " / " + totalPages + " 页";
+  if (pvBtn) pvBtn.disabled = st.page <= 1;
+  if (nxBtn) nxBtn.disabled = st.page >= totalPages;
+
+  /* 页码窗口 */
+  let s, e;
+  if (totalPages <= PAGER_MAX_BTN) { s = 1; e = totalPages; }
+  else {
+    const half = Math.floor(PAGER_MAX_BTN / 2);
+    s = Math.max(1, st.page - half);
+    e = Math.min(totalPages, s + PAGER_MAX_BTN - 1);
+    s = Math.max(1, e - PAGER_MAX_BTN + 1);
+  }
+  let html = "";
+  if (s > 1) html += '<button type="button" data-pg="1">1</button><span class="pg-dots">···</span>';
+  for (let p = s; p <= e; p++) {
+    html += '<button type="button" data-pg="' + p + '"' + (p === st.page ? ' class="cur"' : "") + ">" + p + "</button>";
+  }
+  if (e < totalPages) html += '<span class="pg-dots">···</span><button type="button" data-pg="' + totalPages + '">' + totalPages + "</button>";
+  pagerEl.innerHTML = html;
+
+  const goto = (p) => {
+    st.page = p; drawList(section);
+    try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (err) { window.scrollTo(0, 0); }
+  };
+  pagerEl.querySelectorAll("button[data-pg]").forEach((b) => {
+    b.addEventListener("click", () => goto(Number(b.dataset.pg)));
+  });
+  if (pvBtn) pvBtn.onclick = () => { if (st.page > 1) goto(st.page - 1); };
+  if (nxBtn) nxBtn.onclick = () => { if (st.page < totalPages) goto(st.page + 1); };
+
+  /* 当前页滚到可见位置（居中优先） */
+  const cur = pagerEl.querySelector("button.cur");
+  if (cur && pagerEl.scrollWidth > pagerEl.clientWidth) {
+    const want = cur.offsetLeft - (pagerEl.clientWidth - cur.offsetWidth) / 2;
+    try { pagerEl.scrollTo({ left: Math.max(0, want), behavior: "smooth" }); }
+    catch (err) { pagerEl.scrollLeft = Math.max(0, want); }
+  }
+  /* 左右渐隐提示 */
+  const canL = pagerEl.scrollLeft > 4;
+  const canR = pagerEl.scrollLeft + pagerEl.clientWidth < pagerEl.scrollWidth - 4;
+  wrap.classList.toggle("can-l", canL);
+  wrap.classList.toggle("can-r", canR);
+  pagerEl.onscroll = () => {
+    const l = pagerEl.scrollLeft > 4;
+    const r = pagerEl.scrollLeft + pagerEl.clientWidth < pagerEl.scrollWidth - 4;
+    wrap.classList.toggle("can-l", l);
+    wrap.classList.toggle("can-r", r);
+  };
+}
+
+/* ---------- 列表区左右滑动翻页（纵向滑动不误触） ---------- */
+(function () {
+  const TH = 55;      // 最小横向位移
+  let x0 = 0, y0 = 0, active = false, sid = null;
+  function onStart(e) {
+    const t = e.touches ? e.touches[0] : e;
+    x0 = t.clientX; y0 = t.clientY; active = true; sid = null;
+  }
+  function onEnd(e) {
+    if (!active) return;
+    active = false;
+    const t = (e.changedTouches && e.changedTouches[0]) || e;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < TH || Math.abs(dy) > Math.abs(dx)) return;   // 位移不足或偏纵向，不翻页
+    const v = document.querySelector(".view.active");
+    if (!v) return;
+    const id = v.id === "view-quanguo" ? "qPager" : v.id === "view-prov" ? "pPager" : null;
+    if (!id) return;
+    const box = document.getElementById(id);
+    if (!box) return;
+    const btns = box.querySelectorAll("button[data-pg]");
+    if (!btns.length) return;
+    let cur = null;
+    btns.forEach((b) => { if (b.classList.contains("cur")) cur = b; });
+    if (!cur) return;
+    const i = Array.prototype.indexOf.call(btns, cur);
+    const target = dx < 0 ? btns[i + 1] : btns[i - 1];   // 左滑下一页，右滑上一页
+    if (target) { target.click(); try { navigator.vibrate && navigator.vibrate(8); } catch (err) {} }
+  }
+  document.addEventListener("touchstart", onStart, { passive: true });
+  document.addEventListener("touchend", onEnd, { passive: true });
+})();
