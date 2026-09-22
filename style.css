@@ -834,3 +834,51 @@ main{max-width:1080px;margin:0 auto;padding:16px;min-height:70vh;position:relati
 .f-sel,.prov-sel{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 
 .ui-ver{opacity:.55;font-size:12px;font-weight:600;letter-spacing:.2px}
+
+/* ================= v19 ================= */
+/* ---- A. 修改前后对比：只让改动行醒目 ---- */
+.cmp-table tbody tr.cmp-same td{opacity:.5}
+.cmp-table td.cmp-plain{background:none!important;color:var(--tx3)!important;font-weight:400!important}
+.cmp-table tr.cmp-diff td{background:rgba(251,191,36,.20)!important}
+.cmp-table tr.cmp-diff th{border-left:4px solid var(--warn)!important;color:var(--tx)!important;font-weight:800!important}
+.cmp-table tr.cmp-diff .cmp-old{background:rgba(251,113,133,.20)!important;font-weight:600!important}
+.cmp-table tr.cmp-diff .cmp-new{background:rgba(52,211,153,.22)!important;font-weight:700!important}
+[data-theme="light"] .cmp-table tr.cmp-diff .cmp-old{color:#b3123a}
+[data-theme="light"] .cmp-table tr.cmp-diff .cmp-new{color:#04704a}
+[data-theme="dark"]  .cmp-table tr.cmp-diff .cmp-old{color:#ff9db0}
+[data-theme="dark"]  .cmp-table tr.cmp-diff .cmp-new{color:#6ff0cd}
+[data-theme="dark"]  .cmp-table tr.cmp-diff td{background:rgba(251,191,36,.15)!important}
+.cmp-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
+  font-size:11px;font-weight:800;line-height:1.6;vertical-align:middle;
+  background:#b45309;color:#fff}
+[data-theme="dark"] .cmp-tag{background:#fbbf24;color:#3a2600}
+.cmp-bar{display:flex;align-items:center;gap:10px;margin:10px 0 2px;flex-wrap:wrap}
+.cmp-count{font-size:12.5px;color:var(--tx2)}
+.cmp-count b{font-size:15px;font-weight:800;color:#b45309}
+[data-theme="dark"] .cmp-count b{color:#fbbf24}
+.cmp-toggle{border:1px solid var(--bd2);background:var(--glass);color:var(--tx2);
+  border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.cmp-toggle:hover{color:var(--tx);border-color:var(--c1);transform:translateY(-1px)}
+
+/* ---- B. 顶栏右侧「最新变动」速览 ---- */
+.topbar-btns{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.top-change{display:inline-flex;align-items:center;gap:8px;padding:5px 13px;
+  border-radius:999px;border:1px solid var(--bd2);background:var(--glass);
+  color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:transform .18s ease,color .18s ease,border-color .18s ease}
+.top-change:hover{color:var(--tx);border-color:var(--c1);transform:translateY(-1px)}
+.top-change i{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:-3px;flex:0 0 auto}
+.tc-add{background:#34d399}.tc-mod{background:#fbbf24}.tc-del{background:#fb7185}
+[data-theme="light"] .tc-add{background:#059669}
+[data-theme="light"] .tc-mod{background:#b45309}
+[data-theme="light"] .tc-del{background:#e11d48}
+.top-change.none{opacity:.72}
+.top-change.none i{background:var(--tx3)}
+@media(max-width:600px){
+  .topbar-actions{flex:1 1 100%;justify-content:space-between;gap:6px;margin-top:8px}
+  .update-time{order:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar-btns{order:2;flex:0 0 auto}
+  .top-change{order:3;flex:1 1 100%;justify-content:center;margin-top:2px}
+}
