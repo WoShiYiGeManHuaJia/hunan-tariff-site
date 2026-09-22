@@ -657,7 +657,9 @@ function histDetail(d, sec, ts) {
   [["added", "add", "新增", "added"], ["removed", "del", "下架", "removed"], ["modified", "mod", "修改", "modified"]].forEach(([key, cls, lab, kind]) => {
     const n = d[key] || 0;
     if (!n) return;
-    html += '<div class="tl-sec"><span class="chip ' + cls + '">' + lab + " " + n + " 条</span>";
+    /* ★ 数量 chip 已移除：展开后省份标题行(tl-sec-chips)已经显示「新增 N」，
+       明细里再输出一次会造成同一组数量重复堆叠；胶囊本身按类型着色（绿=新增/红=下架/琥珀=修改）区分。 */
+    html += '<div class="tl-sec">';
     const names = Array.isArray(d[key + "_names"]) ? d[key + "_names"] : null;
     if (names && names.length) {
       // 新增/下架/修改 均可点击查看详情
@@ -673,7 +675,7 @@ function histDetail(d, sec, ts) {
         "</a>"
       ).join("") + "</div>";
     } else {
-      html += '<div class="tl-none">本次' + lab + " " + n + " 条，可在对应资费列表查看</div>";
+      html += '<div class="tl-none">本次' + lab + "业务名称未记录，可在对应资费列表查看</div>";
     }
     html += "</div>";
   });
