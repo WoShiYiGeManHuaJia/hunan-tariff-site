@@ -608,6 +608,15 @@ body{
 .an-dv-l a{color:var(--ac);font-weight:700;text-decoration:none}
 a.opc{text-decoration:none;display:block}
 
+
+/* 历史记录：最新标记 / 空态 / 加载更早 */
+.ti-new{font-size:10px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--c1),var(--c2));
+  padding:1px 6px;border-radius:999px;line-height:1.6;letter-spacing:.3px;flex:none}
+.ti-none{padding:10px 12px;font-size:12px;color:var(--tx3);text-align:center}
+.ti-more{display:block;width:100%;margin-top:10px;padding:10px;border-radius:12px;cursor:pointer;
+  font-size:12.5px;color:var(--c1);background:var(--glass);border:1px dashed var(--bd);
+  font-family:inherit;transition:.2s}
+.ti-more:hover{background:var(--glass2);transform:translateY(-1px)}
 </style>
 </head>
 <body>
@@ -885,6 +894,12 @@ function __normHist(raw){
     });
     out.push({ ts:h.ts, changes:cs });
   });
+  /* 修复「最新记录跑到最下面」：原始数据按时间升序存储（老到新），
+     而渲染直接按数组顺序输出，导致最新一条排在最后。这里统一降序。 */
+  out.sort(function(a, b){
+    var x = String(a.ts || ""), y = String(b.ts || "");
+    return x < y ? 1 : (x > y ? -1 : 0);
+  });
   return out;
 }
 function __distOf(items){
@@ -907,10 +922,9 @@ function __fail(e){
 function __bootReal(){
   return Promise.all([
     __j(DATA_BASE + "latest.json"),
-    __j(DATA_BASE + "history.json").catch(function(){ return []; }),
     __j(DATA_BASE + "announce.json").catch(function(){ return {updated:"",count:0,items:[]}; })
   ]).then(function(rs){
-    var latest = rs[0] || {}, hist = rs[1] || [], ann = rs[2] || {};
+    var latest = rs[0] || {}, hist = [], ann = rs[1] || {};
     D.updated = latest.updated || "";
     var ps = latest.prov_stats || {};
     var def = latest.default || "hunan";
@@ -959,8 +973,12 @@ function __bootReal(){
     for(var k2 in D.quanguo_dist){ if(D.quanguo_dist.hasOwnProperty(k2)){ emptyD = false; break; } }
     if(emptyD && D.qitems){ D.quanguo_dist = __distOf(D.qitems); }
     REAL_OK = true;
-    boot();
-    paintAnnDot();
+    /* 单处渲染异常不应阻断后续流程，尤其是历史记录的异步加载 */
+    try { boot(); } catch(e) { if(window.console){ console.error(e); } }
+    try { paintAnnDot(); } catch(e) {}
+    /* history.json 体积较大（近 9MB），改为首屏渲染完成后异步加载，
+       避免与资费列表争抢主线程，导致点开页面长时间卡顿 */
+    setTimeout(function(){ loadHistory(); }, 40);
   }).catch(__fail);
 }
 
@@ -1316,7 +1334,31 @@ function secHtml(hi, ci, type, arr, diffs){
   }
   return '<div class="ti-sec"><div class="chips">' + chips + "</div>" + more + "</div>";
 }
-var HIST_OPEN = {}, HIST_POPEN = {}, HIST_INIT = false, HIST_ALL = false;
+var HIST_OPEN = {}, HIST_POPEN = {}, HIST_INIT = false, HIST_ALL = false, HIST_SHOW = 15;
+var HIST_LOADED = false;
+function updNavChg(){
+  var nx = document.getElementById("navChg");
+  if(!nx){ return; }
+  var t = 0;
+  if(D.history && D.history.length){
+    (D.history[0].changes || []).forEach(function(c){
+      t += (c.added || 0) + (c.modified || 0) + (c.removed || 0);
+    });
+  }
+  nx.textContent = t ? (t + " 条") : "\u2014";
+}
+function loadHistory(){
+  __j(DATA_BASE + "history.json").then(function(hist){
+    D.history = __normHist(hist || []);
+    HIST_LOADED = true; HIST_INIT = false;
+    updNavChg();
+    renderHistory();
+  }).catch(function(){
+    HIST_LOADED = true;
+    var b = document.getElementById("tlBox");
+    if(b){ b.innerHTML = '<div class="ti-none">变更记录加载失败</div>'; }
+  });
+}
 function histBars(cs){
   var a = 0, r = 0, m = 0, s = 0;
   cs.forEach(function(x){ a += x.c.added || 0; r += x.c.removed || 0; m += x.c.modified || 0; s += x.c.restored || 0; });
@@ -1328,26 +1370,65 @@ function histBars(cs){
   if(!o){ o = '<i class="b-rst" title="\u65e0\u53d8\u5316"></i>'; }
   return '<span class="mini-bars">' + o + '</span>';
 }
-function provBlock(hi, ci, c){
+function provBlock(hi, ci, c, lazy){
   var pills = "";
   if(c.added){ pills += '<span class="pill p-add">\u4e0a\u67b6 ' + c.added + '</span>'; }
   if(c.modified){ pills += '<span class="pill p-mod">\u4fee\u6539 ' + c.modified + '</span>'; }
   if(c.removed){ pills += '<span class="pill p-del">\u4e0b\u67b6 ' + c.removed + '</span>'; }
   if(c.restored){ pills += '<span class="pill p-rst">\u8865\u5f55 ' + c.restored + '</span>'; }
   if(!pills){ pills = '<span class="pill p-rst">\u65e0\u53d8\u5316</span>'; }
-  var md = c.modified_details || {};
+  var op = !!HIST_POPEN[hi + "_" + ci];
   var body = "";
+  /* 懒渲染：折叠状态不生成业务名 DOM，点击省份时才填充。
+     历史共约 7000 个业务名，全量渲染是卡顿主因。 */
+  if(!lazy || op){ body = provBody(hi, ci, c); }
+  return '<div class="tg' + (op ? " open" : "") + '" data-pk="' + hi + "_" + ci + '">' +
+    '<div class="tg-hd" data-tog="prov" data-hi="' + hi + '" data-ci="' + ci + '">' +
+      '<span class="ti-ar">▸</span><span class="ti-p">' + esc(c.name) + "</span>" +
+      '<div class="ti-r">' + pills + "</div></div>" +
+    '<div class="tg-bd"' + (op ? ">" + body : ' data-lazy="1" style="display:none">') + "</div></div>";
+}
+function provBody(hi, ci, c){
+  var md = c.modified_details || {}, body = "";
   body += secHtml(hi, ci, "mod", c.modified_names || [], md);
   body += secHtml(hi, ci, "add", c.added_names || [], md);
   body += secHtml(hi, ci, "del", c.removed_names || [], md);
   body += secHtml(hi, ci, "rst", c.restored_names || [], md);
   if(!body){ body = '<div style="font-size:11.5px;color:var(--tx3)">本次无明细业务</div>'; }
-  var op = !!HIST_POPEN[hi + "_" + ci];
-  return '<div class="tg' + (op ? " open" : "") + '" data-pk="' + hi + "_" + ci + '">' +
-    '<div class="tg-hd" data-tog="prov" data-hi="' + hi + '" data-ci="' + ci + '">' +
-      '<span class="ti-ar">▸</span><span class="ti-p">' + esc(c.name) + "</span>" +
-      '<div class="ti-r">' + pills + "</div></div>" +
-    '<div class="tg-bd"' + (op ? "" : ' style="display:none"') + ">" + body + "</div></div>";
+  return body;
+}
+function histN(c){ return (c.added||0) + (c.removed||0) + (c.modified||0) + (c.restored||0); }
+/* 只保留有变化的省份：899 个省份块里 683 个是无变化，全渲染既占版面又拖慢页面 */
+function histCs(h){
+  var cs = [];
+  (h.changes || []).forEach(function(c, ci){
+    if(state.h && c.prov !== state.h){ return; }
+    if(!histN(c)){ return; }
+    cs.push({ c:c, ci:ci });
+  });
+  return cs;
+}
+function histBody(hi, cs){
+  if(!cs.length){ return '<div class="ti-none">本轮全部省份均无变化</div>'; }
+  return cs.map(function(x){ return provBlock(hi, x.ci, x.c, true); }).join("");
+}
+function histFill(hi, openFirst){
+  var cs = histCs(D.history[hi] || {});
+  if(openFirst && cs.length && HIST_POPEN[hi + "_" + cs[0].ci] === undefined){
+    HIST_POPEN[hi + "_" + cs[0].ci] = true;
+  }
+  return histBody(hi, cs);
+}
+function recHtml(o, first){
+  var h = o.h, hi = o.hi, cs = histCs(h), op = !!HIST_OPEN[hi];
+  var bd = op ? (">" + histFill(hi, true)) : ' data-lazy="1" style="display:none">';
+  return '<div class="ti' + (op ? " open" : "") + '" data-hi="' + hi + '">' +
+    '<div class="ti-hd" data-tog="rec" data-hi="' + hi + '">' +
+      '<span class="ti-ar">▸</span><span class="ti-ti">资费变更</span>' +
+      '<span class="ti-ts">' + esc(h.ts) + "</span>" +
+      (first ? '<span class="ti-new">最新</span>' : "") +
+      '<span class="ti-sum">' + (cs.length ? histBars(cs) : '<span class="pill p-rst">无变化</span>') + "</span></div>" +
+    '<div class="ti-bd"' + bd + "</div></div>";
 }
 function renderHistory(){
   var box = document.getElementById("tlBox"), hint = document.getElementById("hHint");
@@ -1357,12 +1438,16 @@ function renderHistory(){
     hint.textContent = ""; if(tg){ tg.style.display = "none"; } return;
   }
   if(tg){ tg.style.display = ""; }
+  if(!HIST_LOADED){
+    box.innerHTML = '<div class="ti-none">正在加载变更记录…</div>';
+    hint.textContent = ""; return;
+  }
   var list = [];
   D.history.forEach(function(h, hi){
     if(state.h){
       var hit = false;
-      for(var i = 0; i < h.changes.length; i++){
-        if(h.changes[i].prov === state.h){ hit = true; break; }
+      for(var i = 0; i < (h.changes || []).length; i++){
+        if(h.changes[i].prov === state.h && histN(h.changes[i])){ hit = true; break; }
       }
       if(!hit){ return; }
     }
@@ -1371,39 +1456,49 @@ function renderHistory(){
   hint.textContent = "共 " + list.length + " 次变更记录";
   if(!list.length){ box.innerHTML = '<div style="color:var(--tx3);font-size:13px">暂无变更记录</div>'; return; }
   if(!HIST_INIT){
-    HIST_INIT = true;
-    HIST_ALL = false;
+    HIST_INIT = true; HIST_ALL = false; HIST_SHOW = 15;
+    HIST_OPEN = {}; HIST_POPEN = {};
     for(var q0 = 0; q0 < list.length; q0++){ HIST_OPEN[list[q0].hi] = (q0 === 0); }
-    HIST_POPEN = {};
-    /* ★ 修复「历史数据看起来缺失」：有变化的省份默认展开。
-       原先省份块全部默认折叠，展开一条记录只看到「湖南 下架 6」却看不到具体业务名，
-       需要再点一次省份才出现，容易被误认为业务名称数据丢失。
-       无变化的省份仍保持折叠，避免记录展开后信息堆叠。 */
-    list.forEach(function(o){
-      o.h.changes.forEach(function(c, ci0){
-        if(state.h && c.prov !== state.h){ return; }
-        var n0 = (c.added || 0) + (c.modified || 0) + (c.removed || 0) + (c.restored || 0);
-        HIST_POPEN[o.hi + "_" + ci0] = !!n0;
-      });
-    });
   }
-  box.innerHTML = list.map(function(o){
-    var h = o.h, hi = o.hi, cs = [];
-    h.changes.forEach(function(c, ci){
-      if(state.h && c.prov !== state.h){ return; }
-      cs.push({ c:c, ci:ci });
-    });
-    var op = !!HIST_OPEN[hi];
-    return '<div class="ti' + (op ? " open" : "") + '" data-hi="' + hi + '">' +
-      '<div class="ti-hd" data-tog="rec" data-hi="' + hi + '">' +
-        '<span class="ti-ar">▸</span><span class="ti-ti">资费变更</span>' +
-        '<span class="ti-ts">' + esc(h.ts) + "</span>" +
-        '<span class="ti-sum">' + histBars(cs) + "</span></div>" +
-      '<div class="ti-bd"' + (op ? "" : ' style="display:none"') + ">" +
-        cs.map(function(x){ return provBlock(hi, x.ci, x.c); }).join("") +
-      "</div></div>";
-  }).join("");
+  var show = list.slice(0, HIST_SHOW), html = "";
+  for(var s0 = 0; s0 < show.length; s0++){ html += recHtml(show[s0], s0 === 0); }
+  if(list.length > show.length){
+    html += '<button class="ti-more" id="histMore">加载更早 ' + (list.length - show.length) + " 条</button>";
+  }
+  box.innerHTML = html;
   if(tg){ tg.textContent = HIST_ALL ? "全部收起" : "全部展开"; }
+}
+function histShowMore(){ HIST_SHOW += 20; renderHistory(); }
+function histToggleAll(){
+  HIST_ALL = !HIST_ALL;
+  var tl = document.getElementById("tlBox");
+  if(!tl){ return; }
+  var recs = tl.querySelectorAll(".ti");
+  for(var i = 0; i < recs.length; i++){
+    var rec = recs[i];
+    var hi = parseInt(rec.getAttribute("data-hi"), 10);
+    HIST_OPEN[hi] = HIST_ALL;
+    rec.classList.toggle("open", HIST_ALL);
+    var bd = rec.querySelector(".ti-bd");
+    if(bd){
+      if(HIST_ALL && bd.getAttribute("data-lazy")){
+        bd.innerHTML = histFill(hi, false);
+        bd.removeAttribute("data-lazy");
+      }
+      bd.style.display = HIST_ALL ? "" : "none";
+    }
+    if(!HIST_ALL){
+      var ps0 = rec.querySelectorAll(".tg");
+      for(var j0 = 0; j0 < ps0.length; j0++){
+        HIST_POPEN[ps0[j0].getAttribute("data-pk")] = false;
+        ps0[j0].classList.remove("open");
+        var pb0 = ps0[j0].querySelector(".tg-bd");
+        if(pb0){ pb0.style.display = "none"; }
+      }
+    }
+  }
+  var tg2 = document.getElementById("hTogAll");
+  if(tg2){ tg2.textContent = HIST_ALL ? "全部收起" : "全部展开"; }
 }
 function histToggleAll(){
   HIST_ALL = !HIST_ALL;
@@ -1763,6 +1858,7 @@ document.addEventListener("click", function(e){
   /* 关闭按钮 */
   if(el.id === "mx" || el.id === "mOk"){ closeModal(); return; }
   if(el.id === "hTogAll"){ histToggleAll(); return; }
+  if(el.id === "histMore"){ histShowMore(); return; }
   var togEl = el.closest ? el.closest("[data-tog]") : null;
   if(togEl){
     var kind = togEl.getAttribute("data-tog");
@@ -1771,6 +1867,10 @@ document.addEventListener("click", function(e){
       var bd = rec.querySelector(".ti-bd");
       if(bd){
         var on = bd.style.display === "none";
+        if(on && bd.getAttribute("data-lazy")){
+          bd.innerHTML = histFill(parseInt(togEl.getAttribute("data-hi"), 10), true);
+          bd.removeAttribute("data-lazy");
+        }
         bd.style.display = on ? "" : "none";
         rec.classList.toggle("open", on);
         HIST_OPEN[parseInt(togEl.getAttribute("data-hi"), 10)] = on;
@@ -1780,6 +1880,12 @@ document.addEventListener("click", function(e){
       var pbd = grp.querySelector(".tg-bd");
       if(pbd){
         var on2 = pbd.style.display === "none";
+        if(on2 && pbd.getAttribute("data-lazy")){
+          var pk2 = String(grp.getAttribute("data-pk")).split("_");
+          var rec2 = D.history[pk2[0]] || {};
+          var cc2 = rec2.changes ? rec2.changes[pk2[1]] : null;
+          if(cc2){ pbd.innerHTML = provBody(pk2[0], pk2[1], cc2); pbd.removeAttribute("data-lazy"); }
+        }
         pbd.style.display = on2 ? "" : "none";
         grp.classList.toggle("open", on2);
         HIST_POPEN[grp.getAttribute("data-pk")] = on2;
@@ -1993,17 +2099,7 @@ document.getElementById("tabs").addEventListener("scroll", function(){ updateEdg
 function boot(){
   D.items.forEach(function(x,n){ x.__i = n; });
   document.getElementById("updTxt").textContent = "更新于 " + (D.updated || "—");
-  (function(){
-    var nx = document.getElementById("navChg");
-    if(!nx){ return; }
-    var t = 0;
-    if(D.history && D.history.length){
-      (D.history[0].changes || []).forEach(function(c){
-        t += (c.added || 0) + (c.modified || 0) + (c.removed || 0);
-      });
-    }
-    nx.textContent = t ? (t + " 条") : "—";
-  })();
+  updNavChg();
   (function(){
     var nc = document.getElementById("navCnt");
     if(!nc){ return; }
