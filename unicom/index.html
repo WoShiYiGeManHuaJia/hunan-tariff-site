@@ -440,6 +440,29 @@ body{
 .mask{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
   padding:18px;background:rgba(2,6,14,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .mask.on{display:flex;animation:fin .28s ease}
+/* 检测弹窗 */
+.ckbox{padding:2px 2px 4px}
+.ckspin{width:46px;height:46px;margin:8px auto 14px;position:relative}
+.ckspin i{position:absolute;inset:0;border-radius:50%;border:3px solid var(--bd2);
+  border-top-color:var(--op1);border-right-color:var(--op2);animation:ckspin .9s linear infinite}
+@keyframes ckspin{to{transform:rotate(360deg)}}
+.ckspin.done i{animation:none;border-color:var(--op3);border-top-color:var(--op3);border-right-color:var(--op3)}
+.ckspin.done::after{content:'\2713';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:800;color:var(--op3)}
+.ckstat{text-align:center;font-size:14.5px;font-weight:700;color:var(--tx);line-height:1.65}
+.ckmeta{margin-top:8px;text-align:center;font-size:12.5px;color:var(--tx2);line-height:1.8}
+.ckmeta b{color:var(--op2);font-weight:700}
+.ckbar{margin:16px 0 2px;height:6px;border-radius:99px;background:var(--bg2);overflow:hidden;border:1px solid var(--bd2)}
+.ckbar>span{display:block;height:100%;width:0;border-radius:99px;
+  background:linear-gradient(90deg,var(--op1),var(--op2));transition:width .45s ease}
+.cktips{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:var(--bg2);border:1px solid var(--bd2);
+  font-size:12.5px;color:var(--tx2);line-height:1.9}
+.cktips li{margin-left:16px}
+@media (max-width:600px){
+  .ckstat{font-size:13.5px}
+  .cktips{font-size:12px;padding:10px 12px}
+}
+
 @keyframes fin{from{opacity:0}to{opacity:1}}
 .modal{position:relative;width:min(620px,100%);max-height:84vh;overflow:hidden;display:flex;flex-direction:column;
   border-radius:var(--r);background:linear-gradient(168deg,#173152 0%,#112440 46%,#0b1930 100%);
@@ -803,6 +826,31 @@ a.opc{text-decoration:none;display:block}
 </div>
 
 <!-- 详情弹窗 -->
+<!-- 检测弹窗 -->
+<div class="mask" id="ckMask">
+  <div class="modal">
+    <div class="mh"><h3 id="ckTitle">检测最新资费</h3><button class="mx" id="ckX">×</button></div>
+    <div class="mb">
+      <div class="ckbox">
+        <div class="ckspin" id="ckSpin"><i></i></div>
+        <div class="ckstat" id="ckStat">正在读取线上数据…</div>
+        <div class="ckmeta" id="ckMeta"></div>
+        <div class="ckbar"><span id="ckBar"></span></div>
+        <ul class="cktips">
+          <li>本页每 15 秒比对一次线上数据，<b>一旦有更新会自动刷新</b></li>
+          <li>站点已配置定时抓取，通常无需手动操作</li>
+          <li>想立即抓取，可点下方「立即触发抓取」打开 Actions 页运行</li>
+        </ul>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="ckGh">立即触发抓取</button>
+      <button class="btn" id="ckStop">停止检测</button>
+      <button class="btn pri" id="ckOk">后台继续</button>
+    </div>
+  </div>
+</div>
+
 <div class="mask" id="mask">
   <div class="modal">
     <div class="mh"><h3 id="mTitle">资费详情</h3><button class="mx" id="mx">×</button></div>
@@ -851,6 +899,7 @@ a.opc{text-decoration:none;display:block}
 var D = { updated:"", stats:{}, sections:[], prov_stats:{}, hunan_dist:{}, quanguo_dist:{},
             items:[], qitems:null, history:[], announce:{updated:"",count:0,items:[]} };
 var DATA_BASE = "./data/";
+var CK_WF = "unicom-fetch.yml";
 var REAL_OK = false;
 function __j(u){
   return fetch(u, {cache:"no-store"}).then(function(r){
@@ -1712,6 +1761,72 @@ function dvHtml(it){
   return html;
 }
 function closeModal(){ document.getElementById("mask").classList.remove("on"); }
+/* ---------- 检测最新资费 ---------- */
+var CK = { t:null, n:0, base:"", max:40 };
+function ckGhUrl(){
+  return "https://github.com/WoShiYiGeManHuaJia/hunan-tariff-site/actions/workflows/" + CK_WF;
+}
+function ckOpen(){
+  var m = document.getElementById("ckMask");
+  if(!m){ return; }
+  CK.base = D.updated || "";
+  document.getElementById("ckStat").textContent = "正在比对线上数据…";
+  document.getElementById("ckMeta").innerHTML = "当前数据更新于 <b>" + (CK.base || "未知") + "</b>";
+  document.getElementById("ckBar").style.width = "0%";
+  document.getElementById("ckSpin").classList.remove("done");
+  m.classList.add("on");
+  ckStopTimer();
+  CK.n = 0;
+  CK.t = setInterval(ckTick, 15000);
+  ckTick();
+}
+function ckStopTimer(){ if(CK.t){ clearInterval(CK.t); CK.t = null; } }
+function ckStop(){
+  ckStopTimer();
+  var s = document.getElementById("ckStat");
+  if(s){ s.textContent = "已停止检测（数据更新于 " + (CK.base || "未知") + "）"; }
+  var b = document.getElementById("ckStop");
+  if(b){ b.style.display = "none"; }
+}
+function ckClose(){ ckStopTimer(); document.getElementById("ckMask").classList.remove("on"); }
+function ckTick(){
+  if(!document.getElementById("ckMask")) { ckStopTimer(); return; }
+  CK.n++;
+  var st = document.getElementById("ckStat");
+  var mt = document.getElementById("ckMeta");
+  var bar = document.getElementById("ckBar");
+  if(bar){ bar.style.width = Math.min(100, Math.round(CK.n / CK.max * 100)) + "%"; }
+  fetch(DATA_BASE + "latest.json?_=" + Date.now(), {cache:"no-store"}).then(function(r){
+    if(!r.ok){ throw new Error("HTTP " + r.status); }
+    return r.json();
+  }).then(function(j){
+    var u = (j && j.updated) ? j.updated : "";
+    if(u && CK.base && u !== CK.base){
+      ckStopTimer();
+      if(st){ st.textContent = "检测到新数据，正在刷新页面…"; }
+      if(mt){ mt.innerHTML = "最新更新于 <b>" + u + "</b>"; }
+      document.getElementById("ckSpin").classList.add("done");
+      if(bar){ bar.style.width = "100%"; }
+      setTimeout(function(){
+        location.href = location.pathname + "?_=" + Date.now();
+      }, 800);
+      return;
+    }
+    if(CK.n >= CK.max){
+      ckStopTimer();
+      if(st){ st.textContent = "本次未检测到新数据"; }
+      if(mt){ mt.innerHTML = "线上数据仍为 <b>" + (u || CK.base || "未知") + "</b>，定时任务执行后会自动刷新"; }
+      document.getElementById("ckSpin").classList.add("done");
+      return;
+    }
+    if(st){ st.textContent = "正在比对…（第 " + CK.n + " 次，每 15 秒一次）"; }
+    if(mt){ mt.innerHTML = "当前数据更新于 <b>" + (CK.base || "未知") + "</b>"; }
+  }).catch(function(e){
+    if(CK.n >= CK.max){ ckStop(); return; }
+    if(st){ st.textContent = "网络请求失败，稍后自动重试…（第 " + CK.n + " 次）"; }
+  });
+}
+
 
 /* ---------- 变更详情弹窗 ---------- */
 var curHist = null;
@@ -1920,7 +2035,7 @@ document.addEventListener("click", function(e){
       toast(next === "dark" ? "已切换到深色模式" : "已切换到浅色模式");
       return;
     }
-    if(act === "check"){ toast("正在检测最新资费…（预览版未接入后端）"); return; }
+    if(act === "check"){ ckOpen(); return; }
     if(act === "op"){ renderOpGrid(); document.getElementById("opMask").classList.add("on"); return; }
   }
   /* 关闭按钮 */
@@ -1990,6 +2105,9 @@ document.addEventListener("click", function(e){
     return;
   }
   if(el.id === "pkX"){ closePicker(); return; }
+  if(el.id === "ckX" || el.id === "ckOk"){ ckClose(); return; }
+  if(el.id === "ckStop"){ ckStop(); toast("已停止自动检测"); return; }
+  if(el.id === "ckGh"){ window.open(ckGhUrl(), "_blank"); toast("已打开 Actions 手动触发页"); return; }
   if(el.id === "opX"){ document.getElementById("opMask").classList.remove("on"); return; }
   if(el.id === "hmMask"){ closeHist(); return; }
   var mkEl = el.closest ? el.closest(".mask") : null;
@@ -1998,6 +2116,7 @@ document.addEventListener("click", function(e){
     else if(mkEl.id === "pkMask"){ closePicker(); }
     else if(mkEl.id === "opMask"){ document.getElementById("opMask").classList.remove("on"); }
     else if(mkEl.id === "hmMask"){ closeHist(); }
+    else if(mkEl.id === "ckMask"){ ckClose(); }
     return;
   }
   if(el.id === "mCopy" && curDetail){
