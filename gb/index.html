@@ -461,6 +461,8 @@ body{
 @media (max-width:600px){
   .ckstat{font-size:13.5px}
   .cktips{font-size:12px;padding:10px 12px}
+  #ckMask .mf{flex-wrap:wrap}
+  #ckMask .mf .btn{flex:1 1 auto;justify-content:center;min-width:0;padding-left:8px;padding-right:8px}
 }
 
 @keyframes fin{from{opacity:0}to{opacity:1}}
@@ -846,7 +848,7 @@ a.opc{text-decoration:none;display:block}
     <div class="mf">
       <button class="btn" id="ckGh">立即触发抓取</button>
       <button class="btn" id="ckStop">停止检测</button>
-      <button class="btn pri" id="ckOk">后台继续</button>
+      <button class="btn pri" id="ckOk">后台继续检测</button>
     </div>
   </div>
 </div>
@@ -1789,6 +1791,11 @@ function ckStop(){
   if(b){ b.style.display = "none"; }
 }
 function ckClose(){ ckStopTimer(); document.getElementById("ckMask").classList.remove("on"); }
+function ckMin(){
+  document.getElementById("ckMask").classList.remove("on");
+  if(!CK.t){ CK.t = setInterval(ckTick, 15000); }
+  toast("已在后台继续检测，有更新会自动刷新");
+}
 function ckTick(){
   if(!document.getElementById("ckMask")) { ckStopTimer(); return; }
   CK.n++;
@@ -2105,7 +2112,8 @@ document.addEventListener("click", function(e){
     return;
   }
   if(el.id === "pkX"){ closePicker(); return; }
-  if(el.id === "ckX" || el.id === "ckOk"){ ckClose(); return; }
+  if(el.id === "ckX"){ ckClose(); return; }
+  if(el.id === "ckOk"){ ckMin(); return; }
   if(el.id === "ckStop"){ ckStop(); toast("已停止自动检测"); return; }
   if(el.id === "ckGh"){ window.open(ckGhUrl(), "_blank"); toast("已打开 Actions 手动触发页"); return; }
   if(el.id === "opX"){ document.getElementById("opMask").classList.remove("on"); return; }
@@ -2116,7 +2124,7 @@ document.addEventListener("click", function(e){
     else if(mkEl.id === "pkMask"){ closePicker(); }
     else if(mkEl.id === "opMask"){ document.getElementById("opMask").classList.remove("on"); }
     else if(mkEl.id === "hmMask"){ closeHist(); }
-    else if(mkEl.id === "ckMask"){ ckClose(); }
+    else if(mkEl.id === "ckMask"){ ckMin(); }
     return;
   }
   if(el.id === "mCopy" && curDetail){
