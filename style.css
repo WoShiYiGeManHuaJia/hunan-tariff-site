@@ -272,12 +272,12 @@ main{max-width:1080px;margin:0 auto;padding:16px;min-height:70vh;position:relati
 .toolbar.htl{margin-bottom:8px}
 
 /* ---------- 排序条 ---------- */
-.sort-bar{flex:1 1 100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+.sort-bar{flex:1 1 100%;display:flex;gap:6px;align-items:center;flex-wrap:nowrap;min-width:0;
   padding:6px 8px;border-radius:26px;border:1px solid var(--bd2);
   background:var(--glass2);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .sort-tit{font-size:12.5px;color:var(--tx2);font-weight:700;padding:0 2px;white-space:nowrap}
 .sort-btn{
-  flex:none;display:inline-flex;align-items:center;gap:4px;
+  flex:1 1 0;min-width:0;justify-content:center;display:inline-flex;align-items:center;gap:4px;
   border:1px solid var(--bd2);background:var(--glass);color:var(--tx2);
   font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:22px;cursor:pointer;
   white-space:nowrap;line-height:1.5;
@@ -288,8 +288,13 @@ main{max-width:1080px;margin:0 auto;padding:16px;min-height:70vh;position:relati
   background:linear-gradient(135deg,var(--op1),var(--op1d)); color:#fff; border-color:transparent;
   box-shadow:0 4px 14px var(--softb1); transform:translateY(-1px);
 }
-.sort-btn.s-dir{background:var(--glass)}
+.sort-btn.s-dir{background:var(--glass);flex:1.25 1 0}
 .sort-btn.s-dir:hover{background:var(--glass3)}
+@media(max-width:600px){
+  .sort-tit{display:none}
+  .sort-bar{gap:5px;padding:5px 6px}
+  .sort-btn{font-size:12px;padding:6px 4px;gap:2px}
+}
 
 /* ---------- 列表卡片 ---------- */
 .list{display:flex;flex-direction:column;gap:11px}
@@ -491,10 +496,11 @@ main{max-width:1080px;margin:0 auto;padding:16px;min-height:70vh;position:relati
 .tl-bars i.b-del{background:var(--bad)}
 .tl-bars i.b-rst{background:var(--tx3)}
 .tl-bars i.b-none{background:var(--bd2)}
-/* 展开后改为数量药丸（颜色与色条一一对应） */
-.tl-nums{display:none;gap:7px;flex-wrap:wrap;align-items:center;flex:1 1 auto;min-width:0}
-.tl-item.open .tl-nums{display:flex}
-.tl-item.open .tl-bars{display:none}
+/* ★ 数量只在展开后的「省份行」显示；时间后面不再重复堆叠数量药丸。
+   折叠态：仅色条；展开态：色条(加粗) + 各省数量。*/
+.tl-nums{display:none !important}
+.tl-bars{display:flex}
+.tl-item.open .tl-bars{display:flex}
 .tl-nums .chip{margin:0;padding:2px 10px;font-size:11.5px}
 /* 展开后的省份级数量药丸 */
 .tl-chips{display:flex;gap:7px;margin:6px 0 0;flex-wrap:wrap;padding:0 15px 12px}
