@@ -671,15 +671,17 @@ function histDetail(d, sec, ts) {
     const names = Array.isArray(d[key + "_names"]) ? d[key + "_names"] : null;
     if (names && names.length) {
       // 新增/下架/修改 均可点击查看详情
-      html += '<ul class="tl-names">' + names.map((x) =>
-        '<li class="tl-k ' + cls + '"><a class="tl-mod" href="javascript:void(0)" ' +
+      /* 业务名改为胶囊（与移动站一致）：此前用 <ul>/<li> 纯文本逐行堆叠，
+         几十条业务名连成一片难以分辨边界，且移动端行高浪费。 */
+      html += '<div class="tl-chipbox">' + names.map((x) =>
+        '<a class="tl-chip-btn c-' + cls + '" href="javascript:void(0)" ' +
         'data-ts="' + aesc(ts) + '" data-sec="' + aesc(sec) + '" data-name="' + aesc(x) + '" data-kind="' + kind + '" ' +
         'title="点击查看该业务详情" ' +
         'onclick="event.stopPropagation();showPlanDetail(this.dataset.ts,this.dataset.sec,this.dataset.name,this.dataset.kind)">' +
-        esc(x) + "</a>" +
-        (((d[key + "_list"] && d[key + "_list"].length) || (d[key + "_details"] && d[key + "_details"][x])) ? '<span class="mod-badge">查看详情</span>' : "") +
-        "</li>"
-      ).join("") + "</ul>";
+        esc(x) +
+        (((d[key + "_list"] && d[key + "_list"].length) || (d[key + "_details"] && d[key + "_details"][x])) ? '<span class="cb-n">详情</span>' : "") +
+        "</a>"
+      ).join("") + "</div>";
     } else {
       html += '<div class="tl-none">本次' + lab + " " + n + " 条，可在对应资费列表查看</div>";
     }
