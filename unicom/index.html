@@ -16,6 +16,7 @@
   --tx:#f7fbff; --tx2:#d9e5f3; --tx3:#b0c1d8;
   --ac:var(--op2); --ac2:var(--op1); --ac3:var(--op3); --ac4:var(--op2);
   --ac2t:var(--op2); --ac3t:var(--op3);
+  --c1:var(--op1); --c2:var(--op2);
   --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
   --sh:0 18px 46px rgba(0,0,0,.42);
   --sh2:0 26px 60px rgba(0,0,0,.5);
@@ -680,8 +681,8 @@ a.opc{text-decoration:none;display:block}
   <main>
     <section class="view on" id="v-overview">
       <div class="stats">
-        <div class="stat"><div class="stat-ic">🌐</div><div class="stat-n" data-num="1558">0</div><div class="stat-l">全网通用资费</div></div>
-        <div class="stat"><div class="stat-ic">🗺️</div><div class="stat-n" data-num="42818">0</div><div class="stat-l">31 省资费合计（去重）</div></div>
+        <div class="stat"><div class="stat-ic">🌐</div><div class="stat-n" id="stQg" data-num="1558">0</div><div class="stat-l">全网通用资费</div></div>
+        <div class="stat"><div class="stat-ic">🗺️</div><div class="stat-n" id="stProv" data-num="42818">0</div><div class="stat-l">31 省资费合计（去重）</div></div>
         <div class="stat a"><div class="stat-ic">👤</div><div class="stat-n" id="stPersonal">0</div><div class="stat-l" id="stPersonalL">本省个人资费</div></div>
         <div class="stat b"><div class="stat-ic">🏢</div><div class="stat-n" id="stGq">0</div><div class="stat-l" id="stGqL">本省政企资费</div></div>
       </div>
@@ -726,7 +727,7 @@ a.opc{text-decoration:none;display:block}
 
     <section class="view" id="v-prov">
       <div class="tool glass" data-scope="p">
-        <div class="search"><span class="si">⌕</span><input type="search" data-f="search" placeholder="搜索名称 / 资费标准 / 说明关键词…"></div>
+        <div class="search"><span class="si">⌕</span><input type="search" id="pSearch" data-f="search" placeholder="搜索名称 / 资费标准 / 说明关键词…"></div>
         <button class="pick" id="pvProv" data-pick="prov" data-target="pv"><span class="pk-t">湖南</span><span class="pk-s"></span><i class="pk-a">▾</i></button>
         <button class="pick" data-pick="own" data-scope="p"><span class="pk-t">全部归属</span><i class="pk-a">▾</i></button>
         <button class="pick" data-pick="type" data-scope="p"><span class="pk-t">全部类型</span><i class="pk-a">▾</i></button>
@@ -2205,6 +2206,11 @@ function boot(){
     if(D.stats){ t = D.stats.total || D.stats.hunan_total || 0; }
     if(!t && D.items){ t = D.items.length; }
     nc.textContent = fmt(t);
+  })();
+  (function(){
+    var _qg = document.getElementById("stQg"), _pv = document.getElementById("stProv");
+    if(_qg && D.stats && D.stats.quanguo_total){ _qg.setAttribute("data-num", D.stats.quanguo_total); }
+    if(_pv && D.stats && D.stats.prov_total){ _pv.setAttribute("data-num", D.stats.prov_total); }
   })();
   var nums = document.querySelectorAll("[data-num]");
   for(var i=0;i<nums.length;i++){ countUp(nums[i], parseInt(nums[i].getAttribute("data-num"), 10)); }
