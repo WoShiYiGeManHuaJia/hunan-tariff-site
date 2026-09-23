@@ -1182,26 +1182,54 @@ function filtered(scope){
   if(own){ arr = arr.filter(function(it){ return f(it,"归属") === own; }); }
   if(typ){ arr = arr.filter(function(it){ return f(it,"资费类型") === typ; }); }
   var dir = s.dir === "asc" ? 1 : -1;
+  /* 排序修复（用线上真实数据复现后修正的三个 bug）：
+     1) zero 栏目：零元/非零的分组结果又被 dir 翻转，desc（默认）时
+        反而把 10 元 / 15 元 / 30 元的业务排在零元前面。
+        零元置顶是栏目语义，不该被升降序翻转，dir 只作用于组内日期。
+     2) price 栏目：无价格(null)的条目同样被 dir 翻转，desc 时
+        "0.9倍套餐费"这类取不到价格的业务排到最前。统一固定沉底。
+     3) time 栏目：同一天上线的业务此前没有任何次级排序，顺序完全
+        取决于数据源原序，导致首页一整屏都是 0 元体验包。
+        现在同日期内按价格从高到低、再按名称，结果稳定且可读。 */
+  var __nCmp = function(x, y){
+    var p = String((x && x.name) || ""), q = String((y && y.name) || "");
+    if(p === q){ return 0; }
+    return (p < q) ? -1 : 1;
+  };
+  var __dAsc = function(x, y){
+    var kx = dateKey(x), ky = dateKey(y);
+    if(kx === ky){ return 0; }
+    return (kx < ky) ? -1 : 1;
+  };
   arr.sort(function(a,b){
-    var r = 0;
     if(s.sort === "price"){
       var pa = priceOf(a), pb = priceOf(b);
-      if(pa === null && pb === null){ r = 0; }
-      else if(pa === null){ r = 1; }
-      else if(pb === null){ r = -1; }
-      else { r = pa - pb; }
-    } else if(s.sort === "zero"){
-      r = (priceOf(a) === 0 ? 0 : 1) - (priceOf(b) === 0 ? 0 : 1);
-      if(r === 0){ r = dateKey(b) > dateKey(a) ? -1 : 1; }
-    } else {
-      r = dateKey(b) > dateKey(a) ? -1 : (dateKey(b) < dateKey(a) ? 1 : 0);
+      if(pa === null && pb === null){ return __nCmp(a, b); }
+      if(pa === null){ return 1; }
+      if(pb === null){ return -1; }
+      if(pa !== pb){ return (pa - pb) * dir; }
+      return __nCmp(a, b);
     }
-    return r * dir;
+    if(s.sort === "zero"){
+      var za = (priceOf(a) === 0) ? 0 : 1, zb = (priceOf(b) === 0) ? 0 : 1;
+      if(za !== zb){ return za - zb; }
+      return __dAsc(a, b) * dir;
+    }
+    var r = __dAsc(a, b);
+    if(r !== 0){ return r * dir; }
+    var qa = priceOf(a), qb = priceOf(b);
+    if(qa === null && qb === null){ return __nCmp(a, b); }
+    if(qa === null){ return 1; }
+    if(qb === null){ return -1; }
+    if(qa !== qb){ return qb - qa; }
+    return __nCmp(a, b);
   });
   return arr;
 }
 function dirLabel(sort, dir){
-  if(sort === "time"){ return dir === "desc" ? "最新在前 ↓" : "最早在前 ↑"; }
+  /* zero 栏目下 dir 只影响组内日期，标签应与 time 一致，
+     否则用户看到「降序 ↓」点下去却不是按价格大小排列。 */
+  if(sort === "time" || sort === "zero"){ return dir === "desc" ? "最新在前 ↓" : "最早在前 ↑"; }
   return dir === "desc" ? "降序 ↓" : "升序 ↑";
 }
 function cutV(v, n){
@@ -1383,7 +1411,7 @@ function secHtml(hi, ci, type, arr, diffs){
   return '<div class="ti-sec"><div class="chips">' + chips + "</div>" + more + "</div>";
 }
 var HIST_OPEN = {}, HIST_POPEN = {}, HIST_INIT = false, HIST_ALL = false, HIST_SHOW = 15;
-var HIST_LOADED = false;
+var HIST_LOADED = false, HIST_TRY = 0;
 function updNavChg(){
   var nx = document.getElementById("navChg");
   if(!nx){ return; }
@@ -1402,9 +1430,12 @@ function loadHistory(){
     updNavChg();
     renderHistory();
   }).catch(function(){
+    /* history.json 体积较大（约 10MB），弱网下首次拉取容易超时。
+       先自动重试一次，仍失败才提示，并给一个手动重试入口。 */
+    if(!HIST_TRY){ HIST_TRY = 1; setTimeout(function(){ loadHistory(); }, 1500); return; }
     HIST_LOADED = true;
     var b = document.getElementById("tlBox");
-    if(b){ b.innerHTML = '<div class="ti-none">变更记录加载失败</div>'; }
+    if(b){ b.innerHTML = '<div class="ti-none">变更记录加载失败，<a href="javascript:location.reload()" style="color:var(--c1);text-decoration:underline">点此重试</a></div>'; }
   });
 }
 function histBars(cs){
@@ -1442,6 +1473,20 @@ function provBody(hi, ci, c){
   body += secHtml(hi, ci, "add", c.added_names || [], md);
   body += secHtml(hi, ci, "del", c.removed_names || [], md);
   body += secHtml(hi, ci, "rst", c.restored_names || [], md);
+  /* 计数 > 0 但业务名数组为空时（早期采集只记了数量），
+     明确说明原因，避免用户看到一片空白以为数据丢了。 */
+  var miss = [];
+  var chk = [["修改", c.modified, c.modified_names],
+             ["上架", c.added, c.added_names],
+             ["下架", c.removed, c.removed_names],
+             ["补录", c.restored, c.restored_names]];
+  for(var mi = 0; mi < chk.length; mi++){
+    var x = chk[mi];
+    if((x[1] || 0) > 0 && !(x[2] && x[2].length)){ miss.push(x[0] + " " + x[1] + " 个"); }
+  }
+  if(miss.length){
+    body += '<div style="font-size:11.5px;color:var(--tx3);padding:3px 0">该轮未记录具体业务名：' + esc(miss.join("、")) + '</div>';
+  }
   if(!body){ body = '<div style="font-size:11.5px;color:var(--tx3)">本次无明细业务</div>'; }
   return body;
 }
