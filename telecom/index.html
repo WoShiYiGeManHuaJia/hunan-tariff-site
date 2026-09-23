@@ -377,6 +377,15 @@ body{
   padding:7px 11px;background:var(--glass2);letter-spacing:.3px;opacity:.9}
 .cmp-badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 10px;border-radius:8px;
   background:rgba(251,191,36,.18);color:var(--warn);border:1px solid rgba(251,191,36,.4);margin-right:6px}
+/* 未变动字段：折叠 + 单列，不再重复显示"修改前/修改后" */
+.cmp-toggle{display:block;width:100%;padding:9px 12px;font-size:11.5px;font-weight:700;
+  font-family:inherit;color:var(--ac2t);background:var(--glass2);border:0;
+  border-top:1px solid var(--bd);cursor:pointer;text-align:left}
+.cmp-toggle:hover{background:var(--glass)}
+.cmp-toggle.on{color:var(--tx2)}
+.cmp-table.cmp-unch tbody th,.cmp-table.cmp-unch tbody td{opacity:.62}
+.cmp-samev{color:var(--tx2)}
+.cmp-table.cmp-unch tbody tr:last-child th,.cmp-table.cmp-unch tbody tr:last-child td{border-bottom:0}
 .cmp-table td[data-l]::before{content:none}
 @media(max-width:640px){
   .cmp-table thead{display:none}
@@ -2157,26 +2166,45 @@ function cmpHtml(bf, af, nDiff){
   var unchanged = rows.filter(function(r){ return r.same; });
   var nd = changed.length || nDiff || 0;
   var trs = changed.map(function(r){
-    return '<tr class="cmp-diff"><th><span class="cmp-flag">改动</span>' + esc(r.k) + "</th>" +
-      '<td data-l="修改前" class="cmp-old">' + esc(r.b) + "</td>" +
-      '<td data-l="修改后" class="cmp-new">' + esc(r.a) + "</td></tr>";
+    return '<tr class="cmp-diff"><th><span class="cmp-flag">\u6539\u52a8</span>' + esc(r.k) + "</th>" +
+      '<td data-l="\u4fee\u6539\u524d" class="cmp-old">' + esc(r.b) + "</td>" +
+      '<td data-l="\u4fee\u6539\u540e" class="cmp-new">' + esc(r.a) + "</td></tr>";
   }).join("");
-  if(changed.length && unchanged.length){
-    trs += '<tr class="cmp-sep"><th colspan="3">以下 ' + unchanged.length + " 项未变动</th></tr>";
-  }
-  trs += unchanged.map(function(r){
-    return '<tr><th>' + esc(r.k) + "</th>" +
-      '<td data-l="修改前" class="cmp-old">' + esc(r.b) + "</td>" +
-      '<td data-l="修改后" class="cmp-new">' + esc(r.a) + "</td></tr>";
+  var utrs = unchanged.map(function(r){
+    return '<tr class="cmp-same"><th>' + esc(r.k) + "</th>" +
+      '<td colspan="2" class="cmp-samev">' + esc(r.b) + "</td></tr>";
   }).join("");
+  var showUnch = !changed.length;
   var note = nd
-    ? '<span class="cmp-badge">共 ' + nd + " 处改动</span>已排在最前并高亮，其余为未变动字段"
-    : "该业务修改前后完整字段对比（本次未记录到字段级差异）";
-  return '<div class="cmp-note">' + note + "</div>" +
+    ? '<span class="cmp-badge">\u5171 ' + nd + " \u5904\u6539\u52a8</span>\u4ee5\u4e0b\u4ec5\u5217\u51fa\u771f\u6b63\u53d8\u52a8\u7684\u5b57\u6bb5" +
+      (unchanged.length ? "\uff0c\u672a\u53d8\u52a8\u7684 " + unchanged.length + " \u9879\u5df2\u6298\u53e0" : "")
+    : "\u8be5\u4e1a\u52a1\u4fee\u6539\u524d\u540e\u5b8c\u6574\u5b57\u6bb5\u5bf9\u6bd4\uff08\u672c\u6b21\u672a\u8bb0\u5f55\u5230\u5b57\u6bb5\u7ea7\u5dee\u5f02\uff09";
+  var html = '<div class="cmp-note">' + note + "</div>" +
     '<div class="cmp-wrap"><table class="cmp-table">' +
-    '<thead><tr><th>字段</th><th>修改前</th><th>修改后</th></tr></thead>' +
-    "<tbody>" + trs + "</tbody></table></div>";
+    '<thead><tr><th>\u5b57\u6bb5</th><th>\u4fee\u6539\u524d</th><th>\u4fee\u6539\u540e</th></tr></thead>' +
+    "<tbody>" + trs + "</tbody></table>";
+  if(unchanged.length){
+    html += '<button type="button" class="cmp-toggle" id="cmpTg" data-n="' + unchanged.length +
+      '" onclick="toggleUnch()">' +
+      (showUnch ? "\u9690\u85cf\u672a\u53d8\u52a8\u9879" : "\u663e\u793a\u672a\u53d8\u52a8 " + unchanged.length + " \u9879") +
+      "</button>" +
+      '<table class="cmp-table cmp-unch" id="cmpUnch"' + (showUnch ? "" : ' style="display:none"') + ">" +
+      '<thead><tr><th>\u5b57\u6bb5</th><th colspan="2">\u5185\u5bb9\uff08\u4fee\u6539\u524d\u540e\u4e00\u81f4\uff09</th></tr></thead>' +
+      "<tbody>" + utrs + "</tbody></table>";
+  }
+  return html + "</div>";
 }
+function toggleUnch(){
+  var t = document.getElementById("cmpUnch"), b = document.getElementById("cmpTg");
+  if(!t || !b) return;
+  var hidden = t.style.display === "none";
+  t.style.display = hidden ? "" : "none";
+  var n = b.getAttribute("data-n") || "";
+  b.textContent = hidden ? "\u9690\u85cf\u672a\u53d8\u52a8\u9879" : "\u663e\u793a\u672a\u53d8\u52a8 " + n + " \u9879";
+  b.className = "cmp-toggle" + (hidden ? " on" : "");
+}
+
+
 
 /* ---------- 通用选择弹窗 ---------- */
 var pkCfg = null;
