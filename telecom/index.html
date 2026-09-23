@@ -1856,9 +1856,13 @@ function dvHtml(it){
       (code  ? '<div class="dv-code"><span class="dv-lb">方案编号</span><b>' + esc(code) + '</b></div>' : '') +
       '</div>';
   }
-  var tg = [];
-  if(o["归属"]) tg.push('<span class="dv-tag t-own">' + esc(o["归属"]) + '</span>');
-  if(o["资费类型"]) tg.push('<span class="dv-tag t-typ">' + esc(o["资费类型"]) + '</span>');
+  var tg = [], __seenTag = {};
+  [["t-own", o["归属"]], ["t-typ", o["资费类型"]]].forEach(function(t){
+    var v = t[1];
+    if(!v || __seenTag[v]){ return; }          /* 去重：归属与资费类型相同时只显示一个 */
+    __seenTag[v] = 1;
+    tg.push('<span class="dv-tag ' + t[0] + '">' + esc(v) + '</span>');
+  });
   if(tg.length) html += '<div class="dv-tags">' + tg.join("") + '</div>';
   var L = [], R = [], rest = [], seen = {};
   DV_L.forEach(function(k){ seen[k] = 1; if(o[k]){ L.push(dvRow(k, o[k])); } });
@@ -2177,15 +2181,21 @@ function openHistDetail(hi, ci, type, bi){
     box.innerHTML = '<div class="dfnote">' + esc(tip) + "</div>" + srcNote +
       (det ? dvHtml(det) : '<div class="dfnone">该业务已下架，且该轮次采集时未留存字段明细，无法补回</div>');
   }
-  var cur = null;
-  for(var i = 0; i < D.items.length; i++){
-    if(D.items[i].name === name){ cur = D.items[i]; break; }
+  var cur = (typeof findItem === "function") ? findItem(name) : null;
+  if(!cur){
+    for(var i = 0; i < D.items.length; i++){
+      if(D.items[i].name === name){ cur = D.items[i]; break; }
+    }
   }
   var wrap = document.getElementById("hmCurWrap"), dl = document.getElementById("hmCur");
-  if(cur && cur.fields && Object.keys(cur.fields).length){
+  /* 去重：上方已用「当前在架档案」渲染，或快照与档案字段完全一致，则不再重复展示一遍 */
+  var __sig = function(o){ return o ? JSON.stringify(o.fields || {}) : "\u0000"; };
+  var __sameAsUp = (typeof det !== "undefined") && det && det.fields && cur && cur.fields &&
+                   (__sig(det) === __sig(cur) || det.from === "cur");
+  if(cur && cur.fields && Object.keys(cur.fields).length && !__sameAsUp){
     dl.innerHTML = dvHtml(cur);
     wrap.style.display = "";
-  } else { wrap.style.display = "none"; }
+  } else { dl.innerHTML = ""; wrap.style.display = "none"; }
   document.getElementById("hmMask").classList.add("on");
 }
 function closeHist(){ document.getElementById("hmMask").classList.remove("on"); curHist = null; }
