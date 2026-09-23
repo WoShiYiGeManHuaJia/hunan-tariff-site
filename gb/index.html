@@ -1249,9 +1249,18 @@ function renderOverview(){
   var name = NAME_MAP[state.prov] || state.prov;
   var sp = document.getElementById("stPersonal"), sg = document.getElementById("stGq"), ot = document.getElementById("ovTotal");
   if(hasData()){
-    setNum(sp, st.personal || 0); setNum(sg, st.gq || 0); setNum(ot, st.total || 0);
-    document.getElementById("stPersonalL").textContent = st.__l1 ? (name + " · " + st.__l1) : (name + " · 个人资费");
-    document.getElementById("stGqL").textContent = st.__l2 ? (name + " · " + st.__l2) : (name + " · 政企资费");
+    var hasPG = (st.personal != null || st.gq != null);
+    var vP, vG;
+    if(hasPG){ vP = st.personal || 0; vG = st.gq || 0; }
+    else {
+      vP = (st.onsale != null ? st.onsale : 0);
+      vG = Math.max(0, (st.total || 0) - vP);
+      if(!vP && !vG){ vP = st.total || 0; vG = 0; }
+    }
+    var dL1 = hasPG ? "个人资费" : "在售", dL2 = hasPG ? "政企资费" : "停售";
+    setNum(sp, vP); setNum(sg, vG); setNum(ot, st.total || 0);
+    document.getElementById("stPersonalL").textContent = name + " · " + (st.__l1 || dL1);
+    document.getElementById("stGqL").textContent = name + " · " + (st.__l2 || dL2);
     document.getElementById("ovTotalL").textContent = name + "资费总数";
     document.getElementById("ovDesc").textContent = name + " · 六大类分布";
     renderBars(document.getElementById("ovBars"), st.dist || {});
