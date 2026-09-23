@@ -415,6 +415,8 @@ body{
 .df-arrow{text-align:center;color:var(--tx3);font-size:12px;margin:1px 0 1px 3px}
 .dfnone{padding:14px;border-radius:12px;background:var(--glass);border:1px dashed var(--bd2);
   font-size:12.5px;color:var(--tx3);text-align:center}
+.dfnote{margin-bottom:12px;padding:9px 12px;border-radius:10px;font-size:11.5px;line-height:1.6;
+  color:var(--tx2);background:var(--soft1);border:1px solid var(--softb1)}
 .dfcur{margin-top:14px}
 .dfcur-t{font-size:11.5px;font-weight:700;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
 @media(max-width:640px){
@@ -1858,6 +1860,8 @@ function openHistDetail(hi, ci, type, bi){
   var box = document.getElementById("hmDiff");
   var bf = (type === "mod") ? ((c.modified_before || {})[name] || null) : null;
   var af = (type === "mod") ? ((c.modified_after || {})[name] || null) : null;
+  var snap = ((type === "add" || type === "rst") ? (c.added_details || {})
+            : (type === "del" ? (c.removed_details || {}) : {}))[name] || null;
   if(bf || af){
     box.innerHTML = cmpHtml(bf, af, rows.length);
   } else if(rows.length){
@@ -1870,6 +1874,11 @@ function openHistDetail(hi, ci, type, bi){
         '<div class="df-line"><span class="df-tag df-new">修改后</span><span class="df-txt df-newv">' + esc(r.to || "（空）") + "</span></div>" +
         "</div></div>";
     }).join("");
+  } else if(snap){
+    var nt = type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
+           : (type === "add" ? "新增业务：无「修改前」记录"
+           : "已下线业务：无「修改后」记录");
+    box.innerHTML = '<div class="dfnote">' + nt + '</div>' + dvHtml({ name:name, fields:snap });
   } else {
     box.innerHTML = '<div class="dfnone">' +
       (type === "mod" ? "该业务本次未记录字段级差异"
