@@ -237,8 +237,10 @@ def main():
             print("[%s] !! 校验未通过，放弃写入" % label)
             continue
 
+        # 保持原有排版：原本是缩进格式就仍用缩进
+        indent = 2 if txt.count("\n") > 100 else None
         with open(hpath, "w", encoding="utf-8") as fh:
-            json.dump(hist, fh, ensure_ascii=False)
+            json.dump(hist, fh, ensure_ascii=False, indent=indent)
         total_fixed += fixed
         report.append("%s 补齐 %d/%d" % (label, fixed, len(miss)))
         print("[%s] 补齐 %d/%d，已写回 %s" % (label, fixed, len(miss), hpath))
