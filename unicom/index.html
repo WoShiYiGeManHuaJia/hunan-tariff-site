@@ -706,7 +706,7 @@ a.opc{text-decoration:none;display:block}
       <div class="stats">
         <div class="stat"><div class="stat-ic">🌐</div><div class="stat-n" id="stQg" data-num="1558">0</div><div class="stat-l">全网通用资费</div></div>
         <div class="stat"><div class="stat-ic">🗺️</div><div class="stat-n" id="stProv" data-num="42818">0</div><div class="stat-l">31 省资费合计（去重）</div></div>
-        <div class="stat a"><div class="stat-ic">👤</div><div class="stat-n" id="stPersonal">0</div><div class="stat-l" id="stPersonalL">本省个人资费</div></div>
+        <div class="stat a"><div class="stat-ic">👤</div><div class="stat-n" id="stPersonal">0</div><div class="stat-l" id="stPersonalL">本省在售</div></div>
         <div class="stat b"><div class="stat-ic">🏢</div><div class="stat-n" id="stGq">0</div><div class="stat-l" id="stGqL">本省政企资费</div></div>
       </div>
 
@@ -1140,9 +1140,18 @@ function renderOverview(){
   var name = NAME_MAP[state.prov] || state.prov;
   var sp = document.getElementById("stPersonal"), sg = document.getElementById("stGq"), ot = document.getElementById("ovTotal");
   if(hasData()){
-    setNum(sp, st.personal || 0); setNum(sg, st.gq || 0); setNum(ot, st.total || 0);
-    document.getElementById("stPersonalL").textContent = name + " · 个人资费";
-    document.getElementById("stGqL").textContent = name + " · 政企资费";
+    var hasPG = (st.personal != null || st.gq != null);
+    var vP, vG;
+    if(hasPG){ vP = st.personal || 0; vG = st.gq || 0; }
+    else {
+      vP = (st.onsale != null ? st.onsale : 0);
+      vG = Math.max(0, (st.total || 0) - vP);
+      if(!vP && !vG){ vP = st.total || 0; vG = 0; }
+    }
+    var dL1 = hasPG ? "个人资费" : "在售", dL2 = hasPG ? "政企资费" : "停售";
+    setNum(sp, vP); setNum(sg, vG); setNum(ot, st.total || 0);
+    document.getElementById("stPersonalL").textContent = name + " · " + (st.__l1 || dL1);
+    document.getElementById("stGqL").textContent = name + " · " + (st.__l2 || dL2);
     document.getElementById("ovTotalL").textContent = name + "资费总数";
     document.getElementById("ovDesc").textContent = name + " · 六大类分布";
     renderBars(document.getElementById("ovBars"), st.dist || {});
