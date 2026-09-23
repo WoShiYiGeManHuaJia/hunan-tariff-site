@@ -58,7 +58,7 @@ def filter_test_items(items: list, verbose: bool = True) -> list:
 # 单条 entry 最多保留多少条变化名称/详情明细。
 # 一次接口大变动可能产生数百个变更，全量塞进 history 会让文件膨胀到几十 MB
 # （联通 history.json 曾达 42MB，前端需一次性全量下载）。
-HIST_DETAIL_LIMIT = int(os.getenv("HIST_DETAIL_LIMIT") or "20")
+HIST_DETAIL_LIMIT = int(os.getenv("HIST_DETAIL_LIMIT") or "60")
 HIST_NAME_LIMIT = int(os.getenv("HIST_NAME_LIMIT") or "30")
 # *_list 是联通/广电保存的「精简详情对象数组」，每个元素含 serviceContent 等长文本。
 # 一个板块曾存到 1164 个元素（约 0.4MB），是 history 膨胀的真正元凶
@@ -371,3 +371,33 @@ def mark_noise(sec_result, base_total):
         "note": "本轮增删 %d 条，超过基线 %.0f%%（阈值 %.0f%%），判定为接口随机采样抖动，"
                 "非真实业务变动，已忽略明细" % (a + r, (a + r) / float(base_total) * 100, NOISE_RATIO * 100),
     }
+
+
+def field_snapshot(it):
+    """把一条资费条目转为字段快照（新增/下架详情弹窗用）。
+
+    电信/广电此前只存 added_names/removed_names，不存 *_details，
+    于是历史里「新增/下架」业务点开永远只有一句提示。这里补上生成逻辑，
+    输出结构与联通站 field_snapshot 一致（扁平键值，前端 __normItem 可转中文）。
+    兼容 detail 嵌套与扁平两种条目结构。
+    """
+    if not isinstance(it, dict):
+        return {}
+    d = it.get("detail") or it
+    if not isinstance(d, dict):
+        d = it
+    snap = {}
+    for k in ("title", "fee", "firstLevel", "secondLevel"):
+        v = it.get(k, "")
+        v = "" if v is None else v
+        if v != "":
+            snap[k] = v
+    for k in ("feesStandard", "feeUnit", "minute", "commonData", "dataUnit", "orientTraffic",
+              "validPeriod", "saleChnl", "serviceContent", "codeType", "reportNo", "extraFees",
+              "useScope", "broadBand", "sms", "onlinePeriod", "onDate", "offDate",
+              "inNetReq", "unsubscribe", "responsibility", "otherNotes", "iptv", "name"):
+        v = d.get(k, "")
+        v = "" if v is None else v
+        if v != "" and v != "0":
+            snap[k] = v
+    return snap

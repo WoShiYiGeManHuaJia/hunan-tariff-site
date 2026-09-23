@@ -1995,6 +1995,79 @@ function ckPollRun(tk, t0){
   }, 10000);
 }
 
+var FIELD_CN = {
+  "title":"业务名称","name":"业务名称","planName":"业务名称",
+  "fee":"资费标准","feesStandard":"资费标准","feeUnit":"资费单位",
+  "firstLevel":"归属","secondLevel":"资费类型","codeType":"资费类型",
+  "reportNo":"方案编号","planNo":"方案编号","planCode":"方案编号",
+  "useScope":"适用范围","saleChnl":"销售渠道","channel":"销售渠道",
+  "onDate":"上线日期","onlineDate":"上线日期","effectDate":"生效日期",
+  "offDate":"下线日期","offlineDate":"下线日期",
+  "validPeriod":"有效期限","inNetReq":"在网要求","onlinePeriod":"在网要求",
+  "unsubscribe":"退订方式","responsibility":"违约责任",
+  "extraFees":"超出资费说明","serviceContent":"其他服务内容",
+  "otherNotes":"其他说明","remark":"备注","desc":"说明","description":"说明",
+  "content":"内容","minute":"国内通话","voice":"国内通话",
+  "commonData":"国内通用流量","data":"国内通用流量","dataUnit":"流量单位",
+  "sms":"国内短信","orientTraffic":"定向流量","broadBand":"宽带","bandwidth":"宽带",
+  "iptv":"移动高清","province":"适用地区","region":"适用地区","area":"适用地区",
+  "status":"状态","packageType":"套餐类型","productType":"产品类型"
+};
+function cnField(k){ return FIELD_CN[k] || k; }
+/* 按名称在当前档案里查找（补录类没有快照时的兜底） */
+function findItem(name){
+  if(!name){ return null; }
+  var pools = [D.items, D.qitems];
+  for(var p = 0; p < pools.length; p++){
+    var arr = pools[p]; if(!arr){ continue; }
+    for(var i = 0; i < arr.length; i++){
+      if(arr[i] && arr[i].name === name){ return arr[i]; }
+    }
+  }
+  return null;
+}
+/* 从变更记录里取出该业务的完整字段。
+   兜底链：*_details 字典 → *_list 精简快照数组 → 当前在架档案。
+   补录(rst) 额外兼容：部分老记录把补录明细存在 added_details 里。 */
+function histRaw(c, type, name){
+  if(!c || !name){ return null; }
+  var dks = type === "add" ? ["added_details"]
+          : (type === "del" ? ["removed_details"]
+          : (type === "rst" ? ["restored_details", "added_details"] : []));
+  for(var i = 0; i < dks.length; i++){
+    var dd = c[dks[i]];
+    if(dd && typeof dd === "object" && !Array.isArray(dd) && dd[name]){ return { v:dd[name], from:"snap" }; }
+  }
+  var lks = type === "add" ? ["added_list"]
+          : (type === "del" ? ["removed_list"]
+          : (type === "rst" ? ["restored_list", "added_list"] : ["modified_list"]));
+  for(var j = 0; j < lks.length; j++){
+    var lst = c[lks[j]];
+    if(!Array.isArray(lst)){ continue; }
+    for(var k = 0; k < lst.length; k++){
+      var x = lst[k]; if(!x || typeof x !== "object"){ continue; }
+      var nm = x.title || x.name || x.planName || "";
+      if(nm === name){ return { v:x, from:"list" }; }
+    }
+  }
+  return null;
+}
+/* 归一化成 {name, fields}，中文原样、英文按 __normItem 规则转换 */
+function histItem(c, type, name){
+  var r = histRaw(c, type, name);
+  if(!r || !r.v || typeof r.v !== "object"){ return null; }
+  var raw = r.v;
+  if(raw["资费标准"] || raw["方案编号"] || raw["归属"] || raw["国内通话"] || raw["国内通用流量"]){
+    return { name:name, fields:raw, from:r.from };
+  }
+  var w = {};
+  for(var k in raw){ if(Object.prototype.hasOwnProperty.call(raw, k)){ w[k] = raw[k]; } }
+  w.detail = raw;
+  w.title = raw.title || raw.name || name;
+  var n = __normItem(w);
+  return (n && n.fields && Object.keys(n.fields).length) ? { name:name, fields:n.fields, from:r.from } : null;
+}
+
 /* ---------- 变更详情弹窗 ---------- */
 var curHist = null;
 function openHistDetail(hi, ci, type, bi){
@@ -2025,24 +2098,32 @@ function openHistDetail(hi, ci, type, bi){
   } else if(rows.length){
     box.innerHTML = rows.map(function(r, i){
       return '<div class="dfrow" style="animation-delay:' + Math.min(i * 45, 270) + 'ms">' +
-        '<div class="df-f">' + esc(r.field) + "</div>" +
+        '<div class="df-f">' + esc(cnField(r.field)) + "</div>" +
         '<div class="df-v">' +
         '<div class="df-line"><span class="df-tag df-old">修改前</span><span class="df-txt df-oldv">' + esc(r["from"] || "（空）") + "</span></div>" +
         '<div class="df-arrow">\u2193</div>' +
         '<div class="df-line"><span class="df-tag df-new">修改后</span><span class="df-txt df-newv">' + esc(r.to || "（空）") + "</span></div>" +
         "</div></div>";
     }).join("");
-  } else if(snap){
-    var nt = type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
-           : (type === "add" ? "新增业务：无「修改前」记录"
-           : "已下线业务：无「修改后」记录");
-    box.innerHTML = '<div class="dfnote">' + nt + '</div>' + dvHtml({ name:name, fields:snap });
   } else {
-    box.innerHTML = '<div class="dfnone">' +
-      (type === "mod" ? "该业务本次未记录字段级差异"
-        : (type === "add" ? "新增业务：无「修改前」记录"
+    var tip = (type === "mod" ? "该业务本次未记录字段级差异"
+        : (type === "add" ? "新增业务：首次采集，无「修改前」记录"
         : (type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
-        : "已下线业务：无「修改后」记录"))) + "</div>";
+        : "已下线业务：无「修改后」记录")));
+    /* 兜底链：本轮字段快照 → 变更记录里的精简快照 → 当前在架档案 */
+    var det = (snap && Object.keys(snap).length) ? { name:name, fields:snap, from:"snap" }
+            : (histItem(c, type, name) || null);
+    if(!det){
+      var c0 = findItem(name);
+      if(c0 && c0.fields && Object.keys(c0.fields).length){ det = { name:name, fields:c0.fields, from:"cur" }; }
+    }
+    var srcNote = det ? (
+        det.from === "snap" ? ""
+      : det.from === "list" ? '<div class="dfnote">该轮次未留存完整字段快照，以下为本轮采集的精简记录</div>'
+      : '<div class="dfnote">该轮次未留存字段快照，以下为<b>当前在架档案</b>（字段可能已变动）</div>'
+    ) : "";
+    box.innerHTML = '<div class="dfnote">' + esc(tip) + "</div>" + srcNote +
+      (det ? dvHtml(det) : '<div class="dfnone">该业务已下架，且该轮次采集时未留存字段明细，无法补回</div>');
   }
   var cur = null;
   for(var i = 0; i < D.items.length; i++){

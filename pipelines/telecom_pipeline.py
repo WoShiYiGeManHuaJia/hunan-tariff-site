@@ -11,7 +11,7 @@
 import urllib.request, json, time, base64, hashlib, os, sys, argparse
 
 from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
-                             modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key)
+                             modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key, field_snapshot)
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
@@ -183,6 +183,8 @@ def diff_scope(prev, cur):
             "removed_names": [x.get("title", "") for x in removed],
             "modified_names": [x.get("title", "") for x in modified],
             "modified_details": r["modified_details"],
+            "added_details": {(x.get("title","") or x.get("name","")): field_snapshot(x) for x in added},
+            "removed_details": {(x.get("title","") or x.get("name","")): field_snapshot(x) for x in removed},
             "added_list": [_brief(x) for x in added[:24]],
             "removed_list": [_brief(x) for x in removed[:24]],
             "modified_list": [_brief(x) for x in modified[:24]]}
