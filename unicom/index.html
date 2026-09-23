@@ -745,7 +745,7 @@ a.opc{text-decoration:none;display:block}
         <span class="hint" id="qHint"></span>
       </div>
       <div class="list" id="qList" data-scope="q"></div>
-      <div class="pagerwrap"><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="qPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button></div>
+      <div class="pagerwrap"><button class="pg nav" data-pg="first" aria-label="首页">«</button><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="qPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button><button class="pg nav" data-pg="last" aria-label="末页">»</button></div>
     </section>
 
     <section class="view" id="v-prov">
@@ -763,7 +763,7 @@ a.opc{text-decoration:none;display:block}
         <span class="hint" id="pHint"></span>
       </div>
       <div class="list" id="pList" data-scope="p"></div>
-      <div class="pagerwrap"><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="pPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button></div>
+      <div class="pagerwrap"><button class="pg nav" data-pg="first" aria-label="首页">«</button><button class="pg nav" data-pg="prev" aria-label="上一页">‹</button><div class="pager" id="pPager"></div><button class="pg nav" data-pg="next" aria-label="下一页">›</button><button class="pg nav" data-pg="last" aria-label="末页">»</button></div>
     </section>
 
     <section class="view" id="v-history">
@@ -1295,12 +1295,11 @@ function renderList(scope){
     return;
   }
   box.innerHTML = skeleton(6);
-  pager.innerHTML = "";
   var arr = filtered(scope), per = 12;
   var pages = Math.max(1, Math.ceil(arr.length / per));
   if(s.page > pages){ s.page = pages; }
   var slice = arr.slice((s.page-1)*per, s.page*per);
-  setTimeout(function(){
+  (function(){
     if(!slice.length){
       box.innerHTML = '<div class="empty"><span class="ei">🔍</span>没有匹配的资费，换个关键词试试' +
         '<div style="margin-top:12px"><button class="btn" data-f="clearf" data-scope="' + scope + '">清除全部筛选</button></div></div>';
@@ -1308,21 +1307,30 @@ function renderList(scope){
       box.innerHTML = slice.map(function(it,i){ return cardHTML(it,i); }).join("");
     }
     hint.textContent = "共 " + fmt(arr.length) + " 条 · 第 " + s.page + "/" + pages + " 页 · 左右滑动翻页";
-    var btns = [];
-    for(var k = 1; k <= pages; k++){
-      btns.push('<button class="pg' + (k === s.page ? " on" : "") + '" data-pg="' + k + '">' + k + "</button>");
+    if(pager.__pages !== pages){
+      var btns = [];
+      for(var k = 1; k <= pages; k++){
+        btns.push('<button class="pg' + (k === s.page ? " on" : "") + '" data-pg="' + k + '">' + k + "</button>");
+      }
+      pager.innerHTML = btns.join("");
+      pager.__pages = pages;
+    } else {
+      var __po = pager.querySelector(".pg.on"); if(__po){ __po.classList.remove("on"); }
+      var __pc = pager.querySelector('[data-pg="'+s.page+'"]'); if(__pc){ __pc.classList.add("on"); }
     }
-    pager.innerHTML = btns.join("");
-    pager.style.justifyContent = "center";
+    pager.style.justifyContent = "flex-start";
     var wrap = pager.closest ? pager.closest(".pagerwrap") : null;
     if(wrap){
       var pv2 = wrap.querySelector('[data-pg="prev"]'), nx2 = wrap.querySelector('[data-pg="next"]');
+      var f2 = wrap.querySelector('[data-pg="first"]'), l2 = wrap.querySelector('[data-pg="last"]');
       if(pv2){ pv2.disabled = (s.page === 1); }
       if(nx2){ nx2.disabled = (s.page === pages); }
+      if(f2){ f2.disabled = (s.page === 1); }
+      if(l2){ l2.disabled = (s.page === pages); }
     }
-    if(pager.scrollWidth > pager.clientWidth + 2){ pager.style.justifyContent = "flex-start"; }
+    if(pages <= 9){ pager.style.justifyContent = "center"; }
     pgCenter(pager);
-  }, 220);
+  })();
 }
 
 
@@ -2189,6 +2197,8 @@ document.addEventListener("click", function(e){
     var ps = _pid === "qPager" ? "q" : "p";
     if(pg === "prev"){ state[ps].page = Math.max(1, state[ps].page - 1); }
     else if(pg === "next"){ state[ps].page = state[ps].page + 1; }
+    else if(pg === "first"){ state[ps].page = 1; }
+    else if(pg === "last"){ state[ps].page = 2147483647; }
     else { state[ps].page = parseInt(pg, 10); }
     renderList(ps);
     var top = pbox.getBoundingClientRect().top + window.scrollY - 140;
