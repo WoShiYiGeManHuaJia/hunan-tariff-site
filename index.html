@@ -415,8 +415,6 @@ body{
 .df-arrow{text-align:center;color:var(--tx3);font-size:12px;margin:1px 0 1px 3px}
 .dfnone{padding:14px;border-radius:12px;background:var(--glass);border:1px dashed var(--bd2);
   font-size:12.5px;color:var(--tx3);text-align:center}
-.dfnote{margin-bottom:12px;padding:9px 12px;border-radius:10px;font-size:11.5px;line-height:1.6;
-  color:var(--tx2);background:var(--soft1);border:1px solid var(--softb1)}
 .dfcur{margin-top:14px}
 .dfcur-t{font-size:11.5px;font-weight:700;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
 @media(max-width:640px){
@@ -829,33 +827,6 @@ a.opc{text-decoration:none;display:block}
   </main>
 </div>
 
-
-<!-- 一键抓取令牌弹窗 -->
-<div class="mask" id="tkMask">
-  <div class="modal" style="width:min(480px,100%)">
-    <div class="mh"><h3>开启一键抓取</h3><button class="mx" id="tkX">×</button></div>
-    <div class="mb">
-      <div class="ckbox">
-        <div class="ckmeta" id="tkMsg" style="margin-bottom:12px;line-height:1.75">
-          填入一个对本仓库有 <b>Actions 读写</b> 权限的 GitHub 令牌，之后点「立即触发抓取」即可直接启动云端抓取，<b>跑完自动刷新页面</b>。<br>
-          令牌<b>只保存在你本机浏览器</b>，不会写进仓库、不会上传到任何地方。
-        </div>
-        <input id="tkInput" type="password" placeholder="github_pat_... / ghp_..." autocomplete="off"
-          style="width:100%;box-sizing:border-box;padding:11px 12px;border-radius:12px;border:1px solid var(--bd2);background:rgba(127,127,127,.10);color:var(--tx);font-size:14px;outline:none">
-        <ul class="cktips" style="margin-top:12px">
-          <li>创建：GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → 只选本仓库 → Actions 设为 <b>Read and write</b></li>
-          <li>不想配置也可以点「打开 Actions 页」手动运行，效果一样</li>
-        </ul>
-      </div>
-    </div>
-    <div class="mf">
-      <button class="btn" id="tkClear">清除令牌</button>
-      <button class="btn" id="tkGh">打开 Actions 页</button>
-      <button class="btn pri" id="tkSave">保存并抓取</button>
-    </div>
-  </div>
-</div>
-
 <!-- 详情弹窗 -->
 <!-- 检测弹窗 -->
 <div class="mask" id="ckMask">
@@ -875,9 +846,9 @@ a.opc{text-decoration:none;display:block}
       </div>
     </div>
     <div class="mf">
+      <button class="btn" id="ckGh">立即触发抓取</button>
       <button class="btn" id="ckStop">停止检测</button>
-      <button class="btn" id="ckOk">后台继续检测</button>
-      <button class="btn pri" id="ckGh">立即触发抓取</button>
+      <button class="btn pri" id="ckOk">后台继续检测</button>
     </div>
   </div>
 </div>
@@ -954,7 +925,12 @@ function __nz(v){
 function __normItem(it){
   if(!it){ return null; }
   if(__isMove(it)){ return it; }          // 移动：已是目标结构，原样返回
-  var d = (it && it.detail) || {};
+  /* 兼容两种结构：字段可能散在顶层(联通/电信/广电)或 detail 内 */
+  var d = {};
+  if(it){ Object.keys(it).forEach(function(k){ if(k !== "detail"){ d[k] = it[k]; } }); }
+  if(it && it.detail && typeof it.detail === "object"){
+    Object.keys(it.detail).forEach(function(k){ d[k] = it.detail[k]; });
+  }
   var f = {};
   function set(k, v){ var s = __nz(v); if(s !== "" && s !== "0"){ f[k] = s; } }
   var fee = __nz(d.feesStandard) || __nz(it.fee);
@@ -1757,14 +1733,27 @@ var DV_L = ["国内通话","国内通用流量","定向流量","宽带","移动�
 var DV_R = ["适用范围","适用地区","上线日期","下线日期","有效期限","在网要求","销售渠道","退订方式","违约责任","超出资费说明","其他服务内容","其他说明"];
 var DV_C = {"国内通话":"c-call","国内通用流量":"c-flow","定向流量":"c-dir","宽带":"c-bb","移动高清":"c-tv","权益":"c-rt","上线日期":"c-on","下线日期":"c-off"};
 var DV_ALL = DV_L.concat(DV_R);
+/* 兜底：数据源字段名为英文时（联通/电信/广电），统一翻译成中文标签 */
+var DV_EN = {"title":"业务名称","name":"业务名称","fee":"资费标准","feesStandard":"资费标准",
+  "feeUnit":"资费单位","firstLevel":"归属","secondLevel":"资费类型","codeType":"资费类型",
+  "reportNo":"方案编号","useScope":"适用范围","saleChnl":"销售渠道","onDate":"上线日期",
+  "offDate":"下线日期","validPeriod":"有效期限","inNetReq":"在网要求","onlinePeriod":"在网要求",
+  "unsubscribe":"退订方式","responsibility":"违约责任","minute":"国内通话","commonData":"国内通用流量",
+  "dataUnit":"流量单位","orientTraffic":"定向流量","sms":"国内短信","broadBand":"宽带","iptv":"移动高清",
+  "extraFees":"超出资费说明","serviceContent":"其他服务内容","otherNotes":"其他说明"};
+var DV_EN_C = {"minute":"c-call","commonData":"c-flow","orientTraffic":"c-dir","broadBand":"c-bb",
+  "iptv":"c-tv","onDate":"c-on","offDate":"c-off","sms":"c-flow"};
+function dvLabel(k){ return DV_EN[k] || k; }
+function dvColor(k){ return DV_C[k] || DV_EN_C[k] || ""; }
 function dvRow(k, v){
-  var c = DV_C[k] || "";
-  return '<div class="dv-r"><div class="dv-k">' + esc(k) + '</div>' +
+  var c = dvColor(k), lb = dvLabel(k);
+  return '<div class="dv-r"><div class="dv-k">' + esc(lb) + '</div>' +
          '<div class="dv-v ' + c + '">' + esc(v) + '</div></div>';
 }
 function dvHtml(it){
   var o = it.fields || {}, html = "";
-  var price = o["资费标准"] || "", code = o["方案编号"] || "";
+  var price = o["资费标准"] || o["feesStandard"] || o["fee"] || "", code = o["方案编号"] || o["reportNo"] || "";
+  if(price && !/元|月|次|年/.test(price)){ price = price + (o["feeUnit"] || "元/月"); }
   if(price || code){
     html += '<div class="dv-hero">' +
       (price ? '<div class="dv-price"><span class="dv-lb">资费标准</span><b>' + esc(price) + '</b></div>' : '') +
@@ -1772,15 +1761,20 @@ function dvHtml(it){
       '</div>';
   }
   var tg = [];
-  if(o["归属"]) tg.push('<span class="dv-tag t-own">' + esc(o["归属"]) + '</span>');
-  if(o["资费类型"]) tg.push('<span class="dv-tag t-typ">' + esc(o["资费类型"]) + '</span>');
+  var own = o["归属"] || o["firstLevel"] || "", typ = o["资费类型"] || o["secondLevel"] || o["codeType"] || "";
+  if(own) tg.push('<span class="dv-tag t-own">' + esc(own) + '</span>');
+  if(typ) tg.push('<span class="dv-tag t-typ">' + esc(typ) + '</span>');
   if(tg.length) html += '<div class="dv-tags">' + tg.join("") + '</div>';
   var L = [], R = [], rest = [], seen = {};
-  DV_L.forEach(function(k){ seen[k] = 1; if(o[k]){ L.push(dvRow(k, o[k])); } });
-  DV_R.forEach(function(k){ seen[k] = 1; if(o[k]){ R.push(dvRow(k, o[k])); } });
-  Object.keys(o).forEach(function(k){
-    if(seen[k] || k === "资费标准" || k === "方案编号" || k === "归属" || k === "资费类型"){ return; }
-    var v = o[k]; if(v === "" || v == null){ return; }
+  /* 先按中文标签归并，避免同一字段中英文各出现一次 */
+  var cn = {};
+  Object.keys(o).forEach(function(k){ var lb = dvLabel(k); if(!cn[lb]){ cn[lb] = o[k]; } });
+  DV_L.forEach(function(k){ seen[k] = 1; if(cn[k]){ L.push(dvRow(k, cn[k])); } });
+  DV_R.forEach(function(k){ seen[k] = 1; if(cn[k]){ R.push(dvRow(k, cn[k])); } });
+  Object.keys(cn).forEach(function(k){
+    if(seen[k] || k === "资费标准" || k === "方案编号" || k === "归属" || k === "资费类型"
+       || k === "业务名称" || k === "资费单位" || k === "流量单位"){ return; }
+    var v = cn[k]; if(v === "" || v == null){ return; }
     rest.push(dvRow(k, v));
   });
   var hasL = L.length > 0, hasR = (R.length + rest.length) > 0;
@@ -1864,105 +1858,6 @@ function ckTick(){
 }
 
 
-
-/* ---------- 一键触发云端抓取（令牌仅存本机 localStorage） ---------- */
-var CK_OWNER = "WoShiYiGeManHuaJia";
-var CK_REPO  = "hunan-tariff-site";
-var CK_API   = "https://api.github.com/repos/" + CK_OWNER + "/" + CK_REPO;
-function ckTkKey(){ return "ghpat__" + CK_REPO + "__" + CK_WF; }
-function ckTkGet(){ try{ return localStorage.getItem(ckTkKey()) || ""; }catch(e){ return ""; } }
-function ckTkSet(v){ try{ if(v){ localStorage.setItem(ckTkKey(), v); }else{ localStorage.removeItem(ckTkKey()); } }catch(e){} }
-function ckTkClose(){ var m=document.getElementById("tkMask"); if(m){ m.classList.remove("on"); } }
-function ckTkOpen(msg){
-  var m = document.getElementById("tkMask");
-  if(!m){ window.open(ckGhUrl(), "_blank"); return; }
-  var g = document.getElementById("tkMsg");
-  if(g && msg){ g.innerHTML = '<b style="color:var(--warn)">' + msg + '</b><br>令牌只保存在你本机浏览器，不会写进仓库。'; }
-  var ip = document.getElementById("tkInput");
-  if(ip){ ip.value = ckTkGet(); }
-  m.classList.add("on");
-}
-function ckTkSave(){
-  var ip = document.getElementById("tkInput");
-  var v = (ip && ip.value || "").trim();
-  if(!v){ toast("请先填入令牌"); return; }
-  ckTkSet(v);
-  ckTkClose();
-  ckDispatch(v);
-}
-function ckTrigger(){
-  var tk = ckTkGet();
-  if(!tk){ ckTkOpen(""); return; }
-  ckDispatch(tk);
-}
-function ckSetStat(txt){ var s=document.getElementById("ckStat"); if(s){ s.textContent = txt; } }
-function ckSetMeta(html){ var m=document.getElementById("ckMeta"); if(m){ m.innerHTML = html; } }
-function ckSetBar(p){ var b=document.getElementById("ckBar"); if(b){ b.style.width = p + "%"; } }
-function ckHdr(tk){
-  return { "Accept":"application/vnd.github+json", "Authorization":"Bearer " + tk, "Content-Type":"application/json" };
-}
-function ckDispatch(tk){
-  ckStopTimer();
-  ckSetStat("正在触发云端抓取…");
-  ckSetMeta("工作流 <b>" + CK_WF + "</b>");
-  ckSetBar(5);
-  var t0 = Date.now() - 10000;
-  fetch(CK_API + "/actions/workflows/" + CK_WF + "/dispatches", {
-    method:"POST", headers: ckHdr(tk),
-    body: JSON.stringify({ ref:"main", inputs:{ mode:"default" } })
-  }).then(function(r){
-    if(r.status === 204){ ckPollRun(tk, t0); return; }
-    if(r.status === 401 || r.status === 403){
-      ckTkSet("");
-      ckTkOpen("令牌无效或权限不足（HTTP " + r.status + "），请重新填写");
-      ckSetStat("触发失败：令牌无效");
-      return;
-    }
-    return r.text().then(function(t){ throw new Error("HTTP " + r.status + " " + String(t).slice(0,120)); });
-  }).catch(function(e){
-    ckSetStat("触发失败：" + (e && e.message ? e.message : e));
-    ckSetBar(0);
-    toast("触发失败，可改用「打开 Actions 页」");
-  });
-}
-function ckPollRun(tk, t0){
-  var n = 0, timer = null;
-  ckSetBar(10);
-  timer = setInterval(function(){
-    n++;
-    fetch(CK_API + "/actions/workflows/" + CK_WF + "/runs?per_page=5", { headers: ckHdr(tk) })
-    .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.json(); })
-    .then(function(j){
-      var runs = (j && j.workflow_runs) || [], run = null;
-      for(var i=0;i<runs.length;i++){
-        if(new Date(runs[i].created_at).getTime() >= t0){ run = runs[i]; break; }
-      }
-      if(!run){ ckSetStat("已触发，等待任务排队…（第 " + n + " 次）"); return; }
-      var s = run.status, c = run.conclusion;
-      ckSetBar(s === "completed" ? 100 : (s === "in_progress" ? 65 : 30));
-      ckSetMeta("工作流 <b>" + CK_WF + "</b> · <b>" +
-        (s === "completed" ? (c === "success" ? "运行成功" : "运行结束（" + (c||"-") + "）")
-                           : (s === "in_progress" ? "运行中" : "排队中")) + "</b>");
-      if(s === "completed"){
-        clearInterval(timer);
-        var sp = document.getElementById("ckSpin"); if(sp){ sp.classList.add("done"); }
-        if(c === "success"){
-          ckSetStat("抓取完成，正在刷新页面…");
-          setTimeout(function(){ location.href = location.pathname + "?_=" + Date.now(); }, 900);
-        }else{
-          ckSetStat("任务结束但结论为 " + (c||"未知") + "，数据可能未更新");
-        }
-        return;
-      }
-      ckSetStat("云端抓取中…（第 " + n + " 次，每 10 秒查询）");
-      if(n > 120){ clearInterval(timer); ckSetStat("等待超时，请稍后手动刷新页面查看"); }
-    }).catch(function(e){
-      ckSetStat("查询任务状态失败：" + (e && e.message ? e.message : e) + "（第 " + n + " 次）");
-      if(n > 5){ clearInterval(timer); }
-    });
-  }, 10000);
-}
-
 /* ---------- 变更详情弹窗 ---------- */
 var curHist = null;
 function openHistDetail(hi, ci, type, bi){
@@ -1986,8 +1881,6 @@ function openHistDetail(hi, ci, type, bi){
   var box = document.getElementById("hmDiff");
   var bf = (type === "mod") ? ((c.modified_before || {})[name] || null) : null;
   var af = (type === "mod") ? ((c.modified_after || {})[name] || null) : null;
-  var snap = ((type === "add" || type === "rst") ? (c.added_details || {})
-            : (type === "del" ? (c.removed_details || {}) : {}))[name] || null;
   if(bf || af){
     box.innerHTML = cmpHtml(bf, af, rows.length);
   } else if(rows.length){
@@ -2000,11 +1893,6 @@ function openHistDetail(hi, ci, type, bi){
         '<div class="df-line"><span class="df-tag df-new">修改后</span><span class="df-txt df-newv">' + esc(r.to || "（空）") + "</span></div>" +
         "</div></div>";
     }).join("");
-  } else if(snap){
-    var nt = type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
-           : (type === "add" ? "新增业务：无「修改前」记录"
-           : "已下线业务：无「修改后」记录");
-    box.innerHTML = '<div class="dfnote">' + nt + '</div>' + dvHtml({ name:name, fields:snap });
   } else {
     box.innerHTML = '<div class="dfnone">' +
       (type === "mod" ? "该业务本次未记录字段级差异"
@@ -2018,12 +1906,8 @@ function openHistDetail(hi, ci, type, bi){
   }
   var wrap = document.getElementById("hmCurWrap"), dl = document.getElementById("hmCur");
   if(cur && cur.fields){
-    var html = "";
-    Object.keys(cur.fields).forEach(function(k){
-      var v = cur.fields[k];
-      if(v === "" || v == null){ return; }
-      html += "<dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd>";
-    });
+    var html = dvHtml(cur);
+
     if(html){ dl.innerHTML = html; wrap.style.display = ""; }
     else { wrap.style.display = "none"; }
   } else { wrap.style.display = "none"; }
@@ -2250,11 +2134,7 @@ document.addEventListener("click", function(e){
   if(el.id === "ckX"){ ckClose(); return; }
   if(el.id === "ckOk"){ ckMin(); return; }
   if(el.id === "ckStop"){ ckStop(); toast("已停止自动检测"); return; }
-      if(el.id === "tkX"){ ckTkClose(); return; }
-    if(el.id === "tkSave"){ ckTkSave(); return; }
-    if(el.id === "tkClear"){ ckTkSet(""); var ip=document.getElementById("tkInput"); if(ip){ ip.value=""; } toast("已清除本机令牌"); return; }
-    if(el.id === "tkGh"){ window.open(ckGhUrl(), "_blank"); return; }
-    if(el.id === "ckGh"){ ckTrigger(); return; }
+  if(el.id === "ckGh"){ window.open(ckGhUrl(), "_blank"); toast("已打开 Actions 手动触发页"); return; }
   if(el.id === "opX"){ document.getElementById("opMask").classList.remove("on"); return; }
   if(el.id === "hmMask"){ closeHist(); return; }
   var mkEl = el.closest ? el.closest(".mask") : null;
@@ -2264,7 +2144,6 @@ document.addEventListener("click", function(e){
     else if(mkEl.id === "opMask"){ document.getElementById("opMask").classList.remove("on"); }
     else if(mkEl.id === "hmMask"){ closeHist(); }
     else if(mkEl.id === "ckMask"){ ckMin(); }
-      else if(mkEl.id === "tkMask"){ ckTkClose(); }
     return;
   }
   if(el.id === "mCopy" && curDetail){
