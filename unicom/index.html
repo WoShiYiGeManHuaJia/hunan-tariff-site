@@ -1837,15 +1837,14 @@ function openHistDetail(hi, ci, type, bi){
   if(bf || af){
     box.innerHTML = cmpHtml(bf, af, rows.length);
   } else if(rows.length){
-    box.innerHTML = rows.map(function(r, i){
-      return '<div class="dfrow" style="animation-delay:' + Math.min(i * 45, 270) + 'ms">' +
-        '<div class="df-f">' + esc(cnField(r.field)) + "</div>" +
-        '<div class="df-v">' +
-        '<div class="df-line"><span class="df-tag df-old">修改前</span><span class="df-txt df-oldv">' + esc(r["from"] || "（空）") + "</span></div>" +
-        '<div class="df-arrow">\u2193</div>' +
-        '<div class="df-line"><span class="df-tag df-new">修改后</span><span class="df-txt df-newv">' + esc(r.to || "（空）") + "</span></div>" +
-        "</div></div>";
-    }).join("");
+    var rb = {}, ra = {};
+    rows.forEach(function(r){
+      var fk = cnField(r.field || r.k || "");
+      rb[fk] = (r["from"] == null || r["from"] === "") ? "\u2014" : r["from"];
+      ra[fk] = (r.to == null || r.to === "") ? "\u2014" : r.to;
+    });
+    box.innerHTML = '<div class="dfnote">\u8be5\u8f6e\u6b21\u672a\u7559\u5b58\u5b8c\u6574\u5b57\u6bb5\u5feb\u7167\uff0c\u4ee5\u4e0b\u4e3a\u672c\u8f6e\u91c7\u96c6\u7684<b>\u5b57\u6bb5\u7ea7\u53d8\u66f4\u8bb0\u5f55</b></div>' +
+      cmpHtml(rb, ra, rows.length);
   } else {
     var tip = (type === "mod" ? "该业务本次未记录字段级差异"
         : (type === "add" ? "新增业务：首次采集，无「修改前」记录"
@@ -1872,7 +1871,7 @@ function cmpHtml(bf, af, nDiff){
   var rows = keys.map(function(k){
     var b = (bf[k] == null || bf[k] === "") ? "\u2014" : String(bf[k]);
     var a = (af[k] == null || af[k] === "") ? "\u2014" : String(af[k]);
-    return { k:k, b:b, a:a, same:(b === a) };
+    return { k:cnField(k), b:b, a:a, same:(b === a) };
   });
   var changed = rows.filter(function(r){ return !r.same; });
   var unchanged = rows.filter(function(r){ return r.same; });
