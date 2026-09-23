@@ -656,6 +656,9 @@ body{
 .an-dv-c{font-size:13.5px;line-height:1.85;color:var(--tx2);word-break:break-word}
 .an-dv-c p{margin:0 0 10px}
 .an-dv-c img{max-width:100%;height:auto;border-radius:8px}
+.an-dv-at{margin-top:12px;padding:9px 11px;border-radius:9px;background:rgba(240,160,20,.14);border:1px solid rgba(240,160,20,.34);color:var(--tx2);font-size:12px;line-height:1.65}
+.an-dv-c a.an-att{color:var(--ac);font-weight:700;text-decoration:none}
+.an-att-tip{font-size:11px;font-weight:400;opacity:.72;margin-left:2px}
 .an-dv-l{margin-top:14px;padding-top:12px;border-top:1px dashed var(--bd2)}
 .an-dv-l a{color:var(--ac);font-weight:700;text-decoration:none}
 a.opc{text-decoration:none;display:block}
@@ -2695,16 +2698,67 @@ function paintAnnDot(){
   if(n > 0){ d.textContent = n > 99 ? "99+" : String(n); d.style.display = ""; }
   else { d.style.display = "none"; d.textContent = ""; }
 }
+function annFixAtt(box, pu){
+  var n = 0, i, org = "";
+  if(!box){ return 0; }
+  try { var u = new URL(pu); org = u.origin; } catch(e){ org = ""; }
+  var as = box.querySelectorAll ? box.querySelectorAll("a[href]") : [];
+  for(i = 0; i < as.length; i++){
+    var a = as[i], href = a.getAttribute("href") || "";
+    if(href.indexOf("#") === 0 || href.indexOf("javascript:") === 0){ continue; }
+    var isFile = (href.indexOf("/uploadBaseDir/") >= 0 ||
+                  /\.(xlsx?|xls|pdf|docx?|doc|zip|rar|csv)(\?|#|$)/i.test(href));
+    if(!isFile){ continue; }
+    n++;
+    var loc = a.getAttribute("data-local") || "";
+    if(loc){ a.setAttribute("href", loc); }
+    else if(pu){ a.setAttribute("href", pu); }
+    else { n--; continue; }
+    a.setAttribute("target", "_blank");
+    a.setAttribute("rel", "noopener");
+    a.setAttribute("title", "运营商官网限制外链直接下载，将打开原文页，请在原文页内下载附件");
+    a.className = (a.className ? a.className + " " : "") + "an-att";
+    if(a.getAttribute("data-anfix") !== "1"){
+      var sp = document.createElement("span");
+      sp.className = "an-att-tip";
+      sp.textContent = " ↗原文页内下载";
+      a.appendChild(sp);
+      a.setAttribute("data-anfix", "1");
+    }
+  }
+  var ims = box.querySelectorAll ? box.querySelectorAll("img") : [];
+  for(i = 0; i < ims.length; i++){
+    (function(im){
+      if(im.getAttribute("data-animg") === "1"){ return; }
+      im.setAttribute("data-animg", "1");
+      im.setAttribute("referrerpolicy", "no-referrer");
+      var src = im.getAttribute("src") || "";
+      if(src.indexOf("/") === 0 && org){ im.setAttribute("src", org + src); }
+      im.addEventListener("error", function(){ im.style.display = "none"; });
+    })(ims[i]);
+  }
+  return n;
+}
 function openAnn(i){
   var x = annItems()[i];
   if(!x){ return; }
   var body = '<div class="an-dv">' +
     '<div class="an-dv-d">' + esc(x.date || "") + "</div>" +
     '<div class="an-dv-c">' + (x.content || x.summary || "（暂无正文）") + "</div>" +
+    '<div class="an-dv-at" id="anAttTip" style="display:none"></div>' +
     (x.page_url ? '<div class="an-dv-l"><a href="' + esc(x.page_url) + '" target="_blank" rel="noopener">查看原文 ↗</a></div>' : "") +
     "</div>";
   document.getElementById("mTitle").textContent = x.title || "公告详情";
   document.getElementById("mBody").innerHTML = body;
+  try{
+    var mb = document.getElementById("mBody");
+    var cnt = annFixAtt(mb ? mb.querySelector(".an-dv-c") : null, x.page_url || "");
+    var tip = document.getElementById("anAttTip");
+    if(cnt > 0 && tip){
+      tip.textContent = "本文含 " + cnt + " 个附件。运营商官网限制外链直接下载，点击附件会打开原文页，请在原文页内下载。";
+      tip.style.display = "";
+    }
+  }catch(e){}
   var cp = document.getElementById("mCopy");
   if(cp){ cp.style.display = "none"; }
   document.getElementById("mask").classList.add("on");
