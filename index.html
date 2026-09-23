@@ -1407,7 +1407,6 @@ function renderList(scope){
   var pages = Math.max(1, Math.ceil(arr.length / per));
   if(s.page > pages){ s.page = pages; }
   var slice = arr.slice((s.page-1)*per, s.page*per);
-  pager.innerHTML = "";
   (function(){
     if(!slice.length){
       box.innerHTML = '<div class="empty"><span class="ei">🔍</span>没有匹配的资费，换个关键词试试' +
