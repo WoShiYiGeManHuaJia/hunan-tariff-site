@@ -1719,9 +1719,13 @@ function dvHtml(it){
       (code  ? '<div class="dv-code"><span class="dv-lb">方案编号</span><b>' + esc(code) + '</b></div>' : '') +
       '</div>';
   }
-  var tg = [];
-  if(o["归属"]) tg.push('<span class="dv-tag t-own">' + esc(o["归属"]) + '</span>');
-  if(o["资费类型"]) tg.push('<span class="dv-tag t-typ">' + esc(o["资费类型"]) + '</span>');
+  var tg = [], __seenTag = {};
+  [["t-own", o["归属"]], ["t-typ", o["资费类型"]]].forEach(function(t){
+    var v = t[1];
+    if(!v || __seenTag[v]){ return; }          /* 去重：归属与资费类型相同时只显示一个 */
+    __seenTag[v] = 1;
+    tg.push('<span class="dv-tag ' + t[0] + '">' + esc(v) + '</span>');
+  });
   if(tg.length) html += '<div class="dv-tags">' + tg.join("") + '</div>';
   var L = [], R = [], rest = [], seen = {};
   DV_L.forEach(function(k){ seen[k] = 1; if(o[k]){ L.push(dvRow(k, o[k])); } });
@@ -1832,6 +1836,8 @@ function openHistDetail(hi, ci, type, bi){
     '<span class="dfmeta">' + esc(c.name || "") + " \u00b7 " + esc(h.ts || "") + "</span>";
   var rows = (type === "mod") ? (md[name] || []) : [];
   var box = document.getElementById("hmDiff");
+  var snap = ((type === "add" || type === "rst") ? (c.added_details || {})
+            : (type === "del" ? (c.removed_details || {}) : {}))[name] || null;
   var bf = (type === "mod") ? ((c.modified_before || {})[name] || null) : null;
   var af = (type === "mod") ? ((c.modified_after || {})[name] || null) : null;
   if(bf || af){
@@ -1850,16 +1856,35 @@ function openHistDetail(hi, ci, type, bi){
         : (type === "add" ? "新增业务：首次采集，无「修改前」记录"
         : (type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
         : "已下线业务：无「修改后」记录")));
-    var det = histItem(c, type, name) || findItem(name);
-    box.innerHTML = '<div class="dfnote">' + esc(tip) + "</div>" +
-      (det ? dvHtml(det) : '<div class="dfnone">该业务本轮未留存字段快照</div>');
+    var det = (snap && Object.keys(snap).length) ? { name:name, fields:snap, from:"snap" }
+            : (histItem(c, type, name) || null);
+    if(!det){
+      var c0 = findItem(name);
+      if(c0 && c0.fields && Object.keys(c0.fields).length){ det = { name:name, fields:c0.fields, from:"cur" }; }
+    }
+    var srcNote = det ? (
+        det.from === "snap" ? ""
+      : det.from === "list" ? '<div class="dfnote">该轮次未留存完整字段快照，以下为本轮采集的精简记录</div>'
+      : '<div class="dfnote">该轮次未留存字段快照，以下为<b>当前在架档案</b>（字段可能已变动）</div>'
+    ) : "";
+    box.innerHTML = '<div class="dfnote">' + esc(tip) + "</div>" + srcNote +
+      (det ? dvHtml(det) : '<div class="dfnone">该业务已下架，且该轮次采集时未留存字段明细，无法补回</div>');
   }
-  var cur = findItem(name);
+  var cur = (typeof findItem === "function") ? findItem(name) : null;
+  if(!cur){
+    for(var i = 0; i < D.items.length; i++){
+      if(D.items[i].name === name){ cur = D.items[i]; break; }
+    }
+  }
   var wrap = document.getElementById("hmCurWrap"), dl = document.getElementById("hmCur");
-  if(cur && cur.fields && Object.keys(cur.fields).length){
+  /* 去重：上方已用「当前在架档案」渲染，或快照与档案字段完全一致，则不再重复展示一遍 */
+  var __sig = function(o){ return o ? JSON.stringify(o.fields || {}) : "\u0000"; };
+  var __sameAsUp = (typeof det !== "undefined") && det && det.fields && cur && cur.fields &&
+                   (__sig(det) === __sig(cur) || det.from === "cur");
+  if(cur && cur.fields && Object.keys(cur.fields).length && !__sameAsUp){
     dl.innerHTML = dvHtml(cur);
     wrap.style.display = "";
-  } else { wrap.style.display = "none"; }
+  } else { dl.innerHTML = ""; wrap.style.display = "none"; }
   document.getElementById("hmMask").classList.add("on");
 }
 function closeHist(){ document.getElementById("hmMask").classList.remove("on"); curHist = null; }
