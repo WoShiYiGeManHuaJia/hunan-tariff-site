@@ -829,6 +829,33 @@ a.opc{text-decoration:none;display:block}
   </main>
 </div>
 
+
+<!-- 一键抓取令牌弹窗 -->
+<div class="mask" id="tkMask">
+  <div class="modal" style="width:min(480px,100%)">
+    <div class="mh"><h3>开启一键抓取</h3><button class="mx" id="tkX">×</button></div>
+    <div class="mb">
+      <div class="ckbox">
+        <div class="ckmeta" id="tkMsg" style="margin-bottom:12px;line-height:1.75">
+          填入一个对本仓库有 <b>Actions 读写</b> 权限的 GitHub 令牌，之后点「立即触发抓取」即可直接启动云端抓取，<b>跑完自动刷新页面</b>。<br>
+          令牌<b>只保存在你本机浏览器</b>，不会写进仓库、不会上传到任何地方。
+        </div>
+        <input id="tkInput" type="password" placeholder="github_pat_... / ghp_..." autocomplete="off"
+          style="width:100%;box-sizing:border-box;padding:11px 12px;border-radius:12px;border:1px solid var(--bd2);background:rgba(127,127,127,.10);color:var(--tx);font-size:14px;outline:none">
+        <ul class="cktips" style="margin-top:12px">
+          <li>创建：GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → 只选本仓库 → Actions 设为 <b>Read and write</b></li>
+          <li>不想配置也可以点「打开 Actions 页」手动运行，效果一样</li>
+        </ul>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="tkClear">清除令牌</button>
+      <button class="btn" id="tkGh">打开 Actions 页</button>
+      <button class="btn pri" id="tkSave">保存并抓取</button>
+    </div>
+  </div>
+</div>
+
 <!-- 详情弹窗 -->
 <!-- 检测弹窗 -->
 <div class="mask" id="ckMask">
@@ -848,9 +875,9 @@ a.opc{text-decoration:none;display:block}
       </div>
     </div>
     <div class="mf">
-      <button class="btn" id="ckGh">立即触发抓取</button>
       <button class="btn" id="ckStop">停止检测</button>
-      <button class="btn pri" id="ckOk">后台继续检测</button>
+      <button class="btn" id="ckOk">后台继续检测</button>
+      <button class="btn pri" id="ckGh">立即触发抓取</button>
     </div>
   </div>
 </div>
@@ -1837,6 +1864,105 @@ function ckTick(){
 }
 
 
+
+/* ---------- 一键触发云端抓取（令牌仅存本机 localStorage） ---------- */
+var CK_OWNER = "WoShiYiGeManHuaJia";
+var CK_REPO  = "hunan-tariff-site";
+var CK_API   = "https://api.github.com/repos/" + CK_OWNER + "/" + CK_REPO;
+function ckTkKey(){ return "ghpat__" + CK_REPO + "__" + CK_WF; }
+function ckTkGet(){ try{ return localStorage.getItem(ckTkKey()) || ""; }catch(e){ return ""; } }
+function ckTkSet(v){ try{ if(v){ localStorage.setItem(ckTkKey(), v); }else{ localStorage.removeItem(ckTkKey()); } }catch(e){} }
+function ckTkClose(){ var m=document.getElementById("tkMask"); if(m){ m.classList.remove("on"); } }
+function ckTkOpen(msg){
+  var m = document.getElementById("tkMask");
+  if(!m){ window.open(ckGhUrl(), "_blank"); return; }
+  var g = document.getElementById("tkMsg");
+  if(g && msg){ g.innerHTML = '<b style="color:var(--warn)">' + msg + '</b><br>令牌只保存在你本机浏览器，不会写进仓库。'; }
+  var ip = document.getElementById("tkInput");
+  if(ip){ ip.value = ckTkGet(); }
+  m.classList.add("on");
+}
+function ckTkSave(){
+  var ip = document.getElementById("tkInput");
+  var v = (ip && ip.value || "").trim();
+  if(!v){ toast("请先填入令牌"); return; }
+  ckTkSet(v);
+  ckTkClose();
+  ckDispatch(v);
+}
+function ckTrigger(){
+  var tk = ckTkGet();
+  if(!tk){ ckTkOpen(""); return; }
+  ckDispatch(tk);
+}
+function ckSetStat(txt){ var s=document.getElementById("ckStat"); if(s){ s.textContent = txt; } }
+function ckSetMeta(html){ var m=document.getElementById("ckMeta"); if(m){ m.innerHTML = html; } }
+function ckSetBar(p){ var b=document.getElementById("ckBar"); if(b){ b.style.width = p + "%"; } }
+function ckHdr(tk){
+  return { "Accept":"application/vnd.github+json", "Authorization":"Bearer " + tk, "Content-Type":"application/json" };
+}
+function ckDispatch(tk){
+  ckStopTimer();
+  ckSetStat("正在触发云端抓取…");
+  ckSetMeta("工作流 <b>" + CK_WF + "</b>");
+  ckSetBar(5);
+  var t0 = Date.now() - 10000;
+  fetch(CK_API + "/actions/workflows/" + CK_WF + "/dispatches", {
+    method:"POST", headers: ckHdr(tk),
+    body: JSON.stringify({ ref:"main", inputs:{ mode:"default" } })
+  }).then(function(r){
+    if(r.status === 204){ ckPollRun(tk, t0); return; }
+    if(r.status === 401 || r.status === 403){
+      ckTkSet("");
+      ckTkOpen("令牌无效或权限不足（HTTP " + r.status + "），请重新填写");
+      ckSetStat("触发失败：令牌无效");
+      return;
+    }
+    return r.text().then(function(t){ throw new Error("HTTP " + r.status + " " + String(t).slice(0,120)); });
+  }).catch(function(e){
+    ckSetStat("触发失败：" + (e && e.message ? e.message : e));
+    ckSetBar(0);
+    toast("触发失败，可改用「打开 Actions 页」");
+  });
+}
+function ckPollRun(tk, t0){
+  var n = 0, timer = null;
+  ckSetBar(10);
+  timer = setInterval(function(){
+    n++;
+    fetch(CK_API + "/actions/workflows/" + CK_WF + "/runs?per_page=5", { headers: ckHdr(tk) })
+    .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.json(); })
+    .then(function(j){
+      var runs = (j && j.workflow_runs) || [], run = null;
+      for(var i=0;i<runs.length;i++){
+        if(new Date(runs[i].created_at).getTime() >= t0){ run = runs[i]; break; }
+      }
+      if(!run){ ckSetStat("已触发，等待任务排队…（第 " + n + " 次）"); return; }
+      var s = run.status, c = run.conclusion;
+      ckSetBar(s === "completed" ? 100 : (s === "in_progress" ? 65 : 30));
+      ckSetMeta("工作流 <b>" + CK_WF + "</b> · <b>" +
+        (s === "completed" ? (c === "success" ? "运行成功" : "运行结束（" + (c||"-") + "）")
+                           : (s === "in_progress" ? "运行中" : "排队中")) + "</b>");
+      if(s === "completed"){
+        clearInterval(timer);
+        var sp = document.getElementById("ckSpin"); if(sp){ sp.classList.add("done"); }
+        if(c === "success"){
+          ckSetStat("抓取完成，正在刷新页面…");
+          setTimeout(function(){ location.href = location.pathname + "?_=" + Date.now(); }, 900);
+        }else{
+          ckSetStat("任务结束但结论为 " + (c||"未知") + "，数据可能未更新");
+        }
+        return;
+      }
+      ckSetStat("云端抓取中…（第 " + n + " 次，每 10 秒查询）");
+      if(n > 120){ clearInterval(timer); ckSetStat("等待超时，请稍后手动刷新页面查看"); }
+    }).catch(function(e){
+      ckSetStat("查询任务状态失败：" + (e && e.message ? e.message : e) + "（第 " + n + " 次）");
+      if(n > 5){ clearInterval(timer); }
+    });
+  }, 10000);
+}
+
 /* ---------- 变更详情弹窗 ---------- */
 var curHist = null;
 function openHistDetail(hi, ci, type, bi){
@@ -2124,7 +2250,11 @@ document.addEventListener("click", function(e){
   if(el.id === "ckX"){ ckClose(); return; }
   if(el.id === "ckOk"){ ckMin(); return; }
   if(el.id === "ckStop"){ ckStop(); toast("已停止自动检测"); return; }
-  if(el.id === "ckGh"){ window.open(ckGhUrl(), "_blank"); toast("已打开 Actions 手动触发页"); return; }
+      if(el.id === "tkX"){ ckTkClose(); return; }
+    if(el.id === "tkSave"){ ckTkSave(); return; }
+    if(el.id === "tkClear"){ ckTkSet(""); var ip=document.getElementById("tkInput"); if(ip){ ip.value=""; } toast("已清除本机令牌"); return; }
+    if(el.id === "tkGh"){ window.open(ckGhUrl(), "_blank"); return; }
+    if(el.id === "ckGh"){ ckTrigger(); return; }
   if(el.id === "opX"){ document.getElementById("opMask").classList.remove("on"); return; }
   if(el.id === "hmMask"){ closeHist(); return; }
   var mkEl = el.closest ? el.closest(".mask") : null;
@@ -2134,6 +2264,7 @@ document.addEventListener("click", function(e){
     else if(mkEl.id === "opMask"){ document.getElementById("opMask").classList.remove("on"); }
     else if(mkEl.id === "hmMask"){ closeHist(); }
     else if(mkEl.id === "ckMask"){ ckMin(); }
+      else if(mkEl.id === "tkMask"){ ckTkClose(); }
     return;
   }
   if(el.id === "mCopy" && curDetail){
