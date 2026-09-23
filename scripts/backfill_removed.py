@@ -106,6 +106,18 @@ def commits_of(path, limit=14):
     return [c["sha"] for c in cs if isinstance(c, dict)]
 
 
+def commits_until(path, ts_local, limit=4):
+    """取该时间点的文件版本（按记录时间回溯，而不是取最新版）"""
+    import urllib.parse
+    iso = urllib.parse.quote(str(ts_local).replace(" ", "T") + "+08:00")
+    try:
+        cs = api("/repos/%s/%s/commits?path=%s&until=%s&per_page=%d"
+                 % (OWNER, REPO, path, iso, limit))
+    except Exception:
+        return []
+    return [c["sha"] for c in cs if isinstance(c, dict)]
+
+
 def main():
     if not TOKEN:
         print("!! 缺少 GITHUB_TOKEN"); sys.exit(1)
@@ -152,29 +164,36 @@ def main():
         print("[%s] 缺失 %d 条，开始回溯" % (label, len(miss)))
         total_missing += len(miss)
 
-        # 2) 按 scope 分组，回溯该省历史版本
-        cache = {}          # scope -> {name: fields}
-        for scope in sorted({m[1] for m in miss}):
-            got = {}
+        # 2) 按 (scope, 记录时间) 精确回溯 —— 取该时刻的数据版本
+        from collections import defaultdict
+        groups = defaultdict(list)
+        for i, scope, kind, n in miss:
+            groups[(scope, hist[i].get("ts", ""))].append((i, kind, n))
+
+        cache = {}
+        for (scope, ts), items in groups.items():
+            found = {}
             for fp in scope_files(data_dir, scope):
-                for sha in commits_of(fp):
+                shas = commits_until(fp, ts, limit=4) or commits_of(fp, limit=8)
+                for sha in shas:
                     m = load_prov_at(fp, sha)
                     if not m:
                         continue
-                    need = {n for (_, s, _, n) in miss if s == scope} - set(got)
-                    hit = {n: m[n] for n in need if n in m}
-                    got.update(hit)
-                    if not (need - set(got)):
+                    need = {n for (_, _, n) in items} - set(found)
+                    for n in need:
+                        if n in m:
+                            found[n] = m[n]
+                    if not (need - set(found)):
                         break
-                if got:
+                if found:
                     break
-            cache[scope] = got
-            print("   %s: 找到 %d 个" % (scope, len(got)))
+            cache[(scope, ts)] = found
+            print("   %s@%s: 找到 %d/%d" % (scope, ts, len(found), len(items)))
 
         # 3) 回填（只新增）
         fixed = 0
         for i, scope, kind, n in miss:
-            f = cache.get(scope, {}).get(n)
+            f = cache.get((scope, hist[i].get("ts", "")), {}).get(n)
             if not f:
                 continue
             rec = hist[i]
