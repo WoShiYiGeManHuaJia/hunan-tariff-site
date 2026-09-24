@@ -7,6 +7,7 @@ jobs:
   v:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: check redirects
         run: |
           OUT=""
@@ -14,21 +15,18 @@ jobs:
             H=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{http_code}" -L "$L")
             F=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{url_effective}" -L "$L")
             N=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{num_redirects}" -L "$L")
-            B=$(curl -s -m 25 -A "Mozilla/5.0" -L "$L" | head -c 400 | tr -d '\n')
-            T=$(echo "$B" | grep -oE '<title>[^<]*</title>' | head -1)
+            T=$(curl -s -m 25 -A "Mozilla/5.0" -L "$L" | grep -oE '<title>[^<]*</title>' | head -1)
             OUT="$OUT
 === $L
   code=$H redirects=$N final=$F
   $T"
           done
-          echo "$OUT"
-          mkdir -p v && echo "$OUT" > v/RESULT.txt
-      - uses: actions/checkout@v4
+          echo "$OUT" > RESULT.md
+          cat RESULT.md
       - name: commit
         run: |
           git config user.name "bot"
           git config user.email "bot@users.noreply.github.com"
-          cp v/RESULT.txt RESULT.md
           git add RESULT.md
           git commit -m "verify short links" || echo none
           git pull --rebase origin main || true
