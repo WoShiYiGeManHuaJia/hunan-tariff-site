@@ -1,7 +1,7 @@
-===== Thu Sep 24 05:51:43 UTC 2026 =====
+===== Thu Sep 24 05:52:11 UTC 2026 =====
 域名: hnvip.qd.je
 已存在 zone: 无
 --- 尝试创建 zone ---
-{"success":false,"errors":[{"code":10502,"message":"Too many authentication failures. Please try again later."}],"result":{"id":null,"name":null,"status":null,"name_servers":null}}
+{"success":false,"errors":[{"code":9109,"message":"Invalid access token"}],"result":{"id":null,"name":null,"status":null,"name_servers":null}}
 结果: 未能创建/获取 zone，Cloudflare 可能不接受该后缀
 请改用 deSEC(desec.io) 或 DigitalPlat 面板自带重定向
