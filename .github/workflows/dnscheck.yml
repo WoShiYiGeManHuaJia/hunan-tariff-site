@@ -1,19 +1,25 @@
-name: dnscheck
-
+name: dns-check
 on:
   workflow_dispatch:
-
-permissions:
-  contents: write
-
+  push:
+    branches: [main]
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: DNS lookup
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOM: hnvip.qd.je
+      - name: dig A
         run: |
-          echo 'CmltcG9ydCBqc29uLCBvcywgdXJsbGliLnJlcXVlc3QsIHVybGxpYi5lcnJvciwgYmFzZTY0LCBzb2NrZXQKCkdUICAgPSBvcy5lbnZpcm9uWyJHSVRIVUJfVE9LRU4iXQpSRVBPID0gb3MuZW52aXJvblsiR0lUSFVCX1JFUE9TSVRPUlkiXQpET00gID0gb3MuZW52aXJvbi5nZXQoIkRPTSIsICJobnZpcC5xZC5qZSIpCkxPRyAgPSBbXQoKCmRlZiBwKCphKToKICAgIHMgPSAiICIuam9pbihzdHIoeCkgZm9yIHggaW4gYSkKICAgIHByaW50KHMpCiAgICBMT0cuYXBwZW5kKHMpCgoKZGVmIGRvaCh1cmwpOgogICAgdHJ5OgogICAgICAgIHJlcSA9IHVybGxpYi5yZXF1ZXN0LlJlcXVlc3QodXJsLCBoZWFkZXJzPXsiYWNjZXB0IjogImFwcGxpY2F0aW9uL2Rucy1qc29uIiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIlVzZXItQWdlbnQiOiAiY3VybCJ9KQogICAgICAgIHdpdGggdXJsbGliLnJlcXVlc3QudXJsb3BlbihyZXEsIHRpbWVvdXQ9MjUpIGFzIHI6CiAgICAgICAgICAgIHJldHVybiBqc29uLmxvYWRzKHIucmVhZCgpLmRlY29kZSgpKQogICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlOgogICAgICAgIHJldHVybiB7ImVycm9yIjogc3RyKGUpfQoKCmZvciBsYWJlbCwgYmFzZSBpbiBbKCJnb29nbGUiLCAiaHR0cHM6Ly9kbnMuZ29vZ2xlL3Jlc29sdmUiKSwKICAgICAgICAgICAgICAgICAgICAoImNsb3VkZmxhcmUiLCAiaHR0cHM6Ly9jbG91ZGZsYXJlLWRucy5jb20vZG5zLXF1ZXJ5IildOgogICAgZm9yIHQgaW4gWyJOUyIsICJBIiwgIkNOQU1FIiwgIlNPQSJdOgogICAgICAgIHIgPSBkb2goIiVzP25hbWU9JXMmdHlwZT0lcyIgJSAoYmFzZSwgRE9NLCB0KSkKICAgICAgICBpZiAiZXJyb3IiIGluIHI6CiAgICAgICAgICAgIHAoIlslc10gJXMgZXJyb3I6ICVzIiAlIChsYWJlbCwgdCwgclsiZXJyb3IiXSkpCiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgYW5zID0gci5nZXQoIkFuc3dlciIpIG9yIFtdCiAgICAgICAgaWYgbm90IGFuczoKICAgICAgICAgICAgcCgiWyVzXSAlcyAtPiAobm8gYW5zd2VyKSBzdGF0dXM9JXMiICUgKGxhYmVsLCB0LCByLmdldCgiU3RhdHVzIikpKQogICAgICAgIGZvciBhIGluIGFuczoKICAgICAgICAgICAgcCgiWyVzXSAlcyAtPiAlcyIgJSAobGFiZWwsIHQsIGEuZ2V0KCJkYXRhIikpKQoKcCgiLS0tLSByZXNvbHZlIEEgLS0tLSIpCnRyeToKICAgIHAoImdldGFkZHJpbmZvOiIsIHNvY2tldC5nZXRhZGRyaW5mbyhET00sIDQ0Mywgc29ja2V0LkFGX0lORVQpKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwKCJnZXRhZGRyaW5mbyBmYWlsZWQ6IiwgZSkKCnAoIi0tLS0gQ0FBL05TIG9mIHBhcmVudCBxZC5qZSAtLS0tIikKciA9IGRvaCgiaHR0cHM6Ly9kbnMuZ29vZ2xlL3Jlc29sdmU/bmFtZT1xZC5qZSZ0eXBlPU5TIikKZm9yIGEgaW4gKHIuZ2V0KCJBbnN3ZXIiKSBvciBbXSk6CiAgICBwKCJxZC5qZSBOUyAtPiIsIGEuZ2V0KCJkYXRhIikpCgoKZGVmIGdoKG1ldGhvZCwgcGF0aCwgZGF0YT1Ob25lKToKICAgIHJlcSA9IHVybGxpYi5yZXF1ZXN0LlJlcXVlc3QoImh0dHBzOi8vYXBpLmdpdGh1Yi5jb20iICsgcGF0aCwgbWV0aG9kPW1ldGhvZCkKICAgIHJlcS5hZGRfaGVhZGVyKCJBdXRob3JpemF0aW9uIiwgInRva2VuICIgKyBHVCkKICAgIHJlcS5hZGRfaGVhZGVyKCJBY2NlcHQiLCAiYXBwbGljYXRpb24vdm5kLmdpdGh1Yitqc29uIikKICAgIHJlcS5hZGRfaGVhZGVyKCJVc2VyLUFnZW50IiwgIndmIikKICAgIGJvZHkgPSBqc29uLmR1bXBzKGRhdGEpLmVuY29kZSgpIGlmIGRhdGEgZWxzZSBOb25lCiAgICBpZiBib2R5OgogICAgICAgIHJlcS5hZGRfaGVhZGVyKCJDb250ZW50LVR5cGUiLCAiYXBwbGljYXRpb24vanNvbiIpCiAgICB0cnk6CiAgICAgICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgYm9keSwgdGltZW91dD00MCkgYXMgcjoKICAgICAgICAgICAgcmV0dXJuIHIuc3RhdHVzLCByLnJlYWQoKS5kZWNvZGUoKQogICAgZXhjZXB0IHVybGxpYi5lcnJvci5IVFRQRXJyb3IgYXMgZToKICAgICAgICByZXR1cm4gZS5jb2RlLCBlLnJlYWQoKS5kZWNvZGUoKQoKCnBhdGggPSAiL3JlcG9zLyVzL2NvbnRlbnRzL2xvZ3MvZG5zY2hlY2sudHh0IiAlIFJFUE8Kc3QsIG91dCA9IGdoKCJHRVQiLCBwYXRoKQpzaGEgPSBOb25lCmlmIHN0ID09IDIwMDoKICAgIHRyeToKICAgICAgICBzaGEgPSBqc29uLmxvYWRzKG91dCkuZ2V0KCJzaGEiKQogICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICBwYXNzCnBheWxvYWQgPSB7Im1lc3NhZ2UiOiAiZG5zIGNoZWNrIGxvZyIsCiAgICAgICAgICAgImNvbnRlbnQiOiBiYXNlNjQuYjY0ZW5jb2RlKCgiXG4iLmpvaW4oTE9HKSkuZW5jb2RlKCkpLmRlY29kZSgpfQppZiBzaGE6CiAgICBwYXlsb2FkWyJzaGEiXSA9IHNoYQpwKCJ1cGxvYWQgLT4iLCBnaCgiUFVUIiwgcGF0aCwgcGF5bG9hZClbMF0pCg==' | base64 -d > /tmp/dns.py
-          python3 /tmp/dns.py 2>&1 | tee /tmp/dns.log
+          echo "== A =="
+          dig +short hnvip.qd.je A
+          echo "== NS =="
+          dig +short hnvip.qd.je NS
+          echo "== auth NS =="
+          dig @dns1.digitalplat.org +short hnvip.qd.je A
+          dig @dns2.digitalplat.org +short hnvip.qd.je A
+          echo "== curl http =="
+          curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 http://hnvip.qd.je/ || true
+          echo "== curl https =="
+          curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 https://hnvip.qd.je/ || true
+          echo "== 8.8.8.8 =="
+          dig @8.8.8.8 +short hnvip.qd.je A
+          dig @1.1.1.1 +short hnvip.qd.je A
