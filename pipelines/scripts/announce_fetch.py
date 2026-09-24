@@ -40,7 +40,9 @@ MOVE_SITE = "https://www.10086.cn"
 # ---------------- 联通 ----------------
 UNI_LIST_URL = "https://www.10010.com/mall/service/query/announcementquery"
 UNI_DETAIL_URL = "https://www.10010.com/mall/service/query/announcementquerydetail"
-UNI_PROVINCE = "031"  # 与 https://www.10010.com/wt_links/index.html#/announcementPage 一致
+UNI_PROVINCE = "074"  # 湖南（实测：011北京 013天津 017山东 018河北 030安徽 031上海
+                      #   034江苏 036浙江 038福建 050海南 051广东 059广西 071湖北
+                      #   074湖南 075江西 076河南 079西藏；原值 031 = 上海，抓错省了）
 UNI_DETAIL_PAGE = ("https://www.10010.com/wt_links/index.html#/announcementDetail?announcementId={id}"
                    "&pageSize=12&pageNo=1")
 UNI_IMG_HOST = "https://m1.img.10010.com"
@@ -277,7 +279,10 @@ def _resolve(root, p):
 
 
 def main():
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # __file__ = <repo>/pipelines/scripts/announce_fetch.py，需上三级才是仓库根。
+    # 旧代码只上两级 -> root=<repo>/pipelines，导致相对目录 unicom/data 被写到
+    # <repo>/pipelines/unicom/data/announce.json，该路径从不参与同步，线上公告永远不更新。
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     args = sys.argv[1:]
     move_dir = uni_dir = None
     for i, a in enumerate(args):
