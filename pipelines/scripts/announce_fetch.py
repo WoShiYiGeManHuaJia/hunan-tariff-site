@@ -230,7 +230,9 @@ def fetch_move():
 # ---------------- 联通抓取 ----------------
 def fetch_uni():
     print("[联通] 拉取公告列表 ...")
-    raw = _http_post(UNI_LIST_URL, {"pageNo": "1", "pageSize": str(MAX_KEEP + 5),
+    # 源站返回顺序 ≠ 时间顺序，且 pageSize 过小时「取最新 N 条」会漏掉真正最新的公告。
+    # 改为一次多拉(100条)、按发布日期降序后再截断，确保拿到的是时间上最新的 MAX_KEEP 条。
+    raw = _http_post(UNI_LIST_URL, {"pageNo": "1", "pageSize": "100",
                                     "province": UNI_PROVINCE, "condition": "0", "title": ""}, UNI_HDRS)
     j = json.loads(raw)
     lst = j.get("result") or []
@@ -242,8 +244,10 @@ def fetch_uni():
             "date": (row.get("publishTime") or "")[:10],
             "page_url": UNI_DETAIL_PAGE.format(id=row.get("id") or ""),
         })
-    items = [x for x in items if x["id"]][:MAX_KEEP]
-    print(f"[联通] 列表 {len(lst)} 条，取最新 {len(items)} 条")
+    items = [x for x in items if x["id"]]
+    items.sort(key=lambda x: x["date"], reverse=True)
+    items = items[:MAX_KEEP]
+    print(f"[联通] 列表 {len(lst)} 条，按日期降序取最新 {len(items)} 条")
     for it in items:
         try:
             dj = json.loads(_http_post(UNI_DETAIL_URL, {
