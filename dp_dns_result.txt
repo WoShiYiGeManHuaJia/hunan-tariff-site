@@ -170,11 +170,11 @@
 
 ########## PHASE 3: public DNS verify ##########
 -- try 1
-{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":300,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
-{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":65,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}],"Comment":"Response from dns1.digitalplat.org.(150.230.46.101)."}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":198,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":300,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}],"Comment":"Response from 192.9.243.240."}
 -- try 2
-{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":290,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
-{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":55,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}],"Comment":"Response from dns1.digitalplat.org.(150.230.46.101)."}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":300,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":300,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}],"Comment":"Response from dns1.digitalplat.org.(150.230.46.101)."}
 -- try 3
-{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":279,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
-{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":44,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":178,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":290,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
