@@ -1,0 +1,87 @@
+name: gd-prov-probe3
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome -q
+      - name: run probe
+        run: |
+          cat > /tmp/p.py <<'PY'
+          import urllib.request, json, time, base64, ssl
+          from concurrent.futures import ThreadPoolExecutor
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY=b"telecom_wap_2018"; UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36"
+          API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          ctx=ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE
+          OUT=[]
+          def log(s): print(s); OUT.append(str(s))
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode("utf-8")
+          def call(fn,rc,to=20):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode("utf-8"),method="POST",headers={"User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html","Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8","Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              last=None
+              for a in range(2):
+                  try:
+                      with urllib.request.urlopen(req,timeout=to,context=ctx) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e: last=e; time.sleep(1)
+              return {"__err":str(last)}
+          def home(prov):
+              d=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":prov}); return d.get("responseContent",{}) if isinstance(d,dict) else {}
+          def query(sess,prov,l1):
+              d=call("tariffSectionQuery",{"sessionid":sess,"type":1,"provCode":prov,"lable1Id":l1,"lable2Id":""}); return d.get("responseContent",{}) if isinstance(d,dict) else {}
+          def sample(prov):
+              r=home(prov)
+              boards=r.get("lableOneList") or []
+              if not boards: return None
+              sess=r.get("sessionid")
+              names=[]; bnames=[b.get("name") for b in boards]
+              for b in boards[:3]:
+                  q=query(sess,prov,b["id"])
+                  for x in (q.get("zoneTitleList") or [])[:8]:
+                      names.append(x.get("name",""))
+                  time.sleep(0.2)
+              return prov, bnames, names
+          codes=["600101","600102","600103","600104","600105","600201","600202","600203","600204","600205","600301","600302","600303","600304","600305"]
+          log("=== SAMPLES ===")
+          with ThreadPoolExecutor(max_workers=5) as ex:
+              for res in ex.map(sample,codes):
+                  if res: log("PROV|%s|boards=%s|names=%s"%(res[0],json.dumps(res[1],ensure_ascii=False),json.dumps(res[2][:24],ensure_ascii=False)))
+          log("=== WIDE SCAN 600000-600999 ===")
+          cands=[str(n) for n in range(600000,601000)]
+          def probe(c):
+              r=home(c)
+              if isinstance(r,dict) and (r.get("lableOneList") or []): return c
+              return None
+          hits=[]
+          with ThreadPoolExecutor(max_workers=8) as ex:
+              for res in ex.map(probe,cands):
+                  if res: hits.append(res)
+          log("ALL_CODES="+json.dumps(sorted(hits)))
+          log("=== WIDE SCAN 1000000001-1000000300 ===")
+          cands2=["1000000%03d"%n for n in range(1,80)]
+          hits2=[]
+          with ThreadPoolExecutor(max_workers=8) as ex:
+              for res in ex.map(probe,cands2):
+                  if res: hits2.append(res)
+          log("LONG_CODES="+json.dumps(sorted(hits2)))
+          open("probe_out3.txt","w",encoding="utf-8").write("\n".join(OUT))
+          PY
+          python3 /tmp/p.py 2>&1 | tail -60
+      - name: commit result
+        if: always()
+        run: |
+          git config user.email a@b.c; git config user.name probe
+          git add -f probe_out3.txt || true
+          git commit -m "probe3 result" || echo "no change"
+          git pull --rebase origin main || true
+          git push origin HEAD:main || true
