@@ -7,11 +7,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
       - name: probe
         run: |
           F=9a0c6a0cba595feb5a29661d1450e9bf.txt
-          OUT=_wxprobe.txt
+          OUT=/tmp/probe.txt
           : > $OUT
           echo "TIME: $(date -u)" >> $OUT
           for H in http https; do
@@ -24,10 +23,11 @@ jobs:
           echo "BODY:[$(tr -d '\n' < /tmp/g.txt 2>/dev/null | head -c 120)]" >> $OUT
           echo "=== cert ===" >> $OUT
           echo | timeout 20 openssl s_client -connect hnvip.qd.je:443 -servername hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -issuer -enddate 2>/dev/null >> $OUT || echo "no_cert" >> $OUT
-      - name: commit
-        run: |
-          git config user.name probe
-          git config user.email p@a.b
-          git add _wxprobe.txt
-          git diff --cached --quiet || git commit -m "probe result"
-          git push
+          cat $OUT
+          B64=$(base64 -w0 < $OUT)
+          curl -sS -X PUT \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/_wxprobe.txt" \
+            -d "{\"message\":\"probe\",\"content\":\"$B64\"}" -o /tmp/put.json -w "put_code=%{http_code}\n"
+          head -c 200 /tmp/put.json
