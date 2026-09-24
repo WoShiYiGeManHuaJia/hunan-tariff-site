@@ -962,7 +962,7 @@ a.opc{text-decoration:none;display:block}
 
     <section class="view" id="v-announce">
       <div class="panel glass">
-        <div class="ph"><h2 class="pt" id="anTitle">湖南移动公告</h2><span class="ps" id="anDesc">来源：官网公告</span></div>
+        <div class="ph"><h2 class="pt" id="anTitle">湖南电信公告</h2><span class="ps" id="anDesc">来源：官网公告</span></div>
         <div class="an" id="anBox"></div>
       </div>
     </section>
@@ -971,7 +971,7 @@ a.opc{text-decoration:none;display:block}
       <div class="panel glass">
         <div class="ph"><h2 class="pt">关于本页</h2></div>
         <div class="ab">
-          <p>本页面展示中国移动「全网资费」及各省（默认湖南）的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
+          <p>本页面展示中国电信「全网资费」及各省（默认湖南，已接入广东）的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
           <ul>
             <li><b>数据来源：</b>中国移动官网公开资费专区</li>
             <li><b>省份切换：</b>「省份资费」页可自助选择其他省份，默认湖南；变化历史同样按省份标注</li>
@@ -1915,14 +1915,14 @@ function renderAnnounce(){
   var a = D.announce || {};
   var box = document.getElementById("anBox"), desc = document.getElementById("anDesc");
   var op = OP_MAP[state.op];
-  document.getElementById("anTitle").textContent = hasData() ? "湖南移动公告" : (op.name + "公告");
-  document.getElementById("anTabTxt").textContent = hasData() ? "湖南公告" : (op.short + "公告");
+  document.getElementById("anTitle").textContent = hasData() ? ("湖南" + (op.short || op.name) + "公告") : (op.name + "公告");
+  document.getElementById("anTabTxt").textContent = hasData() ? ("湖南" + (op.short || op.name) + "公告") : (op.short + "公告");
   if(!hasData()){
     desc.textContent = "暂无接入";
     box.innerHTML = emptyBox(op.name + "公告源待接入");
     return;
   }
-  desc.textContent = "来源：湖南移动官网公告 · 更新于 " + (a.updated || "—");
+  desc.textContent = "来源：湖南" + (op.short || op.name) + "官网公告 · 更新于 " + (a.updated || "—");
   var items = a.items || [];
   if(!items.length){ box.innerHTML = '<div style="color:var(--tx3);font-size:13px">暂无公告</div>'; return; }
   box.innerHTML = items.map(function(x, i){
