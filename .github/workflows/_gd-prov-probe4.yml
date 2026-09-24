@@ -1,0 +1,97 @@
+name: gd-prov-probe4
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome -q
+      - name: run probe
+        run: |
+          cat > /tmp/p.py <<'PY'
+          import urllib.request, json, time, base64, ssl, re, collections
+          from concurrent.futures import ThreadPoolExecutor
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY=b"telecom_wap_2018"; UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36"
+          API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          ctx=ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE
+          OUT=[]
+          def log(s): print(s); OUT.append(str(s))
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode("utf-8")
+          def call(fn,rc,to=25):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode("utf-8"),method="POST",headers={"User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html","Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8","Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              last=None
+              for a in range(2):
+                  try:
+                      with urllib.request.urlopen(req,timeout=to,context=ctx) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e: last=e; time.sleep(1)
+              return {"__err":str(last)}
+          # 尝试省份列表接口
+          for fn in ["queryProvince","getProvinceList","provinceList","tariffSectionProv","queryProvList","tariffProvince"]:
+              d=call(fn,{"ticket":"","sessionid":"","provCode":"600203"})
+              s=json.dumps(d,ensure_ascii=False)[:300]
+              if s and s!="{}": log("FN|%s|%s"%(fn,s))
+          KW={"广东":["广东","广州","深圳","东莞","佛山","珠海","汕头","粤A","羊城"],
+              "江苏":["江苏","南京","苏州","无锡","盐城","泰州","常州","徐州","南通","扬州"],
+              "浙江":["浙江","杭州","宁波","温州","台州","衢州","金华","绍兴","嘉兴"],
+              "四川":["四川","成都","绵阳","宜宾"],
+              "湖南":["湖南","长沙","株洲","湘潭","衡阳","岳阳","常德"],
+              "湖北":["湖北","武汉","宜昌","襄阳"],
+              "河南":["河南","郑州","洛阳","开封"],
+              "山东":["山东","济南","青岛","烟台","潍坊"],
+              "福建":["福建","福州","厦门","泉州","漳州"],
+              "安徽":["安徽","合肥","芜湖","阜阳"],
+              "河北":["河北","石家庄","唐山","保定"],
+              "陕西":["陕西","西安","咸阳"],
+              "辽宁":["辽宁","沈阳","大连"],
+              "江西":["江西","南昌","赣州","九江"],
+              "广西":["广西","南宁","桂林","柳州"],
+              "云南":["云南","昆明"],"贵州":["贵州","贵阳"],"山西":["山西","太原"],
+              "黑龙江":["黑龙江","哈尔滨"],"吉林":["吉林","长春"],"甘肃":["甘肃","兰州"],
+              "海南":["海南","海口","三亚","候鸟"],"内蒙古":["内蒙古","呼和浩特"],
+              "新疆":["新疆","乌鲁木齐"],"宁夏":["宁夏","银川"],"青海":["青海","西宁"],
+              "北京":["北京"],"上海":["上海"],"天津":["天津"],"重庆":["重庆","渝"]}
+          codes=["600101","600102","600103","600104","600105","600201","600202","600203","600204","600205","600301","600302","600303","600304","600305","600401","600402","600403","600404","600405","600406"]
+          def full(prov):
+              d=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":prov})
+              rc=d.get("responseContent",{}) if isinstance(d,dict) else {}
+              boards=rc.get("lableOneList") or []
+              if not boards: return prov,0,{}
+              sess=rc.get("sessionid"); allt=[]
+              for b in boards:
+                  q=call("tariffSectionQuery",{"sessionid":sess,"type":1,"provCode":prov,"lable1Id":b["id"],"lable2Id":""})
+                  r2=q.get("responseContent",{}) if isinstance(q,dict) else {}
+                  for x in (r2.get("zoneTitleList") or []):
+                      nm=(x.get("name","") or "")+" "+(x.get("otherContent","") or "")[:60]
+                      allt.append(nm)
+                  time.sleep(0.15)
+              cnt=collections.Counter()
+              for t in allt:
+                  for p,ws in KW.items():
+                      for w in ws:
+                          if w in t: cnt[p]+=1
+              return prov,len(allt),dict(cnt.most_common(6))
+          log("=== FULL SCAN ===")
+          with ThreadPoolExecutor(max_workers=6) as ex:
+              for res in ex.map(full,codes):
+                  log("RES|%s|items=%d|kw=%s"%(res[0],res[1],json.dumps(res[2],ensure_ascii=False)))
+          open("probe_out4.txt","w",encoding="utf-8").write("\n".join(OUT))
+          PY
+          python3 /tmp/p.py 2>&1 | tail -40
+      - name: commit result
+        if: always()
+        run: |
+          git config user.email a@b.c; git config user.name probe
+          git add -f probe_out4.txt || true
+          git commit -m "probe4 result" || echo "no change"
+          git pull --rebase origin main || true
+          git push origin HEAD:main || true
