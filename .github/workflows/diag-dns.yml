@@ -6,19 +6,30 @@ jobs:
     steps:
       - name: run
         run: |
-          echo "=== 国内公共DNS (223.5.5.5 / 119.29.29.29 / 114.114.114.114) ==="
+          out="DIAG_RESULT.md"
+          echo "# DNS 诊断 $(date -u)" > $out
+          echo '```' >> $out
+          echo "=== 国内/境外公共DNS 查询 hnvip.qd.je ===" >> $out
           for s in 223.5.5.5 119.29.29.29 114.114.114.114 8.8.8.8 1.1.1.1; do
-            echo "--- @$s"
-            dig +short +time=5 +tries=1 @$s hnvip.qd.je A
-            echo "   NS:"; dig +short +time=5 +tries=1 @$s hnvip.qd.je NS
+            echo "--- @$s A:" >> $out
+            dig +short +time=5 +tries=1 @$s hnvip.qd.je A >> $out 2>&1
+            echo "--- @$s NS:" >> $out
+            dig +short +time=5 +tries=1 @$s hnvip.qd.je NS >> $out 2>&1
           done
-          echo "=== 权威 NS 是否可达 ==="
+          echo "=== 权威 NS 可达性 ===" >> $out
           for n in dns1.digitalplat.org dns2.digitalplat.org; do
-            echo "--- $n"; dig +short +time=5 +tries=1 $n; dig +short +time=5 +tries=1 @$n hnvip.qd.je A
+            echo "--- $n ip:" >> $out; dig +short +time=5 +tries=1 $n >> $out 2>&1
+            echo "--- @$n hnvip A:" >> $out; dig +short +time=5 +tries=1 @$n hnvip.qd.je A >> $out 2>&1
           done
-          echo "=== HTTP 实测 ==="
-          curl -sS -o /dev/null -w "http://hnvip.qd.je -> %{http_code} %{remote_ip}\n" --max-time 20 http://hnvip.qd.je
-          curl -sSk -o /dev/null -w "https://hnvip.qd.je -> %{http_code}\n" --max-time 20 https://hnvip.qd.je
-          echo "=== JE 顶级域 NS ==="
-          dig +short +time=5 +tries=1 @8.8.8.8 qd.je NS
-          dig +short +time=5 +tries=1 @223.5.5.5 qd.je NS
+          echo "=== JE 顶级域 ===" >> $out
+          echo "qd.je NS @8.8.8.8:" >> $out; dig +short +time=5 +tries=1 @8.8.8.8 qd.je NS >> $out 2>&1
+          echo "qd.je NS @223.5.5.5:" >> $out; dig +short +time=5 +tries=1 @223.5.5.5 qd.je NS >> $out 2>&1
+          echo "=== HTTP 实测 ===" >> $out
+          curl -sS -o /dev/null -w "http://hnvip.qd.je -> %{http_code} ip=%{remote_ip} time=%{time_total}\n" --max-time 25 http://hnvip.qd.je >> $out 2>&1
+          curl -sSk -o /dev/null -w "https://hnvip.qd.je -> %{http_code}\n" --max-time 25 https://hnvip.qd.je >> $out 2>&1
+          curl -sS -o /dev/null -w "github.io 原站 -> %{http_code}\n" --max-time 25 https://woshiyigemanhuajia.github.io/hunan-tariff-site/ >> $out 2>&1
+          echo '```' >> $out
+      - name: commit
+        run: |
+          git config user.name bot; git config user.email bot@x.com
+          git add DIAG_RESULT.md && git commit -m "diag result" && git push || echo "nochange"
