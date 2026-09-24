@@ -1,0 +1,21 @@
+name: verify-wx-file
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl verify file
+        run: |
+          for U in \
+            "http://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt" \
+            "https://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt" \
+            "https://woshiyigemanhuajia.github.io/hunan-tariff-site/9a0c6a0cba595feb5a29661d1450e9bf.txt" ; do
+            echo "===== $U"
+            curl -sS -m 25 -o /tmp/o -w "CODE=%{http_code}\n" -L "$U" || echo "CURL_FAIL"
+            head -c 200 /tmp/o
+            echo
+          done
+      - name: dns
+        run: |
+          echo "== apex"; dig +short hnvip.qd.je A
+          echo "== ns";   dig +short hnvip.qd.je NS
