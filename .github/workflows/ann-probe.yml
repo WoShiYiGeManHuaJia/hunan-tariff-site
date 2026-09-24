@@ -7,23 +7,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 抓湖南联通公告
+      - name: 联通公告(湖南,排序修复后)
         run: |
           python3 -u pipelines/scripts/announce_fetch.py --uni-dir "$GITHUB_WORKSPACE/unicom/data" 2>&1 | tail -3
+      - name: 移动公告(验证链路)
+        continue-on-error: true
+        run: |
+          python3 -u pipelines/scripts/announce_fetch.py --move-dir "$GITHUB_WORKSPACE/data" 2>&1 | tail -3
+      - name: 输出两家结果
+        run: |
           python3 -c "
           import json
-          d=json.load(open('unicom/data/announce.json',encoding='utf-8'))
-          print('updated',d['updated'],'count',d['count'])
-          for i in d['items']: print(' ',i['date'],'|',i['title'][:46])
-          " > /tmp/hn.txt 2>&1
-          cat /tmp/hn.txt
-      - name: 上传抓取结果
+          for n,p in [('联通(湖南)','unicom/data/announce.json'),('移动(湖南)','data/announce.json')]:
+              d=json.load(open(p,encoding='utf-8'))
+              ds=[i['date'] for i in d['items']]
+              ok=all(ds[k]>=ds[k+1] for k in range(len(ds)-1))
+              print('=== %s ==='%n)
+              print('updated',d['updated'],'count',d['count'],'降序正确:',ok)
+              for i in d['items'][:8]: print('  ',i['date'],'|',i['title'][:44])
+          " > /tmp/res.txt 2>&1
+          cat /tmp/res.txt
+      - name: 上传结果
         run: |
-          B64=$(base64 -w0 /tmp/hn.txt)
-          printf '{"message":"hn announce result","content":"%s"}' "$B64" > /tmp/pl.json
+          B64=$(base64 -w0 /tmp/res.txt)
+          printf '{"message":"verify","content":"%s"}' "$B64" > /tmp/pl.json
           curl -s -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Content-Type: application/json" \
-            --data-binary @/tmp/pl.json "https://api.github.com/repos/${{ github.repository }}/contents/uni_hn.txt" | head -c 150
-      - name: 提交(抗竞争重试)
+            --data-binary @/tmp/pl.json "https://api.github.com/repos/${{ github.repository }}/contents/verify_ann.txt" | head -c 150
+      - name: 提交联通公告
         run: |
           set -e
           cp -f unicom/data/announce.json /tmp/ann.json
@@ -35,8 +45,7 @@ jobs:
             cp -f /tmp/ann.json unicom/data/announce.json
             git add unicom/data/announce.json
             if git diff --cached --quiet; then echo "无变化"; break; fi
-            git commit -q -m "fix: 联通公告改抓湖南(province 074)，修正输出路径"
+            git commit -q -m "fix: 联通湖南公告按日期降序"
             if git push origin main; then echo "已推送($i)"; break; fi
-            echo "[warn] push 冲突，重试 $i"
             sleep 10
           done
