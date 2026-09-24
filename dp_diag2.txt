@@ -1,0 +1,30 @@
+== homepage with UA ==
+http:200
+== dashboard with UA ==
+http:403
+== search api hints ==
+== meta/og hints ==
+dash.html:digitalplat.org
+home.html:digitalplat.org
+home.html:digitalplat.org/
+== try known api hosts ==
+api.dpdns.org -> 000
+fail
+dpdns.org -> 000
+fail
+api.digitalplat.dev -> 000
+fail
+api.digitalplat.io -> 000
+fail
+digitalplat.org -> 404
+== try digitalplat.org/api paths ==
+/api/v1/domains -> 404 <!DOCTYPE html><!--GNQWwYwa_iKV5q04QcoVJ--><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="/_next/static/med
+/api/domains -> 404 <!DOCTYPE html><!--GNQWwYwa_iKV5q04QcoVJ--><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="/_next/static/med
+/api/v1/dns -> 404 <!DOCTYPE html><!--GNQWwYwa_iKV5q04QcoVJ--><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="/_next/static/med
+/api/user/domains -> 404 <!DOCTYPE html><!--GNQWwYwa_iKV5q04QcoVJ--><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="/_next/static/med
+/api/v1/user -> 404 <!DOCTYPE html><!--GNQWwYwa_iKV5q04QcoVJ--><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="/_next/static/med
+== try dashboard api paths ==
+/api/v1/domains -> 403 <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=Edge"><meta nam
+/api/domains -> 403 <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=Edge"><meta nam
+/api/v1/dns/records -> 403 <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=Edge"><meta nam
+/api/dns -> 403 <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=Edge"><meta nam
