@@ -8,38 +8,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: generate
-        id: g
-        continue-on-error: true
+      - name: verify existing links
         run: |
-          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
-          RES=""
-          for A in hntf2026 zifei2026 tf2026 hunan2026 zf2026 hntf2; do
-            r=$(curl -s -m 25 -A "Mozilla/5.0" "https://tinyurl.com/api-create.php?url=$U&alias=$A")
-            case "$r" in
-              http*) RES="$RES [tinyurl-custom $r]" ;;
-            esac
+          OUT="# 短链验证结果"
+          OUT="$OUT"$'\n'
+          OUT="$OUT"$'\n'"target: https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
+          OUT="$OUT"$'\n'
+          for L in https://tinyurl.com/hntf2 https://tinyurl.com/zf2026 https://tinyurl.com/hunan2026 https://tinyurl.com/hntf2026 https://tinyurl.com/23xqwhm7 https://clck.ru/3W4LN5; do
+            H=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{http_code}" -L "$L")
+            F=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{url_effective}" -L "$L")
+            N=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{num_redirects}" -L "$L")
+            T=$(curl -s -m 25 -A "Mozilla/5.0" -L "$L" | grep -oE '<title>[^<]*</title>' | head -1)
+            OUT="$OUT"$'\n'"=== $L"
+            OUT="$OUT"$'\n'"  http=$H  跳转次数=$N  最终=$F"
+            OUT="$OUT"$'\n'"  页面标题=$T"
+            OUT="$OUT"$'\n'
           done
-          r2=$(curl -s -m 25 -A "Mozilla/5.0" "https://tinyurl.com/api-create.php?url=$U")
-          case "$r2" in http*) RES="$RES [tinyurl-random $r2]" ;; esac
-          r3=$(curl -s -m 25 -A "Mozilla/5.0" "https://clck.ru/--?url=$U")
-          case "$r3" in http*) RES="$RES [clck $r3]" ;; esac
-          r4=$(curl -s -m 25 -A "Mozilla/5.0" "https://is.gd/create.php?format=simple&url=$U")
-          case "$r4" in http*) RES="$RES [isgd $r4]" ;; esac
-          r5=$(curl -s -m 25 -A "Mozilla/5.0" "https://v.gd/create.php?format=simple&url=$U")
-          case "$r5" in http*) RES="$RES [vgd $r5]" ;; esac
-          echo "RESULT=$RES" >> $GITHUB_ENV
-          echo "LINKS: $RES"
+          echo "$OUT" > SHORT2.md
+          cat SHORT2.md
       - name: commit result
         run: |
           git config user.name "bot"
           git config user.email "bot@users.noreply.github.com"
-          echo "target: https://woshiyigemanhuajia.github.io/hunan-tariff-site/" > SHORT2.md
-          echo "" >> SHORT2.md
-          echo "$RESULT" >> SHORT2.md
-          echo "time: $(date -u '+%Y-%m-%d %H:%M:%SZ')" >> SHORT2.md
-          cat SHORT2.md
           git add SHORT2.md
-          git commit -m "SHORT2: $RESULT" || echo "no change"
+          git commit -m "verify short links" || echo "no change"
           git pull --rebase origin main || true
-          git push || git push || echo pushfail
+          git push || echo pushfail
