@@ -1,0 +1,23 @@
+name: wxverify
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/workflows/wxverify.yml"]
+jobs:
+  v:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check
+        run: |
+          F=9a0c6a0cba595feb5a29661d1450e9bf.txt
+          for H in http https; do
+            echo "=== $H://hnvip.qd.je/$F ==="
+            curl -sS -m 25 -o /tmp/o.txt -w "http_code=%{http_code} size=%{size_download}\n" "$H://hnvip.qd.je/$F" || echo "fail"
+            echo "body: $(cat /tmp/o.txt 2>/dev/null | head -c 200)"
+          done
+          echo "=== github.io ==="
+          curl -sS -m 25 -o /tmp/g.txt -w "http_code=%{http_code}\n" "https://woshiyigemanhuajia.github.io/hunan-tariff-site/$F" || echo fail
+          echo "body: $(cat /tmp/g.txt 2>/dev/null | head -c 200)"
+          echo "=== cert ==="
+          curl -sS -m 20 -vI https://hnvip.qd.je/ 2>&1 | grep -E "subject|issuer|SSL|expire" | head -8
