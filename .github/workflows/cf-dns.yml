@@ -1,74 +1,83 @@
-name: CF DNS 一键配置
+name: cf-dns-setup
+
 on:
   workflow_dispatch:
-permissions:
-  contents: write
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: 配置 Cloudflare Zone 与 DNS
+      - name: Configure Cloudflare DNS
         env:
-          CF_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_ACCOUNT: ${{ secrets.CF_ACCOUNT_ID }}
-          DOMAIN: hnvip.qd.je
-          TARGET: woshiyigemanhuajia.github.io
+          CF_TOKEN: ${{ secrets.CF_DNS_TOKEN }}
+          DOM: hnvip.qd.je
         run: |
-          set +e
-          IPS="185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153"
-          OUT="cf_setup_result.txt"
-          : > "$OUT"
-          log(){ echo "$1" | tee -a "$OUT"; }
+          set -u
+          T="$CF_TOKEN"
+          DOM="$DOM"
+          H() { curl -s --max-time 30 -H "Authorization: Bearer $T" -H "Content-Type: application/json" "$1"; }
 
-          AUTH=(-H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json")
+          echo "===== 1. TOKEN VERIFY ====="
+          H "https://api.cloudflare.com/client/v4/user/tokens/verify"
+          echo
 
-          log "===== $(date -u) ====="
-          log "域名: $DOMAIN"
+          echo "===== 2. FIND ZONE ====="
+          RES=$(H "https://api.cloudflare.com/client/v4/zones?name=$DOM")
+          echo "$RES" | head -c 1200
+          echo
+          ZID=$(echo "$RES" | jq -r '.result[0].id // empty')
 
-          # 1) 查找已有 zone
-          ZID=$(curl -s "${AUTH[@]}" "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
-                | jq -r '.result[0].id // empty')
-          log "已存在 zone: ${ZID:-无}"
+          if [ -z "$ZID" ]; then
+            echo "===== 2b. CREATE ZONE ====="
+            RES2=$(curl -s --max-time 30 -X POST "https://api.cloudflare.com/client/v4/zones" \
+              -H "Authorization: Bearer $T" -H "Content-Type: application/json" \
+              -d "{\"name\":\"$DOM\",\"jump_start\":false}")
+            echo "$RES2" | head -c 1500
+            echo
+            ZID=$(echo "$RES2" | jq -r '.result.id // empty')
+            if [ -z "$ZID" ]; then
+              ZID=$(echo "$RES2" | jq -r '.errors[0].data.zone_id // empty')
+              echo "(from error) ZID=$ZID"
+            fi
+          fi
+          echo "ZONE_ID=$ZID"
 
-          # 2) 没有则创建
-          if [ -z "$ZID" ] || [ "$ZID" = "null" ]; then
-            log "--- 尝试创建 zone ---"
-            CREATE=$(curl -s -X POST "${AUTH[@]}" "https://api.cloudflare.com/client/v4/zones" \
-              --data "{\"name\":\"$DOMAIN\",\"account\":{\"id\":\"$CF_ACCOUNT\"},\"type\":\"full\"}")
-            echo "$CREATE" | jq -c '{success,errors,result:{id,name,status,name_servers}}' | tee -a "$OUT"
-            ZID=$(echo "$CREATE" | jq -r '.result.id // empty')
+          if [ -z "$ZID" ]; then
+            echo "!!!!! NO ZONE ID - STOP !!!!!"
+            exit 1
           fi
 
-          if [ -z "$ZID" ] || [ "$ZID" = "null" ]; then
-            log "结果: 未能创建/获取 zone，Cloudflare 可能不接受该后缀"
-            log "请改用 deSEC(desec.io) 或 DigitalPlat 面板自带重定向"
+          echo "===== 3. NAMESERVERS (填回 DigitalPlat 的) ====="
+          H "https://api.cloudflare.com/client/v4/zones/$ZID" | jq -r '.result.name_servers[]? // empty'
+
+          echo "===== 4. ADD A RECORDS ====="
+          for IP in 185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153; do
+            EX=$(H "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records?type=A&name=$DOM" \
+                 | jq -r --arg ip "$IP" '.result[]? | select(.content==$ip) | .id')
+            if [ -n "$EX" ]; then
+              echo "A $IP 已存在 id=$EX"
+            else
+              R=$(curl -s --max-time 30 -X POST "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
+                -H "Authorization: Bearer $T" -H "Content-Type: application/json" \
+                -d "{\"type\":\"A\",\"name\":\"$DOM\",\"content\":\"$IP\",\"ttl\":1,\"proxied\":false}")
+              echo "A $IP -> $(echo "$R" | jq -r '.success')"
+            fi
+          done
+
+          echo "===== 5. ADD CNAME www ====="
+          EXC=$(H "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records?type=CNAME&name=www.$DOM" \
+               | jq -r '.result[0].id // empty')
+          if [ -n "$EXC" ]; then
+            echo "CNAME www 已存在"
           else
-            log "结果: zone 创建成功 id=$ZID"
-            # 3) 写 A 记录
-            for ip in $IPS; do
-              R=$(curl -s -X POST "${AUTH[@]}" "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
-                --data "{\"type\":\"A\",\"name\":\"@\",\"content\":\"$ip\",\"ttl\":300,\"proxied\":false}")
-              echo "A $ip -> $(echo $R | jq -r .success)" | tee -a "$OUT"
-            done
-            # 4) www CNAME
-            R=$(curl -s -X POST "${AUTH[@]}" "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
-              --data "{\"type\":\"CNAME\",\"name\":\"www\",\"content\":\"$TARGET\",\"ttl\":300,\"proxied\":false}")
-            echo "CNAME www -> $(echo $R | jq -r .success)" | tee -a "$OUT"
-            # 5) 输出 NS
-            NS=$(curl -s "${AUTH[@]}" "https://api.cloudflare.com/client/v4/zones/$ZID" | jq -r '.result.name_servers[]?')
-            log "----- 请到 DigitalPlat 面板填写这两个 NS -----"
-            echo "$NS" | tee -a "$OUT"
+            RC=$(curl -s --max-time 30 -X POST "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
+              -H "Authorization: Bearer $T" -H "Content-Type: application/json" \
+              -d "{\"type\":\"CNAME\",\"name\":\"www\",\"content\":\"woshiyigemanhuajia.github.io\",\"ttl\":1,\"proxied\":false}")
+            echo "CNAME www -> $(echo "$RC" | jq -r '.success')"
           fi
 
-      - name: 提交结果
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cf_setup_result.txt
-          if ! git diff --cached --quiet; then
-            git commit -m "CF DNS 配置结果"
-            git push
-          fi
+          echo "===== 6. FINAL RECORDS ====="
+          H "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
+            | jq -r '.result[]? | "\(.type)\t\(.name)\t\(.content)\tproxied=\(.proxied)"'
+
+          echo "===== DONE ====="
