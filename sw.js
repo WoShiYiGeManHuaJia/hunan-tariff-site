@@ -1,45 +1,17 @@
-// 推送配置中心 · Service Worker
-// 作用：把页面缓存到本地，断网也能打开（纯前端页面，所有数据都在 localStorage）
-const CACHE = 'tariff-push-v7';
-const ASSETS = [
-  './push-center.html',
-  './manifest.json'
-];
-
+// 资费监控 · Service Worker（自毁版）
+// 原 SW 采用「缓存优先」，会把旧版页面锁在本地，导致线上更新后仍显示老 UI。
+// 本版只做一件事：注销自身并清空全部本地缓存，之后不再拦截任何请求。
 self.addEventListener('install', function (e) {
-  e.waitUntil(
-    caches.open(CACHE).then(function (c) {
-      // 单个失败不拖垮整体
-      return Promise.allSettled(ASSETS.map(function (u) { return c.add(u); }));
-    }).then(function () { return self.skipWaiting(); })
-  );
+  self.skipWaiting();
 });
-
 self.addEventListener('activate', function (e) {
   e.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (k) { return k === CACHE ? null : caches.delete(k); }));
-    }).then(function () { return self.clients.claim(); })
+    Promise.all([
+      caches.keys().then(function (ks) {
+        return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+      }),
+      self.registration.unregister()
+    ]).then(function () { return self.clients.claim(); })
   );
 });
-
-// 离线优先：先给缓存，再后台更新
-self.addEventListener('fetch', function (e) {
-  const req = e.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;   // 跨域（webhook 等）不拦截
-
-  e.respondWith(
-    caches.match(req).then(function (hit) {
-      const net = fetch(req).then(function (res) {
-        if (res && res.status === 200 && res.type === 'basic') {
-          const copy = res.clone();
-          caches.open(CACHE).then(function (c) { c.put(req, copy); });
-        }
-        return res;
-      }).catch(function () { return hit; });
-      return hit || net;
-    })
-  );
-});
+// 不再注册 fetch：任何请求都不拦截，直接走网络
