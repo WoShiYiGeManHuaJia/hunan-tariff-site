@@ -8,37 +8,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: gen shortest link
+      - name: gen shortest link (root)
         run: |
-          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/n/"
+          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
           out="SHORT.md"
-          echo "# 总入口短链" > $out
+          echo "# 资费监控 · 直达短链（目标：根路径，站内可切换四家）" > $out
           echo "" >> $out
           echo "目标: $U" >> $out
           echo "" >> $out
-          echo "## 候选短码（按长度排序）" >> $out
-          echo "" >> $out
-          for sn in hntf hnt zf tf4 tf gd zifei hnzf; do
+          echo "## is.gd 自定义短码（直达，无确认页）" >> $out
+          for sn in hntf hnzf zf tf ydzf zifei hn cmcc 4g gd; do
             res=$(curl -s -m 25 -A "Mozilla/5.0" "https://is.gd/create.php?format=simple&url=$U&shortname=$sn")
             case "$res" in
-              http*) echo "- \`$res\` (${#res} 字符)" >> $out ;;
+              http*) echo "- \`$res\`  (${#res} 字符)" >> $out ;;
               *) echo "- is.gd/$sn -> 失败: $res" >> $out ;;
             esac
           done
           echo "" >> $out
+          echo "## 其他服务" >> $out
           r2=$(curl -s -m 25 -A "Mozilla/5.0" "https://tinyurl.com/api-create.php?url=$U&alias=hntf")
-          echo "- tinyurl alias: \`$r2\`" >> $out
+          echo "- tinyurl 自定义: \`$r2\`" >> $out
           r3=$(curl -s -m 25 -A "Mozilla/5.0" "https://v.gd/create.php?format=simple&url=$U")
           echo "- v.gd 随机: \`$r3\`" >> $out
           r4=$(curl -s -m 25 -A "Mozilla/5.0" "https://tinyurl.com/api-create.php?url=$U")
           echo "- tinyurl 随机: \`$r4\`" >> $out
           r5=$(curl -s -m 25 -A "Mozilla/5.0" "https://clck.ru/--?url=$U")
           echo "- clck.ru: \`$r5\`" >> $out
+          r6=$(curl -s -m 25 -A "Mozilla/5.0" "https://da.gd/s?url=$U")
+          echo "- da.gd: \`$r6\`" >> $out
+          echo "" >> $out
+          echo "生成时间: $(date -u '+%Y-%m-%d %H:%M:%SZ')" >> $out
           cat $out
       - name: commit
         run: |
           git config user.name "bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
-          git commit -m "gen short link candidates" || echo "no change"
+          git commit -m "gen short link candidates (root target)" || echo "no change"
           git push
