@@ -4,20 +4,24 @@ on: workflow_dispatch
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - uses: actions/checkout@v4
       - name: resolve
         run: |
-          echo "== www CNAME =="
-          dig +short www.hnvip.qd.je CNAME
-          echo "== www A =="
-          dig +short www.hnvip.qd.je A
-          echo "== apex A =="
-          dig +short hnvip.qd.je A
-          echo "== TXT challenge =="
-          dig +short _github-pages-challenge-WoShiYiGeManHuaJia.hnvip.qd.je TXT
-          echo "== http apex =="
-          curl -sS -o /dev/null -w "apex:%{http_code}\n" -L http://hnvip.qd.je/ || true
-          echo "== http www =="
-          curl -sS -o /dev/null -w "www:%{http_code}\n" -L http://www.hnvip.qd.je/ || true
-          echo "== https www =="
-          curl -sS -o /dev/null -w "https_www:%{http_code}\n" https://www.hnvip.qd.je/ || true
+          {
+          echo "time: $(date -u)"
+          echo "== www CNAME =="; dig +short www.hnvip.qd.je CNAME
+          echo "== www A =="; dig +short www.hnvip.qd.je A
+          echo "== apex A =="; dig +short hnvip.qd.je A
+          echo "== NS =="; dig +short hnvip.qd.je NS
+          echo "== challenge TXT =="; dig +short _github-pages-challenge-WoShiYiGeManHuaJia.hnvip.qd.je TXT
+          echo "== http apex =="; curl -sS -o /dev/null -w "apex:%{http_code}\n" -L --max-time 20 http://hnvip.qd.je/ || echo apex:fail
+          echo "== http www =="; curl -sS -o /dev/null -w "www:%{http_code}\n" -L --max-time 20 http://www.hnvip.qd.je/ || echo www:fail
+          echo "== https www =="; curl -sS -o /dev/null -w "https_www:%{http_code}\n" --max-time 20 https://www.hnvip.qd.je/ || echo https_www:fail
+          } > dnscheck.txt 2>&1
+      - name: push
+        run: |
+          git config user.name bot; git config user.email bot@users.noreply.github.com
+          git add -f dnscheck.txt && git commit -m "dns check result" && git push
