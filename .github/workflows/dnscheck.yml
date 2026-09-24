@@ -5,16 +5,16 @@ jobs:
   check:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      actions: write
     steps:
       - name: resolve
         id: r
         run: |
           R="time=$(date -u +%H:%M); wwwCNAME=$(dig +short www.hnvip.qd.je CNAME | tr '\n' ','); wwwA=$(dig +short www.hnvip.qd.je A | tr '\n' ','); apexA=$(dig +short hnvip.qd.je A | tr '\n' ','); NS=$(dig +short hnvip.qd.je NS | tr '\n' ','); txt=$(dig +short _github-pages-challenge-WoShiYiGeManHuaJia.hnvip.qd.je TXT | tr '\n' ','); httpApex=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 20 http://hnvip.qd.je/ || echo fail); httpWww=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 20 http://www.hnvip.qd.je/ || echo fail); httpsWww=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://www.hnvip.qd.je/ || echo fail)"
-          printf '%s' "$R" > out.txt
           echo "res=$R" >> $GITHUB_OUTPUT
-      - name: upload
+      - name: store
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RES: ${{ steps.r.outputs.res }}
         run: |
-          gh api -X PUT repos/WoShiYiGeManHuaJia/hunan-tariff-site/contents/dnscheck.txt             -f message="dns result"             -f content="$(base64 -w0 out.txt)"             $(gh api repos/WoShiYiGeManHuaJia/hunan-tariff-site/contents/dnscheck.txt --jq '"-f sha=\(.sha)"' 2>/dev/null || true) > /dev/null && echo stored
+          gh variable set DNSRES --body "$RES" --repo WoShiYiGeManHuaJia/hunan-tariff-site
