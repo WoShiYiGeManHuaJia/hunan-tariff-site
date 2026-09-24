@@ -1,42 +1,25 @@
-name: scan-hn
+name: fix-uni-announce
 on: workflow_dispatch
+permissions:
+  contents: write
 jobs:
   p:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 全量扫描省份代码找湖南
+      - name: 抓湖南联通公告并写回仓库根
         run: |
-          python3 - <<'PY' > /tmp/scan.txt 2>&1
-          import urllib.request,urllib.parse,json
-          url='https://www.10010.com/mall/service/query/announcementquery'
-          H={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-             'X-Requested-With':'XMLHttpRequest','Accept':'application/json, text/javascript, */*; q=0.01',
-             'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
-             'Referer':'https://www.10010.com/wt_links/index.html','Origin':'https://www.10010.com'}
-          def q(p):
-              d=urllib.parse.urlencode({'pageNo':'1','pageSize':'20','province':p,'condition':'0','title':''}).encode()
-              try:
-                  r=urllib.request.urlopen(urllib.request.Request(url,data=d,headers=H),timeout=25).read().decode('utf-8','ignore')
-                  rows=json.loads(r).get('result') or []
-                  return [str(x.get('creatorProvinceName') or '') for x in rows]
-              except Exception as e: return ['ERR:'+type(e).__name__]
-          found={}
-          codes=[str(i).zfill(3) for i in range(1,80)]+['731','430','hn','HUNAN']
-          for p in codes:
-              names=set(n for n in q(p) if n and not n.startswith('ERR'))
-              if names:
-                  found[p]=sorted(names)
-                  print(p,'=>',sorted(names))
-              if any('湖南' in n for n in names):
-                  print('*** FOUND HUNAN CODE =',p)
-          print()
-          print('=== 汇总 ===')
-          for k,v in found.items(): print(k,v)
-          PY
-      - name: 上传扫描结果
+          python3 -u pipelines/scripts/announce_fetch.py --uni-dir "$GITHUB_WORKSPACE/unicom/data" 2>&1 | tail -5
+          echo "=== 结果 ==="
+          python3 -c "
+          import json
+          d=json.load(open('unicom/data/announce.json',encoding='utf-8'))
+          print('updated',d['updated'],'count',d['count'])
+          for i in d['items'][:12]: print(' ',i['date'],'|',i['title'][:44])
+          "
+      - name: 提交
         run: |
-          B64=$(base64 -w0 /tmp/scan.txt)
-          printf '{"message":"scan hn code","content":"%s"}' "$B64" > /tmp/pl.json
-          curl -s -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Content-Type: application/json" \
-            --data-binary @/tmp/pl.json "https://api.github.com/repos/${{ github.repository }}/contents/scan_hn.txt" | head -c 200
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add unicom/data/announce.json
+          if git diff --cached --quiet; then echo "无变化"; else git commit -q -m "fix: 联通公告改抓湖南(province 074)写入仓库根" && git push; fi
