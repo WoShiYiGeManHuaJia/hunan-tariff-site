@@ -8,30 +8,31 @@ jobs:
     steps:
       - name: run
         run: |
-          out="DIAG_RESULT.md"
-          echo "# DNS 诊断 $(date -u)" > $out
-          echo '```' >> $out
-          echo "=== 国内/境外公共DNS 查询 hnvip.qd.je ===" >> $out
+          O=/tmp/out.txt
+          {
+          echo "=== 公共DNS 查询 hnvip.qd.je ==="
           for s in 223.5.5.5 119.29.29.29 114.114.114.114 8.8.8.8 1.1.1.1; do
-            echo "--- @$s A:" >> $out
-            dig +short +time=5 +tries=1 @$s hnvip.qd.je A >> $out 2>&1
-            echo "--- @$s NS:" >> $out
-            dig +short +time=5 +tries=1 @$s hnvip.qd.je NS >> $out 2>&1
+            echo "--- @$s A:"; dig +short +time=5 +tries=1 @$s hnvip.qd.je A
+            echo "--- @$s NS:"; dig +short +time=5 +tries=1 @$s hnvip.qd.je NS
           done
-          echo "=== 权威 NS 可达性 ===" >> $out
+          echo "=== 权威 NS ==="
           for n in dns1.digitalplat.org dns2.digitalplat.org; do
-            echo "--- $n ip:" >> $out; dig +short +time=5 +tries=1 $n >> $out 2>&1
-            echo "--- @$n hnvip A:" >> $out; dig +short +time=5 +tries=1 @$n hnvip.qd.je A >> $out 2>&1
+            echo "--- $n ip:"; dig +short +time=5 +tries=1 $n
+            echo "--- @$n A:"; dig +short +time=5 +tries=1 @$n hnvip.qd.je A
           done
-          echo "=== JE 顶级域 ===" >> $out
-          echo "qd.je NS @8.8.8.8:" >> $out; dig +short +time=5 +tries=1 @8.8.8.8 qd.je NS >> $out 2>&1
-          echo "qd.je NS @223.5.5.5:" >> $out; dig +short +time=5 +tries=1 @223.5.5.5 qd.je NS >> $out 2>&1
-          echo "=== HTTP 实测 ===" >> $out
-          curl -sS -o /dev/null -w "http://hnvip.qd.je -> %{http_code} ip=%{remote_ip} time=%{time_total}\n" --max-time 25 http://hnvip.qd.je >> $out 2>&1
-          curl -sSk -o /dev/null -w "https://hnvip.qd.je -> %{http_code}\n" --max-time 25 https://hnvip.qd.je >> $out 2>&1
-          curl -sS -o /dev/null -w "github.io 原站 -> %{http_code}\n" --max-time 25 https://woshiyigemanhuajia.github.io/hunan-tariff-site/ >> $out 2>&1
-          echo '```' >> $out
-      - name: commit
-        run: |
-          git config user.name bot; git config user.email bot@x.com
-          git add DIAG_RESULT.md && git commit -m "diag result" && git push || echo "nochange"
+          echo "=== qd.je NS ==="
+          echo "@8.8.8.8:"; dig +short +time=5 +tries=1 @8.8.8.8 qd.je NS
+          echo "@223.5.5.5:"; dig +short +time=5 +tries=1 @223.5.5.5 qd.je NS
+          echo "=== HTTP ==="
+          curl -sS -o /dev/null -w "http://hnvip.qd.je -> %{http_code} ip=%{remote_ip}\n" --max-time 25 http://hnvip.qd.je
+          curl -sSk -o /dev/null -w "https://hnvip.qd.je -> %{http_code}\n" --max-time 25 https://hnvip.qd.je
+          } > $O 2>&1
+          python3 -c "
+import base64,json,os,urllib.request
+p='/tmp/out.txt'; c=base64.b64encode(open(p,'rb').read()).decode()
+req=urllib.request.Request('https://api.github.com/repos/${{ github.repository }}/contents/DIAG_RESULT.md',method='PUT')
+req.add_header('Authorization','Bearer ${{ secrets.GITHUB_TOKEN }}'.replace('Bearer ','Bearer ') if False else 'Bearer ${{ secrets.GITHUB_TOKEN }}')
+req.add_header('Content-Type','application/json'); req.add_header('User-Agent','d')
+body=json.dumps({'message':'diag','content':c}).encode()
+print(urllib.request.urlopen(req,body,timeout=60).status)
+"
