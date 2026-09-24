@@ -1,0 +1,53 @@
+name: mkshort2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: gen shortest
+        run: |
+          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/nav.html"
+          E=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$U")
+          out=SHORT2.md
+          echo "# 最短短链候选" > $out
+          echo "" >> $out
+          echo "目标: $U" >> $out
+          echo "" >> $out
+          echo "| 服务 | 结果 |" >> $out
+          echo "|---|---|" >> $out
+          # 1pt.co 自定义（域名最短 6 字符）
+          for sn in t hn tf zf hntf; do
+            r=$(curl -s -m 25 -A "Mozilla/5.0" "https://1pt.co/api/2020/add?long=$E&short=$sn")
+            echo "| 1pt.co/$sn | \`$r\` |" >> $out
+          done
+          # tny.im 自定义
+          for sn in hn tf hntf; do
+            r=$(curl -s -m 25 -A "Mozilla/5.0" "https://tny.im/api.php?action=shorturl&url=$E&keyword=$sn&format=simple")
+            echo "| tny.im/$sn | \`$r\` |" >> $out
+          done
+          # da.gd
+          r=$(curl -s -m 25 -A "Mozilla/5.0" "https://da.gd/s?url=$E&strip=1")
+          echo "| da.gd | \`$r\` |" >> $out
+          # t.ly
+          r=$(curl -s -m 25 -X POST "https://t.ly/api/v1/link/shorten" -H 'Content-Type: application/json' -d "{\"long_url\":\"$U\"}")
+          echo "| t.ly | \`$r\` |" >> $out
+          # shorturl.at
+          r=$(curl -s -m 25 -A "Mozilla/5.0" "https://api.shorturl.at/v1/shorten?url=$E" | head -c 200)
+          echo "| shorturl.at | \`$r\` |" >> $out
+          # is.gd 再试（可能已恢复）
+          r=$(curl -s -m 25 -A "Mozilla/5.0" "https://is.gd/create.php?format=simple&url=$E&shortname=hntf")
+          echo "| is.gd/hntf 重试 | \`$r\` |" >> $out
+          r=$(curl -s -m 25 -A "Mozilla/5.0" "https://is.gd/create.php?format=simple&url=$E")
+          echo "| is.gd 随机 | \`$r\` |" >> $out
+          cat $out
+      - name: commit
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git commit -m "gen short2" || echo "no change"
+          git push
