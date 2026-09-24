@@ -1,0 +1,37 @@
+UTC: Thu Sep 24 08:34:56 UTC 2026
+== A (runner dns) ==
+185.199.109.153
+185.199.110.153
+185.199.111.153
+185.199.108.153
+== A @8.8.8.8 ==
+185.199.109.153
+185.199.110.153
+185.199.111.153
+185.199.108.153
+== A @1.1.1.1 ==
+185.199.111.153
+185.199.108.153
+185.199.110.153
+185.199.109.153
+== A @dns1.digitalplat.org ==
+185.199.111.153
+185.199.110.153
+185.199.108.153
+185.199.109.153
+== NS ==
+dns1.digitalplat.org.
+dns2.digitalplat.org.
+== http ==
+200
+== https ==
+curl: (60) SSL: no alternative certificate subject name matches target host name 'hnvip.qd.je'
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+000
+fail
+== https -k ==
+200
