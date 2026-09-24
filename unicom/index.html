@@ -658,6 +658,144 @@ a.opc{text-decoration:none;display:block}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+/* ===== BEAUTY CSS ===== */
+/* ============================================================
+   美化增强包 v1 —— 卡片 / 标签 / 统计 / 顶栏 / 按钮
+   纯 CSS 叠加，不改原有逻辑，随时可整段删除回滚
+   ============================================================ */
+
+/* 各运营商主色 RGB（用于半透明阴影与渐变） */
+[data-op="mobile"]{   --oprgb:0,133,208;   --oprgb2:76,201,240; }
+[data-op="unicom"]{   --oprgb:226,35,26;   --oprgb2:255,122,69; }
+[data-op="telecom"]{  --oprgb:0,87,184;    --oprgb2:0,160,233; }
+[data-op="broadnet"]{ --oprgb:200,16,46;   --oprgb2:255,77,109; }
+
+/* ---------- 背景：加一层柔和网格光 ---------- */
+.aurora::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(700px 460px at 78% 4%, rgba(var(--oprgb),.20), transparent 62%),
+    radial-gradient(620px 420px at 8% 88%, rgba(var(--oprgb2),.16), transparent 62%);
+  transition:background .5s ease}
+[data-theme="light"] .aurora::after{
+  background:
+    radial-gradient(700px 460px at 78% 4%, rgba(var(--oprgb),.13), transparent 62%),
+    radial-gradient(620px 420px at 8% 88%, rgba(var(--oprgb2),.11), transparent 62%);}
+
+/* ---------- 顶栏 ---------- */
+.nav{border-radius:22px}
+.logo{border-radius:13px;box-shadow:0 8px 22px rgba(var(--oprgb),.42),inset 0 1px 0 rgba(255,255,255,.35)}
+.nav::after{content:'';position:absolute;left:18px;right:18px;bottom:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(var(--oprgb),.55),transparent);opacity:.55}
+
+/* ---------- 按钮 ---------- */
+.btn.pri{box-shadow:0 10px 26px rgba(var(--oprgb),.36),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn:hover{box-shadow:0 12px 26px rgba(var(--oprgb),.24)}
+.pick:hover{box-shadow:0 10px 22px rgba(var(--oprgb),.20)}
+
+/* ---------- Tab ---------- */
+.ind{background:linear-gradient(135deg,rgba(var(--oprgb),.30),rgba(var(--oprgb2),.22));
+  border-color:rgba(var(--oprgb),.42);
+  box-shadow:0 8px 20px rgba(var(--oprgb),.26),inset 0 1px 0 rgba(255,255,255,.24)}
+[data-theme="light"] .ind{background:linear-gradient(135deg,rgba(var(--oprgb),.14),rgba(var(--oprgb2),.10))}
+
+/* ---------- 统计卡：顶部彩色光边 ---------- */
+.stat::before{z-index:2}
+.stat{border-radius:22px}
+.stat-ic{background:linear-gradient(135deg,rgba(var(--oprgb),.22),rgba(var(--oprgb2),.16));
+  border-color:rgba(var(--oprgb),.30);font-size:17px}
+.stat.a .stat-ic{background:linear-gradient(135deg,rgba(var(--oprgb),.28),rgba(var(--oprgb),.12))}
+.stat.b .stat-ic{background:linear-gradient(135deg,rgba(var(--oprgb2),.28),rgba(var(--oprgb),.12))}
+
+/* ---------- 列表卡片 ---------- */
+.card{border-radius:22px;overflow:hidden}
+/* 左侧彩色竖条 */
+.card > .cstripe{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 4px 4px 0;
+  background:linear-gradient(180deg,var(--op1),var(--op2));opacity:.85}
+/* 顶部柔光 */
+.card::before{content:'';position:absolute;left:0;right:0;top:0;height:78px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(var(--oprgb),.13),transparent);opacity:.9}
+/* 右下角品类水印 */
+.card > .cwatermark{position:absolute;right:-6px;bottom:-14px;font-size:74px;line-height:1;
+  opacity:.075;pointer-events:none;user-select:none;filter:saturate(.7)}
+[data-theme="light"] .card > .cwatermark{opacity:.10}
+
+/* 标题行 */
+.ct{gap:10px;margin-bottom:9px}
+.ckind{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-size:15px;
+  background:linear-gradient(135deg,rgba(var(--oprgb),.22),rgba(var(--oprgb2),.18));
+  border:1px solid rgba(var(--oprgb),.26);margin-top:1px}
+.cn{font-size:14.5px}
+
+/* 价格 */
+.cp{align-items:flex-end;margin-bottom:12px}
+.cpv{font-size:28px;
+  background:linear-gradient(135deg,var(--op1),var(--op2));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  color:var(--op1)}
+.cpv.zero{background:linear-gradient(135deg,#12b981,#34d399);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cpu{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;margin-bottom:3px;
+  background:rgba(var(--oprgb),.13);border:1px solid rgba(var(--oprgb),.22);color:var(--tx2)}
+
+/* 资源标签：按类型着色 */
+.cg{gap:7px}
+.tag{border-radius:999px;padding:5px 10px;font-size:11px;font-weight:600;letter-spacing:.1px;
+  transition:transform .2s,border-color .2s}
+.tag i{font-style:normal;font-weight:700;opacity:.72;margin-right:3px}
+.tag[data-k="流量"]{background:rgba(56,132,255,.14);border-color:rgba(56,132,255,.30);color:#2f7fe0}
+.tag[data-k="通话"],.tag[data-k="语音"]{background:rgba(139,92,246,.14);border-color:rgba(139,92,246,.30);color:#7c4ddb}
+.tag[data-k="宽带"]{background:rgba(16,185,129,.14);border-color:rgba(16,185,129,.32);color:#0d9c6c}
+.tag[data-k="定向"]{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.32);color:#c07a09}
+.tag[data-k="高清"]{background:rgba(236,72,153,.14);border-color:rgba(236,72,153,.30);color:#d3368a}
+.tag[data-k="短信"]{background:rgba(20,184,166,.14);border-color:rgba(20,184,166,.30);color:#0e9488}
+.tag[data-k="权益"]{background:rgba(234,179,8,.16);border-color:rgba(234,179,8,.32);color:#b8860b}
+[data-theme="dark"] .tag[data-k="流量"],[data-op] .tag[data-k="流量"]{color:#8ab8ff}
+.card:hover .tag{transform:translateY(-1px)}
+
+/* 适用范围 */
+.cs{font-size:11.5px;color:var(--tx3);line-height:1.55;margin-bottom:11px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* 底部 */
+.cf{border-top:1px solid var(--bd);padding-top:10px;margin-top:-1px}
+.bo{border-radius:999px;font-weight:600}
+.cfd{font-variant-numeric:tabular-nums}
+
+/* 徽标 */
+.badge{border-radius:999px;letter-spacing:.2px}
+.b1t{background:linear-gradient(135deg,rgba(var(--oprgb),.22),rgba(var(--oprgb2),.14));
+  border-color:rgba(var(--oprgb),.34);color:var(--tx)}
+
+/* ---------- 手机端：卡片更紧凑、更有层次 ---------- */
+@media(max-width:560px){
+  .card{padding:15px 15px 13px;border-radius:20px}
+  .cpv{font-size:26px}
+  .cwatermark{font-size:64px;right:-8px;bottom:-12px}
+  .ct{margin-bottom:8px}
+  .cn{font-size:14px}
+  .stats{grid-template-columns:repeat(2,1fr);gap:11px}
+  .stat{padding:15px}
+  .stat-n{font-size:25px}
+  .nav{padding:11px 14px}
+  .brand-n{font-size:14.5px}
+}
+
+/* ---------- 骨架屏 ---------- */
+.sk{border-radius:20px}
+
+/* ---------- 滚动条（桌面） ---------- */
+@media(min-width:900px){
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:rgba(var(--oprgb),.45);border-radius:99px}
+  ::-webkit-scrollbar-track{background:transparent}
+}
+
+/* 层级：保证水印/光效在文字下方 */
+.card > .cstripe{z-index:1}
+.card > .cwatermark{z-index:0}
+.card > .ct,.card > .cp,.card > .cg,.card > .cs,.card > .cf{position:relative;z-index:2}
+
 </style>
 </head>
 <body>
@@ -2639,5 +2777,71 @@ if(document.readyState === "loading"){
 })();
 </script>
 
+
+<script>
+/* ===== BEAUTY JS ===== */
+/* 美化增强：给卡片补品类图标 / 侧边色条 / 水印，给资源标签上色（纯装饰，不影响任何逻辑） */
+(function(){
+  var KIND = [
+    ["个人资费","📱"],["营销活动","🎁"],["政企","🏢"],["集团","🏢"],
+    ["宽带","🌐"],["流量","📶"],["语音","☎️"],["固话","📞"],["套餐","💳"],
+    ["加装","🧩"],["可选","🧩"],["增值","✨"],["权益","👑"],["会员","👑"],
+    ["家庭","🏠"],["校园","🎓"],["物联网","🔌"],["国际","✈️"],["漫游","✈️"],
+    ["终端","📲"],["合约","📝"],["存量","🗂"]
+  ];
+  function emOf(t){
+    t = String(t || "");
+    for(var i = 0; i < KIND.length; i++){ if(t.indexOf(KIND[i][0]) >= 0){ return KIND[i][1]; } }
+    return "💠";
+  }
+  function decCard(c){
+    if(c.__dec){ return; }
+    c.__dec = 1;
+    var b = c.querySelector(".badge");
+    var t = b ? (b.textContent || "").trim() : "";
+    var em = emOf(t);
+    c.setAttribute("data-kind", t || "其他");
+    var st = document.createElement("i"); st.className = "cstripe"; c.appendChild(st);
+    var wm = document.createElement("i"); wm.className = "cwatermark"; wm.textContent = em; c.appendChild(wm);
+    var ct = c.querySelector(".ct");
+    if(ct){
+      var k = document.createElement("i"); k.className = "ckind"; k.textContent = em;
+      ct.insertBefore(k, ct.firstChild);
+    }
+    var pv = c.querySelector(".cpv");
+    if(pv && /^0(\.0+)?$/.test((pv.textContent || "").trim())){ pv.classList.add("zero"); }
+  }
+  function decTags(root){
+    var ts = (root || document).querySelectorAll(".tag.hl > i"), i;
+    for(i = 0; i < ts.length; i++){
+      var p = ts[i].parentNode;
+      if(p && !p.getAttribute("data-k")){ p.setAttribute("data-k", (ts[i].textContent || "").trim()); }
+    }
+  }
+  var busy = false;
+  function run(){
+    if(busy){ return; }
+    busy = true;
+    try{
+      var cs = document.querySelectorAll(".card"), i;
+      for(i = 0; i < cs.length; i++){ decCard(cs[i]); }
+      decTags(document);
+    }catch(e){}
+    busy = false;
+  }
+  function boot(){
+    run();
+    if(window.MutationObserver){
+      var mo = new MutationObserver(function(){ run(); });
+      mo.observe(document.body, { childList:true, subtree:true });
+    }
+    var t = 0;
+    var iv = setInterval(function(){ run(); if(++t > 40){ clearInterval(iv); } }, 250);
+  }
+  if(document.readyState === "loading"){ document.addEventListener("DOMContentLoaded", boot); }
+  else { boot(); }
+})();
+
+</script>
 </body>
 </html>
