@@ -1,14 +1,19 @@
-# 短链接（自动生成）
+# 资费站短链接
 
-## 中国移动资费监控
-https://woshiyigemanhuajia.github.io/hunan-tariff-site/
-`https://tinyurl.com/23xqwhm7`
+## 中国移动
+- 原链接: https://woshiyigemanhuajia.github.io/hunan-tariff-site/
+- 短链接: `https://tinyurl.com/23xqwhm7`
 
 ## 中国联通
-`https://tinyurl.com/28oelsqz`
+- 原链接: https://woshiyigemanhuajia.github.io/hunan-tariff-site/unicom/
+- 短链接: `https://tinyurl.com/28oelsqz`
 
 ## 中国电信
-`https://tinyurl.com/24ammk6n`
+- 原链接: https://woshiyigemanhuajia.github.io/hunan-tariff-site/telecom/
+- 短链接: `https://tinyurl.com/24ammk6n`
 
 ## 中国广电
-`https://tinyurl.com/27s9mxmj`
+- 原链接: https://woshiyigemanhuajia.github.io/hunan-tariff-site/gb/
+- 短链接: `https://tinyurl.com/27s9mxmj`
+
+生成时间: 2026-09-24 02:25:39 UTC
