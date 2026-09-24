@@ -1,0 +1,10 @@
+===== 1. TOKEN VERIFY =====
+{"result": {"id": "a04d27a3db7245d205abd17d67ad8eb7", "status": "active"}, "success": true, "errors": [], "messages": [{"code": 10000, "message": "This API Token is valid and active", "type": null}]}
+===== 2. LIST ZONES =====
+===== 3. FIND ZONE =====
+  zid(lookup) = None
+===== 3b. CREATE ZONE =====
+{"success": false, "errors": [{"code": 0, "message": "Requires permission \"com.cloudflare.api.account.zone.create\" to create zones for the selected account"}], "messages": [], "result": null}
+  zid(create) = None
+!!!!! CANNOT GET OR CREATE ZONE - token lacks Zone.Zone permission !!!!!
+===== DONE =====
