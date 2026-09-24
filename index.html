@@ -1888,7 +1888,7 @@ function dvHtml(it){
     rest.push(dvRow(k, v));
   });
   var hasL = L.length > 0, hasR = (R.length + rest.length) > 0;
-  if(!hasL && !hasR){ return html + '<div class="dv-none">该业务暂无详细字段</div>'; }
+  if(!hasL && !hasR){ return html ? html : '<div class="dv-none">该业务暂无详细字段</div>'; }
   html += '<div class="dv-cols">';
   html += '<div class="dv-col">' + (hasL ? '<div class="dv-sec">通信资源</div>' + L.join("") : '') + '</div>';
   html += '<div class="dv-col">' + (hasR ? '<div class="dv-sec">办理说明</div>' + R.join("") + rest.join("") : '') + '</div>';
@@ -2339,12 +2339,42 @@ function openHistDetail(hi, ci, type, bi){
   }
   var wrap = document.getElementById("hmCurWrap"), dl = document.getElementById("hmCur");
   /* 去重：上方已用「当前在架档案」渲染，或快照与档案字段完全一致，则不再重复展示一遍 */
-  var __sig = function(o){ return o ? JSON.stringify(o.fields || {}) : "\u0000"; };
-  var __sameAsUp = (typeof det !== "undefined") && det && det.fields && cur && cur.fields &&
-                   (__sig(det) === __sig(cur) || det.from === "cur");
-  if(cur && cur.fields && Object.keys(cur.fields).length && !__sameAsUp){
-    dl.innerHTML = dvHtml(cur);
-    wrap.style.display = "";
+  /* 去重：上方已渲染过字段，下方「当前档案」只补充差异，不再整屏重复。
+     旧写法用 JSON.stringify 直接比——它对键顺序敏感，且空值字段会干扰，
+     于是内容明明一样也被判成不同，导致同一套字段被渲染两遍。 */
+  var __emp = function(v){ var s = String(v == null ? "" : v).replace(/\s+/g, "");
+    return (s === "" || s === "\u65e0" || s === "null" || s === "undefined" || s === "-" || s === "\u2014" || s === "\u2013"); };
+  var __nv = function(v){ return String(v == null ? "" : v).replace(/\s+/g, "").replace(/[\u2014\u2013-]/g, ""); };
+  var __sig = function(o){
+    var f = (o && o.fields) ? o.fields : null;
+    if(!f){ return "\u0000"; }
+    var ks = Object.keys(f).filter(function(k){ return !__emp(f[k]); }).sort();
+    if(!ks.length){ return "\u0000"; }
+    return ks.map(function(k){ return k + "\u0001" + __nv(f[k]); }).join("\u0002");
+  };
+  /* 取 cur 相对 det 的新增/变更字段，值相同的直接丢弃 */
+  var __onlyDiff = function(a, b){
+    var bf = (a && a.fields) || {}, cf = (b && b.fields) || {}, out = {};
+    Object.keys(cf).forEach(function(k){
+      if(k === "\u4e1a\u52a1\u540d\u79f0"){ return; }
+      if(__emp(cf[k])){ return; }
+      if(__nv(cf[k]) === __nv(bf[k])){ return; }
+      out[k] = cf[k];
+    });
+    return out;
+  };
+  if(cur && cur.fields && Object.keys(cur.fields).length){
+    var __same = (typeof det !== "undefined") && det && (det.from === "cur" || __sig(det) === __sig(cur));
+    var __df = __same ? {} : __onlyDiff(det, cur), __dn = Object.keys(__df).length;
+    if(__same || __dn === 0){
+      dl.innerHTML = ""; wrap.style.display = "none";
+    } else {
+      var __tip = (typeof det !== "undefined" && det)
+        ? ('\u4ee5\u4e0b\u4e3a\u5f53\u524d\u6863\u6848\u4e2d<b>\u4e0e\u4e0a\u65b9\u5feb\u7167\u4e0d\u540c</b>\u7684 ' + __dn + ' \u4e2a\u5b57\u6bb5\uff08\u76f8\u540c\u5b57\u6bb5\u4e0d\u518d\u91cd\u590d\u5c55\u793a\uff09')
+        : ('\u4ee5\u4e0b\u4e3a\u8be5\u4e1a\u52a1<b>\u5f53\u524d\u5728\u67b6\u6863\u6848</b>\u7684\u5b8c\u6574\u5b57\u6bb5');
+      dl.innerHTML = '<div class="dfnote">' + __tip + '</div>' + dvHtml({ name:name, fields:__df });
+      wrap.style.display = "";
+    }
   } else { dl.innerHTML = ""; wrap.style.display = "none"; }
   document.getElementById("hmMask").classList.add("on");
 }
