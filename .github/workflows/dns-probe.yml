@@ -8,20 +8,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        continue-on-error: true
       - name: Run probe
+        id: run
+        continue-on-error: true
         env:
           DP: ${{ secrets.DP_API_TOKEN }}
           CF: ${{ secrets.CF_API_TOKEN }}
         run: |
+          set +e
           OUT=probe-out.txt
           : > $OUT
           {
-          echo "== NS hnvip.qd.je"; dig +short NS hnvip.qd.je @8.8.8.8
-          echo "== A  hnvip.qd.je"; dig +short A  hnvip.qd.je @8.8.8.8
-          echo "== NS qd.je";       dig +short NS qd.je @8.8.8.8
-          echo "== SOA qd.je";      dig +short SOA qd.je @8.8.8.8
-          echo "== NS dpdns.org";   dig +short NS dpdns.org @8.8.8.8
-          } >> $OUT 2>&1
+          echo "== which dig"; command -v dig || echo "no dig"
+          echo "== NS hnvip.qd.je"; dig +short NS hnvip.qd.je @8.8.8.8 2>&1
+          echo "== A  hnvip.qd.je"; dig +short A  hnvip.qd.je @8.8.8.8 2>&1
+          echo "== NS qd.je";       dig +short NS qd.je @8.8.8.8 2>&1
+          echo "== SOA qd.je";      dig +short SOA qd.je @8.8.8.8 2>&1
+          } >> $OUT
           {
           echo "===== DigitalPlat API"
           for h in api.digitalplat.org dash.domain.digitalplat.org; do
@@ -30,23 +34,30 @@ jobs:
               echo "DP https://$h$p -> $code | $(head -c 150 /tmp/o | tr -d '\n')"
             done
           done
-          } >> $OUT 2>&1
+          } >> $OUT
           {
           echo "===== Cloudflare"
           echo "-- verify:"; curl -s -m 15 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/user/tokens/verify
           echo; echo "-- zones:"; curl -s -m 15 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/zones?per_page=50" | head -c 600
-          echo; echo "-- try create zone:"; curl -s -m 15 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" --data '{"name":"hnvip.qd.je","jump_start":false}' https://api.cloudflare.com/client/v4/zones | head -c 600
-          } >> $OUT 2>&1
+          echo; echo "-- create zone:"; curl -s -m 15 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" --data '{"name":"hnvip.qd.je","jump_start":false}' https://api.cloudflare.com/client/v4/zones | head -c 700
+          } >> $OUT
+          echo "EXIT_MARKER_OK" >> $OUT
           cat $OUT
+          true
       - name: Commit result
+        if: always()
         env:
           GT: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          MSG=$(date -u +%Y%m%d-%H%M%S)
+          set +e
           B64=$(base64 -w0 probe-out.txt)
-          SHA=$(curl -s -H "Authorization: Bearer $GT" https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('sha',''))" 2>/dev/null || echo "")
+          SHA=$(curl -s -H "Authorization: Bearer $GT" https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt | python3 -c "import json,sys
+          try:
+            d=json.load(sys.stdin); print(d.get('sha',''))
+          except Exception: print('')")
           if [ -n "$SHA" ]; then EX=",\"sha\":\"$SHA\""; else EX=""; fi
-          printf '{"message":"probe %s","content":"%s"%s}' "$MSG" "$B64" "$EX" > /tmp/body.json
+          printf '{"message":"probe result","content":"%s"%s}' "$B64" "$EX" > /tmp/body.json
           curl -s -X PUT -H "Authorization: Bearer $GT" -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt \
             --data-binary @/tmp/body.json | head -c 200
+          true
