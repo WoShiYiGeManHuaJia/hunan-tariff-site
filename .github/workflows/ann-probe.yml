@@ -7,8 +7,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: 探测联通省份代码
         run: |
-          python3 - <<'PY'
-          import urllib.request,urllib.parse,json,re
+          python3 - <<'PY' > probe_out.txt 2>&1
+          import urllib.request,urllib.parse,json
           url='https://www.10010.com/mall/service/query/announcementquery'
           H={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64)','X-Requested-With':'XMLHttpRequest',
              'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
@@ -18,54 +18,53 @@ jobs:
               try:
                   r=urllib.request.urlopen(urllib.request.Request(url,data=d,headers=H),timeout=25).read().decode('utf-8','ignore')
                   j=json.loads(r)
-                  rows=None
-                  for k in ('data','result','rows','list','body'):
-                      if isinstance(j,dict) and k in j:
-                          v=j[k]
-                          if isinstance(v,list): rows=v;break
-                          if isinstance(v,dict):
-                              for k2 in ('rows','list','records','data'):
-                                  if isinstance(v.get(k2),list): rows=v[k2];break
-                          if rows: break
-                  if rows is None:
-                      # 深搜
-                      def find(o):
-                          if isinstance(o,list):
-                              if o and isinstance(o[0],dict) and any(x in o[0] for x in ('title','announcementTitle','name')): return o
-                              for i in o:
-                                  r=find(i)
-                                  if r: return r
-                          elif isinstance(o,dict):
-                              for v in o.values():
-                                  r=find(v)
-                                  if r: return r
-                      rows=find(j)
-                  ts=[str(x.get('title') or x.get('announcementTitle') or x.get('name') or '')[:34] for x in (rows or [])[:3]]
-                  return ts
+                  def find(o):
+                      if isinstance(o,list):
+                          if o and isinstance(o[0],dict) and any(x in o[0] for x in ('title','announcementTitle','name')): return o
+                          for i in o:
+                              rr=find(i)
+                              if rr: return rr
+                      elif isinstance(o,dict):
+                          for v in o.values():
+                              rr=find(v)
+                              if rr: return rr
+                  rows=find(j)
+                  if not rows: return 'NO-ROWS raw='+r[:120]
+                  return [str(x.get('title') or x.get('announcementTitle') or x.get('name') or '')[:34] for x in rows[:3]]
               except Exception as e:
-                  return ['ERR:'+type(e).__name__]
-          for p in ['011','013','018','019','027','028','029','030','031','032','0731','731','0431']:
+                  return 'ERR:'+type(e).__name__
+          print("=== 原始返回结构(province=031) ===")
+          d=urllib.parse.urlencode({'pageNo':'1','pageSize':'2','province':'031','condition':'0','title':''}).encode()
+          try:
+              r=urllib.request.urlopen(urllib.request.Request(url,data=d,headers=H),timeout=25).read().decode('utf-8','ignore')
+              print(r[:800])
+          except Exception as e:
+              print('rawERR',e)
+          print()
+          for p in ['011','012','013','014','015','016','017','018','019','020','021','022','023','024','025','026','027','028','029','030','031','032','033','034','035','036','037','038','039','040','041']:
               print(p,'=>',q(p))
           PY
-      - name: 探测写法2-带provinceName
+      - name: 当前公告文件
         run: |
-          python3 - <<'PY'
-          import urllib.request,urllib.parse,json
-          url='https://www.10010.com/mall/service/query/announcementquery'
-          H={'User-Agent':'Mozilla/5.0','X-Requested-With':'XMLHttpRequest',
-             'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
-             'Referer':'https://www.10010.com/wt_links/index.html','Origin':'https://www.10010.com'}
-          for p in ['031','028','湖南','018']:
-              d=urllib.parse.urlencode({'pageNo':'1','pageSize':'2','province':p,'condition':'0','title':'','provinceName':'湖南'}).encode()
-              try:
-                  r=urllib.request.urlopen(urllib.request.Request(url,data=d,headers=H),timeout=25).read().decode('utf-8','ignore')
-                  print('NAME',p,'=>',r[:300])
-              except Exception as e:
-                  print('NAME',p,'ERR',type(e).__name__)
-          PY
-      - name: 当前联通公告文件信息
-        run: |
-          python3 -c "import json;d=json.load(open('unicom/data/announce.json',encoding='utf-8'));print('updated',d['updated'],'count',d['count']);print([ (i['date'],i['title'][:28]) for i in d['items'][:5]])"
-          echo "--- 移动 ---"
-          python3 -c "import json;d=json.load(open('data/announce.json',encoding='utf-8'));print('updated',d['updated'],'count',d['count']);print([(i['date'],i['title'][:28]) for i in d['items'][:3]])"
+          echo "=== 联通 announce.json ===" >> probe_out.txt
+          python3 -c "
+          import json
+          d=json.load(open('unicom/data/announce.json',encoding='utf-8'))
+          print('updated',d['updated'],'count',d['count'])
+          for i in d['items'][:6]: print(' ',i['date'],'|',i['title'][:36])
+          " >> probe_out.txt 2>&1
+          echo "=== 移动 announce.json ===" >> probe_out.txt
+          python3 -c "
+          import json
+          d=json.load(open('data/announce.json',encoding='utf-8'))
+          print('updated',d['updated'],'count',d['count'])
+          for i in d['items'][:4]: print(' ',i['date'],'|',i['title'][:36])
+          " >> probe_out.txt 2>&1
         continue-on-error: true
+      - name: 提交结果
+        run: |
+          git config user.name "probe"
+          git config user.email "probe@local"
+          git add probe_out.txt
+          git diff --cached --quiet || git commit -m "probe result" 
+          git push || echo pushfail
