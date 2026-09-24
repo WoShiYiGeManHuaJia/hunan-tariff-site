@@ -7,19 +7,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 抓湖南联通公告并写回仓库根
+      - name: 抓湖南联通公告
         run: |
-          python3 -u pipelines/scripts/announce_fetch.py --uni-dir "$GITHUB_WORKSPACE/unicom/data" 2>&1 | tail -5
-          echo "=== 结果 ==="
+          python3 -u pipelines/scripts/announce_fetch.py --uni-dir "$GITHUB_WORKSPACE/unicom/data" 2>&1 | tail -3
           python3 -c "
           import json
           d=json.load(open('unicom/data/announce.json',encoding='utf-8'))
           print('updated',d['updated'],'count',d['count'])
-          for i in d['items'][:12]: print(' ',i['date'],'|',i['title'][:44])
-          "
-      - name: 提交
+          for i in d['items']: print(' ',i['date'],'|',i['title'][:46])
+          " > /tmp/hn.txt 2>&1
+          cat /tmp/hn.txt
+      - name: 上传抓取结果
         run: |
+          B64=$(base64 -w0 /tmp/hn.txt)
+          printf '{"message":"hn announce result","content":"%s"}' "$B64" > /tmp/pl.json
+          curl -s -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Content-Type: application/json" \
+            --data-binary @/tmp/pl.json "https://api.github.com/repos/${{ github.repository }}/contents/uni_hn.txt" | head -c 150
+      - name: 提交(抗竞争重试)
+        run: |
+          set -e
+          cp -f unicom/data/announce.json /tmp/ann.json
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add unicom/data/announce.json
-          if git diff --cached --quiet; then echo "无变化"; else git commit -q -m "fix: 联通公告改抓湖南(province 074)写入仓库根" && git push; fi
+          for i in 1 2 3 4 5 6; do
+            git fetch origin main
+            git reset --hard FETCH_HEAD
+            cp -f /tmp/ann.json unicom/data/announce.json
+            git add unicom/data/announce.json
+            if git diff --cached --quiet; then echo "无变化"; break; fi
+            git commit -q -m "fix: 联通公告改抓湖南(province 074)，修正输出路径"
+            if git push origin main; then echo "已推送($i)"; break; fi
+            echo "[warn] push 冲突，重试 $i"
+            sleep 10
+          done
