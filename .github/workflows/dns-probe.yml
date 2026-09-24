@@ -1,0 +1,35 @@
+name: dns-probe
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: DNS state
+        run: |
+          echo "== NS hnvip.qd.je"; dig +short NS hnvip.qd.je @8.8.8.8 || true
+          echo "== A  hnvip.qd.je"; dig +short A  hnvip.qd.je @8.8.8.8 || true
+          echo "== NS qd.je";       dig +short NS qd.je @8.8.8.8 || true
+          echo "== SOA qd.je";      dig +short SOA qd.je @8.8.8.8 || true
+          echo "== NS dpdns.org";   dig +short NS dpdns.org @8.8.8.8 || true
+      - name: DigitalPlat API probe
+        env:
+          DP: ${{ secrets.DP_API_TOKEN }}
+        run: |
+          for h in api.digitalplat.org dash.domain.digitalplat.org api.digitalplat.org; do
+            for p in "/" "/v1/domains" "/api/v1/domains" "/v1/user" "/api/domain/list"; do
+              code=$(curl -s -m 10 -o /tmp/o -w "%{http_code}" -H "Authorization: Bearer $DP" "https://$h$p")
+              echo "DP $h$p -> $code $(head -c 120 /tmp/o)"
+            done
+          done
+          echo "-- no-auth baseline"
+          curl -s -m 10 -o /tmp/o2 -w "%{http_code}\n" https://api.digitalplat.org/v1/domains; head -c 120 /tmp/o2
+      - name: Cloudflare probe
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          echo "== verify"; curl -s -m 15 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/user/tokens/verify
+          echo; echo "== zones"; curl -s -m 15 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/zones?per_page=50" | head -c 800
+          echo; echo "== zone create test (dry)"
+          curl -s -m 15 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            --data '{"name":"hnvip.qd.je","jump_start":false}' https://api.cloudflare.com/client/v4/zones | head -c 800
