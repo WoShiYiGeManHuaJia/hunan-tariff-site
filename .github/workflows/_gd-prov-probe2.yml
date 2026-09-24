@@ -1,0 +1,100 @@
+name: gd-prov-probe2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome -q
+      - name: run probe
+        run: |
+          cat > /tmp/p.py <<'PY'
+          import urllib.request, json, time, base64, re, ssl
+          from concurrent.futures import ThreadPoolExecutor
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY=b"telecom_wap_2018"
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          ctx=ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE
+          OUT=[]
+          def log(s):
+              print(s); OUT.append(str(s))
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode("utf-8")
+          def call(fn,rc,to=20):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode("utf-8"),method="POST",headers={
+                "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
+                "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
+                "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              last=None
+              for a in range(2):
+                  try:
+                      with urllib.request.urlopen(req,timeout=to,context=ctx) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last=e; time.sleep(1)
+              return {"__err":str(last)}
+          def home(prov):
+              d=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":prov})
+              return d.get("responseContent",{}) if isinstance(d,dict) else {}
+          def get(u,to=20):
+              try:
+                  req=urllib.request.Request(u,headers={"User-Agent":UA})
+                  with urllib.request.urlopen(req,timeout=to,context=ctx) as r: return r.read().decode("utf-8","replace")
+              except Exception as e: return "__ERR__"+str(e)
+          # ---- 1) 湖南结构 dump（找省份标识字段） ----
+          h=home("600203")
+          log("HUNAN_KEYS="+json.dumps(list(h.keys()),ensure_ascii=False))
+          log("HUNAN_META="+json.dumps({k:v for k,v in h.items() if isinstance(v,(str,int)) and k!="sessionid"},ensure_ascii=False)[:1200])
+          # ---- 2) 从 wap 页面/JS 提取省份编码映射 ----
+          for u in ["https://www.189.cn/wapportalweb/rateZone/index.html"]:
+              t=get(u)
+              if t.startswith("__ERR__"): log("PAGE_ERR "+u+" "+t[:150]); continue
+              log("PAGE_LEN=%d %s"%(len(t),u))
+              for m in re.finditer(r'(广东|广州|深圳)', t):
+                  seg=t[max(0,m.start()-260):m.start()+260]
+                  if re.search(r'\d{5,}', seg): log("CTX="+re.sub(r'\s+',' ',seg)[:420])
+              js=re.findall(r'src="([^"]+\.js[^"]*)"', t)
+              log("JS_LINKS="+json.dumps(js[:12],ensure_ascii=False))
+              for j in js[:12]:
+                  ju=j if j.startswith("http") else ("https://www.189.cn"+j if j.startswith("/") else "https://www.189.cn/wapportalweb/rateZone/"+j)
+                  jt=get(ju,to=25)
+                  if jt.startswith("__ERR__"): continue
+                  hits=[]
+                  for m in re.finditer(r'(广东|guangdong|GD)', jt, re.I):
+                      seg=jt[max(0,m.start()-160):m.start()+160]
+                      if re.search(r'\d{5,}', seg): hits.append(re.sub(r'\s+',' ',seg)[:300])
+                  for x in hits[:6]: log("JSHIT|"+ju[-40:]+"|"+x)
+          # ---- 3) 并行扫描候选 provCode ----
+          cands=[str(n) for n in range(600100,600400)]
+          def probe(c):
+              r=home(c)
+              if not isinstance(r,dict) or not r: return None
+              boards=r.get("lableOneList") or []
+              if not boards: return None
+              meta={k:v for k,v in r.items() if isinstance(v,(str,int)) and k!="sessionid" and len(str(v))<40}
+              return (c,len(boards),meta)
+          log("---SCAN---")
+          hits=[]
+          with ThreadPoolExecutor(max_workers=6) as ex:
+              for res in ex.map(probe,cands):
+                  if res: hits.append(res); log("HIT|%s|boards=%d|meta=%s"%(res[0],res[1],json.dumps(res[2],ensure_ascii=False)))
+          log("---END--- hits=%d"%len(hits))
+          open("probe_out.txt","w",encoding="utf-8").write("\n".join(OUT))
+          PY
+          python3 /tmp/p.py 2>&1 | tail -80
+      - name: commit result
+        if: always()
+        run: |
+          git config user.email a@b.c; git config user.name probe
+          git add -f probe_out.txt || true
+          git commit -m "probe result" || echo "no change"
+          git pull --rebase origin main || true
+          git push origin HEAD:main || true
