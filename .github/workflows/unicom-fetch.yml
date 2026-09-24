@@ -88,7 +88,8 @@ jobs:
 
       - name: 抓取公告
         continue-on-error: true
-        run: python3 pipelines/scripts/announce_fetch.py --uni-dir unicom/data
+        # 必须用绝对路径：脚本内相对目录会以 pipelines/ 为根，写到 pipelines/unicom/data/ 而不同步到线上
+        run: python3 pipelines/scripts/announce_fetch.py --uni-dir "$GITHUB_WORKSPACE/unicom/data"
 
       - name: 提交
         if: always()
