@@ -1,21 +1,34 @@
 name: verify-wx-file
 on: workflow_dispatch
+permissions:
+  contents: write
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: curl verify file
         run: |
+          OUT="wxverify_result.txt"
+          : > $OUT
+          echo "RUN_AT=$(date -u)" >> $OUT
           for U in \
             "http://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt" \
             "https://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt" \
             "https://woshiyigemanhuajia.github.io/hunan-tariff-site/9a0c6a0cba595feb5a29661d1450e9bf.txt" ; do
-            echo "===== $U"
-            curl -sS -m 25 -o /tmp/o -w "CODE=%{http_code}\n" -L "$U" || echo "CURL_FAIL"
-            head -c 200 /tmp/o
-            echo
+            echo "===== $U" >> $OUT
+            curl -sS -m 25 -o /tmp/o -w "CODE=%{http_code}\n" -L "$U" >> $OUT 2>&1 || echo "CURL_FAIL" >> $OUT
+            head -c 200 /tmp/o >> $OUT
+            echo >> $OUT
           done
-      - name: dns
+          echo "===== DNS" >> $OUT
+          dig +short hnvip.qd.je A >> $OUT 2>&1
+          echo "--NS--" >> $OUT
+          dig +short hnvip.qd.je NS >> $OUT 2>&1
+      - name: commit
         run: |
-          echo "== apex"; dig +short hnvip.qd.je A
-          echo "== ns";   dig +short hnvip.qd.je NS
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add wxverify_result.txt
+          git commit -m "verify result $(date -u +%s)" || echo "no change"
+          git push || echo "push fail"
