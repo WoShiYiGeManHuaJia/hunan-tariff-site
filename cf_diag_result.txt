@@ -1,0 +1,9 @@
+===== Thu Sep 24 05:54:59 UTC 2026 =====
+--- token 长度 ---
+53
+--- token 前缀 ---
+cfat_GZZ
+--- verify ---
+{"success":false,"errors":[{"code":1000,"message":"Invalid API Token"}],"messages":[],"result":null}
+--- 列出 zones ---
+{"success":false,"errors":[{"code":9109,"message":"Invalid access token"}],"names":[]}
