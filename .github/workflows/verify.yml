@@ -1,0 +1,35 @@
+name: verify
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  v:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check redirects
+        run: |
+          OUT=""
+          for L in https://tinyurl.com/hntf2 https://tinyurl.com/zf2026 https://tinyurl.com/hunan2026 https://tinyurl.com/23xqwhm7 https://clck.ru/3W4LN5; do
+            H=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{http_code}" -L "$L")
+            F=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{url_effective}" -L "$L")
+            N=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{num_redirects}" -L "$L")
+            B=$(curl -s -m 25 -A "Mozilla/5.0" -L "$L" | head -c 400 | tr -d '\n')
+            T=$(echo "$B" | grep -oE '<title>[^<]*</title>' | head -1)
+            OUT="$OUT
+=== $L
+  code=$H redirects=$N final=$F
+  $T"
+          done
+          echo "$OUT"
+          mkdir -p v && echo "$OUT" > v/RESULT.txt
+      - uses: actions/checkout@v4
+      - name: commit
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          cp v/RESULT.txt RESULT.md
+          git add RESULT.md
+          git commit -m "verify short links" || echo none
+          git pull --rebase origin main || true
+          git push || echo pushfail
