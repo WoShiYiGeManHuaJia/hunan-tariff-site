@@ -1604,12 +1604,15 @@ function provBlock(hi, ci, c, lazy){
   if(c.modified){ pills += '<span class="pill p-mod">\u4fee\u6539 ' + c.modified + '</span>'; }
   if(c.removed){ pills += '<span class="pill p-del">\u4e0b\u67b6 ' + c.removed + '</span>'; }
   if(c.restored){ pills += '<span class="pill p-rst">\u8865\u5f55 ' + c.restored + '</span>'; }
+  var __nz = noiseCheck(hi, c);
+  if(__nz){ pills += '<span class="pill p-mod" title="' + esc(__nz) + '">\u26a0 \u91c7\u6837\u6ce2\u52a8</span>'; }
   if(!pills){ pills = '<span class="pill p-rst">\u65e0\u53d8\u5316</span>'; }
   var op = !!HIST_POPEN[hi + "_" + ci];
   var body = "";
   /* 懒渲染：折叠状态不生成业务名 DOM，点击省份时才填充。
      历史共约 7000 个业务名，全量渲染是卡顿主因。 */
   if(!lazy || op){ body = provBody(hi, ci, c); }
+  if(__nz){ body = '<div class="dfnote" style="margin:2px 0 6px">\u26a0 ' + esc(__nz) + '</div>' + body; }
   return '<div class="tg' + (op ? " open" : "") + '" data-pk="' + hi + "_" + ci + '">' +
     '<div class="tg-hd" data-tog="prov" data-hi="' + hi + '" data-ci="' + ci + '">' +
       '<span class="ti-ar">▸</span><span class="ti-p">' + esc(c.name) + "</span>" +
@@ -2167,6 +2170,108 @@ function histItem(c, type, name){
   return (n && n.fields && Object.keys(n.fields).length) ? { name:name, fields:n.fields, from:r.from } : null;
 }
 
+/* ---------- 采样波动识别（伪新增 / 伪下架） ----------
+   联通等接口 pageSize 有限，服务端每轮返回的是随机子集，
+   于是"上轮没采到、这轮采到"被记成新增，"这轮没采到"被记成下架。
+   用上线日期 onDate / 下线日期 offDate 即可识破：
+     · 新增业务 onDate 远早于本轮  → 实为往期已上线、本轮补录
+     · 下架业务 offDate 晚于本轮   → 仍在架，只是本轮没采到          */
+function gdHasDate(o){
+  if(!o || typeof o !== "object"){ return false; }
+  var re = /^\d{4}-\d{2}-\d{2}/;
+  var a = o.onDate || o.offDate, b = (o.detail && typeof o.detail === "object") ? (o.detail.onDate || o.detail.offDate) : "";
+  return (a && re.test(String(a))) || (b && re.test(String(b)));
+}
+/* 取字段快照：added_details 快照通常不含 onDate/offDate，
+   而 *_list 里有完整日期，因此需要优先返回带日期的那一份 */
+function gdRaw(rec, type, name){
+  var dk = (type === "add") ? "added_details" : "removed_details";
+  var lk = (type === "add") ? "added_list" : "removed_list";
+  var dd = rec[dk], a = null, b = null, i;
+  if(dd && typeof dd === "object" && !Array.isArray(dd) && dd[name]){ a = dd[name]; }
+  var lst = rec[lk];
+  if(Array.isArray(lst)){
+    for(i = 0; i < lst.length; i++){
+      var x = lst[i]; if(!x || typeof x !== "object"){ continue; }
+      if((x.title || x.name || "") === name){ b = x; break; }
+    }
+  }
+  if(gdHasDate(b)){ return b; }
+  if(gdHasDate(a)){ return a; }
+  return a || b || null;
+}
+function gdPick(o, key){
+  if(!o || typeof o !== "object"){ return ""; }
+  var v = o[key];
+  if(v == null && o.detail && typeof o.detail === "object"){ v = o.detail[key]; }
+  return (v == null) ? "" : String(v);
+}
+function gdTypeOf(rec, type, name, ts){
+  if((type !== "add" && type !== "del") || !ts){ return null; }
+  var raw = gdRaw(rec, type, name);
+  if(!raw || typeof raw !== "object"){ return null; }
+  var tsD = String(ts).slice(0, 10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(tsD)){ return null; }
+  var on = gdPick(raw, "onDate") || gdPick(raw, "\u4e0a\u7ebf\u65e5\u671f");
+  var off = gdPick(raw, "offDate") || gdPick(raw, "\u4e0b\u7ebf\u65e5\u671f");
+  function good(x){ return x && /^\d{4}-\d{2}-\d{2}/.test(String(x)); }
+  if(type === "add" && good(on)){
+    var gap = (new Date(tsD) - new Date(String(on).slice(0, 10))) / 86400000;
+    if(gap > 30){
+      return { label: "\u6f0f\u91c7\u8865\u5f55", cls: "p-rst",
+        note: "\u8be5\u4e1a\u52a1\u4e0a\u7ebf\u65e5\u671f\u4e3a " + String(on).slice(0, 10) +
+              "\uff0c\u65e9\u4e8e\u672c\u8f6e " + Math.round(gap) +
+              " \u5929\uff1a\u5b9e\u4e3a\u5f80\u671f\u5df2\u4e0a\u7ebf\u3001\u672c\u8f6e\u9996\u6b21\u91c7\u5230\uff0c\u975e\u65b0\u4e0a\u67b6" };
+    }
+  }
+  if(type === "del" && good(off) && String(off).slice(0, 10) > tsD){
+    return { label: "\u7591\u4f3c\u91c7\u6837\u7f3a\u5931", cls: "p-rst",
+      note: "\u8be5\u4e1a\u52a1\u4e0b\u7ebf\u65e5\u671f\u4e3a " + String(off).slice(0, 10) +
+            "\uff0c\u665a\u4e8e\u672c\u8f6e\uff0c\u5e76\u672a\u771f\u6b63\u4e0b\u67b6\uff1a\u7591\u4e3a\u63a5\u53e3\u968f\u673a\u91c7\u6837\u3001\u672c\u8f6e\u672a\u91c7\u5230" };
+  }
+  return null;
+}
+/* 整省层面的采样波动判定：用于历史区提示 */
+function noiseCheck(hi, c){
+  try{
+    var h = D.history[hi]; if(!h || !c){ return null; }
+    var cs = h.changes || [];
+    var self = (c.added || 0) + (c.removed || 0), others = 0, i;
+    for(i = 0; i < cs.length; i++){
+      if(cs[i] !== c){ others += (cs[i].added || 0) + (cs[i].removed || 0); }
+    }
+    if(self >= 100 && others === 0){
+      return "\u672c\u8f6e\u4ec5\u672c\u7701\u51fa\u73b0 " + self +
+             " \u6761\u589e\u5220\u3001\u5176\u4f59\u7701\u4efd\u5747\u65e0\u53d8\u5316\uff0c\u4e14\u591a\u4e2a\u4e1a\u52a1\u7684\u4e0a\u7ebf\u65e5\u671f\u8fdc\u65e9\u4e8e\uff08\u6216\u4e0b\u7ebf\u65e5\u671f\u665a\u4e8e\uff09\u672c\u8f6e\uff0c" +
+             "\u5224\u5b9a\u4e3a\u63a5\u53e3\u968f\u673a\u91c7\u6837\u9020\u6210\u7684\u5047\u53d8\u66f4\uff0c\u975e\u771f\u5b9e\u4e1a\u52a1\u53d8\u52a8";
+    }
+    var ts = String(h.ts || "").slice(0, 10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ts)){ return null; }
+    var hit = 0, tot = 0, pools = [c.added_list, c.removed_list], p, j;
+    for(p = 0; p < pools.length; p++){
+      var arr = pools[p]; if(!Array.isArray(arr)){ continue; }
+      for(j = 0; j < arr.length; j++){
+        var x = arr[j]; if(!x || typeof x !== "object"){ continue; }
+        if(p === 0){
+          var on = gdPick(x, "onDate");
+          if(/^\d{4}-\d{2}-\d{2}/.test(on)){
+            tot++;
+            if((new Date(ts) - new Date(on.slice(0, 10))) / 86400000 > 30){ hit++; }
+          }
+        } else {
+          var off = gdPick(x, "offDate");
+          if(/^\d{4}-\d{2}-\d{2}/.test(off) && off.slice(0, 10) > ts){ tot++; hit++; }
+        }
+      }
+    }
+    if(self >= 30 && tot >= 6 && hit / tot >= 0.8){
+      return "\u62bd\u6837 " + tot + " \u6761\u4e2d " + hit +
+             " \u6761\u7684\u4e0a\u7ebf\u65e5\u671f\u8fdc\u65e9\u4e8e\uff08\u6216\u4e0b\u7ebf\u65e5\u671f\u665a\u4e8e\uff09\u672c\u8f6e\uff0c" +
+             "\u5224\u5b9a\u4e3a\u63a5\u53e3\u968f\u673a\u91c7\u6837\u9020\u6210\u7684\u5047\u53d8\u66f4";
+    }
+  }catch(e){}
+  return null;
+}
 /* ---------- 变更详情弹窗 ---------- */
 var curHist = null;
 function openHistDetail(hi, ci, type, bi){
@@ -2180,9 +2285,10 @@ function openHistDetail(hi, ci, type, bi){
   if(!name){ return; }
   curHist = { name:name, type:type, prov:c.name || "", ts:h.ts || "" };
   document.getElementById("hmTitle").textContent = name;
-  var tl = type === "add" ? "新增上架" : (type === "del" ? "下线停售"
-        : (type === "rst" ? "漏采补录" : "字段修改"));
-  var tc = type === "add" ? "p-add" : (type === "del" ? "p-del" : (type === "rst" ? "p-rst" : "p-mod"));
+  var __gt = gdTypeOf(c, type, name, h.ts || "");
+  var tl = (__gt && __gt.label) ? __gt.label : (type === "add" ? "新增上架" : (type === "del" ? "下线停售"
+        : (type === "rst" ? "漏采补录" : "字段修改")));
+  var tc = (__gt && __gt.cls) ? __gt.cls : (type === "add" ? "p-add" : (type === "del" ? "p-del" : (type === "rst" ? "p-rst" : "p-mod")));
   document.getElementById("hmHead").innerHTML =
     '<span class="pill ' + tc + '">' + tl + '</span>' +
     '<span class="dfmeta">' + esc(c.name || "") + " \u00b7 " + esc(h.ts || "") + "</span>";
@@ -2204,10 +2310,11 @@ function openHistDetail(hi, ci, type, bi){
     box.innerHTML = '<div class="dfnote">\u8be5\u8f6e\u6b21\u672a\u7559\u5b58\u5b8c\u6574\u5b57\u6bb5\u5feb\u7167\uff0c\u4ee5\u4e0b\u4e3a\u672c\u8f6e\u91c7\u96c6\u7684<b>\u5b57\u6bb5\u7ea7\u53d8\u66f4\u8bb0\u5f55</b></div>' +
       cmpHtml(rb, ra, rows.length);
   } else {
-    var tip = (type === "mod" ? "该业务本次未记录字段级差异"
+    var tip = (type === "mod" ? (__gt ? "" : "该业务本次未记录字段级差异")
         : (type === "add" ? "新增业务：首次采集，无「修改前」记录"
         : (type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
         : "已下线业务：无「修改后」记录")));
+    if(__gt && __gt.note){ tip = __gt.note; }
     /* 兜底链：本轮字段快照 → 变更记录里的精简快照 → 当前在架档案 */
     var __sn = (snap && Object.keys(snap).length) ? __cnSnap(snap) : null;
     var det = (__sn && Object.keys(__sn).length) ? { name:name, fields:__sn, from:"snap" }
