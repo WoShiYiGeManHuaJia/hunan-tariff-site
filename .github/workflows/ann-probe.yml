@@ -1,0 +1,71 @@
+name: ann-probe
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 探测联通省份代码
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.parse,json,re
+          url='https://www.10010.com/mall/service/query/announcementquery'
+          H={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64)','X-Requested-With':'XMLHttpRequest',
+             'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+             'Referer':'https://www.10010.com/wt_links/index.html','Origin':'https://www.10010.com'}
+          def q(p):
+              d=urllib.parse.urlencode({'pageNo':'1','pageSize':'3','province':p,'condition':'0','title':''}).encode()
+              try:
+                  r=urllib.request.urlopen(urllib.request.Request(url,data=d,headers=H),timeout=25).read().decode('utf-8','ignore')
+                  j=json.loads(r)
+                  rows=None
+                  for k in ('data','result','rows','list','body'):
+                      if isinstance(j,dict) and k in j:
+                          v=j[k]
+                          if isinstance(v,list): rows=v;break
+                          if isinstance(v,dict):
+                              for k2 in ('rows','list','records','data'):
+                                  if isinstance(v.get(k2),list): rows=v[k2];break
+                          if rows: break
+                  if rows is None:
+                      # 深搜
+                      def find(o):
+                          if isinstance(o,list):
+                              if o and isinstance(o[0],dict) and any(x in o[0] for x in ('title','announcementTitle','name')): return o
+                              for i in o:
+                                  r=find(i)
+                                  if r: return r
+                          elif isinstance(o,dict):
+                              for v in o.values():
+                                  r=find(v)
+                                  if r: return r
+                      rows=find(j)
+                  ts=[str(x.get('title') or x.get('announcementTitle') or x.get('name') or '')[:34] for x in (rows or [])[:3]]
+                  return ts
+              except Exception as e:
+                  return ['ERR:'+type(e).__name__]
+          for p in ['011','013','018','019','027','028','029','030','031','032','0731','731','0431']:
+              print(p,'=>',q(p))
+          PY
+      - name: 探测写法2-带provinceName
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.parse,json
+          url='https://www.10010.com/mall/service/query/announcementquery'
+          H={'User-Agent':'Mozilla/5.0','X-Requested-With':'XMLHttpRequest',
+             'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+             'Referer':'https://www.10010.com/wt_links/index.html','Origin':'https://www.10010.com'}
+          for p in ['031','028','湖南','018']:
+              d=urllib.parse.urlencode({'pageNo':'1','pageSize':'2','province':p,'condition':'0','title':'','provinceName':'湖南'}).encode()
+              try:
+                  r=urllib.request.urlopen(urllib.request.Request(url,data=d,headers=H),timeout=25).read().decode('utf-8','ignore')
+                  print('NAME',p,'=>',r[:300])
+              except Exception as e:
+                  print('NAME',p,'ERR',type(e).__name__)
+          PY
+      - name: 当前联通公告文件信息
+        run: |
+          python3 -c "import json;d=json.load(open('unicom/data/announce.json',encoding='utf-8'));print('updated',d['updated'],'count',d['count']);print([ (i['date'],i['title'][:28]) for i in d['items'][:5]])"
+          echo "--- 移动 ---"
+          python3 -c "import json;d=json.load(open('data/announce.json',encoding='utf-8'));print('updated',d['updated'],'count',d['count']);print([(i['date'],i['title'][:28]) for i in d['items'][:3]])"
+        continue-on-error: true
