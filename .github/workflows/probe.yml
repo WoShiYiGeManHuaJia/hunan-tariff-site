@@ -1,17 +1,37 @@
 name: probe
 on:
   workflow_dispatch:
+permissions:
+  contents: write
+  issues: write
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
       - name: check
+        id: c
         run: |
+          out=""
           for u in http://hnvip.qd.je/ http://www.hnvip.qd.je/ https://hnvip.qd.je/ https://www.hnvip.qd.je/; do
-            echo "=== $u"
-            curl -s -o /dev/null -m 20 -w "code=%{http_code} ip=%{remote_ip} redirect=%{redirect_url}\n" "$u" || echo "fail"
+            out="$out\n=== $u\n$(curl -s -o /dev/null -m 20 -w 'code=%{http_code} ip=%{remote_ip} redirect=%{redirect_url}' "$u" 2>&1)"
           done
-          echo "--- dns ---"
-          for d in hnvip.qd.je www.hnvip.qd.je; do echo "== $d"; dig +short $d A; dig +short $d CNAME; done
-          echo "--- cert ---"
-          echo | timeout 20 openssl s_client -connect www.hnvip.qd.je:443 -servername www.hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -dates 2>/dev/null || echo "no cert"
+          out="$out\n--- dns ---"
+          for d in hnvip.qd.je www.hnvip.qd.je; do
+            out="$out\n== $d A: $(dig +short $d A | tr '\n' ' ') CNAME: $(dig +short $d CNAME | tr '\n' ' ')"
+          done
+          out="$out\n--- cert www ---\n$(echo | timeout 20 openssl s_client -connect www.hnvip.qd.je:443 -servername www.hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -dates 2>&1)"
+          out="$out\n--- cert apex ---\n$(echo | timeout 20 openssl s_client -connect hnvip.qd.je:443 -servername hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -dates 2>&1)"
+          echo -e "$out" > /tmp/res.txt
+          cat /tmp/res.txt
+      - name: report
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          body=$(cat /tmp/res.txt)
+          curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/WoShiYiGeManHuaJia/hunan-tariff-site/issues \
+            -d "$(python3 -c "
+import json,sys
+body=open('/tmp/res.txt').read()
+print(json.dumps({'title':'probe result','body':body}))
+")" -o /dev/null -w "issue_http=%{http_code}\n"
