@@ -1,0 +1,58 @@
+name: dp-diag2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find real DigitalPlat API
+        env:
+          DP: ${{ secrets.DP_API_TOKEN }}
+        run: |
+          set +e
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          {
+          echo "== homepage with UA =="
+          curl -s -m 20 -A "$UA" -o home.html -w "http:%{http_code}\n" https://digitalplat.org/
+          echo "== dashboard with UA =="
+          curl -s -m 20 -A "$UA" -o dash.html -w "http:%{http_code}\n" https://dashboard.digitalplat.org/
+          echo "== search api hints =="
+          grep -oiE "(https?://[a-z0-9.-]*api[a-z0-9.-]*|/api/[a-zA-Z0-9/_-]+)" home.html dash.html 2>/dev/null | sort -u | head -30
+          echo "== meta/og hints =="
+          grep -oiE "(dpdns|digitalplat\.org[a-z0-9./-]*)" home.html dash.html 2>/dev/null | sort -u | head -20
+          echo "== try known api hosts =="
+          for h in api.dpdns.org dpdns.org api.digitalplat.dev api.digitalplat.io digitalplat.org; do
+            echo -n "$h -> "
+            curl -s -m 10 -o /dev/null -w "%{http_code}\n" -A "$UA" -H "Authorization: Bearer $DP" "https://$h/api/v1/domains" 2>/dev/null || echo fail
+          done
+          echo "== try digitalplat.org/api paths =="
+          for p in "/api/v1/domains" "/api/domains" "/api/v1/dns" "/api/user/domains" "/api/v1/user"; do
+            echo -n "$p -> "
+            curl -s -m 12 -o /tmp/o.txt -w "%{http_code} " -A "$UA" -H "Authorization: Bearer $DP" -H "Accept: application/json" "https://digitalplat.org$p"
+            head -c 200 /tmp/o.txt; echo
+          done
+          echo "== try dashboard api paths =="
+          for p in "/api/v1/domains" "/api/domains" "/api/v1/dns/records" "/api/dns"; do
+            echo -n "$p -> "
+            curl -s -m 12 -o /tmp/o.txt -w "%{http_code} " -A "$UA" -H "Authorization: Bearer $DP" -H "Accept: application/json" "https://dashboard.digitalplat.org$p"
+            head -c 200 /tmp/o.txt; echo
+          done
+          } 2>&1 | tee dp_diag2.txt
+      - name: Push
+        env:
+          GH: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 -c "
+          import json,base64,urllib.request
+          d={'message':'diag2','content':base64.b64encode(open('dp_diag2.txt').read().encode()).decode()}
+          try:
+            r=json.load(urllib.request.urlopen(urllib.request.Request('https://api.github.com/repos/${{ github.repository }}/contents/dp_diag2.txt',headers={'Authorization':'token $GH','User-Agent':'x'}),timeout=20))
+            if 'sha' in r: d['sha']=r['sha']
+          except Exception: pass
+          open('/tmp/p.json','w').write(json.dumps(d))
+          "
+          curl -s -m 30 -X PUT -H "Authorization: token $GH" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}/contents/dp_diag2.txt" -d @/tmp/p.json | head -c 120
