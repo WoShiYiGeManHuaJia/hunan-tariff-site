@@ -1,0 +1,180 @@
+########## PHASE 1: list endpoints ##########
+--- https://api.digitalplat.org/domain/dns/list [bearer] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/dns/list [xkey] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/dns/list [raw] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/dns/list [bearer] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/dns/list [xkey] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/dns/list [raw] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/v1/dns/list [bearer] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/v1/dns/list [xkey] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/v1/dns/list [raw] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/list [bearer] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/list [xkey] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/list [raw] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/freedns/list [bearer] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/freedns/list [xkey] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/freedns/list [raw] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/dns [bearer] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/dns [xkey] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/dns [raw] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/api/dns/list [bearer] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/api/dns/list [xkey] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/api/dns/list [raw] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/info [bearer] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/info [xkey] @@HTTP:000
+
+@@HTTP:000
+
+--- https://api.digitalplat.org/domain/info [raw] @@HTTP:000
+
+@@HTTP:000
+
+########## PHASE 2: add A records ##########
+--- ADD https://api.digitalplat.org/domain/dns/add [host] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/domain/dns/add [name] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/domain/dns/add [subdomain] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/dns/add [host] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/dns/add [name] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/dns/add [subdomain] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/v1/dns/add [host] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/v1/dns/add [name] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/v1/dns/add [subdomain] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/domain/dns/create [host] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/domain/dns/create [name] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/domain/dns/create [subdomain] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/dns/record [host] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/dns/record [name] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/dns/record [subdomain] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/freedns/add [host] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/freedns/add [name] @@HTTP:000
+
+@@HTTP:000
+
+--- ADD https://api.digitalplat.org/freedns/add [subdomain] @@HTTP:000
+
+@@HTTP:000
+
+########## PHASE 3: public DNS verify ##########
+-- try 1
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":300,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":65,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}],"Comment":"Response from dns1.digitalplat.org.(150.230.46.101)."}
+-- try 2
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":290,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":55,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}],"Comment":"Response from dns1.digitalplat.org.(150.230.46.101)."}
+-- try 3
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je","type":1}],"Authority":[{"name":"hnvip.qd.je","type":6,"TTL":279,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":44,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300"}]}
