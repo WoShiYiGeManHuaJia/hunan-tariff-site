@@ -1,33 +1,30 @@
-== which dig
-/usr/bin/dig
-== NS hnvip.qd.je
-dns1.digitalplat.org.
+== authoritative check
+-- SOA hnvip.qd.je @dns1.digitalplat.org
+dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300
+-- NS  hnvip.qd.je @dns1.digitalplat.org
 dns2.digitalplat.org.
-== A  hnvip.qd.je
-== NS qd.je
-ns2.digitalplat.org.
-ns1.digitalplat.org.
-ns3.digitalplat.org.
-ns4.digitalplat.org.
-== SOA qd.je
-ns1.dpdns.org. admin.dpdns.org. 2026147466 600 180 1209600 300
-===== DigitalPlat API
-DP https://api.digitalplat.org/ -> 000 | 
-DP https://api.digitalplat.org/v1/domains -> 000 | 
-DP https://api.digitalplat.org/api/v1/domains -> 000 | 
-DP https://api.digitalplat.org/v1/user -> 000 | 
-DP https://api.digitalplat.org/api/domain/list -> 000 | 
-DP https://api.digitalplat.org/v1/domain/list -> 000 | 
-DP https://dash.domain.digitalplat.org/ -> 403 | <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-e
-DP https://dash.domain.digitalplat.org/v1/domains -> 403 | <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-e
-DP https://dash.domain.digitalplat.org/api/v1/domains -> 403 | <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-e
-DP https://dash.domain.digitalplat.org/v1/user -> 403 | <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-e
-DP https://dash.domain.digitalplat.org/api/domain/list -> 403 | <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-e
-DP https://dash.domain.digitalplat.org/v1/domain/list -> 403 | <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-e
-===== Cloudflare
--- verify:
-{"result":{"id":"a04d27a3db7245d205abd17d67ad8eb7","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
--- zones:
-{"result":[],"result_info":{"page":1,"per_page":50,"total_pages":0,"count":0,"total_count":0},"success":true,"errors":[],"messages":[]}
--- create zone:
-{"success":false,"errors":[{"code":0,"message":"Requires permission \"com.cloudflare.api.account.zone.create\" to create zones for the selected account"}],"messages":[],"result":null}EXIT_MARKER_OK
+dns1.digitalplat.org.
+-- ANY
+== DP API hosts
+-- host api.digitalplat.org
+   (no dns)
+   https://api.digitalplat.org/api/v1/domains -> 000 | 
+-- host digitalplat.org
+2606:4700:10::ac42:ae04 digitalplat.org
+2606:4700:10::6814:2071 digitalplat.org
+   https://digitalplat.org/api/v1/domains -> 403 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+-- host api.digitalplat.dev
+   (no dns)
+   https://api.digitalplat.dev/api/v1/domains -> 000 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+-- host oss.digitalplat.org
+   (no dns)
+   https://oss.digitalplat.org/api/v1/domains -> 000 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+-- host dash.digitalplat.org
+   (no dns)
+   https://dash.digitalplat.org/api/v1/domains -> 000 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+-- host api.dpdns.org
+   (no dns)
+   https://api.dpdns.org/api/v1/domains -> 000 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+== deSEC reachable?
+desec 200
+{"register":"https://desec.io/api/v1/auth/","login":"https://desec.io/api/v1/auth/login/","reset-password":"https://dese
