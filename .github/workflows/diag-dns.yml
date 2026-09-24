@@ -1,0 +1,24 @@
+name: diag-dns
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: run
+        run: |
+          echo "=== 国内公共DNS (223.5.5.5 / 119.29.29.29 / 114.114.114.114) ==="
+          for s in 223.5.5.5 119.29.29.29 114.114.114.114 8.8.8.8 1.1.1.1; do
+            echo "--- @$s"
+            dig +short +time=5 +tries=1 @$s hnvip.qd.je A
+            echo "   NS:"; dig +short +time=5 +tries=1 @$s hnvip.qd.je NS
+          done
+          echo "=== 权威 NS 是否可达 ==="
+          for n in dns1.digitalplat.org dns2.digitalplat.org; do
+            echo "--- $n"; dig +short +time=5 +tries=1 $n; dig +short +time=5 +tries=1 @$n hnvip.qd.je A
+          done
+          echo "=== HTTP 实测 ==="
+          curl -sS -o /dev/null -w "http://hnvip.qd.je -> %{http_code} %{remote_ip}\n" --max-time 20 http://hnvip.qd.je
+          curl -sSk -o /dev/null -w "https://hnvip.qd.je -> %{http_code}\n" --max-time 20 https://hnvip.qd.je
+          echo "=== JE 顶级域 NS ==="
+          dig +short +time=5 +tries=1 @8.8.8.8 qd.je NS
+          dig +short +time=5 +tries=1 @223.5.5.5 qd.je NS
