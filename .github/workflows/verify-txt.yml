@@ -1,18 +1,30 @@
 name: Verify WeChat TXT
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Fetch txt
         run: |
-          echo "=== HTTP ==="
-          curl -sL -m 30 -o /tmp/a.txt -w "code=%{http_code}\n" "http://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt"
-          echo "=== content ==="
-          cat /tmp/a.txt
-          echo ""
-          echo "=== HTTPS ==="
-          curl -sk -m 30 -o /tmp/b.txt -w "code=%{http_code}\n" "https://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt"
-          cat /tmp/b.txt
-          echo ""
+          {
+            echo "=== HTTP ==="
+            curl -sL -m 30 -o /tmp/a.txt -w "code=%{http_code}\n" "http://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt"
+            cat /tmp/a.txt; echo ""
+            echo "=== HTTPS ==="
+            curl -sk -m 30 -o /tmp/b.txt -w "code=%{http_code}\n" "https://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt"
+            cat /tmp/b.txt; echo ""
+            echo "=== DNS ==="
+            nslookup hnvip.qd.je 8.8.8.8 || true
+          } > /tmp/result.txt 2>&1
+      - name: Save
+        run: |
+          cp /tmp/result.txt .verify-result.txt
+          git config user.name "bot"
+          git config user.email "bot@noreply.com"
+          git add .verify-result.txt
+          git commit -m "verify result $(date +%s)" || exit 0
+          git push
