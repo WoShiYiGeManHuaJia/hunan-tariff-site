@@ -1,0 +1,35 @@
+name: cf-setup
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe CF total token
+        env:
+          CF: ${{ secrets.CF_API_TOKEN_TOTAL }}
+          D: hnvip.qd.je
+        run: |
+          set +e
+          out=cf_setup.txt
+          : > $out
+          echo "===== verify =====" >> $out
+          curl -s -m 25 -w "\nHTTP:%{http_code}\n" https://api.cloudflare.com/client/v4/user/tokens/verify -H "Authorization: Bearer $CF" >> $out
+          echo "===== zones =====" >> $out
+          curl -s -m 25 -w "\nHTTP:%{http_code}\n" "https://api.cloudflare.com/client/v4/zones?per_page=50" -H "Authorization: Bearer $CF" >> $out
+          echo "===== membership/accounts =====" >> $out
+          curl -s -m 25 -w "\nHTTP:%{http_code}\n" "https://api.cloudflare.com/client/v4/memberships?per_page=20" -H "Authorization: Bearer $CF" >> $out
+          echo "===== try create zone =====" >> $out
+          curl -s -m 25 -w "\nHTTP:%{http_code}\n" -X POST "https://api.cloudflare.com/client/v4/zones" \
+            -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            -d "{\"name\":\"$D\",\"type\":\"full\"}" >> $out
+      - name: Commit
+        run: |
+          git config user.name bot; git config user.email bot@example.com
+          git add cf_setup.txt
+          git commit -m "cf setup probe" || echo nochange
+          git push
