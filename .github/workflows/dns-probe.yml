@@ -7,44 +7,32 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        continue-on-error: true
       - name: Run probe
-        id: run
         continue-on-error: true
         env:
           DP: ${{ secrets.DP_API_TOKEN }}
-          CF: ${{ secrets.CF_API_TOKEN }}
         run: |
           set +e
           OUT=probe-out.txt
           : > $OUT
           {
-          echo "== which dig"; command -v dig || echo "no dig"
-          echo "== NS hnvip.qd.je"; dig +short NS hnvip.qd.je @8.8.8.8 2>&1
-          echo "== A  hnvip.qd.je"; dig +short A  hnvip.qd.je @8.8.8.8 2>&1
-          echo "== NS qd.je";       dig +short NS qd.je @8.8.8.8 2>&1
-          echo "== SOA qd.je";      dig +short SOA qd.je @8.8.8.8 2>&1
-          } >> $OUT
-          {
-          echo "===== DigitalPlat API"
-          for h in api.digitalplat.org dash.domain.digitalplat.org; do
-            for p in / /v1/domains /api/v1/domains /v1/user /api/domain/list /v1/domain/list; do
-              code=$(curl -s -m 10 -o /tmp/o -w "%{http_code}" -H "Authorization: Bearer $DP" "https://$h$p")
-              echo "DP https://$h$p -> $code | $(head -c 150 /tmp/o | tr -d '\n')"
-            done
+          echo "== authoritative check"
+          echo "-- SOA hnvip.qd.je @dns1.digitalplat.org"; dig +short SOA hnvip.qd.je @dns1.digitalplat.org 2>&1
+          echo "-- NS  hnvip.qd.je @dns1.digitalplat.org"; dig +short NS  hnvip.qd.je @dns1.digitalplat.org 2>&1
+          echo "-- ANY"; dig +noall +answer hnvip.qd.je @dns1.digitalplat.org 2>&1
+          echo "== DP API hosts"
+          for h in api.digitalplat.org digitalplat.org api.digitalplat.dev oss.digitalplat.org dash.digitalplat.org api.dpdns.org; do
+            echo "-- host $h"; getent hosts $h || echo "   (no dns)"
+            code=$(curl -s -m 10 -o /tmp/o -w "%{http_code}" -H "Authorization: Bearer $DP" "https://$h/api/v1/domains")
+            echo "   https://$h/api/v1/domains -> $code | $(head -c 120 /tmp/o | tr -d '\n')"
           done
+          echo "== deSEC reachable?"
+          curl -s -m 10 -o /tmp/d -w "desec %{http_code}\n" https://desec.io/api/v1/
+          head -c 120 /tmp/d
           } >> $OUT
-          {
-          echo "===== Cloudflare"
-          echo "-- verify:"; curl -s -m 15 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/user/tokens/verify
-          echo; echo "-- zones:"; curl -s -m 15 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/zones?per_page=50" | head -c 600
-          echo; echo "-- create zone:"; curl -s -m 15 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" --data '{"name":"hnvip.qd.je","jump_start":false}' https://api.cloudflare.com/client/v4/zones | head -c 700
-          } >> $OUT
-          echo "EXIT_MARKER_OK" >> $OUT
           cat $OUT
           true
-      - name: Commit result
+      - name: Commit
         if: always()
         env:
           GT: ${{ secrets.GITHUB_TOKEN }}
@@ -56,8 +44,6 @@ jobs:
             d=json.load(sys.stdin); print(d.get('sha',''))
           except Exception: print('')")
           if [ -n "$SHA" ]; then EX=",\"sha\":\"$SHA\""; else EX=""; fi
-          printf '{"message":"probe result","content":"%s"%s}' "$B64" "$EX" > /tmp/body.json
-          curl -s -X PUT -H "Authorization: Bearer $GT" -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt \
-            --data-binary @/tmp/body.json | head -c 200
+          printf '{"message":"probe v4","content":"%s"%s}' "$B64" "$EX" > /tmp/body.json
+          curl -s -X PUT -H "Authorization: Bearer $GT" -H "Accept: application/vnd.github+json" https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt --data-binary @/tmp/body.json | head -c 150
           true
