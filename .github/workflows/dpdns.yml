@@ -1,52 +1,69 @@
 name: dp-dns-setup
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   dns:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
       - name: Probe DigitalPlat API and set A records
         env:
           DP: ${{ secrets.DP_API_TOKEN }}
+          D: hnvip.qd.je
         run: |
           set +e
-          D="hnvip.qd.je"
-          m(){ sed "s/dp_live_[A-Za-z0-9_]*/<TOK>/g"; }
-          echo "########## PHASE 1: probe list endpoints ##########"
-          for ep in "https://api.digitalplat.org/domain/dns/list" "https://api.digitalplat.org/dns/list" "https://api.digitalplat.org/v1/dns/list" "https://api.digitalplat.org/domain/list" "https://api.digitalplat.org/freedns/list" "https://api.digitalplat.org/domain/dns" "https://api.digitalplat.org/api/dns/list"; do
-            for auth in "bearer" "xkey" "raw"; do
+          {
+          echo "########## PHASE 1: list endpoints ##########"
+          for ep in "https://api.digitalplat.org/domain/dns/list" "https://api.digitalplat.org/dns/list" "https://api.digitalplat.org/v1/dns/list" "https://api.digitalplat.org/domain/list" "https://api.digitalplat.org/freedns/list" "https://api.digitalplat.org/domain/dns" "https://api.digitalplat.org/api/dns/list" "https://api.digitalplat.org/domain/info"; do
+            for auth in bearer xkey raw; do
               case $auth in
-                bearer) AH=(-H "Authorization: Bearer $DP"); BD=(-d "{\"domain\":\"$D\"}");;
-                xkey)   AH=(-H "X-API-Key: $DP"); BD=(-d "{\"domain\":\"$D\"}");;
-                raw)    AH=(-H "Authorization: $DP"); BD=(-d "{\"domain\":\"$D\"}");;
+                bearer) AH="-H Authorization:Bearer_$DP";;
+                xkey)   AH="-H X-API-Key:$DP";;
+                raw)    AH="-H Authorization:$DP";;
               esac
-              OUT=$(curl -s -m 15 -w "\n@@HTTP:%{http_code}" -X POST "$ep" -H "Content-Type: application/json" "${AH[@]}" "${BD[@]}" 2>/dev/null | m)
-              HC=$(echo "$OUT" | grep -o '@@HTTP:[0-9]*' | head -1)
-              echo "--- $ep [$auth] $HC"
-              echo "$OUT" | head -c 250
+              OUT=$(curl -s -m 15 -w "\n@@HTTP:%{http_code}" -X POST "$ep" -H "Content-Type: application/json" -H "$AH" -d "{\"domain\":\"$D\"}" 2>/dev/null)
+              echo "--- $ep [$auth] $(echo "$OUT" | grep -o '@@HTTP:[0-9]*' | head -1)"
+              echo "$OUT" | head -c 300
               echo
             done
           done
-          echo "########## PHASE 2: try adding A records ##########"
+          echo "########## PHASE 2: add A records ##########"
           for ep in "https://api.digitalplat.org/domain/dns/add" "https://api.digitalplat.org/dns/add" "https://api.digitalplat.org/v1/dns/add" "https://api.digitalplat.org/domain/dns/create" "https://api.digitalplat.org/dns/record" "https://api.digitalplat.org/freedns/add"; do
-            for IP in 185.199.108.153; do
-              for style in "host" "name"; do
-                B="{\"domain\":\"$D\",\"type\":\"A\",\"$style\":\"@\",\"value\":\"$IP\",\"ttl\":600}"
-                OUT=$(curl -s -m 15 -w "\n@@HTTP:%{http_code}" -X POST "$ep" -H "Content-Type: application/json" -H "Authorization: Bearer $DP" -d "$B" 2>/dev/null | m)
-                HC=$(echo "$OUT" | grep -o '@@HTTP:[0-9]*' | head -1)
-                echo "--- ADD $ep [$style] $IP -> $HC"
-                echo "$OUT" | head -c 250
-                echo
-              done
+            for style in host name subdomain; do
+              B="{\"domain\":\"$D\",\"type\":\"A\",\"$style\":\"@\",\"value\":\"185.199.108.153\",\"ttl\":600}"
+              OUT=$(curl -s -m 15 -w "\n@@HTTP:%{http_code}" -X POST "$ep" -H "Content-Type: application/json" -H "Authorization: Bearer $DP" -d "$B" 2>/dev/null)
+              echo "--- ADD $ep [$style] $(echo "$OUT" | grep -o '@@HTTP:[0-9]*' | head -1)"
+              echo "$OUT" | head -c 300
+              echo
             done
           done
-          echo "########## PHASE 3: verify via public DNS ##########"
+          echo "########## PHASE 3: public DNS verify ##########"
           for i in 1 2 3; do
-            echo "-- query try $i"
-            curl -s -m 15 -H "accept: application/dns-json" "https://cloudflare-dns.com/dns-query?name=$D&type=A" | head -c 400
-            echo
-            curl -s -m 15 -H "accept: application/dns-json" "https://dns.google/resolve?name=$D&type=A" | head -c 400
-            echo
+            echo "-- try $i"
+            curl -s -m 15 -H "accept: application/dns-json" "https://cloudflare-dns.com/dns-query?name=$D&type=A" | head -c 500; echo
+            curl -s -m 15 -H "accept: application/dns-json" "https://dns.google/resolve?name=$D&type=A" | head -c 500; echo
             sleep 10
           done
+          } 2>&1 | sed "s/dp_live_[A-Za-z0-9_]*/<TOK>/g" | tee dp_dns_result.txt
+      - name: Push result file
+        env:
+          GH: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          B=$(base64 -w0 dp_dns_result.txt)
+          CUR=$(curl -s -m 20 -H "Authorization: token $GH" "https://api.github.com/repos/${{ github.repository }}/contents/dp_dns_result.txt")
+          SHA=$(echo "$CUR" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('sha',''))" 2>/dev/null)
+          if [ -n "$SHA" ]; then EX=",\"sha\":\"$SHA\""; else EX=""; fi
+          python3 -c "
+          import json,sys
+          b=open('dp_dns_result.txt').read()
+          import base64
+          d={'message':'dns probe result','content':base64.b64encode(b.encode()).decode()}
+          sha='$SHA'
+          if sha: d['sha']=sha
+          open('/tmp/pl.json','w').write(json.dumps(d))
+          "
+          curl -s -m 30 -X PUT -H "Authorization: token $GH" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/dp_dns_result.txt" -d @/tmp/pl.json | head -c 200
