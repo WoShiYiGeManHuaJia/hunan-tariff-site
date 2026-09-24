@@ -1,42 +1,42 @@
-name: ann-probe
+name: scan-hn
 on: workflow_dispatch
 jobs:
   p:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 复现公告抓取(联通)
-        continue-on-error: true
+      - name: 全量扫描省份代码找湖南
         run: |
-          mkdir -p /tmp/up
-          python3 -u pipelines/scripts/announce_fetch.py --uni-dir /tmp/up > /tmp/uni_step.log 2>&1
-          echo "EXIT=$?" >> /tmp/uni_step.log
-      - name: 探测省份归属
-        continue-on-error: true
-        run: |
-          python3 - <<'PY' >> /tmp/uni_step.log 2>&1
+          python3 - <<'PY' > /tmp/scan.txt 2>&1
           import urllib.request,urllib.parse,json
           url='https://www.10010.com/mall/service/query/announcementquery'
-          H={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
+          H={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
              'X-Requested-With':'XMLHttpRequest','Accept':'application/json, text/javascript, */*; q=0.01',
              'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
              'Referer':'https://www.10010.com/wt_links/index.html','Origin':'https://www.10010.com'}
           def q(p):
-              d=urllib.parse.urlencode({'pageNo':'1','pageSize':'3','province':p,'condition':'0','title':''}).encode()
+              d=urllib.parse.urlencode({'pageNo':'1','pageSize':'20','province':p,'condition':'0','title':''}).encode()
               try:
                   r=urllib.request.urlopen(urllib.request.Request(url,data=d,headers=H),timeout=25).read().decode('utf-8','ignore')
                   rows=json.loads(r).get('result') or []
-                  return [(x.get('creatorProvinceName'),str(x.get('title'))[:26],x.get('publishTime')) for x in rows[:3]]
-              except Exception as e: return 'ERR:'+type(e).__name__
-          print("=== XHR头探测 province -> (省名,标题,日期) ===")
-          for p in ['031','011','013','017','018','019','030','034','036','038']:
-              print(p,'=>',q(p))
+                  return [str(x.get('creatorProvinceName') or '') for x in rows]
+              except Exception as e: return ['ERR:'+type(e).__name__]
+          found={}
+          codes=[str(i).zfill(3) for i in range(1,80)]+['731','430','hn','HUNAN']
+          for p in codes:
+              names=set(n for n in q(p) if n and not n.startswith('ERR'))
+              if names:
+                  found[p]=sorted(names)
+                  print(p,'=>',sorted(names))
+              if any('湖南' in n for n in names):
+                  print('*** FOUND HUNAN CODE =',p)
+          print()
+          print('=== 汇总 ===')
+          for k,v in found.items(): print(k,v)
           PY
-      - name: 上传结果
+      - name: 上传扫描结果
         run: |
-          B64=$(base64 -w0 /tmp/uni_step.log)
-          printf '{"message":"probe log","content":"%s"}' "$B64" > /tmp/payload.json
-          curl -s -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data-binary @/tmp/payload.json \
-            "https://api.github.com/repos/${{ github.repository }}/contents/uni_step.log" | head -c 300
+          B64=$(base64 -w0 /tmp/scan.txt)
+          printf '{"message":"scan hn code","content":"%s"}' "$B64" > /tmp/pl.json
+          curl -s -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Content-Type: application/json" \
+            --data-binary @/tmp/pl.json "https://api.github.com/repos/${{ github.repository }}/contents/scan_hn.txt" | head -c 200
