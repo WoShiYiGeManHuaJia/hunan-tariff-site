@@ -1,5 +1,7 @@
 name: diag-dns
 on: workflow_dispatch
+permissions:
+  contents: write
 jobs:
   d:
     runs-on: ubuntu-latest
