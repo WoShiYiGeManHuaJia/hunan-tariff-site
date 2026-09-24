@@ -3,6 +3,9 @@ name: cf-dns-setup
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -10,74 +13,9 @@ jobs:
       - name: Configure Cloudflare DNS
         env:
           CF_TOKEN: ${{ secrets.CF_DNS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOM: hnvip.qd.je
         run: |
-          set -u
-          T="$CF_TOKEN"
-          DOM="$DOM"
-          H() { curl -s --max-time 30 -H "Authorization: Bearer $T" -H "Content-Type: application/json" "$1"; }
-
-          echo "===== 1. TOKEN VERIFY ====="
-          H "https://api.cloudflare.com/client/v4/user/tokens/verify"
-          echo
-
-          echo "===== 2. FIND ZONE ====="
-          RES=$(H "https://api.cloudflare.com/client/v4/zones?name=$DOM")
-          echo "$RES" | head -c 1200
-          echo
-          ZID=$(echo "$RES" | jq -r '.result[0].id // empty')
-
-          if [ -z "$ZID" ]; then
-            echo "===== 2b. CREATE ZONE ====="
-            RES2=$(curl -s --max-time 30 -X POST "https://api.cloudflare.com/client/v4/zones" \
-              -H "Authorization: Bearer $T" -H "Content-Type: application/json" \
-              -d "{\"name\":\"$DOM\",\"jump_start\":false}")
-            echo "$RES2" | head -c 1500
-            echo
-            ZID=$(echo "$RES2" | jq -r '.result.id // empty')
-            if [ -z "$ZID" ]; then
-              ZID=$(echo "$RES2" | jq -r '.errors[0].data.zone_id // empty')
-              echo "(from error) ZID=$ZID"
-            fi
-          fi
-          echo "ZONE_ID=$ZID"
-
-          if [ -z "$ZID" ]; then
-            echo "!!!!! NO ZONE ID - STOP !!!!!"
-            exit 1
-          fi
-
-          echo "===== 3. NAMESERVERS (填回 DigitalPlat 的) ====="
-          H "https://api.cloudflare.com/client/v4/zones/$ZID" | jq -r '.result.name_servers[]? // empty'
-
-          echo "===== 4. ADD A RECORDS ====="
-          for IP in 185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153; do
-            EX=$(H "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records?type=A&name=$DOM" \
-                 | jq -r --arg ip "$IP" '.result[]? | select(.content==$ip) | .id')
-            if [ -n "$EX" ]; then
-              echo "A $IP 已存在 id=$EX"
-            else
-              R=$(curl -s --max-time 30 -X POST "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
-                -H "Authorization: Bearer $T" -H "Content-Type: application/json" \
-                -d "{\"type\":\"A\",\"name\":\"$DOM\",\"content\":\"$IP\",\"ttl\":1,\"proxied\":false}")
-              echo "A $IP -> $(echo "$R" | jq -r '.success')"
-            fi
-          done
-
-          echo "===== 5. ADD CNAME www ====="
-          EXC=$(H "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records?type=CNAME&name=www.$DOM" \
-               | jq -r '.result[0].id // empty')
-          if [ -n "$EXC" ]; then
-            echo "CNAME www 已存在"
-          else
-            RC=$(curl -s --max-time 30 -X POST "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
-              -H "Authorization: Bearer $T" -H "Content-Type: application/json" \
-              -d "{\"type\":\"CNAME\",\"name\":\"www\",\"content\":\"woshiyigemanhuajia.github.io\",\"ttl\":1,\"proxied\":false}")
-            echo "CNAME www -> $(echo "$RC" | jq -r '.success')"
-          fi
-
-          echo "===== 6. FINAL RECORDS ====="
-          H "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
-            | jq -r '.result[]? | "\(.type)\t\(.name)\t\(.content)\tproxied=\(.proxied)"'
-
-          echo "===== DONE ====="
+          echo 'CmltcG9ydCBqc29uLCBvcywgdXJsbGliLnJlcXVlc3QsIHVybGxpYi5lcnJvciwgYmFzZTY0CgpUICAgID0gb3MuZW52aXJvblsiQ0ZfVE9LRU4iXQpET00gID0gb3MuZW52aXJvbi5nZXQoIkRPTSIsICJobnZpcC5xZC5qZSIpCkdUICAgPSBvcy5lbnZpcm9uWyJHSVRIVUJfVE9LRU4iXQpSRVBPID0gb3MuZW52aXJvblsiR0lUSFVCX1JFUE9TSVRPUlkiXQpMT0cgID0gW10KCgpkZWYgcCgqYSk6CiAgICBzID0gIiAiLmpvaW4oc3RyKHgpIGZvciB4IGluIGEpCiAgICBwcmludChzKQogICAgTE9HLmFwcGVuZChzKQoKCmRlZiBjZihtZXRob2QsIHBhdGgsIGRhdGE9Tm9uZSk6CiAgICByZXEgPSB1cmxsaWIucmVxdWVzdC5SZXF1ZXN0KCJodHRwczovL2FwaS5jbG91ZGZsYXJlLmNvbS9jbGllbnQvdjQiICsgcGF0aCwgbWV0aG9kPW1ldGhvZCkKICAgIHJlcS5hZGRfaGVhZGVyKCJBdXRob3JpemF0aW9uIiwgIkJlYXJlciAiICsgVCkKICAgIHJlcS5hZGRfaGVhZGVyKCJDb250ZW50LVR5cGUiLCAiYXBwbGljYXRpb24vanNvbiIpCiAgICBib2R5ID0ganNvbi5kdW1wcyhkYXRhKS5lbmNvZGUoKSBpZiBkYXRhIGVsc2UgTm9uZQogICAgdHJ5OgogICAgICAgIHdpdGggdXJsbGliLnJlcXVlc3QudXJsb3BlbihyZXEsIGJvZHksIHRpbWVvdXQ9NDApIGFzIHI6CiAgICAgICAgICAgIHJldHVybiBqc29uLmxvYWRzKHIucmVhZCgpLmRlY29kZSgpKQogICAgZXhjZXB0IHVybGxpYi5lcnJvci5IVFRQRXJyb3IgYXMgZToKICAgICAgICB0cnk6CiAgICAgICAgICAgIHJldHVybiBqc29uLmxvYWRzKGUucmVhZCgpLmRlY29kZSgpKQogICAgICAgIGV4Y2VwdCBFeGNlcHRpb246CiAgICAgICAgICAgIHJldHVybiB7InN1Y2Nlc3MiOiBGYWxzZSwgImVycm9ycyI6IFt7Im1lc3NhZ2UiOiAiSFRUUCAlcyIgJSBlLmNvZGV9XX0KICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgICAgICByZXR1cm4geyJzdWNjZXNzIjogRmFsc2UsICJlcnJvcnMiOiBbeyJtZXNzYWdlIjogc3RyKGUpfV19CgoKcCgiPT09PT0gMS4gVE9LRU4gVkVSSUZZID09PT09IikKcChqc29uLmR1bXBzKGNmKCJHRVQiLCAiL3VzZXIvdG9rZW5zL3ZlcmlmeSIpLCBlbnN1cmVfYXNjaWk9RmFsc2UpWzo5MDBdKQoKcCgiPT09PT0gMi4gTElTVCBaT05FUyA9PT09PSIpCmx6ID0gY2YoIkdFVCIsICIvem9uZXM/cGVyX3BhZ2U9NTAiKQppZiBsei5nZXQoInN1Y2Nlc3MiKToKICAgIGZvciB6IGluIGx6LmdldCgicmVzdWx0IiwgW10pOgogICAgICAgIHAoIiAgem9uZToiLCB6LmdldCgibmFtZSIpLCB6LmdldCgiaWQiKSwgInN0YXR1cz0iLCB6LmdldCgic3RhdHVzIikpCmVsc2U6CiAgICBwKCIgIGxpc3QgZmFpbGVkOiIsIGpzb24uZHVtcHMobHouZ2V0KCJlcnJvcnMiKSwgZW5zdXJlX2FzY2lpPUZhbHNlKVs6NjAwXSkKCnAoIj09PT09IDMuIEZJTkQgWk9ORSA9PT09PSIpCnppZCA9IE5vbmUKciA9IGNmKCJHRVQiLCAiL3pvbmVzP25hbWU9IiArIERPTSkKaWYgci5nZXQoInJlc3VsdCIpOgogICAgemlkID0gclsicmVzdWx0Il1bMF1bImlkIl0KcCgiICB6aWQobG9va3VwKSA9IiwgemlkKQoKaWYgbm90IHppZDoKICAgIHAoIj09PT09IDNiLiBDUkVBVEUgWk9ORSA9PT09PSIpCiAgICBjID0gY2YoIlBPU1QiLCAiL3pvbmVzIiwgeyJuYW1lIjogRE9NLCAianVtcF9zdGFydCI6IEZhbHNlfSkKICAgIHAoanNvbi5kdW1wcyhjLCBlbnN1cmVfYXNjaWk9RmFsc2UpWzoxNTAwXSkKICAgIGlmIGMuZ2V0KCJyZXN1bHQiKToKICAgICAgICB6aWQgPSBjWyJyZXN1bHQiXS5nZXQoImlkIikKICAgIGlmIG5vdCB6aWQ6CiAgICAgICAgZm9yIGUgaW4gYy5nZXQoImVycm9ycyIsIFtdKSBvciBbXToKICAgICAgICAgICAgZCA9IGUuZ2V0KCJkYXRhIikgb3Ige30KICAgICAgICAgICAgaWYgZC5nZXQoInpvbmVfaWQiKToKICAgICAgICAgICAgICAgIHppZCA9IGRbInpvbmVfaWQiXQogICAgICAgICAgICAgICAgYnJlYWsKICAgIHAoIiAgemlkKGNyZWF0ZSkgPSIsIHppZCkKCmlmIG5vdCB6aWQ6CiAgICBwKCIhISEhISBDQU5OT1QgR0VUIE9SIENSRUFURSBaT05FIC0gdG9rZW4gbGFja3MgWm9uZS5ab25lIHBlcm1pc3Npb24gISEhISEiKQplbHNlOgogICAgcCgiPT09PT0gNC4gTkFNRVNFUlZFUlMgPT09PT0iKQogICAgeiA9IGNmKCJHRVQiLCAiL3pvbmVzLyIgKyB6aWQpCiAgICBpZiB6LmdldCgicmVzdWx0Iik6CiAgICAgICAgZm9yIG5zIGluICh6WyJyZXN1bHQiXS5nZXQoIm5hbWVfc2VydmVycyIpIG9yIFtdKToKICAgICAgICAgICAgcCgiICBOUzogIiArIHN0cihucykpCiAgICAgICAgcCgiICBzdGF0dXM6IiwgelsicmVzdWx0Il0uZ2V0KCJzdGF0dXMiKSkKICAgIGVsc2U6CiAgICAgICAgcCgiICB6b25lIGZldGNoIGZhaWxlZDoiLCBqc29uLmR1bXBzKHouZ2V0KCJlcnJvcnMiKSwgZW5zdXJlX2FzY2lpPUZhbHNlKVs6NTAwXSkKCiAgICBwKCI9PT09PSA1LiBBIFJFQ09SRFMgPT09PT0iKQogICAgZm9yIElQIGluIFsiMTg1LjE5OS4xMDguMTUzIiwgIjE4NS4xOTkuMTA5LjE1MyIsICIxODUuMTk5LjExMC4xNTMiLCAiMTg1LjE5OS4xMTEuMTUzIl06CiAgICAgICAgZXggPSBjZigiR0VUIiwgIi96b25lcy8lcy9kbnNfcmVjb3Jkcz90eXBlPUEmbmFtZT0lcyIgJSAoemlkLCBET00pKQogICAgICAgIGZvdW5kID0gW2RbImlkIl0gZm9yIGQgaW4gKGV4LmdldCgicmVzdWx0Iikgb3IgW10pIGlmIGQuZ2V0KCJjb250ZW50IikgPT0gSVBdCiAgICAgICAgaWYgZm91bmQ6CiAgICAgICAgICAgIHAoIiAgQSIsIElQLCAiYWxyZWFkeSBleGlzdHMiKQogICAgICAgICAgICBjb250aW51ZQogICAgICAgIGMgPSBjZigiUE9TVCIsICIvem9uZXMvJXMvZG5zX3JlY29yZHMiICUgemlkLAogICAgICAgICAgICAgICB7InR5cGUiOiAiQSIsICJuYW1lIjogRE9NLCAiY29udGVudCI6IElQLCAidHRsIjogMSwgInByb3hpZWQiOiBGYWxzZX0pCiAgICAgICAgcCgiICBBIiwgSVAsICJzdWNjZXNzPSIsIGMuZ2V0KCJzdWNjZXNzIiksCiAgICAgICAgICBqc29uLmR1bXBzKGMuZ2V0KCJlcnJvcnMiKSwgZW5zdXJlX2FzY2lpPUZhbHNlKVs6MjUwXSkKCiAgICBwKCI9PT09PSA2LiBDTkFNRSB3d3cgPT09PT0iKQogICAgZXggPSBjZigiR0VUIiwgIi96b25lcy8lcy9kbnNfcmVjb3Jkcz90eXBlPUNOQU1FJm5hbWU9d3d3LiVzIiAlICh6aWQsIERPTSkpCiAgICBpZiBleC5nZXQoInJlc3VsdCIpOgogICAgICAgIHAoIiAgQ05BTUUgd3d3IGFscmVhZHkgZXhpc3RzIikKICAgIGVsc2U6CiAgICAgICAgYyA9IGNmKCJQT1NUIiwgIi96b25lcy8lcy9kbnNfcmVjb3JkcyIgJSB6aWQsCiAgICAgICAgICAgICAgIHsidHlwZSI6ICJDTkFNRSIsICJuYW1lIjogInd3dyIsCiAgICAgICAgICAgICAgICAiY29udGVudCI6ICJ3b3NoaXlpZ2VtYW5odWFqaWEuZ2l0aHViLmlvIiwgInR0bCI6IDEsICJwcm94aWVkIjogRmFsc2V9KQogICAgICAgIHAoIiAgQ05BTUUgd3d3IHN1Y2Nlc3M9IiwgYy5nZXQoInN1Y2Nlc3MiKSwKICAgICAgICAgIGpzb24uZHVtcHMoYy5nZXQoImVycm9ycyIpLCBlbnN1cmVfYXNjaWk9RmFsc2UpWzoyNTBdKQoKICAgIHAoIj09PT09IDcuIEZJTkFMIFJFQ09SRFMgPT09PT0iKQogICAgZmluID0gY2YoIkdFVCIsICIvem9uZXMvJXMvZG5zX3JlY29yZHM/cGVyX3BhZ2U9MTAwIiAlIHppZCkKICAgIGZvciBkIGluIChmaW4uZ2V0KCJyZXN1bHQiKSBvciBbXSk6CiAgICAgICAgcCgiICAlLTZzICUtMjZzICUtNDJzIHByb3hpZWQ9JXMiICUgKGQuZ2V0KCJ0eXBlIiksIGQuZ2V0KCJuYW1lIiksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGQuZ2V0KCJjb250ZW50IiksIGQuZ2V0KCJwcm94aWVkIikpKQoKcCgiPT09PT0gRE9ORSA9PT09PSIpCgoKZGVmIGdoKG1ldGhvZCwgcGF0aCwgZGF0YT1Ob25lKToKICAgIHJlcSA9IHVybGxpYi5yZXF1ZXN0LlJlcXVlc3QoImh0dHBzOi8vYXBpLmdpdGh1Yi5jb20iICsgcGF0aCwgbWV0aG9kPW1ldGhvZCkKICAgIHJlcS5hZGRfaGVhZGVyKCJBdXRob3JpemF0aW9uIiwgInRva2VuICIgKyBHVCkKICAgIHJlcS5hZGRfaGVhZGVyKCJBY2NlcHQiLCAiYXBwbGljYXRpb24vdm5kLmdpdGh1Yitqc29uIikKICAgIHJlcS5hZGRfaGVhZGVyKCJVc2VyLUFnZW50IiwgIndmIikKICAgIGJvZHkgPSBqc29uLmR1bXBzKGRhdGEpLmVuY29kZSgpIGlmIGRhdGEgZWxzZSBOb25lCiAgICBpZiBib2R5OgogICAgICAgIHJlcS5hZGRfaGVhZGVyKCJDb250ZW50LVR5cGUiLCAiYXBwbGljYXRpb24vanNvbiIpCiAgICB0cnk6CiAgICAgICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgYm9keSwgdGltZW91dD00MCkgYXMgcjoKICAgICAgICAgICAgcmV0dXJuIHIuc3RhdHVzLCByLnJlYWQoKS5kZWNvZGUoKQogICAgZXhjZXB0IHVybGxpYi5lcnJvci5IVFRQRXJyb3IgYXMgZToKICAgICAgICByZXR1cm4gZS5jb2RlLCBlLnJlYWQoKS5kZWNvZGUoKQoKCnBhdGggPSAiL3JlcG9zLyVzL2NvbnRlbnRzL2xvZ3MvY2YtZG5zLnR4dCIgJSBSRVBPCnN0LCBvdXQgPSBnaCgiR0VUIiwgcGF0aCkKc2hhID0gTm9uZQppZiBzdCA9PSAyMDA6CiAgICB0cnk6CiAgICAgICAgc2hhID0ganNvbi5sb2FkcyhvdXQpLmdldCgic2hhIikKICAgIGV4Y2VwdCBFeGNlcHRpb246CiAgICAgICAgcGFzcwpwYXlsb2FkID0geyJtZXNzYWdlIjogImNmIGRucyBsb2ciLAogICAgICAgICAgICJjb250ZW50IjogYmFzZTY0LmI2NGVuY29kZSgoIlxuIi5qb2luKExPRykpLmVuY29kZSgpKS5kZWNvZGUoKX0KaWYgc2hhOgogICAgcGF5bG9hZFsic2hhIl0gPSBzaGEKc3QyLCBvdXQyID0gZ2goIlBVVCIsIHBhdGgsIHBheWxvYWQpCnAoInVwbG9hZCBsb2cgLT4iLCBzdDIpCg==' | base64 -d > /tmp/cf.py
+          python3 /tmp/cf.py 2>&1 | tee /tmp/cf.log
+          echo "--- done ---"
