@@ -1,0 +1,63 @@
+name: probe2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Probe
+        env:
+          CF: ${{ secrets.CF_API_TOKEN_TOTAL }}
+          DP: ${{ secrets.DP_API_TOKEN }}
+          PAT: ${{ secrets.GITHUB_PAT || github.token }}
+        run: |
+          O=probe2.txt; : > $O
+          echo "##### PSL: qd.je 是否公共后缀 #####" >> $O
+          curl -s -m 30 https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat -o /tmp/psl
+          if [ -s /tmp/psl ]; then
+            echo "psl lines: $(wc -l < /tmp/psl)" >> $O
+            grep -nE '(^|\.)qd\.je$' /tmp/psl | head -5 >> $O
+            grep -nE '^// .*digitalplat' /tmp/psl | head -5 >> $O
+            echo "-- je section:" >> $O
+            grep -nE '^// je |^\*\.je$' /tmp/psl | head -5 >> $O
+          else
+            echo "psl fetch failed" >> $O
+          fi
+          echo >> $O
+          echo "##### HTTP 访问测试 #####" >> $O
+          for u in "http://hnvip.qd.je/" "https://hnvip.qd.je/"; do
+            echo "-- $u -> $(curl -s -m 20 -o /dev/null -w '%{http_code}' "$u")" >> $O
+          done
+          echo >> $O
+          echo "##### Cloudflare zones #####" >> $O
+          curl -s -m 25 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/zones?per_page=50" -o /tmp/z
+          echo "zones: $(python3 -c "import json;d=json.load(open('/tmp/z'));print([x['name'] for x in d.get('result',[])])" 2>/dev/null)" >> $O
+          echo "-- token perms:" >> $O
+          curl -s -m 25 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/user/tokens/verify \
+            | python3 -c "import sys,json;d=json.load(sys.stdin);r=d.get('result',{});print('status',r.get('status'));print(sorted([p['permission'] for p in r.get('policies',[{}])[0].get('permissions',{}).values() if isinstance(p,dict)]))" >> $O 2>&1
+          echo >> $O
+          echo "##### DigitalPlat API #####" >> $O
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0.0.0 Safari/537.36"
+          for u in \
+            "https://dash.domain.digitalplat.org/api/v1/domains" \
+            "https://dash.domain.digitalplat.org/api/v1/openapi.json" \
+            "https://api.digitalplat.org/v1/domains" \
+            "https://digitalplat.org/api/v1/domains" \
+            "https://api.digitalplat.org/" ; do
+            c=$(curl -s -m 20 -o /tmp/b -w "%{http_code}" -A "$UA" -H "Authorization: Bearer $DP" \
+                -H "Accept: application/json" -H "Referer: https://dash.domain.digitalplat.org/" "$u")
+            echo "=== $u -> $c | $(head -c 150 /tmp/b | tr -d '\n')" >> $O
+          done
+          echo >> $O
+          echo "##### Pages 状态 #####" >> $O
+          curl -s -m 25 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/WoShiYiGeManHuaJia/hunan-tariff-site/pages \
+            | python3 -c "import sys,json;d=json.load(sys.stdin);print('status:',d.get('status'));print('cname:',d.get('cname'));print('cert:',d.get('https_certificate',{}).get('state'))" >> $O
+      - name: Commit
+        run: |
+          git config user.name bot; git config user.email b@e.com
+          git add probe2.txt && git commit -m probe2 || echo nop
+          git push
