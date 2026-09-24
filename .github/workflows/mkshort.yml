@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: gen shortest link
         run: |
-          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/nav.html"
+          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/n/"
           out="SHORT.md"
           echo "# 总入口短链" > $out
           echo "" >> $out
