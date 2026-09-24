@@ -1,0 +1,41 @@
+name: cert-watch
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/20 * * * *'
+permissions:
+  contents: write
+  pages: write
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check and enable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+          echo "UTC: $(date -u)"
+          d=$(gh api repos/WoShiYiGeManHuaJia/hunan-tariff-site/pages 2>&1)
+          state=$(echo "$d" | python3 -c "import sys,json;
+          try:
+            j=json.load(sys.stdin); print((j.get('https_certificate') or {}).get('state') or 'none')
+          except Exception: print('err')" 2>/dev/null)
+          enforced=$(echo "$d" | python3 -c "import sys,json;
+          try:
+            print(json.load(sys.stdin).get('https_enforced'))
+          except Exception: print('err')" 2>/dev/null)
+          echo "state=$state enforced=$enforced"
+          if [ "$state" = "issued" ] && [ "$enforced" != "True" ]; then
+            gh api -X PUT repos/WoShiYiGeManHuaJia/hunan-tariff-site/pages -f cname=hnvip.qd.je -F https_enforced=true 2>&1 | head -c 300
+            echo "ENABLE_ATTEMPTED"
+          fi
+          } > cert_status.txt 2>&1
+      - name: commit
+        run: |
+          git config user.name bot
+          git config user.email bot@users.noreply.github.com
+          git add cert_status.txt
+          git diff --cached --quiet || git commit -m "cert status"
+          git push
