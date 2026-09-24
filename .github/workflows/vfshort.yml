@@ -1,0 +1,44 @@
+name: vfshort
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  v:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: verify
+        run: |
+          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/nav.html"
+          E=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$U")
+          out=VERIFY.md
+          echo "# 短链验证结果" > $out
+          echo "" >> $out
+          chk() {
+            code="$1"; label="$2"
+            fin=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{http_code} %{url_effective}" -L "$code")
+            echo "| $label | \`$code\` | $fin |" >> $out
+          }
+          echo "| 短链 | 地址 | 最终跳转 |" >> $out
+          echo "|---|---|---|" >> $out
+          chk "https://da.gd/fS6VH" "da.gd 随机"
+          for sn in t hn tf zf hntf; do chk "https://1pt.co/$sn" "1pt.co/$sn"; done
+          # da.gd 自定义尝试
+          for sn in hntf hn tf; do
+            r=$(curl -s -m 25 -A "Mozilla/5.0" "https://da.gd/s?url=$E&shortname=$sn" | head -c 120)
+            echo "| da.gd 自定义 $sn | \`$r\` | - |" >> $out
+          done
+          # 再生成两个 da.gd 随机备用
+          for i in 1 2 3; do
+            r=$(curl -s -m 25 -A "Mozilla/5.0" "https://da.gd/s?url=$E&strip=1" | head -c 120)
+            echo "| da.gd 备用$i | \`$r\` | - |" >> $out
+          done
+          cat $out
+      - name: commit
+        run: |
+          git config user.name bot
+          git config user.email bot@users.noreply.github.com
+          git add -A
+          git commit -m verify-short || echo nochange
+          git push
