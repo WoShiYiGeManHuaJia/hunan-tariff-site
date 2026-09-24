@@ -1,35 +1,52 @@
 name: dns-probe
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: DNS state
-        run: |
-          echo "== NS hnvip.qd.je"; dig +short NS hnvip.qd.je @8.8.8.8 || true
-          echo "== A  hnvip.qd.je"; dig +short A  hnvip.qd.je @8.8.8.8 || true
-          echo "== NS qd.je";       dig +short NS qd.je @8.8.8.8 || true
-          echo "== SOA qd.je";      dig +short SOA qd.je @8.8.8.8 || true
-          echo "== NS dpdns.org";   dig +short NS dpdns.org @8.8.8.8 || true
-      - name: DigitalPlat API probe
+      - uses: actions/checkout@v4
+      - name: Run probe
         env:
           DP: ${{ secrets.DP_API_TOKEN }}
-        run: |
-          for h in api.digitalplat.org dash.domain.digitalplat.org api.digitalplat.org; do
-            for p in "/" "/v1/domains" "/api/v1/domains" "/v1/user" "/api/domain/list"; do
-              code=$(curl -s -m 10 -o /tmp/o -w "%{http_code}" -H "Authorization: Bearer $DP" "https://$h$p")
-              echo "DP $h$p -> $code $(head -c 120 /tmp/o)"
-            done
-          done
-          echo "-- no-auth baseline"
-          curl -s -m 10 -o /tmp/o2 -w "%{http_code}\n" https://api.digitalplat.org/v1/domains; head -c 120 /tmp/o2
-      - name: Cloudflare probe
-        env:
           CF: ${{ secrets.CF_API_TOKEN }}
         run: |
-          echo "== verify"; curl -s -m 15 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/user/tokens/verify
-          echo; echo "== zones"; curl -s -m 15 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/zones?per_page=50" | head -c 800
-          echo; echo "== zone create test (dry)"
-          curl -s -m 15 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
-            --data '{"name":"hnvip.qd.je","jump_start":false}' https://api.cloudflare.com/client/v4/zones | head -c 800
+          OUT=probe-out.txt
+          : > $OUT
+          {
+          echo "== NS hnvip.qd.je"; dig +short NS hnvip.qd.je @8.8.8.8
+          echo "== A  hnvip.qd.je"; dig +short A  hnvip.qd.je @8.8.8.8
+          echo "== NS qd.je";       dig +short NS qd.je @8.8.8.8
+          echo "== SOA qd.je";      dig +short SOA qd.je @8.8.8.8
+          echo "== NS dpdns.org";   dig +short NS dpdns.org @8.8.8.8
+          } >> $OUT 2>&1
+          {
+          echo "===== DigitalPlat API"
+          for h in api.digitalplat.org dash.domain.digitalplat.org; do
+            for p in / /v1/domains /api/v1/domains /v1/user /api/domain/list /v1/domain/list; do
+              code=$(curl -s -m 10 -o /tmp/o -w "%{http_code}" -H "Authorization: Bearer $DP" "https://$h$p")
+              echo "DP https://$h$p -> $code | $(head -c 150 /tmp/o | tr -d '\n')"
+            done
+          done
+          } >> $OUT 2>&1
+          {
+          echo "===== Cloudflare"
+          echo "-- verify:"; curl -s -m 15 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/user/tokens/verify
+          echo; echo "-- zones:"; curl -s -m 15 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/zones?per_page=50" | head -c 600
+          echo; echo "-- try create zone:"; curl -s -m 15 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" --data '{"name":"hnvip.qd.je","jump_start":false}' https://api.cloudflare.com/client/v4/zones | head -c 600
+          } >> $OUT 2>&1
+          cat $OUT
+      - name: Commit result
+        env:
+          GT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MSG=$(date -u +%Y%m%d-%H%M%S)
+          B64=$(base64 -w0 probe-out.txt)
+          SHA=$(curl -s -H "Authorization: Bearer $GT" https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('sha',''))" 2>/dev/null || echo "")
+          if [ -n "$SHA" ]; then EX=",\"sha\":\"$SHA\""; else EX=""; fi
+          printf '{"message":"probe %s","content":"%s"%s}' "$MSG" "$B64" "$EX" > /tmp/body.json
+          curl -s -X PUT -H "Authorization: Bearer $GT" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt \
+            --data-binary @/tmp/body.json | head -c 200
