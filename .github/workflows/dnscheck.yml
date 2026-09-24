@@ -5,9 +5,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      issues: write
     steps:
-      - uses: actions/checkout@v4
       - name: resolve
         run: |
           {
@@ -20,8 +20,10 @@ jobs:
           echo "== http apex =="; curl -sS -o /dev/null -w "apex:%{http_code}\n" -L --max-time 20 http://hnvip.qd.je/ || echo apex:fail
           echo "== http www =="; curl -sS -o /dev/null -w "www:%{http_code}\n" -L --max-time 20 http://www.hnvip.qd.je/ || echo www:fail
           echo "== https www =="; curl -sS -o /dev/null -w "https_www:%{http_code}\n" --max-time 20 https://www.hnvip.qd.je/ || echo https_www:fail
-          } > dnscheck.txt 2>&1
-      - name: push
+          } > out.txt 2>&1
+      - name: report
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name bot; git config user.email bot@users.noreply.github.com
-          git add -f dnscheck.txt && git commit -m "dns check result" && git push
+          BODY=$(cat out.txt)
+          gh issue create --repo WoShiYiGeManHuaJia/hunan-tariff-site --title "dns-check $(date -u +%H:%M)" --body "$BODY" || true
