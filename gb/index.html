@@ -2080,9 +2080,39 @@ var FIELD_CN = {
   "commonData":"国内通用流量","data":"国内通用流量","dataUnit":"流量单位",
   "sms":"国内短信","orientTraffic":"定向流量","broadBand":"宽带","bandwidth":"宽带",
   "iptv":"移动高清","province":"适用地区","region":"适用地区","area":"适用地区",
-  "status":"状态","packageType":"套餐类型","productType":"产品类型"
+  "status":"状态","packageType":"套餐类型","productType":"产品类型","regionTraffic":"区域流量","regionTrafficUnit":"流量单位","secondLevelType":"资费类型","firstLevelType":"资费类型"
 };
 function cnField(k){ return FIELD_CN[k] || k; }
+
+function __cnSnap(o){
+  if(!o || typeof o !== "object"){ return {}; }
+  var r = {}, fee = "", feeU = "", dt = "", dtU = "", rg = "", rgU = "";
+  function sk(v){ return (v === "" || v == null || v === "\u65e0" || v === "null" || v === "undefined"); }
+  Object.keys(o).forEach(function(k){
+    var v = o[k];
+    if(sk(v)){ return; }
+    if(k === "firstLevelType"){ return; }                                   /* 数字代码，无意义 */
+    if(k === "secondLevelType" && /^[0-9]+$/.test(String(v))){ return; }     /* 联通/电信为数字代码 */
+    var ck = cnField(k);
+    if(ck === "\u4e1a\u52a1\u540d\u79f0"){ return; }                      /* 标题已单独显示，去重 */
+    if(k === "feeUnit"){ feeU = String(v); return; }
+    if(k === "dataUnit"){ dtU = String(v); return; }
+    if(k === "regionTrafficUnit"){ rgU = String(v); return; }
+    if(ck === "\u8d44\u8d39\u6807\u51c6"){ fee = String(v); return; }
+    if(ck === "\u56fd\u5185\u901a\u7528\u6d41\u91cf"){ dt = String(v); return; }
+    if(ck === "\u533a\u57df\u6d41\u91cf"){ rg = String(v); return; }
+    if(k === "codeType" && /^[A-Za-z0-9_]+$/.test(String(v)) && o.secondLevelType && !/^[0-9]+$/.test(String(o.secondLevelType))){ return; }
+    r[ck] = String(v);
+  });
+  var ct = o.codeType, slt = o.secondLevelType;
+  if(ct && /^[A-Za-z0-9_]+$/.test(String(ct)) && slt && !/^[0-9]+$/.test(String(slt))){
+    r["\u8d44\u8d39\u7c7b\u578b"] = String(slt);                          /* 广代码型 codeType 优先用文字型 */
+  }
+  if(fee !== ""){ r["\u8d44\u8d39\u6807\u51c6"] = (/[\u5143\u5206\u89d2]/.test(fee) || !feeU) ? fee : fee + feeU; }
+  if(dt  !== ""){ r["\u56fd\u5185\u901a\u7528\u6d41\u91cf"] = (/(GB|MB|TB|KB)/i.test(dt) || !dtU) ? dt : dt + dtU; }
+  if(rg  !== ""){ r["\u533a\u57df\u6d41\u91cf"] = (/(GB|MB|TB|KB)/i.test(rg) || !rgU) ? rg : rg + rgU; }
+  return r;
+}
 /* 按名称在当前档案里查找（补录类没有快照时的兜底） */
 function findItem(name){
   if(!name){ return null; }
@@ -2127,7 +2157,7 @@ function histItem(c, type, name){
   if(!r || !r.v || typeof r.v !== "object"){ return null; }
   var raw = r.v;
   if(raw["资费标准"] || raw["方案编号"] || raw["归属"] || raw["国内通话"] || raw["国内通用流量"]){
-    return { name:name, fields:raw, from:r.from };
+    return { name:name, fields:__cnSnap(raw), from:r.from };
   }
   var w = {};
   for(var k in raw){ if(Object.prototype.hasOwnProperty.call(raw, k)){ w[k] = raw[k]; } }
@@ -2179,7 +2209,8 @@ function openHistDetail(hi, ci, type, bi){
         : (type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
         : "已下线业务：无「修改后」记录")));
     /* 兜底链：本轮字段快照 → 变更记录里的精简快照 → 当前在架档案 */
-    var det = (snap && Object.keys(snap).length) ? { name:name, fields:snap, from:"snap" }
+    var __sn = (snap && Object.keys(snap).length) ? __cnSnap(snap) : null;
+    var det = (__sn && Object.keys(__sn).length) ? { name:name, fields:__sn, from:"snap" }
             : (histItem(c, type, name) || null);
     if(!det){
       var c0 = findItem(name);
@@ -2214,7 +2245,8 @@ function closeHist(){ document.getElementById("hmMask").classList.remove("on"); 
 function cmpHtml(bf, af, nDiff){
   bf = bf || {}; af = af || {};
   var keys = [];
-  Object.keys(bf).forEach(function(k){ if(keys.indexOf(k) < 0){ keys.push(k); } });
+  function __kp(k){ if(k === "firstLevelType"){ return false; } if(k === "secondLevelType" && /^[0-9]+$/.test(String((af[k]!=null&&af[k]!=="")?af[k]:bf[k]))){ return false; } return true; }
+  Object.keys(bf).forEach(function(k){ if(__kp(k) && keys.indexOf(k) < 0){ keys.push(k); } });
   Object.keys(af).forEach(function(k){ if(keys.indexOf(k) < 0){ keys.push(k); } });
   var rows = keys.map(function(k){
     var b = (bf[k] == null || bf[k] === "") ? "\u2014" : String(bf[k]);
