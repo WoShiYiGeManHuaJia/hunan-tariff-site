@@ -1,0 +1,44 @@
+name: cert-fix
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: 1) 清掉域名，让 ACME 重新开始
+        env:
+          PAT: ${{ secrets.GITHUB_PAT || github.token }}
+        run: |
+          curl -s -m 30 -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
+            -d '{"cname":null}' \
+            https://api.github.com/repos/WoShiYiGeManHuaJia/hunan-tariff-site/pages
+          echo " -> cname cleared"
+      - name: 2) 等待 5 分钟
+        run: sleep 300
+      - name: 3) 重新绑定并轮询证书，签发后自动开强制 HTTPS
+        env:
+          PAT: ${{ secrets.GITHUB_PAT || github.token }}
+        run: |
+          API=https://api.github.com/repos/WoShiYiGeManHuaJia/hunan-tariff-site/pages
+          curl -s -m 30 -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
+            -d '{"cname":"hnvip.qd.je"}' $API >/dev/null
+          echo "rebound at $(date -u +%H:%M:%S)"
+          for i in $(seq 1 40); do
+            s=$(curl -s -m 30 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" $API)
+            st=$(echo "$s" | python3 -c "import sys,json;d=json.load(sys.stdin);c=d.get('https_certificate',{});print(c.get('state',''),c.get('description','')[:60])")
+            echo "[$(date -u +%H:%M:%S)] $st"
+            case "$st" in
+              issued*|approved*)
+                curl -s -m 30 -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
+                  -d '{"https_enforced":true}' $API >/dev/null
+                echo "HTTPS_ENFORCED_SET"
+                break;;
+            esac
+            sleep 45
+          done
+          echo "=== FINAL ==="
+          curl -s -m 30 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" $API \
+            | python3 -c "import sys,json;d=json.load(sys.stdin);print('status:',d.get('status'));print('cname:',d.get('cname'));print('cert:',d.get('https_certificate',{}).get('state'));print('enforced:',d.get('https_enforced'))"
