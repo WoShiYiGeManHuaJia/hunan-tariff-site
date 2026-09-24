@@ -1,27 +1,18 @@
-name: dns-check
+name: dnscheck
 on:
   workflow_dispatch:
+  push:
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: run
+      - name: probe
         run: |
-          {
-          echo "UTC: $(date -u)"
-          echo "== CAA qd.je =="; dig +short qd.je CAA
-          echo "== CAA hnvip.qd.je =="; dig +short hnvip.qd.je CAA
-          echo "== AAAA =="; dig +short hnvip.qd.je AAAA
-          echo "== A =="; dig +short hnvip.qd.je A
-          echo "== http =="; curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 http://hnvip.qd.je/ || echo fail
-          echo "== https strict =="; curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 https://hnvip.qd.je/ 2>&1 | tail -2 || true
-          echo "== cert subject =="; echo | timeout 20 openssl s_client -connect hnvip.qd.je:443 -servername hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -issuer 2>/dev/null || echo "no cert"
-          } > dns_result.txt 2>&1
-      - name: commit
-        run: |
-          git config user.name bot
-          git config user.email bot@users.noreply.github.com
-          git add dns_result.txt
-          git diff --cached --quiet || git commit -m "dns result"
-          git push
+          for s in 8.8.8.8 1.1.1.1 9.9.9.9; do echo "== A @$s"; dig +short A hnvip.qd.je @$s; done
+          echo "== NS qd.je"; dig +short NS qd.je @8.8.8.8
+          echo "== CAA hnvip.qd.je"; dig +short CAA hnvip.qd.je @8.8.8.8
+          echo "== CAA qd.je"; dig +short CAA qd.je @8.8.8.8
+          echo "== CAA je"; dig +short CAA je @8.8.8.8
+          echo "== HTTP"; curl -s -o /dev/null -w "%{http_code}\n" -L http://hnvip.qd.je/
+          echo "== HTTPS"; curl -sk -o /dev/null -w "%{http_code}\n" https://hnvip.qd.je/
+          curl -skv https://hnvip.qd.je/ 2>&1 | grep -E "subject:|issuer:" | head -4
