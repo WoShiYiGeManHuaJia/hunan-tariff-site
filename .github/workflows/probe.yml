@@ -1,0 +1,17 @@
+name: probe
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check
+        run: |
+          for u in http://hnvip.qd.je/ http://www.hnvip.qd.je/ https://hnvip.qd.je/ https://www.hnvip.qd.je/; do
+            echo "=== $u"
+            curl -s -o /dev/null -m 20 -w "code=%{http_code} ip=%{remote_ip} redirect=%{redirect_url}\n" "$u" || echo "fail"
+          done
+          echo "--- dns ---"
+          for d in hnvip.qd.je www.hnvip.qd.je; do echo "== $d"; dig +short $d A; dig +short $d CNAME; done
+          echo "--- cert ---"
+          echo | timeout 20 openssl s_client -connect www.hnvip.qd.je:443 -servername www.hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -dates 2>/dev/null || echo "no cert"
