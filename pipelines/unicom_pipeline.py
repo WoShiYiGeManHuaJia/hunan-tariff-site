@@ -306,12 +306,51 @@ def field_snapshot(it):
             snap[k] = v
     for k in ("feesStandard", "feeUnit", "minute", "commonData", "dataUnit", "orientTraffic",
               "validPeriod", "saleChnl", "serviceContent", "codeType", "reportNo", "extraFees",
-              "useScope", "broadBand", "sms", "onlinePeriod"):
+              "useScope", "broadBand", "sms", "onlinePeriod",
+              "onDate", "offDate"):   # 上下线日期：前端据此识别采样轮换造成的伪新增/伪下架
         v = d.get(k, "")
         v = "" if v is None else v
         if v != "" and v != "0":
             snap[k] = v
     return snap
+
+
+def _item_date(it, key):
+    d = it.get("detail") or {}
+    v = d.get(key) or it.get(key) or ""
+    return str(v)[:10]
+
+
+def filter_sampling_fakes(added, removed, now, grace_days=30):
+    """剔除接口随机采样造成的伪新增 / 伪下架。
+
+    联通接口 pageSize 有限，服务端每轮返回的是全量里的随机子集，于是：
+      · 上轮没采到、这轮采到 → 被记成"新增"，但这些业务 onDate 往往是几年前
+      · 这轮没采到         → 被记成"下架"，但其 offDate 还在未来（根本没下架）
+    判据（用上下线日期识破，不依赖采样运气）：
+      · 伪新增：onDate 早于本轮 grace_days 天以上 → 实为往期已上线、本轮补录
+      · 伪下架：offDate 晚于本轮                 → 仍在架，只是本轮没采到
+    """
+    import datetime as _dt
+    now_d = str(now)[:10]
+    try:
+        cut = (_dt.date(*map(int, now_d.split("-"))) - _dt.timedelta(days=grace_days)).isoformat()
+    except Exception:
+        cut = now_d
+    real_a, real_r, fa, fr = [], [], 0, 0
+    for x in added or []:
+        on = _item_date(x, "onDate")
+        if len(on) == 10 and on[:4].isdigit() and on < cut:
+            fa += 1
+        else:
+            real_a.append(x)
+    for x in removed or []:
+        off = _item_date(x, "offDate")
+        if len(off) == 10 and off[:4].isdigit() and off > now_d:
+            fr += 1
+        else:
+            real_r.append(x)
+    return real_a, real_r, {"fake_added": fa, "fake_removed": fr}
 
 
 def diff_scope(prev, cur):
@@ -753,6 +792,12 @@ def main():
             cur_items = [x for x in cur_items if digest_stable(x) not in qu_fp]
         cur_items = filter_test_items(cur_items, verbose=False)
         added, removed, cold, warm = pool_update(sc, cur_items, pool, meta)
+        # 采样轮换会产生大量假变更：老业务被记成新增、仍在架的被记成下架。
+        # 先按上下线日期剔除，再决定是否记录本轮。
+        added, removed, _fakes = filter_sampling_fakes(added, removed, now)
+        if _fakes["fake_added"] or _fakes["fake_removed"]:
+            print("  %s 剔除采样噪声：伪新增 %d / 伪下架 %d"
+                  % (sc, _fakes["fake_added"], _fakes["fake_removed"]))
         if cold:
             print("  %s 首次，累积池建基线（不记变化），入池 %d 条" % (sc, len(pool.get(sc) or {})))
             continue
