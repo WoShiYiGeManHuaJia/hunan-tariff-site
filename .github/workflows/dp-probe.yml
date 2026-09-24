@@ -1,0 +1,36 @@
+name: dp-probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe DigitalPlat API
+        env:
+          TOK: ${{ secrets.DP_TOKEN }}
+        run: |
+          out=dp_probe.txt
+          : > $out
+          probe() {
+            code=$(curl -s -m 20 -o /tmp/b -w "%{http_code}" -H "Authorization: Bearer $TOK" -H "Accept: application/json" "$1")
+            echo "=== $1" >> $out
+            echo "HTTP:$code" >> $out
+            head -c 400 /tmp/b >> $out
+            echo >> $out
+            echo >> $out
+          }
+          for h in dash.domain.digitalplat.org digitalplat.org; do
+            for p in /api/v1/openapi.json /openapi.json /api/v1/domains /api/domains /api/v1/domain /api/domain /api/v1/user /api/user /api/v1/me /api/me /api/v1/zones /api/zones /api/v1/dns /api/dns; do
+              probe "https://$h$p"
+            done
+          done
+      - name: Commit result
+        run: |
+          git config user.name bot
+          git config user.email bot@example.com
+          git add dp_probe.txt
+          git commit -m "dp probe result" || echo "no change"
+          git push
