@@ -1,0 +1,25 @@
+== A (google)
+185.199.109.153
+185.199.108.153
+185.199.110.153
+185.199.111.153
+== A (cf)
+185.199.111.153
+185.199.109.153
+185.199.108.153
+185.199.110.153
+== AAAA
+== NS
+dns1.digitalplat.org.
+dns2.digitalplat.org.
+== CAA
+== CAA-qdje
+== HTTP
+code=200 ip=185.199.110.153
+== ACME
+code=404
+== TLS
+subject=CN = *.github.io
+issuer=C = US, O = Let's Encrypt, CN = YR1
+notBefore=Aug  2 23:38:02 2026 GMT
+notAfter=Oct 31 23:38:01 2026 GMT
