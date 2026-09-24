@@ -1,25 +1,28 @@
 name: dns-check
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: dig A
+      - uses: actions/checkout@v4
+      - name: run
         run: |
-          echo "== A =="
-          dig +short hnvip.qd.je A
-          echo "== NS =="
-          dig +short hnvip.qd.je NS
-          echo "== auth NS =="
-          dig @dns1.digitalplat.org +short hnvip.qd.je A
-          dig @dns2.digitalplat.org +short hnvip.qd.je A
-          echo "== curl http =="
-          curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 http://hnvip.qd.je/ || true
-          echo "== curl https =="
-          curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 https://hnvip.qd.je/ || true
-          echo "== 8.8.8.8 =="
-          dig @8.8.8.8 +short hnvip.qd.je A
-          dig @1.1.1.1 +short hnvip.qd.je A
+          {
+          echo "UTC: $(date -u)"
+          echo "== A (runner dns) =="; dig +short hnvip.qd.je A
+          echo "== A @8.8.8.8 =="; dig @8.8.8.8 +short hnvip.qd.je A
+          echo "== A @1.1.1.1 =="; dig @1.1.1.1 +short hnvip.qd.je A
+          echo "== A @dns1.digitalplat.org =="; dig @dns1.digitalplat.org +short hnvip.qd.je A
+          echo "== NS =="; dig +short hnvip.qd.je NS
+          echo "== http =="; curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 http://hnvip.qd.je/ || echo fail
+          echo "== https =="; curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 https://hnvip.qd.je/ || echo fail
+          echo "== https -k =="; curl -sSk -o /dev/null -w "%{http_code}\n" -L --max-time 30 https://hnvip.qd.je/ || echo fail
+          } > dns_result.txt 2>&1
+      - name: commit
+        run: |
+          git config user.name bot
+          git config user.email bot@users.noreply.github.com
+          git add dns_result.txt
+          git diff --cached --quiet || git commit -m "dns result"
+          git push
