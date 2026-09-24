@@ -10,14 +10,13 @@ jobs:
         run: |
           {
           echo "UTC: $(date -u)"
-          echo "== A (runner dns) =="; dig +short hnvip.qd.je A
-          echo "== A @8.8.8.8 =="; dig @8.8.8.8 +short hnvip.qd.je A
-          echo "== A @1.1.1.1 =="; dig @1.1.1.1 +short hnvip.qd.je A
-          echo "== A @dns1.digitalplat.org =="; dig @dns1.digitalplat.org +short hnvip.qd.je A
-          echo "== NS =="; dig +short hnvip.qd.je NS
+          echo "== CAA qd.je =="; dig +short qd.je CAA
+          echo "== CAA hnvip.qd.je =="; dig +short hnvip.qd.je CAA
+          echo "== AAAA =="; dig +short hnvip.qd.je AAAA
+          echo "== A =="; dig +short hnvip.qd.je A
           echo "== http =="; curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 http://hnvip.qd.je/ || echo fail
-          echo "== https =="; curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 https://hnvip.qd.je/ || echo fail
-          echo "== https -k =="; curl -sSk -o /dev/null -w "%{http_code}\n" -L --max-time 30 https://hnvip.qd.je/ || echo fail
+          echo "== https strict =="; curl -sS -o /dev/null -w "%{http_code}\n" -L --max-time 30 https://hnvip.qd.je/ 2>&1 | tail -2 || true
+          echo "== cert subject =="; echo | timeout 20 openssl s_client -connect hnvip.qd.je:443 -servername hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -issuer 2>/dev/null || echo "no cert"
           } > dns_result.txt 2>&1
       - name: commit
         run: |
