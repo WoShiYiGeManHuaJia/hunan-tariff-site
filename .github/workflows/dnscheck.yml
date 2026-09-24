@@ -1,13 +1,17 @@
 name: dnscheck
 on:
   workflow_dispatch:
-  push:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - uses: actions/checkout@v4
       - name: probe
         run: |
+          {
+          echo "TIME $(date -u +%FT%TZ)"
           for s in 8.8.8.8 1.1.1.1 9.9.9.9; do echo "== A @$s"; dig +short A hnvip.qd.je @$s; done
           echo "== NS qd.je"; dig +short NS qd.je @8.8.8.8
           echo "== CAA hnvip.qd.je"; dig +short CAA hnvip.qd.je @8.8.8.8
@@ -15,4 +19,12 @@ jobs:
           echo "== CAA je"; dig +short CAA je @8.8.8.8
           echo "== HTTP"; curl -s -o /dev/null -w "%{http_code}\n" -L http://hnvip.qd.je/
           echo "== HTTPS"; curl -sk -o /dev/null -w "%{http_code}\n" https://hnvip.qd.je/
-          curl -skv https://hnvip.qd.je/ 2>&1 | grep -E "subject:|issuer:" | head -4
+          echo "== CERT"; curl -skv https://hnvip.qd.je/ 2>&1 | grep -E "subject:|issuer:" | head -4
+          } > probe.txt 2>&1
+      - name: commit
+        run: |
+          git config user.name tariff-bot
+          git config user.email bot@example.com
+          git add -f probe.txt
+          git commit -m "probe result $(date -u +%s)" || exit 0
+          git push
