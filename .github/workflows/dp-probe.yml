@@ -8,29 +8,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Probe DigitalPlat API
+      - name: Probe
         env:
-          TOK: ${{ secrets.DP_TOKEN }}
+          DP: ${{ secrets.DP_TOKEN }}
+          CF: ${{ secrets.CF_TOKEN }}
         run: |
           out=dp_probe.txt
           : > $out
-          probe() {
-            code=$(curl -s -m 20 -o /tmp/b -w "%{http_code}" -H "Authorization: Bearer $TOK" -H "Accept: application/json" "$1")
-            echo "=== $1" >> $out
-            echo "HTTP:$code" >> $out
-            head -c 400 /tmp/b >> $out
-            echo >> $out
-            echo >> $out
-          }
-          for h in dash.domain.digitalplat.org digitalplat.org; do
-            for p in /api/v1/openapi.json /openapi.json /api/v1/domains /api/domains /api/v1/domain /api/domain /api/v1/user /api/user /api/v1/me /api/me /api/v1/zones /api/zones /api/v1/dns /api/dns; do
-              probe "https://$h$p"
-            done
+          echo "########## DNS STATUS ##########" >> $out
+          curl -s -m 20 "https://dns.google/resolve?name=hnvip.qd.je&type=NS" >> $out; echo >> $out
+          curl -s -m 20 "https://dns.google/resolve?name=hnvip.qd.je&type=A" >> $out; echo >> $out
+
+          echo "########## DIGITALPLAT API (browser UA) ##########" >> $out
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+          for u in \
+            "https://dash.domain.digitalplat.org/api/v1/domains" \
+            "https://dash.domain.digitalplat.org/api/v1/openapi.json" \
+            "https://api.digitalplat.org/v1/domains" \
+            "https://digitalplat.org/api/v1/domains" ; do
+            code=$(curl -s -m 20 -o /tmp/b -w "%{http_code}" -A "$UA" \
+              -H "Authorization: Bearer $DP" -H "Accept: application/json" \
+              -H "Referer: https://dash.domain.digitalplat.org/" "$u")
+            echo "=== $u -> $code" >> $out
+            head -c 200 /tmp/b >> $out; echo >> $out
           done
+
+          echo "########## CLOUDFLARE ##########" >> $out
+          code=$(curl -s -m 20 -o /tmp/c -w "%{http_code}" https://api.cloudflare.com/client/v4/user/tokens/verify -H "Authorization: Bearer $CF")
+          echo "verify: $code" >> $out; head -c 900 /tmp/c >> $out; echo >> $out
+          code=$(curl -s -m 20 -o /tmp/c -w "%{http_code}" "https://api.cloudflare.com/client/v4/zones?per_page=50" -H "Authorization: Bearer $CF")
+          echo "zones: $code" >> $out; head -c 900 /tmp/c >> $out; echo >> $out
       - name: Commit result
         run: |
           git config user.name bot
           git config user.email bot@example.com
           git add dp_probe.txt
-          git commit -m "dp probe result" || echo "no change"
+          git commit -m "probe result" || echo "no change"
           git push
