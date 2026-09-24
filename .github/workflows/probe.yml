@@ -1,6 +1,9 @@
 name: probe
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/probe.yml'
 permissions:
   contents: write
   issues: write
