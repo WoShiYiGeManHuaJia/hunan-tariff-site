@@ -5,26 +5,26 @@ jobs:
   check:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      issues: write
     steps:
-      - uses: actions/checkout@v4
       - name: probe
         run: |
-          {
-          echo "TIME $(date -u +%FT%TZ)"
-          for s in 8.8.8.8 1.1.1.1 9.9.9.9; do echo "== A @$s"; dig +short A hnvip.qd.je @$s; done
-          echo "== NS qd.je"; dig +short NS qd.je @8.8.8.8
-          echo "== CAA hnvip.qd.je"; dig +short CAA hnvip.qd.je @8.8.8.8
-          echo "== CAA qd.je"; dig +short CAA qd.je @8.8.8.8
-          echo "== CAA je"; dig +short CAA je @8.8.8.8
-          echo "== HTTP"; curl -s -o /dev/null -w "%{http_code}\n" -L http://hnvip.qd.je/
-          echo "== HTTPS"; curl -sk -o /dev/null -w "%{http_code}\n" https://hnvip.qd.je/
-          echo "== CERT"; curl -skv https://hnvip.qd.je/ 2>&1 | grep -E "subject:|issuer:" | head -4
-          } > probe.txt 2>&1
-      - name: commit
-        run: |
-          git config user.name tariff-bot
-          git config user.email bot@example.com
-          git add -f probe.txt
-          git commit -m "probe result $(date -u +%s)" || exit 0
-          git push
+          OUT=""
+          add(){ OUT="$OUT
+          $1"; }
+          add "TIME $(date -u +%FT%TZ)"
+          for s in 8.8.8.8 1.1.1.1 9.9.9.9; do add "A@$s: $(dig +short A hnvip.qd.je @$s | tr '\n' ' ')"; done
+          add "NS qd.je: $(dig +short NS qd.je @8.8.8.8 | tr '\n' ' ')"
+          add "CAA hnvip.qd.je: $(dig +short CAA hnvip.qd.je @8.8.8.8 | tr '\n' ' ')"
+          add "CAA qd.je: $(dig +short CAA qd.je @8.8.8.8 | tr '\n' ' ')"
+          add "CAA je: $(dig +short CAA je @8.8.8.8 | tr '\n' ' ')"
+          add "HTTP: $(curl -s -o /dev/null -w '%{http_code}' -L http://hnvip.qd.je/)"
+          add "HTTPS: $(curl -sk -o /dev/null -w '%{http_code}' https://hnvip.qd.je/)"
+          add "CERT: $(curl -skv https://hnvip.qd.je/ 2>&1 | grep -E 'subject:|issuer:' | head -2 | tr '\n' ' ')"
+          python3 - "$OUT" <<'PY'
+          import json,os,sys,urllib.request
+          body=sys.argv[1]
+          data=json.dumps({"title":"probe "+os.environ.get("GITHUB_RUN_ID",""),"body":body}).encode()
+          req=urllib.request.Request("https://api.github.com/repos/WoShiYiGeManHuaJia/hunan-tariff-site/issues",data=data,headers={"Authorization":"token "+os.environ["GITHUB_TOKEN"],"Accept":"application/vnd.github+json","User-Agent":"probe"})
+          print(urllib.request.urlopen(req).status)
+          PY
