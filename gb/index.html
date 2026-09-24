@@ -2916,5 +2916,22 @@ if(document.readyState === "loading"){
   __bootReal();
 }
 </script>
+
+<!-- SW-KILL: 注销旧 Service Worker 并清空本地缓存（旧 SW 缓存优先导致一直显示老 UI） -->
+<script>
+(function(){
+  try{
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        rs.forEach(function(r){ r.unregister(); });
+      }).catch(function(){});
+    }
+    if(window.caches && caches.keys){
+      caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }).catch(function(){});
+    }
+  }catch(e){}
+})();
+</script>
+
 </body>
 </html>
