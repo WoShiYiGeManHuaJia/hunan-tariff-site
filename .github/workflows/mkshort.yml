@@ -1,9 +1,6 @@
 name: mkshort
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - .github/workflows/mkshort.yml
 permissions:
   contents: write
 jobs:
@@ -11,52 +8,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: gen
+      - name: gen shortest link
         run: |
-          set +e
-          out="SHORT_URL.md"
-          echo "# 资费站短链接" > $out
+          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/nav.html"
+          out="SHORT.md"
+          echo "# 总入口短链" > $out
           echo "" >> $out
-          gen() {
-            u="$1"
-            try() {
-              n="$1"; a="$2"
-              r=$(curl -s -m 25 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$a" | tr -d '\r\n')
-              case "$r" in
-                http*) echo "$r"; return 0;;
-              esac
-              return 1
-            }
-            for pair in \
-              "isgd|https://is.gd/create.php?format=simple&url=$u" \
-              "vgd|https://v.gd/create.php?format=simple&url=$u" \
-              "c1n|https://c1n.cn/api/shorten?url=$u" \
-              "985|https://985.so/api?url=$u" \
-              "suo|https://suo.im/api?url=$u" \
-              "tinyurl|https://tinyurl.com/api-create.php?url=$u" \
-              "clck|https://clck.ru/--?url=$u" \
-              "shorturl|https://shorturl.at/shorten.php?u=$u" ; do
-              n="${pair%%|*}"; a="${pair#*|}"
-              res=$(try "$n" "$a") && { echo "$res"; return 0; }
-            done
-            echo "生成失败"
-          }
-          add() {
-            echo "## $1" >> $out
-            echo "- 原链接: $2" >> $out
-            echo "- 短链接: \`$(gen "$2")\`" >> $out
-            echo "" >> $out
-          }
-          B="https://woshiyigemanhuajia.github.io/hunan-tariff-site"
-          add "中国移动" "$B/"
-          add "中国联通" "$B/unicom/"
-          add "中国电信" "$B/telecom/"
-          add "中国广电" "$B/gb/"
-          echo "生成时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $out
+          echo "目标: $U" >> $out
+          echo "" >> $out
+          echo "## 候选短码（按长度排序）" >> $out
+          echo "" >> $out
+          for sn in hntf hnt zf tf4 tf gd zifei hnzf; do
+            res=$(curl -s -m 25 -A "Mozilla/5.0" "https://is.gd/create.php?format=simple&url=$U&shortname=$sn")
+            case "$res" in
+              http*) echo "- \`$res\` (${#res} 字符)" >> $out ;;
+              *) echo "- is.gd/$sn -> 失败: $res" >> $out ;;
+            esac
+          done
+          echo "" >> $out
+          r2=$(curl -s -m 25 -A "Mozilla/5.0" "https://tinyurl.com/api-create.php?url=$U&alias=hntf")
+          echo "- tinyurl alias: \`$r2\`" >> $out
+          r3=$(curl -s -m 25 -A "Mozilla/5.0" "https://v.gd/create.php?format=simple&url=$U")
+          echo "- v.gd 随机: \`$r3\`" >> $out
+          r4=$(curl -s -m 25 -A "Mozilla/5.0" "https://tinyurl.com/api-create.php?url=$U")
+          echo "- tinyurl 随机: \`$r4\`" >> $out
+          r5=$(curl -s -m 25 -A "Mozilla/5.0" "https://clck.ru/--?url=$U")
+          echo "- clck.ru: \`$r5\`" >> $out
+          cat $out
       - name: commit
         run: |
           git config user.name "bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
-          git commit -m "update short urls" || echo "no change"
+          git commit -m "gen short link candidates" || echo "no change"
           git push
