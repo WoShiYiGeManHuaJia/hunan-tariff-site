@@ -1,0 +1,18 @@
+name: Verify WeChat TXT
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch txt
+        run: |
+          echo "=== HTTP ==="
+          curl -sL -m 30 -o /tmp/a.txt -w "code=%{http_code}\n" "http://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt"
+          echo "=== content ==="
+          cat /tmp/a.txt
+          echo ""
+          echo "=== HTTPS ==="
+          curl -sk -m 30 -o /tmp/b.txt -w "code=%{http_code}\n" "https://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt"
+          cat /tmp/b.txt
+          echo ""
