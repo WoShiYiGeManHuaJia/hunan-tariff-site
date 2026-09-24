@@ -1,21 +1,20 @@
 name: ann-probe
 on: workflow_dispatch
-permissions:
-  contents: write
 jobs:
   p:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 复现公告抓取(联通)并落盘日志
+      - name: 复现公告抓取(联通)
         continue-on-error: true
         run: |
           mkdir -p /tmp/up
-          python3 -u pipelines/scripts/announce_fetch.py --uni-dir /tmp/up > uni_step.log 2>&1
-          echo "EXIT=$?" >> uni_step.log
-      - name: 用正确XHR头探测省份归属
+          python3 -u pipelines/scripts/announce_fetch.py --uni-dir /tmp/up > /tmp/uni_step.log 2>&1
+          echo "EXIT=$?" >> /tmp/uni_step.log
+      - name: 探测省份归属
+        continue-on-error: true
         run: |
-          python3 - <<'PY' >> uni_step.log 2>&1
+          python3 - <<'PY' >> /tmp/uni_step.log 2>&1
           import urllib.request,urllib.parse,json
           url='https://www.10010.com/mall/service/query/announcementquery'
           H={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
@@ -26,19 +25,18 @@ jobs:
               d=urllib.parse.urlencode({'pageNo':'1','pageSize':'3','province':p,'condition':'0','title':''}).encode()
               try:
                   r=urllib.request.urlopen(urllib.request.Request(url,data=d,headers=H),timeout=25).read().decode('utf-8','ignore')
-                  j=json.loads(r); rows=j.get('result') or []
-                  out=[]
-                  for x in rows[:3]:
-                      out.append((x.get('creatorProvinceName'),str(x.get('title'))[:30],x.get('publishTime')))
-                  return out
+                  rows=json.loads(r).get('result') or []
+                  return [(x.get('creatorProvinceName'),str(x.get('title'))[:26],x.get('publishTime')) for x in rows[:3]]
               except Exception as e: return 'ERR:'+type(e).__name__
-          print("=== 带XHR头探测(province -> 省份名/标题) ===")
+          print("=== XHR头探测 province -> (省名,标题,日期) ===")
           for p in ['031','011','013','017','018','019','030','034','036','038']:
               print(p,'=>',q(p))
           PY
-      - name: 提交日志
+      - name: 上传结果
         run: |
-          git config user.name "probe"; git config user.email "p@l"
-          git add -f uni_step.log
-          git diff --cached --quiet || git commit -q -m "uni announce step log"
-          git push || echo pushfail
+          B64=$(base64 -w0 /tmp/uni_step.log)
+          printf '{"message":"probe log","content":"%s"}' "$B64" > /tmp/payload.json
+          curl -s -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/payload.json \
+            "https://api.github.com/repos/${{ github.repository }}/contents/uni_step.log" | head -c 300
