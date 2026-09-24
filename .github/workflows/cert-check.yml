@@ -1,0 +1,21 @@
+name: cert-check
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check DNS and TLS
+        run: |
+          set +e
+          D=hnvip.qd.je
+          echo "== A records (Google)"; dig +short A $D @8.8.8.8
+          echo "== A records (Cloudflare)"; dig +short A $D @1.1.1.1
+          echo "== AAAA"; dig +short AAAA $D @8.8.8.8
+          echo "== NS"; dig +short NS $D @8.8.8.8
+          echo "== CAA"; dig +short CAA $D @8.8.8.8; echo "(caa end)"
+          echo "== CAA parent qd.je"; dig +short CAA qd.je @8.8.8.8; echo "(end)"
+          echo "== HTTP"; curl -sS -m 15 -o /dev/null -w "code=%{http_code} ip=%{remote_ip}\n" http://$D/ 2>&1
+          echo "== ACME path"; curl -sS -m 15 -o /dev/null -w "code=%{http_code}\n" http://$D/.well-known/acme-challenge/probe 2>&1
+          echo "== TLS"
+          echo | timeout 20 openssl s_client -connect $D:443 -servername $D 2>/dev/null | openssl x509 -noout -subject -issuer -dates 2>&1
