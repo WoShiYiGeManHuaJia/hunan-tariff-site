@@ -2,9 +2,13 @@
 # -*- coding: utf-8 -*-
 """中国电信资费监控管线（可在 GitHub Actions 直接运行，路径全部相对脚本目录）
 
-职责：抓取电信「湖南(600203) + 全国(1000000037)」资费（对齐联通站 JSON schema）
+职责：抓取电信「湖南(600203) + 广东(600101) + 全国(1000000037)」资费（对齐联通站 JSON schema）
       → 与上一版数据 diff → 输出站点数据目录（{scope}.json + latest.json + history.json）。
-说明：其余 29 省 provCode 无公开口径且各省 h5 受瑞数 WAF 拦截，暂无法自动化，预留 SCOPES 可扩展。
+说明：provCode 为集团 wap 资费专区内部编码，实测有效 21 个（600101~600406），
+      已核实映射：600101=广东 600102=上海 600103=江苏 600104=浙江 600105=福建
+      600201=四川 600202=湖北 600203=湖南 600204=陕西 600205=云南 600301=安徽
+      600302=广西 600303=新疆 600304=重庆 600305=江西 600402=贵州 600403=海南。
+      新增省份只需在 SCOPES 里加一行，前端会自动出现省份选项。
 用法:
   python3 telecom_pipeline.py --prev-dir PATH --out-dir PATH
 """
@@ -21,6 +25,7 @@ API = "https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
 
 SCOPES = {
     "hunan": {"prov": "600203", "name": "湖南"},
+    "guangdong": {"prov": "600101", "name": "广东"},
     "quanguo": {"prov": "1000000037", "name": "全国"},
 }
 
@@ -209,11 +214,14 @@ def build_latest(scopes, datadir):
         sections.append({"section": scope, "name": SCOPES[scope]["name"], "total": total,
                          "onsale": total, "updated": d.get("timestamp") or ""})
     now = time.strftime("%Y-%m-%d %H:%M:%S")
+    # 省份合计：所有非全国板块之和（此前写死取 hunan，新增省份后统计会漏算）
+    prov_total = sum(v.get("total", 0) for k, v in prov_stats.items() if k != "quanguo")
     latest = {"sections": sections, "default": "hunan", "quanguo_total": q_total,
-              "prov_total": prov_stats.get("hunan", {}).get("total", 0),
+              "prov_total": prov_total,
               "prov_stats": prov_stats, "updated": now, "timestamp": now}
     save(os.path.join(datadir, "latest.json"), latest)
-    print("latest.json 已生成: quanguo=%s hunan=%s" % (q_total, prov_stats.get("hunan", {}).get("total")))
+    print("latest.json 已生成: quanguo=%s prov_total=%s 各省=%s" % (
+        q_total, prov_total, {k: v.get("total") for k, v in prov_stats.items()}))
 
 
 def main():
