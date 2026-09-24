@@ -1,0 +1,28 @@
+FN|queryProvince|{"__err": "Expecting value: line 1 column 1 (char 0)"}
+FN|getProvinceList|{"__err": "Expecting value: line 1 column 1 (char 0)"}
+FN|provinceList|{"__err": "Expecting value: line 1 column 1 (char 0)"}
+FN|tariffSectionProv|{"__err": "Expecting value: line 1 column 1 (char 0)"}
+FN|queryProvList|{"__err": "Expecting value: line 1 column 1 (char 0)"}
+FN|tariffProvince|{"__err": "Expecting value: line 1 column 1 (char 0)"}
+=== FULL SCAN ===
+RES|600101|items=1129|kw={"广东": 30}
+RES|600102|items=509|kw={"上海": 27}
+RES|600103|items=680|kw={"江苏": 34}
+RES|600104|items=1144|kw={"浙江": 107}
+RES|600105|items=492|kw={"福建": 50, "北京": 3}
+RES|600201|items=781|kw={"重庆": 14, "四川": 14}
+RES|600202|items=775|kw={"湖北": 21}
+RES|600203|items=976|kw={"湖南": 11}
+RES|600204|items=513|kw={"陕西": 19, "新疆": 2}
+RES|600205|items=476|kw={"云南": 16, "海南": 5, "新疆": 1}
+RES|600301|items=1105|kw={"安徽": 13}
+RES|600302|items=669|kw={"广西": 22, "新疆": 1}
+RES|600303|items=926|kw={"新疆": 24, "山西": 2}
+RES|600304|items=876|kw={"重庆": 23, "四川": 1}
+RES|600305|items=867|kw={"江西": 58}
+RES|600401|items=762|kw={"甘肃": 5, "北京": 3, "新疆": 2}
+RES|600402|items=543|kw={"贵州": 27}
+RES|600403|items=581|kw={"海南": 7, "北京": 1}
+RES|600404|items=482|kw={"宁夏": 1}
+RES|600405|items=430|kw={"北京": 1, "青海": 1}
+RES|600406|items=1404|kw={"广东": 1, "浙江": 1, "河南": 1, "山东": 1, "福建": 1, "河北": 1}
