@@ -1,23 +1,33 @@
 name: wxverify
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: [".github/workflows/wxverify.yml"]
 jobs:
   v:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: check
+      - uses: actions/checkout@v4
+      - name: probe
         run: |
           F=9a0c6a0cba595feb5a29661d1450e9bf.txt
+          OUT=_wxprobe.txt
+          : > $OUT
+          echo "TIME: $(date -u)" >> $OUT
           for H in http https; do
-            echo "=== $H://hnvip.qd.je/$F ==="
-            curl -sS -m 25 -o /tmp/o.txt -w "http_code=%{http_code} size=%{size_download}\n" "$H://hnvip.qd.je/$F" || echo "fail"
-            echo "body: $(cat /tmp/o.txt 2>/dev/null | head -c 200)"
+            echo "=== $H://hnvip.qd.je/$F ===" >> $OUT
+            curl -sS -m 25 -o /tmp/o.txt -w "code=%{http_code} size=%{size_download}\n" "$H://hnvip.qd.je/$F" >> $OUT 2>&1 || echo "curl_fail" >> $OUT
+            echo "BODY:[$(tr -d '\n' < /tmp/o.txt 2>/dev/null | head -c 120)]" >> $OUT
           done
-          echo "=== github.io ==="
-          curl -sS -m 25 -o /tmp/g.txt -w "http_code=%{http_code}\n" "https://woshiyigemanhuajia.github.io/hunan-tariff-site/$F" || echo fail
-          echo "body: $(cat /tmp/g.txt 2>/dev/null | head -c 200)"
-          echo "=== cert ==="
-          curl -sS -m 20 -vI https://hnvip.qd.je/ 2>&1 | grep -E "subject|issuer|SSL|expire" | head -8
+          echo "=== github.io ===" >> $OUT
+          curl -sS -m 25 -o /tmp/g.txt -w "code=%{http_code}\n" "https://woshiyigemanhuajia.github.io/hunan-tariff-site/$F" >> $OUT 2>&1 || echo fail >> $OUT
+          echo "BODY:[$(tr -d '\n' < /tmp/g.txt 2>/dev/null | head -c 120)]" >> $OUT
+          echo "=== cert ===" >> $OUT
+          echo | timeout 20 openssl s_client -connect hnvip.qd.je:443 -servername hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -issuer -enddate 2>/dev/null >> $OUT || echo "no_cert" >> $OUT
+      - name: commit
+        run: |
+          git config user.name probe
+          git config user.email p@a.b
+          git add _wxprobe.txt
+          git diff --cached --quiet || git commit -m "probe result"
+          git push
