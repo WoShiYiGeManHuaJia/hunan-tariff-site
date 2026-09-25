@@ -2,17 +2,22 @@
 # -*- coding: utf-8 -*-
 """中国电信资费监控管线（可在 GitHub Actions 直接运行，路径全部相对脚本目录）
 
-职责：抓取电信「湖南(600203) + 广东(600101) + 全国(1000000037)」资费（对齐联通站 JSON schema）
+职责：抓取电信「湖南(600203) + 广东(600101) + 山东(609903) + 河南(609904)
+      + 全国(1000000037)」资费（对齐联通站 JSON schema）
       → 与上一版数据 diff → 输出站点数据目录（{scope}.json + latest.json + history.json）。
-说明：provCode 为集团 wap 资费专区内部编码，实测有效 21 个（600101~600406），
-      已核实映射：600101=广东 600102=上海 600103=江苏 600104=浙江 600105=福建
-      600201=四川 600202=湖北 600203=湖南 600204=陕西 600205=云南 600301=安徽
-      600302=广西 600303=新疆 600304=重庆 600305=江西 600402=贵州 600403=海南。
+说明：provCode 为集团 wap 资费专区内部编码。完整 31 省编码取自电信网厅前端
+      index-xdZ1yBwq.js 内置省份表（权威来源），摘录：
+      600101广东 600102上海 600103江苏 600104浙江 600105福建 600201四川
+      600202湖北 600203湖南 600204陕西 600205云南 600301安徽 600302广西
+      600303新疆 600304重庆 600305江西 600401甘肃 600402贵州 600403海南
+      600404宁夏 600405青海 600406西藏 609001北京 609902天津 609903山东
+      609904河南 609905辽宁 609906河北 609907山西 609908内蒙古 609909吉林
+      609910黑龙江。
       新增省份只需在 SCOPES 里加一行，前端会自动出现省份选项。
 用法:
   python3 telecom_pipeline.py --prev-dir PATH --out-dir PATH
 """
-import urllib.request, json, time, base64, hashlib, os, sys, argparse
+import urllib.request, json, time, base64, hashlib, os, sys, argparse, random
 
 from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
                              modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key, field_snapshot)
@@ -20,12 +25,22 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
 KEY = b"telecom_wap_2018"
-UA = "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+# UA 池：每次请求随机取一个，避免长时间单一指纹（配合随机间隔降低风控命中率）
+UAS = [
+    "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 12; Redmi Note 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 14; V2218A) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0 Mobile Safari/537.36",
+]
+def _ua():
+    return random.choice(UAS)
 API = "https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
 
 SCOPES = {
     "hunan": {"prov": "600203", "name": "湖南"},
     "guangdong": {"prov": "600101", "name": "广东"},
+    "shandong": {"prov": "609903", "name": "山东"},
+    "henan": {"prov": "609904", "name": "河南"},
     "quanguo": {"prov": "1000000037", "name": "全国"},
 }
 
@@ -37,7 +52,7 @@ def encrypt(m):
 def call(fn, rc):
     body = encrypt(json.dumps({"headerInfo": {"functionCode": fn}, "requestContent": rc}, ensure_ascii=False))
     req = urllib.request.Request(API, data=body.encode("utf-8"), method="POST", headers={
-        "User-Agent": UA,
+        "User-Agent": _ua(),
         "Referer": "https://www.189.cn/wapportalweb/rateZone/index.html",
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "text/plain;charset=UTF-8",
@@ -134,7 +149,7 @@ def fetch_scope(scope, prov):
         for x in lst:
             items.append(parse_item(x))
         print("  [%s] count=%s got=%d" % (b.get("name"), rq.get("zoneTitleListCount"), len(lst)))
-        time.sleep(0.45)
+        time.sleep(random.uniform(0.8, 1.5))
     seen, uniq = set(), []
     for it in items:
         if it["id"] in seen:
@@ -246,12 +261,12 @@ def main():
         if not items:
             print("[%s] !! 本轮抓取 0 条，保留旧数据不覆盖（接口异常或受 WAF 拦截）" % scope)
             empty_scopes.add(scope)
-            time.sleep(1)
+            time.sleep(random.uniform(2.0, 3.5))
             continue
         data = {"scope": scope, "timestamp": now, "items": items}
         save(os.path.join(out_dir, scope + ".json"), data)
         print("[%s] total=%d" % (scope, len(items)))
-        time.sleep(1)
+        time.sleep(random.uniform(2.0, 3.5))
     hp = os.path.join(out_dir, "history.json")
     if args.rebuild:
         print("== 重建基线模式：跳过对比与历史，仅刷新数据/latest ==")
