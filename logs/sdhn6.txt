@@ -1,0 +1,21 @@
+PAGE https://www.189.cn/web/notice/index.html -> 200 len=1330
+HTML_FULL:
+<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content="yes" name="apple-touch-fullscreen"/><meta content="telephone=no,email=no" name="format-detection"/><meta name="App-Config" content="fullscreen=yes,useHistoryState=yes,transition=yes"/><meta name="msapplication-tap-hightlight" content="no"><meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="https://www.189.cn/image/189cnv2/indexv2/images/favicon.ico"/><title>中国电信网上营业厅</title><link rel="stylesheet" href="/web/css/swiper.min.css"/><link rel="stylesheet" href="/web/css/commonStyle.css"/><link rel="stylesheet" href="/web/css/style.css"/><link rel="stylesheet" href="/web/css/new.1200.css"/><script src="/web/jquery-1.10.2.min.js"></script><script src="/web/swiper.min.js"></script><script src="/web/scrollbar.js"></script><script>window.$app_id="dxyyt_PC";//应用ID</script><script charset="UTF-8" src="https://res-behaviordata.189.cn/behavior/chinatelecom.min.js"></script><script charset="UTF-8" src="https://res-behaviordata.189.cn/behavior/autotrack.js"></script><script type="module" crossorigin src="/web/assets/index-xdZ1yBwq.js"></script><link rel="stylesheet" crossorigin href="/web/assets/index-2wJNy1dy.css"></head><body><div
+SCRIPTS: ['/web/jquery-1.10.2.min.js', '/web/swiper.min.js', '/web/scrollbar.js', 'https://res-behaviordata.189.cn/behavior/chinatelecom.min.js', 'https://res-behaviordata.189.cn/behavior/autotrack.js', '/web/assets/index-xdZ1yBwq.js']
+JS https://www.189.cn/web/jquery-1.10.2.min.js -> 0 len=61
+JS https://www.189.cn/web/swiper.min.js -> 200 len=127934
+   JS_HITS(0): []
+JS https://www.189.cn/web/scrollbar.js -> 0 len=61
+JS https://res-behaviordata.189.cn/behavior/chinatelecom.min.js -> 200 len=151056
+   JS_HITS(0): []
+JS https://res-behaviordata.189.cn/behavior/autotrack.js -> 200 len=30380
+   JS_HITS(0): []
+JS https://www.189.cn/web/assets/index-xdZ1yBwq.js -> 200 len=306048
+   JS_HITS(2): ['/notice', '/notice/detail']
+   DO: ['/wtBusiness/wtservice/nc/search/list.do']
+GUESS https://www.189.cn/webapi/notice/list -> 0 len=61 :: <urlopen error _ssl.c:983: The handshake operation timed out>
+GUESS https://www.189.cn/web/notice/list.json -> 200 len=1330 :: <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content=
+GUESS https://www.189.cn/web/notice/api/list -> 0 len=61 :: <urlopen error _ssl.c:983: The handshake operation timed out>
+GUESS https://www.189.cn/portal/api/notice/list -> 0 len=27 :: HTTP Error 502: Bad Gateway
+GUESS https://www.189.cn/web/api/notice/queryNoticeList -> 200 len=1330 :: <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content=
+GUESS https://www.189.cn/wapportalweb/wapportalweb/noticeList.do -> 0 len=61 :: <urlopen error _ssl.c:983: The handshake operation timed out>
