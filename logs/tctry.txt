@@ -1,4 +1,15 @@
-python3: can't open file '/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py': [Errno 2] No such file or directory
+FAIL
+Traceback (most recent call last):
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 152, in <module>
+    r = main()
+        ^^^^^^
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 133, in main
+    out = fetch_all()
+          ^^^^^^^^^^^
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 85, in fetch_all
+    raise RuntimeError("tab list failed: " + tabs["__err"])
+RuntimeError: tab list failed: ERR Incorrect padding
+
 
 === JSON ===
 no json: [Errno 2] No such file or directory: '/tmp/tcann.json'
