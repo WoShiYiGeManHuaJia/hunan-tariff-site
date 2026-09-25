@@ -3,7 +3,7 @@
 """中国电信公告抓取（湖南）
 
 接口(来自 www.189.cn/web/notice 前端 chunk)：
-  列表分类  POST https://www.189.cn/wtBusiness/wtservice/nc/search/list.do
+  列表分类  POST https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do
             {shopId:"20001", type:"wt_sy_bzzx", floorType:"1", provinceCode, cityCode}
   分类条目  POST 同上 + order=<分类order>   → data[0].floorItems
   详情      POST https://www.189.cn/wtBusiness/wtservice/nc/announcement/getAnnouncementDetail.do
@@ -22,7 +22,7 @@ UA = ("Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 "
 BASE = "https://www.189.cn"
 PUBKEY_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIvCpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mif5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+ip2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlbKZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5KLF/30wIDAQAB"
 PROV = os.environ.get("TC_PROV", "600203")   # 湖南
-CITY = os.environ.get("TC_CITY", "hn")
+CITY = os.environ.get("TC_CITY", "")
 MAX_KEEP = int(os.environ.get("TC_KEEP", "15"))
 TYPE = "wt_sy_bzzx"
 
@@ -73,7 +73,7 @@ def fmt_date(s):
 
 
 def fetch_all():
-    tabs = spost("/wtBusiness/wtservice/nc/search/list.do",
+    tabs = spost("/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do",
                  {"shopId": "20001", "type": TYPE, "floorType": "1",
                   "provinceCode": PROV, "cityCode": CITY})
     if tabs.get("__err"):
@@ -87,7 +87,7 @@ def fetch_all():
         tabname = t.get("title") or ""
         if order is None:
             continue
-        d = spost("/wtBusiness/wtservice/nc/search/list.do",
+        d = spost("/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do",
                   {"shopId": "20001", "type": TYPE, "order": order,
                    "provinceCode": PROV, "cityCode": CITY})
         fis = ((d.get("data") or [{}])[0].get("floorItems") or [])
