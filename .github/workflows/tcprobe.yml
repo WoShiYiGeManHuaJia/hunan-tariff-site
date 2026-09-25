@@ -1,0 +1,222 @@
+name: TCProbe
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Probe telecom notice + province codes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, base64, os, re, time, gzip, random
+          from Crypto.Cipher import AES, PKCS1_v1_5
+          from Crypto.PublicKey import RSA
+          from Crypto.Util.Padding import pad
+
+          UA = "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          out = []
+          def P(s):
+              print(s)
+              out.append(str(s))
+
+          # ---------- 加密工具（电信 notice 接口） ----------
+          QP = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIvCpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mif5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+ip2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlbKZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5KLF/30wIDAQAB"
+          PUB = RSA.import_key(base64.b64decode(QP))
+          def gen_req_id():
+              return "".join("%x" % random.randint(0, 15) for _ in range(32))
+          def enc_body(obj):
+              key = os.urandom(16); iv = os.urandom(16)
+              ct = AES.new(key, AES.MODE_CBC, iv).encrypt(pad(json.dumps(obj, ensure_ascii=False).encode(), 16))
+              inner = json.dumps({"key": base64.b64encode(key).decode(), "iv": base64.b64encode(iv).decode()}, separators=(",", ":"))
+              ek = PKCS1_v1_5.new(PUB).encrypt(inner.encode())
+              return {"param": base64.b64encode(ct).decode(), "key": base64.b64encode(ek).decode()}
+          def rpost(url, obj, timeout=25, fcode="Y121043001"):
+              body = json.dumps(enc_body(obj), separators=(",", ":")).encode()
+              h = {"User-Agent": UA, "Content-Type": "application/json;charset=UTF-8",
+                   "Accept": "application/json, text/plain, */*", "Origin": "https://www.189.cn",
+                   "Referer": "https://www.189.cn/web/notice/index.html", "Fcode": fcode,
+                   "TransactionId": gen_req_id(), "Accept-Language": "zh-CN,zh;q=0.9"}
+              req = urllib.request.Request(url, data=body, headers=h, method="POST")
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  raw = r.read()
+                  if r.headers.get("Content-Encoding") == "gzip":
+                      raw = gzip.decompress(raw)
+                  return json.loads(raw.decode("utf-8", "replace"))
+          def rget(url, timeout=25, ref="https://www.189.cn/web/notice/index.html"):
+              req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*",
+                  "Accept-Language": "zh-CN,zh;q=0.9", "Referer": ref})
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  raw = r.read()
+                  if r.headers.get("Content-Encoding") == "gzip":
+                      raw = gzip.decompress(raw)
+                  return raw.decode("utf-8", "replace")
+
+          # ============ A. 从前端 JS 里找 notice 详情接口 ============
+          P("=== A. 前端 JS 接口发现 ===")
+          try:
+              html = rget("https://www.189.cn/web/notice/index.html")
+              srcs = re.findall(r'(?:src|href)="([^"]+\.js)"', html)
+              P("notice html len=%d js=%s" % (len(html), srcs[:8]))
+          except Exception as e:
+              srcs = []
+              P("notice html ERR %s" % e)
+          urls_found = set()
+          for s in srcs:
+              u = s if s.startswith("http") else ("https://www.189.cn" + s if s.startswith("/") else "https://www.189.cn/" + s)
+              try:
+                  js = rget(u)
+                  for m in re.finditer(r'["\']((?:https://www\.189\.cn)?/wtBusiness/[A-Za-z0-9/_\-\.]*\.do)["\']', js):
+                      urls_found.add(m.group(1))
+                  for m in re.finditer(r'["\']((?:https://www\.189\.cn)?/[A-Za-z0-9/_\-\.]*(?:recPos|notice|Notice)[A-Za-z0-9/_\-\.]*)["\']', js):
+                      urls_found.add(m.group(1))
+              except Exception as e:
+                  P("  js ERR %s %s" % (u, e))
+          for u in sorted(urls_found):
+              P("  API? %s" % u)
+
+          # ============ B. 公告列表（湖南 600203） ============
+          REC = "https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
+          P("=== B. 公告列表 provinceCode=600203 ===")
+          tabs = []
+          try:
+              r = rpost(REC, {"shopId": "20001", "type": "wt_sy_bzzx", "floorType": "1", "provinceCode": "600203", "cityCode": ""})
+              P("code=%s msg=%s n=%s" % (r.get("code"), r.get("message"), len(r.get("data") or [])))
+              for d in (r.get("data") or []):
+                  tabs.append(d.get("order"))
+                  P("  TAB order=%s title=%s" % (d.get("order"), d.get("title")))
+          except Exception as e:
+              P("  LIST ERR %s" % e)
+          items_hn = []
+          for o in tabs[:3]:
+              try:
+                  r = rpost(REC, {"shopId": "20001", "type": "wt_sy_bzzx", "order": o, "provinceCode": "600203", "cityCode": ""})
+                  dd = r.get("data") or []
+                  fi = (dd[0].get("floorItems") or []) if dd else []
+                  P("  order=%s items=%d" % (o, len(fi)))
+                  for x in fi[:8]:
+                      P("    * %s | %s | ext=%s | type=%s | link=%s" % (
+                          x.get("liveStartTime"), x.get("title"), x.get("externalOfferCode"),
+                          x.get("type"), str(x.get("link"))[:60]))
+                      items_hn.append(x)
+              except Exception as e:
+                  P("  order=%s ERR %s" % (o, e))
+
+          # ============ C. 详情接口尝试 ============
+          P("=== C. 详情接口尝试 ===")
+          sample = None
+          for x in items_hn:
+              if x.get("externalOfferCode"):
+                  sample = x
+                  break
+          cands = [u for u in sorted(urls_found) if u.endswith(".do")]
+          cands += ["https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosDetail.do",
+                    "https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosContent.do",
+                    "https://www.189.cn/wtBusiness/wtservice/nc/recPos/getContentInfo.do",
+                    "https://www.189.cn/wtBusiness/wtservice/nc/recPos/queryRecPosDetail.do"]
+          seen = set()
+          if sample:
+              for u in cands:
+                  if u in seen:
+                      continue
+                  seen.add(u)
+                  full = u if u.startswith("http") else "https://www.189.cn" + u
+                  try:
+                      r = rpost(full, {"type": sample.get("type") or "wt_sy_bzzx",
+                                       "offerCode": sample.get("externalOfferCode"),
+                                       "provinceCode": "600203", "cityCode": ""})
+                      s = json.dumps(r, ensure_ascii=False)
+                      P("  %s -> %s" % (full, s[:300]))
+                  except Exception as e:
+                      P("  %s -> ERR %s" % (full, e))
+          else:
+              P("  无 externalOfferCode 样本")
+
+          # ============ D. 资费省份编码识别（山东/河南） ============
+          P("=== D. 资费 provCode 省份识别 ===")
+          KEY = b"telecom_wap_2018"
+          API = "https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def tenc(m):
+              return base64.b64encode(AES.new(KEY, AES.MODE_ECB).encrypt(pad(m.encode("utf-8"), 16))).decode("utf-8")
+          def tcall(fn, rc, retry=2):
+              body = tenc(json.dumps({"headerInfo": {"functionCode": fn}, "requestContent": rc}, ensure_ascii=False))
+              req = urllib.request.Request(API, data=body.encode("utf-8"), method="POST", headers={
+                  "User-Agent": UA, "Referer": "https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept": "application/json, text/plain, */*", "Content-Type": "text/plain;charset=UTF-8",
+                  "Origin": "https://www.189.cn", "x-qd-reqtime": str(int(time.time() * 1000))})
+              last = None
+              for a in range(retry):
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as r:
+                          return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last = e
+                      time.sleep(1.5)
+              raise last
+          KW = ["山东", "济南", "青岛", "烟台", "潍坊", "河南", "郑州", "洛阳", "开封",
+                "湖南", "长沙", "广东", "广州", "深圳", "湖北", "武汉", "四川", "成都",
+                "江苏", "南京", "浙江", "杭州", "上海", "福建", "福州", "安徽", "合肥",
+                "广西", "南宁", "江西", "南昌", "重庆", "新疆", "贵州", "贵阳", "海南", "海口",
+                "陕西", "西安", "云南", "昆明", "北京", "天津", "河北", "石家庄", "山西", "太原",
+                "辽宁", "沈阳", "吉林", "长春", "黑龙江", "哈尔滨", "内蒙", "甘肃", "兰州",
+                "青海", "西宁", "宁夏", "银川", "西藏", "拉萨"]
+          codes = ["600101","600102","600103","600104","600105","600201","600202","600203",
+                   "600204","600205","600301","600302","600303","600304","600305",
+                   "600401","600402","600403","600404","600405","600406"]
+          for prov in codes:
+              try:
+                  rc = tcall("tariffSectionHome", {"ticket": "", "sessionid": "", "provCode": prov}).get("responseContent", {})
+                  boards = rc.get("lableOneList") or []
+                  sess = rc.get("sessionid")
+                  names = []
+                  for b in boards:
+                      try:
+                          rq = tcall("tariffSectionQuery", {"sessionid": sess, "type": 1, "provCode": prov,
+                                                            "lable1Id": b["id"], "lable2Id": ""}).get("responseContent", {})
+                          for x in (rq.get("zoneTitleList") or []):
+                              names.append(str(x.get("name", "")))
+                      except Exception:
+                          pass
+                      time.sleep(0.3)
+                  blob = " ".join([str(b.get("name", "")) for b in boards]) + " " + " ".join(names)
+                  hits = {}
+                  for k in KW:
+                      c = blob.count(k)
+                      if c:
+                          hits[k] = c
+                  top = sorted(hits.items(), key=lambda kv: -kv[1])[:8]
+                  P("%s boards=%d n=%d kw=%s" % (prov, len(boards), len(names), top))
+                  P("    boards=%s" % [b.get("name") for b in boards][:8])
+                  P("    sample=%s" % " | ".join(names[:6])[:300])
+              except Exception as e:
+                  P("%s ERR %s" % (prov, e))
+              time.sleep(0.5)
+
+          txt = "\n".join(out)
+          tok = os.environ.get("GH_TOKEN")
+          repo = "WoShiYiGeManHuaJia/hunan-tariff-site"
+          path = "logs/tc_probe.txt"
+          H = {"Authorization": "token " + tok, "User-Agent": "x", "Accept": "application/vnd.github+json"}
+          sha = None
+          try:
+              d = json.loads(urllib.request.urlopen(urllib.request.Request(
+                  "https://api.github.com/repos/%s/contents/%s" % (repo, path), headers=H), timeout=30).read())
+              sha = d.get("sha")
+          except Exception:
+              pass
+          payload = {"message": "tc probe", "content": base64.b64encode(txt.encode()).decode()}
+          if sha:
+              payload["sha"] = sha
+          try:
+              urllib.request.urlopen(urllib.request.Request(
+                  "https://api.github.com/repos/%s/contents/%s" % (repo, path),
+                  data=json.dumps(payload).encode(), headers=H, method="PUT"), timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e:
+              print("WROTE_FAIL", e)
+          PYEOF
