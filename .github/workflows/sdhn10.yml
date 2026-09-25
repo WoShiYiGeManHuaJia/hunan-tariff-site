@@ -1,0 +1,56 @@
+name: SDHN10
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Dump Notice chunks + encrypt impl
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, base64, os, re, gzip
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          def fetch(u,to=25):
+              h={"User-Agent":UA,"Accept":"*/*","Referer":"https://www.189.cn/web/notice/index.html"}
+              try:
+                  req=urllib.request.Request(u,headers=h)
+                  with urllib.request.urlopen(req,timeout=to) as r:
+                      raw=r.read()
+                      if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8","replace")
+              except Exception as e: return 0, str(e)
+          out=[]
+          s,nc=fetch("https://www.189.cn/web/assets/Notice-DCyxYZ5T.js")
+          out.append("=== NOTICE CHUNK (%d) ==="%len(nc))
+          out.append(nc[:6500])
+          s2,dc=fetch("https://www.189.cn/web/assets/NoticeDetail-DgPDTbru.js")
+          out.append("=== DETAIL CHUNK (%d) ==="%len(dc))
+          out.append(dc[:4500])
+          st,js=fetch("https://www.189.cn/web/assets/index-xdZ1yBwq.js")
+          m=re.search(r'encrypt\(t\)\{const e=this\.generateAESKey[\s\S]{0,900}',js)
+          out.append("=== TD.ENCRYPT ===")
+          out.append(m.group(0)[:900] if m else "NOT_FOUND")
+          m2=re.search(r'class td\{[\s\S]{0,1200}',js)
+          out.append("=== CLASS TD ===")
+          out.append(m2.group(0)[:1200] if m2 else "NOT_FOUND")
+          txt="\n".join(out)
+          print(txt[:20000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn10.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn10","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
