@@ -7,11 +7,13 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      GH_PAT: ${{ secrets.GH_PAT }}
     steps:
       - run: pip install pycryptodome -q
       - name: Identify 600401 / 600404 and scan wider ranges
         run: |
-          python3 - << 'PYEOF'
+          python3 - << 'PYEOF' 2>&1 | tee /tmp/sdhnid_out.txt
           import urllib.request, json, time, base64, re
           from Crypto.Cipher import AES
           from Crypto.Util.Padding import pad
@@ -102,4 +104,31 @@ jobs:
                   print("  HIT %s boards=%s" % (c, [x.get("name") for x in b]))
               time.sleep(0.25)
           print("  共 %d 个新编码有板块" % len(ok))
+          PYEOF
+      - name: Upload result
+        run: |
+          python3 - << 'PYEOF'
+          import os, json, base64, urllib.request, time
+          T = os.environ["GH_PAT"]
+          R = "WoShiYiGeManHuaJia/hunan-tariff-site"
+          H = {"Authorization": "token " + T, "User-Agent": "gh", "Accept": "application/vnd.github+json", "Content-Type": "application/json"}
+          def curl(method, url, data=None, tries=20):
+              body = json.dumps(data).encode() if data is not None else None
+              last = None
+              for i in range(tries):
+                  try:
+                      return urllib.request.urlopen(urllib.request.Request(url, data=body, headers=H, method=method), timeout=90).read()
+                  except Exception as e:
+                      last = e; time.sleep(1.2)
+              raise last
+          txt = open("/tmp/sdhnid_out.txt", encoding="utf-8").read()
+          sha = None
+          try:
+              sha = json.loads(curl("GET", "https://api.github.com/repos/%s/contents/_probe/sdhnid.txt" % R)).get("sha")
+          except Exception:
+              pass
+          p = {"message": "sdhn id result", "content": base64.b64encode(txt.encode("utf-8")).decode()}
+          if sha: p["sha"] = sha
+          curl("PUT", "https://api.github.com/repos/%s/contents/_probe/sdhnid.txt" % R, p)
+          print("uploaded", len(txt))
           PYEOF
