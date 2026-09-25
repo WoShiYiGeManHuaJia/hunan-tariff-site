@@ -4,100 +4,66 @@ on:
 permissions:
   contents: write
 jobs:
-  scan:
+  id:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_PAT }}
     steps:
       - run: pip install pycryptodome -q
-      - name: Scan provCode + probe notice
+      - name: Identify provinces by applicablePeople
         run: |
           python3 - << 'PYEOF'
-          import urllib.request, json, time, base64, os, re
+          import urllib.request, json, time, base64, os
           from Crypto.Cipher import AES
           from Crypto.Util.Padding import pad
           KEY=b"telecom_wap_2018"
           UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
           API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
-          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode("utf-8")
-          def call(fn,rc):
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode()
+          def call(fn,rc,to=30):
               body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
-              req=urllib.request.Request(API,data=body.encode("utf-8"),method="POST",headers={
+              req=urllib.request.Request(API,data=body.encode(),method="POST",headers={
                   "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
                   "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
                   "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
               last=None
-              for a in range(3):
+              for a in range(2):
                   try:
-                      with urllib.request.urlopen(req,timeout=25) as r: return json.loads(r.read().decode("utf-8"))
-                  except Exception as e: last=e; time.sleep(1.5)
-              raise last
+                      with urllib.request.urlopen(req,timeout=to) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last=e; time.sleep(1.5)
+              return {"__err":str(last)}
+          cands=[str(x) for x in range(600401,600421)]+[str(x) for x in range(609901,609921)]
           out=[]
-          cands=["600401","600404","600405","600406","600407","600408","600409","600410",
-                 "600106","600107","600108","600206","600207","600208","600306","600307","600308",
-                 "600501","600502","600503","600504","600105","600110","600210","600310","600410"]
-          for prov in cands:
-              try:
-                  rc=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":prov})
-                  rcc=rc.get("responseContent",{}) or {}
-                  boards=rcc.get("lableOneList") or []
-                  if not boards:
-                      out.append("%s -> empty" % prov); continue
-                  sess=rcc.get("sessionid"); names=set()
-                  for b in boards[:3]:
-                      try:
-                          rq=call("tariffSectionQuery",{"sessionid":sess,"type":1,"provCode":prov,"lable1Id":b["id"],"lable2Id":""})
-                          lst=(rq.get("responseContent",{}) or {}).get("zoneTitleList") or []
-                          for it in lst[:2]:
-                              pn=str(it.get("provinceName",""))
-                              if pn: names.add(pn)
-                      except Exception: pass
-                      time.sleep(0.25)
-                      if names: break
-                  out.append("%s => %s" % (prov, ",".join(names) if names else "(no name)"))
-              except Exception as e:
-                  out.append("%s -> ERR %s" % (prov, e))
+          for p in cands:
+              d=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":p})
+              rc=d.get("responseContent") or {}
+              b=rc.get("lableOneList") or []
+              if not b: continue
+              sess=rc.get("sessionid")
+              scopes=set(); names=[]
+              for bo in b:
+                  rq=call("tariffSectionQuery",{"sessionid":sess,"type":1,"provCode":p,"lable1Id":bo["id"],"lable2Id":""})
+                  lst=(rq.get("responseContent") or {}).get("zoneTitleList") or []
+                  for x in lst[:40]:
+                      ap=str(x.get("applicablePeople") or "").strip()
+                      if ap: scopes.add(ap[:40])
+                      if len(names)<3: names.append(str(x.get("name","")))
+                  time.sleep(0.25)
+              out.append("%s :: boards=%d :: SCOPE=%s :: %s"%(p,len(b)," / ".join(sorted(scopes))[:300]," | ".join(names)[:120]))
               time.sleep(0.2)
-          txt="PROV SCAN:\n"+"\n".join(out)
-          print(txt)
-
-          # ---- 电信公告源探测 ----
-          n=[]
-          for fn in ["noticeList","queryNoticeList","getNoticeList","noticeQuery","queryNotice","notice"]:
-              try:
-                  body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":{"provCode":"600203","pageNo":1,"pageSize":20}},ensure_ascii=False))
-                  req=urllib.request.Request(API,data=body.encode("utf-8"),method="POST",headers={
-                      "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
-                      "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
-                      "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
-                  with urllib.request.urlopen(req,timeout=20) as r: t=r.read().decode("utf-8","replace")
-                  n.append("FN %s -> 200 len=%d :: %s" % (fn,len(t),re.sub(r'\s+',' ',t[:250])))
-              except Exception as e:
-                  n.append("FN %s -> ERR %s" % (fn,e))
-          for u in ["https://www.189.cn/web/notice/index.html","https://m.189.cn/web/notice/index.html",
-                    "https://www.189.cn/hn/web/notice/index.html","https://e.189.cn/",
-                    "https://www.189.cn/web/service/notice.html"]:
-              try:
-                  req=urllib.request.Request(u,headers={"User-Agent":UA,"Accept":"text/html,*/*","Accept-Language":"zh-CN,zh;q=0.9"})
-                  with urllib.request.urlopen(req,timeout=18) as r: t=r.read().decode("utf-8","replace"); s=r.status
-              except Exception as e: s,t=0,str(e)
-              waf=('$_ts' in t) or ('ICOn' in t) or s in (202,412,403)
-              n.append("URL %s -> %s len=%d waf=%s" % (u,s,len(t),waf))
-          txt2="NOTICE PROBE:\n"+"\n".join(n)
-          print(txt2)
-
-          full=txt+"\n\n"+txt2
+          txt="\n".join(out)
+          print(txt[:20000])
           tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn2.txt"
           H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
           sha=None
           try:
-              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+              dd=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=dd.get("sha")
           except Exception: pass
-          payload={"message":"sdhn2 result","content":base64.b64encode(full.encode()).decode()}
+          payload={"message":"sdhn2","content":base64.b64encode(txt.encode()).decode()}
           if sha: payload["sha"]=sha
           try:
-              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
-              print("WROTE_OK")
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read(); print("WROTE_OK")
           except Exception as e: print("WROTE_FAIL",e)
           PYEOF
