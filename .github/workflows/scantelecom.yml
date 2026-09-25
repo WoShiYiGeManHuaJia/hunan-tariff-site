@@ -1,12 +1,15 @@
 name: ScanTelecomProv
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Scan provCode for 山东/河南
+      - uses: actions/checkout@v4
+      - name: Scan provCode
         run: |
           pip install pycryptodome -q
           python3 - << 'PYEOF'
@@ -37,12 +40,10 @@ jobs:
                       last = e
                       time.sleep(1.5)
               raise last
-
           cands = []
           for g in range(1, 6):
               for i in range(1, 21):
                   cands.append("600%d%02d" % (g, i))
-          known = {"600203": "湖南", "600101": "广东", "1000000037": "全国"}
           hits = []
           for prov in cands:
               try:
@@ -62,19 +63,21 @@ jobs:
                               names.append(str(x.get("name", "")))
                       except Exception:
                           pass
-                      time.sleep(0.3)
+                      time.sleep(0.25)
                   sample = " | ".join([n for n in names if n][:8])
                   print("HIT %s boards=%d :: %s" % (prov, len(boards), sample[:300]))
                   hits.append({"prov": prov, "boards": len(boards), "sample": sample[:300]})
               except Exception as e:
                   print("skip %s %s" % (prov, type(e).__name__))
-              time.sleep(0.3)
+              time.sleep(0.25)
           print("TOTAL_HITS=%d" % len(hits))
           with open("scan_result.json", "w", encoding="utf-8") as f:
               json.dump(hits, f, ensure_ascii=False, indent=1)
           PYEOF
-      - name: Upload result
-        uses: actions/upload-artifact@v4
-        with:
-          name: scan-result
-          path: scan_result.json
+      - name: Commit result
+        run: |
+          git config user.name bot
+          git config user.email bot@example.com
+          git add scan_result.json
+          git commit -m "scan result $(date +%s)" || echo "no change"
+          git push || echo "push fail"
