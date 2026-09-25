@@ -1,0 +1,105 @@
+name: SDHNID
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Identify 600401 / 600404 and scan wider ranges
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, re
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY = b"telecom_wap_2018"
+          UA = "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API = "https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def encrypt(m):
+              return base64.b64encode(AES.new(KEY, AES.MODE_ECB).encrypt(pad(m.encode("utf-8"), 16))).decode("utf-8")
+          def call(fn, rc, t=35):
+              body = encrypt(json.dumps({"headerInfo": {"functionCode": fn}, "requestContent": rc}, ensure_ascii=False))
+              req = urllib.request.Request(API, data=body.encode("utf-8"), method="POST", headers={
+                  "User-Agent": UA,
+                  "Referer": "https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept": "application/json, text/plain, */*",
+                  "Content-Type": "text/plain;charset=UTF-8",
+                  "Origin": "https://www.189.cn",
+                  "x-qd-reqtime": str(int(time.time() * 1000)),
+              })
+              last = None
+              for a in range(3):
+                  try:
+                      with urllib.request.urlopen(req, timeout=t) as r:
+                          return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last = e; time.sleep(1.0 * (a + 1))
+              return None
+          def home(prov):
+              d = call("tariffSectionHome", {"ticket": "", "sessionid": "", "provCode": prov})
+              return (d or {}).get("responseContent", {})
+          def query(sess, prov, l1):
+              d = call("tariffSectionQuery", {"sessionid": sess, "type": 1, "provCode": prov, "lable1Id": l1, "lable2Id": ""})
+              return (d or {}).get("responseContent", {})
+
+          CITY = {
+            "山东": ["济南","青岛","烟台","潍坊","淄博","临沂","济宁","泰安","威海","东营","日照","枣庄","聊城","德州","滨州","菏泽","山东","鲁"],
+            "河南": ["郑州","洛阳","开封","南阳","新乡","许昌","焦作","安阳","商丘","信阳","周口","驻马店","平顶山","濮阳","漯河","鹤壁","三门峡","河南","豫"],
+          }
+          OTHER = ["广东","深圳","上海","江苏","浙江","杭州","福建","四川","湖北","武汉","湖南","长沙","陕西","云南","昆明","安徽","广西","新疆","重庆","江西","南昌","贵州","贵阳","海南","青海","西宁","西藏","北京","天津","河北","山西","内蒙古","辽宁","沈阳","大连","吉林","黑龙江","哈尔滨","甘肃","兰州","宁夏","香港","澳门","台湾"]
+
+          print("=== 1) 全量名称关键词扫描：600401 / 600404 ===")
+          for code in ["600401", "600404"]:
+              rc = home(code)
+              sess = rc.get("sessionid")
+              boards = rc.get("lableOneList") or []
+              names = []
+              for b in boards:
+                  rq = query(sess, code, b["id"])
+                  for x in (rq.get("zoneTitleList") or []):
+                      n = (x.get("name") or "")
+                      names.append(n)
+                      for k in ("applicablePeople", "otherContent", "rights", "channel"):
+                          v = x.get(k)
+                          if v: names.append(str(v))
+                  time.sleep(0.35)
+              blob = "\n".join(names)
+              hit = {}
+              for p, ws in CITY.items():
+                  c = sum(blob.count(w) for w in ws)
+                  hit[p] = c
+              ohit = {}
+              for w in OTHER:
+                  c = blob.count(w)
+                  if c: ohit[w] = c
+              print("--- %s boards=%s n_names=%d" % (code, [b.get('name') for b in boards], len(names)))
+              print("   山东命中=%d 河南命中=%d" % (hit["山东"], hit["河南"]))
+              print("   其他省份词命中=%s" % json.dumps(ohit, ensure_ascii=False))
+              # 打印含省份/城市词的样本行
+              shown = 0
+              for n in names:
+                  if any(w in n for w in CITY["山东"] + CITY["河南"]) and shown < 25:
+                      print("   * " + n[:70]); shown += 1
+              if not shown:
+                  print("   (无山东/河南关键词，前30条样本:)")
+                  for n in names[:30]: print("   - " + n[:70])
+
+          print("=== 2) 更广范围 home 探测（找山东/河南可能编码）===")
+          cands = []
+          for base in ["6000","6005","6006","6007","6008","6009","6010","600"]:
+              for i in range(1, 31):
+                  cands.append(base + "%02d" % i)
+          cands = list(dict.fromkeys(cands))
+          ok = []
+          for c in cands:
+              rc = home(c)
+              b = rc.get("lableOneList") or []
+              if b:
+                  ok.append((c, [x.get("name") for x in b]))
+                  print("  HIT %s boards=%s" % (c, [x.get("name") for x in b]))
+              time.sleep(0.25)
+          print("  共 %d 个新编码有板块" % len(ok))
+          PYEOF
