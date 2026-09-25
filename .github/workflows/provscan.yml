@@ -1,0 +1,57 @@
+name: provscan-sdhn
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome
+      - name: Scan provCodes
+        run: |
+          python3 - <<'PY' 2>&1 | tail -200
+          import urllib.request,json,time,base64
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY=b"telecom_wap_2018"
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode(),16))).decode()
+          def call(fn,rc,tries=2):
+            body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+            req=urllib.request.Request(API,data=body.encode(),method="POST",headers={
+              "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
+              "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
+              "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+            for a in range(tries):
+              try:
+                with urllib.request.urlopen(req,timeout=45) as r: return json.loads(r.read().decode("utf-8","ignore"))
+              except Exception as e:
+                err=str(e)[:80]; time.sleep(1.5)
+            return {"__err":err}
+          cands=[]
+          for g in range(1,10):
+            for n in range(1,13):
+              cands.append("600%d%02d"%(g,n))
+          cands += ["609901","609902","609903","609904","609905","600401","600404","600405","600406"]
+          print("total candidates",len(cands))
+          for c in cands:
+            d=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":c})
+            rc=d.get("responseContent",{}) or {}
+            boards=rc.get("lableOneList") or []
+            if not boards: continue
+            sess=rc.get("sessionid")
+            b=boards[0]
+            q=call("tariffSectionQuery",{"sessionid":sess,"type":1,"provCode":c,"lable1Id":b["id"]})
+            lst=(q.get("responseContent",{}) or {}).get("zoneTitleList") or []
+            names=[x.get("name","") for x in lst[:6]]
+            print("HIT %s boards=%s n=%d sample=%s"%(c,[x.get("name") for x in boards][:6],len(lst),names))
+            time.sleep(0.3)
+          print("SCAN DONE")
+          PY
