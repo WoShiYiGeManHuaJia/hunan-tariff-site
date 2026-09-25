@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""公告抓取脚本：湖南移动公告 + 联通公告，各只保留最新 15 条，输出 announce.json
+"""公告抓取脚本：湖南移动公告 + 湖南联通公告 + 湖南电信公告，各只保留最新 15 条，输出 announce.json
 
 用法:
-    python3 scripts/announce_fetch.py --move-dir site/data --uni-dir unicom/data
+    python3 scripts/announce_fetch.py --move-dir site/data --uni-dir unicom/data --tc-dir telecom/data
 说明:
     - 移动(湖南)公告列表/详情均为静态 JSON，GET 直取；
       详情接口触发 TLS legacy renegotiation，需注入 openssl_legacy.cnf(见下)。
     - 联通公告列表/详情为 POST 接口，需带 XHR 特征头(否则中文被替换成 ?)。
+    - 电信(湖南)公告走 189.cn 推荐位接口，请求体 AES-CBC + RSA 加密；
+      省份由 provinceCode=600203(湖南) 在源站侧限定，只出湖南，不含其他省。
+      详情接口受瑞数 WAF 保护未开放，故只有标题+日期+官网链接。
+      抓到 0 条时【绝不落盘】，避免源站抖动把线上公告清成空。
     - 输出文件:
         <move-dir>/announce.json  移动站公告数据
         <uni-dir>/announce.json   联通站公告数据
+        <tc-dir>/announce.json    电信站公告数据
 """
 import os
 import re
@@ -56,6 +61,33 @@ UNI_HDRS = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Accept-Language": "zh-CN,zh;q=0.9",
 }
+
+# ---------------- 电信(湖南 600203) ----------------
+# 公告走 189.cn 网厅「帮助中心/公告」推荐位接口：
+#   POST /wtBusiness/wtservice/nc/recPos/getRecPosInfo.do
+#   请求体 AES-CBC 加密 + RSA(内置公钥) 加密 key/iv，响应为明文 JSON。
+# 列表已含标题与时间；详情接口为瑞数 WAF 保护且未开放，故只出标题+日期+官网链接。
+TC_REC_URL = "https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
+TC_PROVINCE = "600203"          # 湖南（与资费接口同一套 provCode；只抓湖南，不含其他省）
+TC_SHOP_ID = "20001"
+TC_TYPE = "wt_sy_bzzx"          # 首页-帮助中心/公告位
+TC_ORDER = 1                    # order=1 → 「公告」；order=2 → 「购物指南」（不要）
+TC_FCODE = "Y121043001"
+TC_NOTICE_PAGE = "https://www.189.cn/web/notice"
+TC_PUBKEY_B64 = (
+    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIv"
+    "CpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mi"
+    "f5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+i"
+    "p2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlb"
+    "KZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5K"
+    "LF/30wIDAQAB"
+)
+# 省份由 provinceCode(600203=湖南) 在源站侧就限定死了，本地不再按标题二次过滤：
+# 湖南电信官网把少量全国性/集团公告也挂在该省公告位下（如「规范互联网渠道售卡管理」），
+# 这些同样是湖南站发布的内容，按标题过滤反而会漏掉张家界/株洲等只带市名的湖南公告。
+TC_MUST = ()
+TC_CITY_HINT = ("长沙", "株洲", "湘潭", "衡阳", "岳阳", "常德", "郴州", "益阳", "娄底",
+                "邵阳", "湘西", "张家界", "怀化", "永州")
 
 # 富文本中需要保留的基础标签
 KEEP_TAGS = {"p", "br", "div", "span", "a", "img", "strong", "b", "em", "i", "u",
@@ -270,6 +302,92 @@ def fetch_uni():
     return items
 
 
+# ---------------- 电信抓取（湖南 600203） ----------------
+def _tc_post(obj):
+    """电信网厅接口：AES-CBC 加密 body + RSA 加密 key/iv，响应明文 JSON"""
+    from Crypto.Cipher import AES, PKCS1_v1_5
+    from Crypto.PublicKey import RSA
+    from Crypto.Util.Padding import pad
+    import base64, gzip, random
+
+    pub = RSA.import_key(base64.b64decode(TC_PUBKEY_B64))
+    key = os.urandom(16)
+    iv = os.urandom(16)
+    ct = AES.new(key, AES.MODE_CBC, iv).encrypt(pad(json.dumps(obj, ensure_ascii=False).encode(), 16))
+    inner = json.dumps({"key": base64.b64encode(key).decode(),
+                        "iv": base64.b64encode(iv).decode()}, separators=(",", ":"))
+    payload = {"param": base64.b64encode(ct).decode(),
+               "key": base64.b64encode(PKCS1_v1_5.new(pub).encrypt(inner.encode())).decode()}
+    tid = "".join("%x" % random.randint(0, 15) for _ in range(32))
+    req = urllib.request.Request(
+        TC_REC_URL, data=json.dumps(payload, separators=(",", ":")).encode(), method="POST",
+        headers={"User-Agent": UA, "Content-Type": "application/json;charset=UTF-8",
+                 "Accept": "application/json, text/plain, */*", "Origin": "https://www.189.cn",
+                 "Referer": "https://www.189.cn/web/notice/index.html",
+                 "Fcode": TC_FCODE, "TransactionId": tid, "Accept-Language": "zh-CN,zh;q=0.9"})
+    last = None
+    for a in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                raw = r.read()
+                if r.headers.get("Content-Encoding") == "gzip":
+                    raw = gzip.decompress(raw)
+                return json.loads(raw.decode("utf-8", "replace"))
+        except Exception as e:
+            last = e
+            time.sleep(2 * (a + 1))
+    raise last
+
+
+def _tc_date(s):
+    """20260918145157 / 2026-09-18 12:00 → 2026-09-18"""
+    t = str(s or "").strip()
+    if len(t) >= 8 and t[:8].isdigit():
+        return "%s-%s-%s" % (t[:4], t[4:6], t[6:8])
+    return t[:10]
+
+
+def fetch_telecom():
+    print("[电信] 拉取湖南公告列表 (provinceCode=%s) ..." % TC_PROVINCE)
+    r = _tc_post({"shopId": TC_SHOP_ID, "type": TC_TYPE, "order": TC_ORDER,
+                  "provinceCode": TC_PROVINCE, "cityCode": ""})
+    if r.get("code") not in (None, "S_COMMON_0000", "0"):
+        print("[电信] 接口返回异常: code=%s msg=%s" % (r.get("code"), r.get("message")))
+    data = r.get("data") or []
+    raw = []
+    for d in data:
+        for x in (d.get("floorItems") or []):
+            raw.append(x)
+    print("[电信] 列表 %d 条" % len(raw))
+    if not raw:
+        print("[电信] !! 未取到公告，保持线上数据不变")
+        return None
+    items = []
+    for x in raw:
+        title = (x.get("title") or "").strip()
+        if not title:
+            continue
+        dt = _tc_date(x.get("liveStartTime") or x.get("publishTime") or x.get("createTime") or "")
+        eid = x.get("externalOfferCode") or x.get("offerCode") or x.get("id") or ""
+        items.append({
+            "id": str(eid),
+            "title": title,
+            "date": dt,
+            # 详情接口受瑞数 WAF 保护、未开放，统一跳官网公告页
+            "page_url": TC_NOTICE_PAGE,
+            "summary": "",
+            "content": "",
+            "attachments": [],
+        })
+    # 源站返回并非时间序，先按日期降序再截断，确保是「最新 15 条」
+    items.sort(key=lambda x: (x["date"], x["id"]), reverse=True)
+    items = items[:MAX_KEEP]
+    print("[电信] 按日期降序取最新 %d 条" % len(items))
+    for it in items[:3]:
+        print("   * %s | %s" % (it["date"], it["title"][:40]))
+    return items
+
+
 def write_json(items, path):
     data = {"updated": now_str(), "count": len(items), "items": items}
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -288,17 +406,26 @@ def main():
     # <repo>/pipelines/unicom/data/announce.json，该路径从不参与同步，线上公告永远不更新。
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     args = sys.argv[1:]
-    move_dir = uni_dir = None
+    move_dir = uni_dir = tc_dir = None
     for i, a in enumerate(args):
         if a == "--move-dir" and i + 1 < len(args):
             move_dir = _resolve(root, args[i + 1])
         if a == "--uni-dir" and i + 1 < len(args):
             uni_dir = _resolve(root, args[i + 1])
+        if a == "--tc-dir" and i + 1 < len(args):
+            tc_dir = _resolve(root, args[i + 1])
     if move_dir:
         write_json(fetch_move(), os.path.join(move_dir, "announce.json"))
     if uni_dir:
         write_json(fetch_uni(), os.path.join(uni_dir, "announce.json"))
-    if not move_dir and not uni_dir:
+    if tc_dir:
+        its = fetch_telecom()
+        if its is None:
+            # 抓空绝不落盘：避免源站抖动/WAF 拦截把线上公告清成 0 条
+            print("[电信] 跳过写入（未取到数据，保持线上公告不变）")
+        else:
+            write_json(its, os.path.join(tc_dir, "announce.json"))
+    if not move_dir and not uni_dir and not tc_dir:
         print(__doc__)
 
 
