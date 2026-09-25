@@ -1,0 +1,41 @@
+name: TCTRY
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  try:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pycryptodome -q
+      - name: Run telecom announce probe
+        id: run
+        continue-on-error: true
+        run: |
+          python3 scripts/announce_telecom.py /tmp/tcann.json > /tmp/tcout.txt 2>&1 || true
+          cat /tmp/tcout.txt
+      - name: Write result
+        run: |
+          python3 - << 'PYEOF'
+          import os, json, base64, urllib.request
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/tctry.txt"
+          txt=""
+          try: txt+=open("/tmp/tcout.txt",encoding="utf-8").read()
+          except Exception as e: txt+="no stdout: %s"%e
+          txt+="\n=== JSON ===\n"
+          try: txt+=open("/tmp/tcann.json",encoding="utf-8").read()[:4000]
+          except Exception as e: txt+="no json: %s"%e
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"tctry","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+          print("WROTE_OK")
+          PYEOF
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
