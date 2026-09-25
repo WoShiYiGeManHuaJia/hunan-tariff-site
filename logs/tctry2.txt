@@ -1,0 +1,21 @@
+=== A. recPos/getRecPosInfo.do ===
+c/recPos/getRecPosInfo.do 600203 hn -> 200 {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+c/recPos/getRecPosInfo.do 600203  -> 200 {"code":"S_COMMON_0000","data":[{"colorValue":null,"contentOne":null,"customAmountFlag":null,"externalOfferCode":"372416200001","flagSelected":null,"floorItems":[],"iconUrl":"https://w.189.cn/bigdata/2026/5/12/1117785726
+c/recPos/getRecPosInfo.do 43 431 -> 200 {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+c/recPos/getRecPosInfo.do 600203 600203 -> 200 {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+service/nc/search/list.do 600203 hn -> 200 {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+service/nc/search/list.do 600203  -> 200 {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+service/nc/search/list.do 43 431 -> 200 {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+service/nc/search/list.do 600203 600203 -> 200 {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+=== B. main chunk export h ===
+EXPORT h -> cd as h
+EXPORT_ALL head: Fa as $,fd as A,hd as B,Ia as C,Jn as D,lo as E,Yr as F,Hi as G,Tg as H,Fi as I,pd as J,dd as K,ja as L,ld as M,yg as N,Yp as O,ad as P,Qe as Q,ye as R,fg as S,ei as T,Xp as U,Gp as V,Wp as W,Kp as X,rd as Y,Rd as Z,bg as _,zn as a,zi as a0,id as a1,ae as a2,xd as a3,oo as b,co as c,go as d,yo as e,M as f,qe as g,cd as h,be as i,La as j,_o as k,Ee as l,mo as m,q as n,Un as o,Uo as p,Td as q,Yn as r,ud as s,G as t,jd as u,gi as v,tn as w,sn as x,bo as y,Ed as z
+=== C. 资费 609903/609904 ===
+TARIFF 600203 湖南 boards=0 :: 
+  raw: {"headerInfo": {"to404": false, "code": "W_0000", "message": "成功", "repeatFlag": false}, "responseContent": {"sessionid": "5b7cacbd4afd4d09922fcd92462512e4", "productName": "", "provCode": "600203", "lableOneList": [{"id": "69ca309849279117fdf2c581", "name": "
+TARIFF 609903 山东 boards=0 :: 
+  raw: {"headerInfo": {"to404": false, "code": "W_0000", "message": "成功", "repeatFlag": false}, "responseContent": {"sessionid": "9aca30340f334dd28e5728a1f9b009b7", "productName": "", "provCode": "609903", "lableOneList": [{"id": "69ca363949279117fdf2c5b5", "name": "
+TARIFF 609904 河南 boards=0 :: 
+  raw: {"headerInfo": {"to404": false, "code": "W_0000", "message": "成功", "repeatFlag": false}, "responseContent": {"sessionid": "26e458425f85420495e95ad6d2c37263", "productName": "", "provCode": "609904", "lableOneList": [{"id": "69ca364049279117fdf2c5b7", "name": "
+TARIFF 600101 广东 boards=0 :: 
+  raw: {"headerInfo": {"to404": false, "code": "W_0000", "message": "成功", "repeatFlag": false}, "responseContent": {"sessionid": "b53f557d967d437eb8d3e1d7b3e8088c", "productName": "", "provCode": "600101", "lableOneList": [{"id": "69ca2fff49279117fdf2c575", "name": "
