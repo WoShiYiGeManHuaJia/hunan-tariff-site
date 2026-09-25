@@ -1,0 +1,75 @@
+name: TCTRY3
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  try:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pycryptodome -q
+      - name: Run announce fetcher + tariff counts
+        run: |
+          python3 scripts/announce_telecom.py /tmp/tcann.json > /tmp/tcout.txt 2>&1 || true
+          cat /tmp/tcout.txt
+          echo "=== TARIFF 609903/609904 ==="
+          python3 - << 'PYEOF' >> /tmp/tcout.txt 2>&1
+          import urllib.request, json, base64, time
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          KEY=b"telecom_wap_2018"; API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode()
+          def call(fn,rc):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode(),method="POST",headers={
+                  "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
+                  "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              for a in range(3):
+                  try:
+                      with urllib.request.urlopen(req,timeout=40) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e: last=e; time.sleep(3)
+              return {"__err":str(last)}
+          for p,nm in [("609903","山东"),("609904","河南"),("600203","湖南")]:
+              h=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":p})
+              rc=h.get("responseContent") or {}
+              sid=rc.get("sessionid") or ""
+              l1=rc.get("lableOneList") or []
+              names=[str(x.get("name") or "") for x in l1]
+              print("HOME",p,nm,"lableOne=%d"%len(l1),names[:6])
+              tot=0
+              for x in l1:
+                  q=call("tariffSectionQuery",{"sessionid":sid,"type":1,"provCode":p,"lable1Id":x.get("id"),"lable2Id":""})
+                  qrc=q.get("responseContent") or {}
+                  n=len(qrc.get("tariffList") or qrc.get("list") or [])
+                  tot+=n
+                  print("  L1",x.get("name"),"->",n)
+                  time.sleep(0.6)
+              print("  TOTAL",p,nm,tot)
+              time.sleep(2)
+          PYEOF
+      - name: Write result
+        run: |
+          python3 - << 'PYEOF'
+          import os, json, base64, urllib.request
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/tctry3.txt"
+          try: txt=open("/tmp/tcout.txt",encoding="utf-8").read()
+          except Exception as e: txt="no stdout: %s"%e
+          txt+="\n=== JSON ===\n"
+          try: txt+=open("/tmp/tcann.json",encoding="utf-8").read()[:5000]
+          except Exception as e: txt+="no json: %s"%e
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"tctry3","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+          print("WROTE_OK")
+          PYEOF
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
