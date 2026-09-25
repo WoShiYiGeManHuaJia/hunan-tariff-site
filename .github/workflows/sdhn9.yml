@@ -1,0 +1,74 @@
+name: SDHN9
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Extract encrypt impl + notice chunk params
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, base64, os, re, gzip
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          def fetch(u,to=25,hdr=None,data=None):
+              h={"User-Agent":UA,"Accept":"text/html,application/json,*/*","Accept-Language":"zh-CN,zh;q=0.9",
+                 "Referer":"https://www.189.cn/web/notice/index.html","Origin":"https://www.189.cn"}
+              if hdr: h.update(hdr)
+              try:
+                  req=urllib.request.Request(u,headers=h,data=data)
+                  with urllib.request.urlopen(req,timeout=to) as r:
+                      raw=r.read()
+                      if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8","replace")
+              except Exception as e: return 0, str(e)
+          out=[]
+          st,js=fetch("https://www.189.cn/web/assets/index-xdZ1yBwq.js")
+          out.append("JS len=%d"%len(js))
+          # 1. full RSA pubkey Qp
+          m=re.search(r'Qp="(MIIB[^"]{100,600})"',js)
+          out.append("QP_FOUND=%s"%(bool(m)))
+          if m: out.append("QP="+m.group(1))
+          # 2. encrypt impl: enableEncrypt context
+          for m2 in list(re.finditer(re.escape("enableEncrypt"),js))[:4]:
+              a=max(0,m2.start()-900); b=min(len(js),m2.end()+1200)
+              out.append("### ENCCTX: "+js[a:b].replace("\n"," ")[:1900])
+          # 3. route lazy import for notice
+          for m3 in list(re.finditer(r'["\']/notice["\']',js))[:5]:
+              a=max(0,m3.start()-500); b=min(len(js),m3.end()+500)
+              out.append("### ROUTECTX: "+js[a:b].replace("\n"," ")[:1000])
+          # 4. any asset chunk names containing notice
+          chunks=set(re.findall(r'["\'](\./[A-Za-z0-9_\-]*[Nn]otice[A-Za-z0-9_\-]*\.js)["\']',js))
+          chunks|=set(re.findall(r'["\'](/web/assets/[A-Za-z0-9_\-]*[Nn]otice[A-Za-z0-9_\-]*\.js)["\']',js))
+          out.append("CHUNKS=%s"%sorted(chunks)[:20])
+          for c in sorted(chunks)[:6]:
+              u=c if c.startswith("http") else ("https://www.189.cn"+c if c.startswith("/") else "https://www.189.cn/web/assets/"+c.replace("./",""))
+              s2,t2=fetch(u)
+              out.append("CHUNK %s -> %s len=%d"%(u,s2,len(t2)))
+              if s2==200 and len(t2)>200:
+                  for kw in ["search/list","ad(","pageNo","pageSize","pageNum","provCode","latnId","announce","keyword"]:
+                      cnt=len(re.findall(re.escape(kw),t2))
+                      if cnt: out.append("   %s x%d"%(kw,cnt))
+                  for m4 in list(re.finditer(r'ad\(\{',t2))[:3]:
+                      a=max(0,m4.start()-200); b=min(len(t2),m4.end()+600)
+                      out.append("   ADCALL: "+t2[a:b].replace("\n"," ")[:800])
+          txt="\n".join(out)
+          print(txt[:18000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn9.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn9","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
