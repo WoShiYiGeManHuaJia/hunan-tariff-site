@@ -1,0 +1,75 @@
+name: NoticeProbe
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Probe 189.cn notice interface
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, base64, os, re, gzip, io
+          UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          def fetch(url, hdr=None, data=None, timeout=25):
+              h = {"User-Agent": UA, "Accept": "*/*", "Accept-Language": "zh-CN,zh;q=0.9"}
+              if hdr: h.update(hdr)
+              try:
+                  req = urllib.request.Request(url, data=data, headers=h)
+                  with urllib.request.urlopen(req, timeout=timeout) as r:
+                      raw = r.read()
+                      if r.headers.get("Content-Encoding") == "gzip":
+                          raw = gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8", errors="replace")
+              except Exception as e:
+                  return 0, "%s %s" % (type(e).__name__, e)
+          out = []
+          # 1) 页面本身
+          for u in ["https://www.189.cn/web/notice", "https://www.189.cn/web/notice/",
+                    "https://www.189.cn/hn/notice", "https://hn.189.cn/web/notice"]:
+              s, t = fetch(u)
+              out.append("PAGE %s -> %s len=%d" % (u, s, len(t)))
+              if s == 200 and len(t) > 200:
+                  # 找 js/接口线索
+                  for m in set(re.findall(r'[\w/\.-]*(?:notice|announce|公告)[\w/\.-]*', t)):
+                      if len(m) > 4: out.append("   REF %s" % m[:150])
+                  out.append("   HTML_HEAD %s" % re.sub(r'\s+',' ',t[:600]))
+          # 2) 常见接口猜测
+          guesses = [
+              "https://www.189.cn/portal/service/queryNoticeList",
+              "https://www.189.cn/web/notice/queryNoticeList",
+              "https://www.189.cn/interface/notice/queryNoticeList.do",
+              "https://www.189.cn/portal/notice/queryNoticeList.do",
+              "https://www.189.cn/webapi/notice/list",
+              "https://www.189.cn/wapportalweb/wapportalweb/notice.do",
+          ]
+          for u in guesses:
+              s, t = fetch(u, hdr={"Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest"},
+                           data=json.dumps({"pageNo": 1, "pageSize": 15}).encode())
+              out.append("GUESS %s -> %s :: %s" % (u, s, re.sub(r'\s+',' ',t[:200])))
+          txt = "\n".join(out)
+          print(txt[:7000])
+          tok = os.environ.get("GH_TOKEN")
+          repo = "WoShiYiGeManHuaJia/hunan-tariff-site"
+          path = "logs/notice_probe.txt"
+          H = {"Authorization": "token " + tok, "User-Agent": "x", "Accept": "application/vnd.github+json"}
+          sha = None
+          try:
+              d = json.loads(urllib.request.urlopen(urllib.request.Request(
+                  "https://api.github.com/repos/%s/contents/%s" % (repo, path), headers=H), timeout=30).read())
+              sha = d.get("sha")
+          except Exception: pass
+          payload = {"message": "notice probe", "content": base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"] = sha
+          try:
+              urllib.request.urlopen(urllib.request.Request(
+                  "https://api.github.com/repos/%s/contents/%s" % (repo, path),
+                  data=json.dumps(payload).encode(), headers=H, method="PUT"), timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e:
+              print("WROTE_FAIL", e)
+          PYEOF
