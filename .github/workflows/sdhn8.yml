@@ -1,0 +1,71 @@
+name: SDHN8
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Reverse encrypt + find params
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, base64, os, re, gzip
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          def fetch(u,to=25,hdr=None,data=None):
+              h={"User-Agent":UA,"Accept":"text/html,application/json,*/*","Accept-Language":"zh-CN,zh;q=0.9",
+                 "Referer":"https://www.189.cn/web/notice/index.html","Origin":"https://www.189.cn"}
+              if hdr: h.update(hdr)
+              try:
+                  req=urllib.request.Request(u,headers=h,data=data)
+                  with urllib.request.urlopen(req,timeout=to) as r:
+                      raw=r.read()
+                      if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8","replace")
+              except Exception as e: return 0, str(e)
+          out=[]
+          st,js=fetch("https://www.189.cn/web/assets/index-xdZ1yBwq.js")
+          out.append("JS len=%d"%len(js))
+          def shows(kw,n=4,w=400,pat=None):
+              p=pat or re.escape(kw)
+              res=[]
+              for m in re.finditer(p,js):
+                  a=max(0,m.start()-w); b=min(len(js),m.end()+w)
+                  res.append(js[a:b].replace("\n"," "))
+                  if len(res)>=n: break
+              out.append("### %s (%d)"%(kw,len(res)))
+              for i,x in enumerate(res): out.append("  [%d] %s"%(i,x[:800]))
+          shows("const Zp",3,300,r'Zp\s*=\s*["\'][^"\']{0,60}["\']')
+          shows("Zp=",2,200,r'\bZp=["\'][^"\']{0,60}["\']')
+          shows("ad({",4,500,r'ad\(\{[^}]{0,300}\}')
+          shows("ld({",3,500,r'ld\(\{[^}]{0,300}\}')
+          shows("encryptRequest",3,600)
+          shows("AES",3,400)
+          shows("CryptoJS",2,400)
+          shows("setPublicKey",2,400)
+          shows("JSEncrypt",2,400)
+          shows("announcement",3,400)
+          shows("search/list",2,300)
+          # look for likely param names
+          for kw in ["pageNum","pageNo","pageSize","latnId","regionCode","provId","keyword","searchKey","noticeTitle","bizType","typeCode"]:
+              c=re.findall(re.escape(kw),js)
+              out.append("PARAM %s count=%d"%(kw,len(c)))
+          txt="\n".join(out)
+          print(txt[:16000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn8.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn8","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
