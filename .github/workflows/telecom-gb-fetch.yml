@@ -85,6 +85,13 @@ jobs:
           EC_T=$?
           echo "电信 exit=$EC_T" >> tg_run.log
 
+          # ── 电信湖南公告（provinceCode=600203，只保留最新 15 条，按日期降序）──
+          # 抓空不落盘（脚本内保证），故失败不会清空线上公告，不阻断主流程。
+          echo "--- 电信公告 ---" >> tg_run.log
+          PYTHONPATH=pipelines python3 -u pipelines/scripts/announce_fetch.py \
+            --tc-dir telecom/data >> tg_run.log 2>&1
+          echo "电信公告 exit=$?" >> tg_run.log
+
           echo "--- 广电 ---" >> tg_run.log
           PYTHONPATH=pipelines python3 -u pipelines/gb_pipeline.py \
             --prev-dir gb/data --out-dir gb/data $GB_SCOPE $FLAG >> tg_run.log 2>&1
