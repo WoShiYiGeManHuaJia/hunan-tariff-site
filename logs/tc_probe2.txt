@@ -1,0 +1,42 @@
+=== A. 公告详情接口 ===
+  [search/list.do offerCode] {"code": "S_WEB_0104", "data": null, "message": "系统繁忙，请稍后重试"}
+  [search/list.do id] {"code": "S_WEB_0104", "data": null, "message": "系统繁忙，请稍后重试"}
+  [getRecPosInfo floorType=2] {"code": "S_COMMON_0000", "data": [{"colorValue": null, "contentOne": null, "customAmountFlag": null, "externalOfferCode": null, "flagSelected": null, "floorItems": [{"colorValue": null, "contentOne": null, "customAmountFlag": "0", "externalOfferCode": "518652200001", "flagSelected": "0", "floorItems": null, "iconUrl": null, "imageRatio": null, "imageUrl": null, "link": null, "linkType": null, "li
+  [getRecPosInfo externalOfferCode] {"code": "S_COMMON_0000", "data": [{"colorValue": null, "contentOne": null, "customAmountFlag": null, "externalOfferCode": null, "flagSelected": null, "floorItems": [{"colorValue": null, "contentOne": null, "customAmountFlag": "0", "externalOfferCode": "518652200001", "flagSelected": "0", "floorItems": null, "iconUrl": null, "imageRatio": null, "imageUrl": null, "link": null, "linkType": null, "li
+  [getRecPosInfo detail=1] {"code": "S_COMMON_0000", "data": [{"colorValue": null, "contentOne": null, "customAmountFlag": null, "externalOfferCode": null, "flagSelected": null, "floorItems": [{"colorValue": null, "contentOne": null, "customAmountFlag": "0", "externalOfferCode": "518652200001", "flagSelected": "0", "floorItems": null, "iconUrl": null, "imageRatio": null, "imageUrl": null, "link": null, "linkType": null, "li
+  js len=306048
+  PATH /wtBusiness/wtservice/nc/search/list.do
+  CTX s"),__vite__mapDeps([14,15,1,2,3,16,4,5,17])),meta:{keepAlive:!0,title:"中国电信网上营业厅",bodyClass:"bg-dark"}},{path:"/notice/detail",name:"NoticeDetail",component:()=>ja(()=>import("./NoticeDetail-DgPDTbru.js"),__vite__mapDeps([18,15,1,2,3,16,4,5,19])),meta:{keepAlive:!0,title:"中国电信网上
+  GET offerCode=570447200001 -> len=1330 <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content="yes" name="apple-touch-fullscreen"/><meta content
+  GET externalOfferCode=570447200001 -> len=1330 <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content="yes" name="apple-touch-fullscreen"/><meta content
+  GET id=570447200001 -> len=1330 <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content="yes" name="apple-touch-fullscreen"/><meta content
+=== B. provCode 扫描（山东/河南）===
+600106 boards=0 n=0 kw=[]
+600107 boards=0 n=0 kw=[]
+600108 boards=0 n=0 kw=[]
+600109 boards=0 n=0 kw=[]
+600110 boards=0 n=0 kw=[]
+600111 boards=0 n=0 kw=[]
+600206 boards=0 n=0 kw=[]
+600207 boards=0 n=0 kw=[]
+600208 boards=0 n=0 kw=[]
+600209 boards=0 n=0 kw=[]
+600210 boards=0 n=0 kw=[]
+600211 boards=0 n=0 kw=[]
+600306 boards=0 n=0 kw=[]
+600307 boards=0 n=0 kw=[]
+600308 boards=0 n=0 kw=[]
+600309 boards=0 n=0 kw=[]
+600310 boards=0 n=0 kw=[]
+600407 boards=0 n=0 kw=[]
+600408 boards=0 n=0 kw=[]
+600409 boards=0 n=0 kw=[]
+600410 boards=0 n=0 kw=[]
+600411 boards=0 n=0 kw=[]
+600412 boards=0 n=0 kw=[]
+600501 boards=0 n=0 kw=[]
+600502 boards=0 n=0 kw=[]
+600503 boards=0 n=0 kw=[]
+600504 boards=0 n=0 kw=[]
+600601 boards=0 n=0 kw=[]
+600602 boards=0 n=0 kw=[]
