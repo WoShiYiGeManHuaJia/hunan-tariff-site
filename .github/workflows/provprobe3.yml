@@ -1,0 +1,93 @@
+name: ProvProbe3
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Dump home responseContent for unknown provCodes
+        run: |
+          pip install pycryptodome -q
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, os
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY = b"telecom_wap_2018"
+          UA = "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API = "https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def enc(m):
+              return base64.b64encode(AES.new(KEY, AES.MODE_ECB).encrypt(pad(m.encode("utf-8"), 16))).decode("utf-8")
+          def call(fn, rc, retry=2):
+              body = enc(json.dumps({"headerInfo": {"functionCode": fn}, "requestContent": rc}, ensure_ascii=False))
+              req = urllib.request.Request(API, data=body.encode("utf-8"), method="POST", headers={
+                  "User-Agent": UA,
+                  "Referer": "https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept": "application/json, text/plain, */*",
+                  "Content-Type": "text/plain;charset=UTF-8",
+                  "Origin": "https://www.189.cn",
+                  "x-qd-reqtime": str(int(time.time() * 1000)),
+              })
+              last = None
+              for a in range(retry):
+                  try:
+                      with urllib.request.urlopen(req, timeout=25) as r:
+                          return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last = e
+                      time.sleep(1.2)
+              raise last
+          out = []
+          for prov in ["600203", "600404", "600405", "600401", "600406"]:
+              try:
+                  rc = call("tariffSectionHome", {"ticket": "", "sessionid": "", "provCode": prov})
+                  rcc = rc.get("responseContent", {}) or {}
+                  keys = list(rcc.keys())
+                  out.append("== %s keys=%s" % (prov, keys))
+                  for k in keys:
+                      v = rcc.get(k)
+                      if isinstance(v, (str, int, float)) and k != "sessionid":
+                          out.append("   %s = %s" % (k, str(v)[:120]))
+                  # 取一条详情看地区字段
+                  boards = rcc.get("lableOneList") or []
+                  if boards:
+                      rq = call("tariffSectionQuery", {"sessionid": rcc.get("sessionid"), "type": 1,
+                                                       "provCode": prov, "lable1Id": boards[0]["id"], "lable2Id": ""})
+                      lst = (rq.get("responseContent", {}) or {}).get("zoneTitleList") or []
+                      if lst:
+                          it = lst[0]
+                          out.append("   ITEM_KEYS=%s" % list(it.keys()))
+                          for k, v in it.items():
+                              if isinstance(v, str) and len(v) < 200:
+                                  out.append("     %s = %s" % (k, v[:120]))
+              except Exception as e:
+                  out.append("== %s EXC %s" % (prov, type(e).__name__))
+              time.sleep(0.4)
+          txt = "\n".join(out)
+          print(txt[:6000])
+          tok = os.environ.get("GH_TOKEN")
+          repo = "WoShiYiGeManHuaJia/hunan-tariff-site"
+          path = "logs/prov_probe3.txt"
+          H = {"Authorization": "token " + tok, "User-Agent": "x", "Accept": "application/vnd.github+json"}
+          sha = None
+          try:
+              d = json.loads(urllib.request.urlopen(urllib.request.Request(
+                  "https://api.github.com/repos/%s/contents/%s" % (repo, path), headers=H), timeout=30).read())
+              sha = d.get("sha")
+          except Exception:
+              pass
+          payload = {"message": "prov probe3", "content": base64.b64encode(txt.encode()).decode()}
+          if sha:
+              payload["sha"] = sha
+          try:
+              urllib.request.urlopen(urllib.request.Request(
+                  "https://api.github.com/repos/%s/contents/%s" % (repo, path),
+                  data=json.dumps(payload).encode(), headers=H, method="PUT"), timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e:
+              print("WROTE_FAIL", e)
+          PYEOF
