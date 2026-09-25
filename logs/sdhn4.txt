@@ -1,0 +1,7 @@
+SDHN4:
+600401 => 甘肃 | boards=5 items=762
+600404 => 宁夏 | boards=5 items=482
+600405 => 青海 | boards=5 items=429
+600406 => 西藏 | boards=5 items=1386
+600407 -> EMPTY
+600408 -> EMPTY
