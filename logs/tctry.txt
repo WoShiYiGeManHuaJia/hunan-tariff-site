@@ -1,14 +1,14 @@
 FAIL
 Traceback (most recent call last):
-  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 152, in <module>
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 147, in <module>
     r = main()
         ^^^^^^
-  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 133, in main
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 128, in main
     out = fetch_all()
           ^^^^^^^^^^^
-  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 85, in fetch_all
-    raise RuntimeError("tab list failed: " + tabs["__err"])
-RuntimeError: tab list failed: ERR Incorrect padding
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 82, in fetch_all
+    raise RuntimeError("tab list code=%s msg=%s" % (tabs.get("code"), tabs.get("message")))
+RuntimeError: tab list code=S_WEB_0104 msg=系统繁忙，请稍后重试
 
 
 === JSON ===
