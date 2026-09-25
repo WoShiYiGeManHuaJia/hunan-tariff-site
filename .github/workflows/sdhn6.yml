@@ -1,0 +1,81 @@
+name: SDHN6
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Find telecom notice API in SPA js
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, os, re, gzip
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          def fetch(u,to=20,hdr=None,data=None):
+              h={"User-Agent":UA,"Accept":"text/html,application/json,*/*","Accept-Language":"zh-CN,zh;q=0.9",
+                 "Referer":"https://www.189.cn/web/notice/index.html"}
+              if hdr: h.update(hdr)
+              try:
+                  req=urllib.request.Request(u,headers=h,data=data)
+                  with urllib.request.urlopen(req,timeout=to) as r:
+                      raw=r.read()
+                      if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8","replace")
+              except Exception as e: return 0, str(e)
+          out=[]
+          base="https://www.189.cn/web/notice/index.html"
+          s,html=fetch(base)
+          out.append("PAGE %s -> %s len=%d"%(base,s,len(html)))
+          out.append("HTML_FULL:\n"+html[:1300])
+          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']',html)
+          out.append("SCRIPTS: %s"%srcs)
+          for src in srcs:
+              u=src if src.startswith("http") else ("https://www.189.cn"+src if src.startswith("/") else "https://www.189.cn/web/notice/"+src)
+              st,js=fetch(u)
+              out.append("JS %s -> %s len=%d"%(u,st,len(js)))
+              if st!=200 or not js: continue
+              # grep api-ish strings
+              pats=[r'["\'](/[a-zA-Z0-9_\-/\.]*(?:notice|Notice|announce|Announce|announc)[a-zA-Z0-9_\-/\.]*)["\']',
+                    r'["\'](https?://[a-zA-Z0-9_\-/\.]*(?:notice|Notice|announce)[a-zA-Z0-9_\-/\.]*)["\']',
+                    r'["\'](/webapi/[a-zA-Z0-9_\-/\.]*)["\']',
+                    r'["\'](/interface/[a-zA-Z0-9_\-/\.]*)["\']']
+              found=set()
+              for p in pats:
+                  for m in re.findall(p,js):
+                      found.add(m)
+              out.append("   JS_HITS(%d): %s"%(len(found), sorted(found)[:40]))
+              # also any url with .do
+              dos=set(re.findall(r'["\'](/[a-zA-Z0-9_\-/\.]*\.do)["\']',js))
+              if dos: out.append("   DO: %s"%sorted(dos)[:30])
+          # try guessed json endpoints (common for 189 SPA)
+          guesses=[
+            "https://www.189.cn/webapi/notice/list",
+            "https://www.189.cn/web/notice/list.json",
+            "https://www.189.cn/web/notice/api/list",
+            "https://www.189.cn/portal/api/notice/list",
+            "https://www.189.cn/web/api/notice/queryNoticeList",
+            "https://www.189.cn/wapportalweb/wapportalweb/noticeList.do",
+          ]
+          for g in guesses:
+              st,t=fetch(g)
+              out.append("GUESS %s -> %s len=%d :: %s"%(g,st,len(t),re.sub(r'\s+',' ',t[:150])))
+          txt="\n".join(out)
+          print(txt[:15000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn6.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn6","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
