@@ -1,0 +1,57 @@
+name: TCANN3
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Probe + try announcement API
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, base64, os, re, gzip, time, random
+          from Crypto.Cipher import AES, PKCS1_v1_5
+          from Crypto.PublicKey import RSA
+          from Crypto.Util.Padding import pad
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          def fetch(u,to=30):
+              h={"User-Agent":UA,"Accept":"*/*","Referer":"https://www.189.cn/web/notice"}
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(u,headers=h),timeout=to) as r:
+                      raw=r.read()
+                      if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8","replace")
+              except Exception as e: return 0, str(e)
+          out=[]
+          st,js=fetch("https://www.189.cn/web/assets/index-xdZ1yBwq.js")
+          out.append("MAIN=%d"%len(js))
+          for kw in ["announcement","getAnnouncement"]:
+              for mm in list(re.finditer(kw, js))[:4]:
+                  a=max(0,mm.start()-500); out.append("--- %s ---"%kw); out.append(js[a:mm.start()+500])
+          m=re.search(r'Zp\s*=\s*["\']([^"\']+)["\']', js); out.append("Zp="+(m.group(1) if m else "NF"))
+          m=re.search(r'Wp\s*=\s*["\']([^"\']+)["\']', js); out.append("Wp="+(m.group(1) if m else "NF"))
+          for mm in list(re.finditer(r'Zp\s*=', js))[:3]:
+              a=max(0,mm.start()-200); out.append("--Zpdef--"); out.append(js[a:mm.start()+300])
+          # authManager
+          st2,am=fetch("https://www.189.cn/web/assets/authManager-BJZOAl3A.js")
+          out.append("=== AUTHMGR (%d) ==="%len(am))
+          out.append(am[:6000])
+          txt="\n".join(out)[:22000]
+          print(txt[:12000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/tcann3.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"tcann3","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read(); print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
