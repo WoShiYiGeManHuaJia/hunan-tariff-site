@@ -1,0 +1,40 @@
+PROV SCAN:
+600401 => 甘肃
+600404 => 宁夏
+600405 => 青海
+600406 => 西藏
+600407 -> empty
+600408 -> empty
+600409 -> empty
+600410 -> empty
+600106 -> empty
+600107 -> empty
+600108 -> empty
+600206 -> empty
+600207 -> empty
+600208 -> empty
+600306 -> empty
+600307 -> empty
+600308 -> empty
+600501 -> empty
+600502 -> empty
+600503 -> empty
+600504 -> empty
+600105 => 福建
+600110 -> empty
+600210 -> empty
+600310 -> empty
+600410 -> empty
+
+NOTICE PROBE:
+FN noticeList -> ERR <urlopen error _ssl.c:983: The handshake operation timed out>
+FN queryNoticeList -> ERR <urlopen error _ssl.c:983: The handshake operation timed out>
+FN getNoticeList -> ERR <urlopen error _ssl.c:983: The handshake operation timed out>
+FN noticeQuery -> ERR <urlopen error _ssl.c:983: The handshake operation timed out>
+FN queryNotice -> 200 len=814 :: <!DOCTYPE html> <html> <head> <meta charset="UTF-8"> <meta name="apple-mobile-web-app-capable" content="yes"/> <meta name="apple-mobile-web-app-status-bar-style" content="black"/> <meta name="viewport" content="width=device-width, init
+FN notice -> ERR <urlopen error _ssl.c:983: The handshake operation timed out>
+URL https://www.189.cn/web/notice/index.html -> 200 len=1330 waf=False
+URL https://m.189.cn/web/notice/index.html -> 0 len=61 waf=False
+URL https://www.189.cn/hn/web/notice/index.html -> 0 len=50 waf=False
+URL https://e.189.cn/ -> 200 len=6369 waf=False
+URL https://www.189.cn/web/service/notice.html -> 200 len=1330 waf=False
