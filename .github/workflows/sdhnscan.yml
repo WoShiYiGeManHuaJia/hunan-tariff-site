@@ -1,0 +1,91 @@
+name: SDHNProbe
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Probe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY = b"telecom_wap_2018"
+          UA = "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API = "https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def encrypt(m):
+              return base64.b64encode(AES.new(KEY, AES.MODE_ECB).encrypt(pad(m.encode("utf-8"), 16))).decode("utf-8")
+          def call(fn, rc):
+              body = encrypt(json.dumps({"headerInfo": {"functionCode": fn}, "requestContent": rc}, ensure_ascii=False))
+              req = urllib.request.Request(API, data=body.encode("utf-8"), method="POST", headers={
+                  "User-Agent": UA,
+                  "Referer": "https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept": "application/json, text/plain, */*",
+                  "Content-Type": "text/plain;charset=UTF-8",
+                  "Origin": "https://www.189.cn",
+                  "x-qd-reqtime": str(int(time.time() * 1000)),
+              })
+              last = None
+              for a in range(3):
+                  try:
+                      with urllib.request.urlopen(req, timeout=45) as r:
+                          return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last = e; time.sleep(1.5 * (a + 1))
+              return None
+          def home(prov):
+              d = call("tariffSectionHome", {"ticket": "", "sessionid": "", "provCode": prov})
+              return (d or {}).get("responseContent", {})
+          def query(sess, prov, l1):
+              d = call("tariffSectionQuery", {"sessionid": sess, "type": 1, "provCode": prov, "lable1Id": l1, "lable2Id": ""})
+              return (d or {}).get("responseContent", {})
+
+          CITY = ["山东","济南","青岛","烟台","潍坊","淄博","临沂","济宁","河南","郑州","洛阳","开封","南阳","新乡","许昌","周口"]
+          codes = []
+          for base in ["6001","6002","6003","6004","6005","6006","6007"]:
+              for i in range(1, 31):
+                  codes.append(base + "%02d" % i)
+          print("=== 扫描 %d 个 provCode ===" % len(codes))
+          hits = []
+          for prov in codes:
+              try:
+                  rc = home(prov)
+                  boards = rc.get("lableOneList") or []
+                  if not boards:
+                      continue
+                  sess = rc.get("sessionid")
+                  names = []
+                  for b in boards[:2]:
+                      rq = query(sess, prov, b["id"])
+                      for x in (rq.get("zoneTitleList") or [])[:40]:
+                          names.append(x.get("name", ""))
+                      time.sleep(0.25)
+                  blob = " | ".join(names)
+                  kw = [c for c in CITY if c in blob]
+                  n = len(names)
+                  print("HIT %s boards=%d n=%d kw=%s" % (prov, len(boards), n, kw))
+                  print("   sample=%s" % blob[:220])
+                  hits.append({"prov": prov, "boards": len(boards), "n": n, "kw": kw, "sample": blob[:300]})
+              except Exception as e:
+                  print("ERR %s %s" % (prov, str(e)[:60]))
+              time.sleep(0.25)
+          print("=== 命中 %d ===" % len(hits))
+          for h in hits:
+              if h["kw"]:
+                  print(">>> %s kw=%s sample=%s" % (h["prov"], h["kw"], h["sample"][:200]))
+          print("=== 全部有数据的 code ===")
+          print(",".join([h["prov"] for h in hits]))
+          open("hits.json","w").write(json.dumps(hits, ensure_ascii=False, indent=1))
+          PYEOF
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdhnhits
+          path: hits.json
