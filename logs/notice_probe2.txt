@@ -1,0 +1,25 @@
+=== https://hn.189.cn/web/notice status=202 len=1859
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta id="ICOn4uKYk7jd" content="f-0jpCqqRrh1v9Ks1n23H6Q5pIVRWlbN5GVfcYN2cU46-i7PWvj1aLcv6QplV-R5" r='m'><!--[if lt IE 9]><script r='m'>document.createElement("section")</script><![endif]--><script type="text/javascript" r='m'>$_ts=window['$_ts'];if(!$_ts)$_ts={};$_ts.nsd=29751;$_ts.cd="qJYSrPqlikgDiAV5r1l3qOgkiAGBqkgrHG32lugliAGBqkgcHGWflugrHAV5rcl3r1ZqWaVVhaq5rOQmE172mqA3haq5qkgrEpW_rcl3r1ZqHGE5qnlsHGq2lAAMhaq5rsgcEpW5q1l3qOLlEpGmhaq5qOWmE172mGA2haqurpQBqkWmDkgliAV5rnl3rcZqHGl5rPlsHGA5r192maAGHGAfDqVBqkgcHGW2lnZqHGl5rPlshaq5rkgmxpW5qPV3rrVBqkgDHGQfluLcEpGkHGlfDqE5rGaaLkV6ruWuJ0ZriLqZZpeKI7XjT-h7tsIbM1xI84ee90MGHIWbAqvPwzEwrJCIIpeS0oa1wxcbGqtsqaEjr33usWfB1KmTYuAgelzFWlpwFOtRwKNvQuRnwIGgWbRfMbyhu90gYlyNwm-hJl75V9TJFwYY1vrhRKrVbYNms2YbJmkKQYRWWsSbVWJRRDxORY3ngolgUsJ9wb6uFulZ3VxahRq0JKlC3KAznoqgWDfNRmkO322oUupDhRq0JKlC3KAznoqg3urkpoMaV2wzWsplhRq0JKlC3KAznoqgp2mLH04rY6zfVKSehQfaioRuJlyiysz4JvYtwkOVWmYoHker8QRlK0Z5s6rz4kYWUKp2pKOCikxsRkmeAXgTKb96wP9S2sYvJbJ9tKvpiorXIsRmsRQapbSuA19S2sYvJbJ9tKvpilQnWKyxFWJFF2SOW19S2sYvJbJ9tKvpilND1b9uwX2FFkxB3uSY_0wi39NlW6sJVk3mrkQDWMR-w6mTwk0n2uA0HsW0WuiYisQSJGlTJxpvWDWDWsZajkEuWOq0JO8YWsWWWu3TWxVSJu0TmCYqnTjn8HNP_MqODaY0S4aUssEgxtc-dIGqqqqqqqqqqciVxT-zc4x1nHHbJ1WCFlzJKLr0iKHXSzj6QJmQTypaT_L6JuEaJsZC9qEukuAaHOipJu3SWkA7pxmUAD36M9xq9K2R3YYIUn4sMlwttoq0KIzCYUm0sKpXn0ff3KRfW6hBQGWlWA36qNVkqamFECmlN2avEKGkKcIWVAwFEYGOqxWuJaQnJq3nLuEkrAVoqOK1WuWTqkV5JxQnqaQ0Ja3uLGLCJuQ0WODUJkAmrkQDWG";if($_ts.lcd)$_ts.lcd();</script><script type="text/javascript" charset="utf-8" src="/YFKPa3StrUI4/X6cqnQh29dEw.276d3fc.js" r='m'></script></head>
+<body>
+</body>
+</h
+---
+=== https://hn.189.cn/ status=202 len=1752
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta id="ICOn4uKYk7jd" content="kFKy59uVvgqiu7WUonvArYzrlqid91TRUHJ-0UqNT20" r='m'><!--[if lt IE 9]><script r='m'>document.createElement("section")</script><![endif]--><script type="text/javascript" r='m'>$_ts=window['$_ts'];if(!$_ts)$_ts={};$_ts.nsd=36665;$_ts.cd="qxRSrcqlouglEpGmhaqurpA5qnl3rcZqWaVwhaq5qkgrEpWqr1VVrrGBckglHGVflnZqHGW5qclsHGZfDqA5rcVYrcqBqkgoHGANlnZqHGE5qnlshaq5qsgDtpW5r1l3qOgcxp3lWsgkiAqBqkgrHG3flnZqHGA5r1lMHGWyrsgDEpGkHGVfDqE5cu9mHG3fDqW5rkgmcPV0LkV0ruWnJxMUjvGNe9RQ-xJrCMSnIyjAdHVbjinvXGPgecuuJ7gPOQnZWFRvdxnnKCpYWV82XGFsqaljr3Qa1WfB1bmTYOQZelzRWlpQFsFRwK2vQuwSQIGgWKRfMCTHu904YlyLwT4hJlG5V9SiMwYY1UrhRDJAbYNDs2YvJTsKQYYWWsT2YWJRRCxORmVCgol4UsJ2wKvuFuEZ3VJutRq0JblC3DQNnoq4WDfLRTsO32NoUuYmtRq0JblC3DQNnoq43urcp6haV2pzWsYotRq0JblC3DQNnoq4p2mNHl-rY6ffVKT5tQfai6RuJVTtyszgJvYhwuuVWmRoHkycIQRlKlZ5svJN4kYHUKp9pbuCikmsRkr5pXgTKK96wnLT2sY9JbJ2tb6pioJXIswD1RQapKSuAcLT2sY9JbJ2tb6pilAnWKetMWJFFYSOWcLT2sY9JbJ2tb6pil2D1bGaQX2FFuxB3Oep_0wJ39NmWokJVkVmrk3mJMR-womTwsgC2uA6HsWTWk8YisASJGqCWxpvWCWDWka0jkEaWOqTJsiYWsqWWuQCJxVSJk0TmbRlnTjS8HNO_-AODaR0S40Vuiy_Y5XnVOVqqqqqqqqqqcw6jNrZcHwVF2NXTF4d5l7JUZv87AmYzL7qHBTDaBDzNtL6JkEaJk0S9GEakuASHs8pJuVSWkEBsNzCpb2r3mzP9spLJ2ZCMsd_W2NYJCGaMNrf8V0CMorzS9zYQuRjR9vNYqqlWAQ0rNVkqqmFE2z7N2a9MVWcKniDRapFEY9arR3uqO3aruVD9aWqrAVkWO81WuqqJOqnWRQkqOATruAoju3nJu3uJOtYJqqlJAQT";if($_ts.lcd)$_ts.lcd();</script><script type="text/javascript" charset="utf-8" src="/YFKPa3StrUI4/X6cqnQh29dEw.276d3fc.js" r='m'></script></head>
+<body>
+</body>
+</html>
+<script type="text/javascript" r='m'>_$ht();</script>
+
+---
+=== https://www.hn.189.cn/ status=0 len=61
+URLError <urlopen error [Errno -2] Name or service not known>
+---
