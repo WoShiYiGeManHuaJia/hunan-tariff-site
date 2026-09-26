@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light" data-op="mobile">
+<html lang="zh-CN" data-theme="light" data-op="broadnet">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>中国移动资费监控 · 数据一览</title>
+<title>中国广电资费监控 · 数据一览</title>
 <style>
 :root{
   --op1:#0085d0; --op2:#4cc9f0; --op3:#2dd4a7; --op1d:#0067b3;
@@ -735,9 +735,9 @@ a.opc{text-decoration:none;display:block}
   <header class="nav glass">
     <div class="nav-in">
       <div class="brand">
-        <div class="logo" id="logo">移</div>
+        <div class="logo" id="logo">广</div>
         <div class="brand-t">
-          <div class="brand-n" id="brandN">中国移动资费监控</div>
+          <div class="brand-n" id="brandN">中国广电资费监控</div>
           <div class="brand-s" id="brandS">全网 · 各省资费数据一览</div>
         </div>
       </div>
@@ -750,7 +750,7 @@ a.opc{text-decoration:none;display:block}
       </div>
       <div class="nav-act">
         <button class="btn pri" data-act="check">检测资费</button>
-        <button class="btn" id="opBtn" data-act="op"><span id="opBtnTxt">移动</span> ▾</button>
+        <button class="btn" id="opBtn" data-act="op"><span id="opBtnTxt">广电</span> ▾</button>
         <button class="btn" data-act="theme">深色</button>
       </div>
     </div>
@@ -763,7 +763,7 @@ a.opc{text-decoration:none;display:block}
     <button class="tab" data-v="quanguo">全国资费</button>
     <button class="tab" data-v="prov">省份资费</button>
     <button class="tab" data-v="history">变化历史</button>
-    <button class="tab" data-v="announce"><span id="anTabTxt">移动公告</span><span class="an-dot" id="anDot"></span></button>
+    <button class="tab" data-v="announce"><span id="anTabTxt">广电公告</span><span class="an-dot" id="anDot"></span></button>
     <button class="tab" data-v="about">关于</button>
   </nav>
   <span class="tabs-edge l"></span><span class="tabs-edge r"></span>
@@ -977,7 +977,7 @@ a.opc{text-decoration:none;display:block}
 var D = { updated:"", stats:{}, sections:[], prov_stats:{}, hunan_dist:{}, quanguo_dist:{},
             items:[], qitems:null, history:[], announce:{updated:"",count:0,items:[]} };
 var DATA_BASE = "./data/";
-var CK_WF = "mobile-build.yml";
+var CK_WF = "telecom-gb-fetch.yml";
 var REAL_OK = false;
 function __j(u){
   return fetch(u, {cache:"no-store"}).then(function(r){
@@ -1166,10 +1166,10 @@ function __bootReal(){
 }
 
 var OPS = [
-  { key:"mobile", name:"中国移动", short:"移动", logo:"移", c1:"#0085d0", c2:"#4cc9f0", ready:true, src:"实时抓取 · 自动更新", href:"./index.html" },
-  { key:"unicom", name:"中国联通", short:"联通", logo:"联", c1:"#e2231a", c2:"#ff7a45", ready:true, src:"实时抓取 · 自动更新", href:"./unicom/" },
-  { key:"telecom", name:"中国电信", short:"电信", logo:"电", c1:"#0057b8", c2:"#00a0e9", ready:true, src:"实时抓取 · 自动更新", href:"./telecom/" },
-  { key:"broadnet", name:"中国广电", short:"广电", logo:"广", c1:"#c8102e", c2:"#ff4d6d", ready:true, src:"实时抓取 · 自动更新", href:"./gb/" }
+  { key:"mobile", name:"中国移动", short:"移动", logo:"移", c1:"#0085d0", c2:"#4cc9f0", ready:true, src:"实时抓取 · 自动更新", href:"../index.html" },
+  { key:"unicom", name:"中国联通", short:"联通", logo:"联", c1:"#e2231a", c2:"#ff7a45", ready:true, src:"实时抓取 · 自动更新", href:"../unicom/" },
+  { key:"telecom", name:"中国电信", short:"电信", logo:"电", c1:"#0057b8", c2:"#00a0e9", ready:true, src:"实时抓取 · 自动更新", href:"../telecom/" },
+  { key:"broadnet", name:"中国广电", short:"广电", logo:"广", c1:"#c8102e", c2:"#ff4d6d", ready:true, src:"实时抓取 · 自动更新", href:"./index.html" }
 ];
 var OP_MAP = {};
 OPS.forEach(function(o){ OP_MAP[o.key] = o; });
@@ -1184,7 +1184,7 @@ function rebuildProv(){
 rebuildProv();
 
 var state = {
-  view:"overview", prov:"hunan", op:"mobile",
+  view:"overview", prov:"hunan", op:"broadnet",
   q:{ search:"", own:"", type:"", sort:"time", dir:"desc", page:1 },
   p:{ search:"", own:"", type:"", sort:"time", dir:"desc", page:1 },
   h:""
