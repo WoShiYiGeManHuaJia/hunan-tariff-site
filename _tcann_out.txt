@@ -1,0 +1,14 @@
+LIST code= S_COMMON_0000 data_len= 2
+FLOORITEMS= 2
+RAW0= {"colorValue": null, "contentOne": null, "customAmountFlag": "0", "externalOfferCode": "570447200001", "flagSelected": "0", "floorItems": null, "iconUrl": null, "imageRatio": null, "imageUrl": null, "link": null, "linkType": null, "liveStartTime": "20260918145157", "mainOfferCode": "5704472", "offerEffDate": "1789714359000", "offerExpDate": null, "offerId": null, "offerLatestTime": "2026-09-18 14:52:39", "offerName": "湖南电信装维延伸服务收费公示20260918", "offerProvinces": "600203", "offerShop": "20001", "offerType": null, "order": "1", "originalColorValue": null, "promotionalFlow": null, "promotionalPrice": null, "promotionalText": null, "recommender": "cc-010001002000.rmc-wt_sy_bzzx.fd-2.od-1.eoc-570447200001", "sceneId": "wt_sy_bzzx##39035##default##570447200001##010001002000##0##N##372416200001##1#
+KEYS= ['colorValue', 'contentOne', 'customAmountFlag', 'externalOfferCode', 'flagSelected', 'floorItems', 'iconUrl', 'imageRatio', 'imageUrl', 'link', 'linkType', 'liveStartTime', 'mainOfferCode', 'offerEffDate', 'offerExpDate', 'offerId', 'offerLatestTime', 'offerName', 'offerProvinces', 'offerShop', 'offerType', 'order', 'originalColorValue', 'promotionalFlow', 'promotionalPrice', 'promotionalText', 'recommender', 'sceneId', 'showType', 'subTitle', 'subscriptImageUrl', 'tabType', 'threePictureAddress', 'timeStamp', 'title', 'totalAmountWeight', 'type', 'userOwe']
+DETAIL A_type+offerCode oc=570447200001 -> {"code": "S_COMMON_0000", "data": {"content": "<p><img src=\"https://w.189.cn/bigdata/2026/9/18/111789714342510997.jpg\" alt=\"微信图片_20260918115333_331_243.jpg\" data-href=\"https://w.189.cn/bigdata/2026/9/18/111789714342510997.jpg\" style=\"\"/></p>", "link": null, "title": "湖南电信装维延伸服务收费公示"}, "message": "操作成功", "sessionId": "bfe594c1933ebeffad884c719e583574"}
+   *** HIT ***
+DETAIL B_id oc=570447200001 -> {"code": "S_WEB_0104", "data": null, "message": "系统繁忙，请稍后重试"}
+DETAIL C_announceId oc=570447200001 -> {"code": "S_WEB_0104", "data": null, "message": "系统繁忙，请稍后重试"}
+LINK= 
+DETAIL A_type+offerCode oc=472271500001 -> {"code": "S_COMMON_0000", "data": {"content": "<p style=\"text-align: right;\">发布日期：2023年10月10日</p><p style=\"text-align: right;\">生效日期：2023年10月15日</p><p><br></p><p style=\"text-align: center;\">用户隐私政策（摘要版）</p><p>“中国电信网上营业厅”（网址：www.189.cn，简称“本网站”）由中国电信股份有限公司全渠道运营中心(简称“中国电信”或“我们”）所有和运营。用户（又称“您”）注册和使用本网站过程中，我们可能收集和使用您的相关信息。我们非常重视您的隐私和个人信息、关联组织信息保护，为此，我们制定《用户隐私政策》（简称“本隐私政策”）及其摘要，本隐私政策摘要主要向您说明：我们在必要范围
+   *** HIT ***
+DETAIL B_id oc=472271500001 -> {"code": "S_WEB_0104", "data": null, "message": "系统繁忙，请稍后重试"}
+DETAIL C_announceId oc=472271500001 -> {"code": "S_WEB_0104", "data": null, "message": "系统繁忙，请稍后重试"}
+LINK= 
