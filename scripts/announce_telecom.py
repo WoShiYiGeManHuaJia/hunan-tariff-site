@@ -136,9 +136,13 @@ def fetch_list():
         if not t or (t, dt) in seen:
             continue
         seen.add((t, dt))
+        lk = x.get("link") or ""
+        if lk and lk.startswith("/"):
+            lk = BASE + lk
         out.append({"title": t, "date": dt,
                     "offerCode": x.get("externalOfferCode") or "",
                     "type": x.get("type") or TYPE,
+                    "link": lk,
                     "tab": x.get("tabTitle") or x.get("title") or ""})
         if len(out) >= MAX_KEEP:
             break
@@ -152,9 +156,13 @@ def fetch_detail(it):
         return False
     data = d.get("data") or {}
     c = clean_html(data.get("content") or "")
-    it["page_url"] = data.get("link") or ""
+    pu = data.get("link") or it.get("link") or ""
+    if pu and pu.startswith("/"):
+        pu = BASE + pu
+    txt = to_text(c)
+    it["page_url"] = pu
     it["content"] = c
-    it["summary"] = to_text(c)[:100]
+    it["summary"] = txt[:100] if txt else ("（图片公告，点击查看）" if "<img" in c.lower() else "")
     return bool(c)
 
 
