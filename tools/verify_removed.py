@@ -58,7 +58,7 @@ def sample(pid, cid, attr):
         before = len(seen)
         for pn in range(1, 21):
             q = ("provinceId=%s&cityId=%s&tariffAttributes=%s&firstLevel=1&secondLevel=%s"
-                 "&name=&startFee=0&endFee=999999&pageNum=%d&pageSize=500") % (
+                 "&name=&startFee=0&endFee=999999&pageNum=%d&pageSize=%d") % (
                 pid, cid, attr, "1001", pn, 500)
             try:
                 d = get("TariffMenuDataRetrieval", q)
