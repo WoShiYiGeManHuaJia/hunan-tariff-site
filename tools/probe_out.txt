@@ -1,0 +1,4 @@
+indexData OK keys= ['msg', 'code', 'data', 'jumpFlag']
+  provinceList n= 31 sample= [('北京', '011'), ('天津', '013'), ('河北', '018')]
+TariffMenuDataRetrieval OK keys= ['code', 'data', 'desc']
+  tariffList n= 500 sample= ['网剧卡专属虎牙流量包', '网剧卡专属皮皮虾流量包', '网剧卡专属西瓜流量包']
