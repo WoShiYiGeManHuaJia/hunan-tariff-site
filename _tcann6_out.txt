@@ -1,0 +1,40 @@
+[电信] 拉取湖南公告列表 (provinceCode=600203) ...
+[电信] 列表 143 条
+[电信] 按日期降序取最新 15 条
+[电信] 详情 570447200001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 567750700001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 567768800001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 567676400001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 566924800001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 563739300001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 540248600001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 539122600001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 532603000001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 532606100001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 525663100001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 518652200001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 515998500001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 516019000001 失败: HTTP Error 412: Precondition Failed
+[电信] 详情 515009300001 失败: HTTP Error 412: Precondition Failed
+[电信] 正文抓取成功 0/15 条
+   * 2026-09-18 | 湖南电信装维延伸服务收费公示 | 正文0字
+   * 2026-09-16 | 关于中国电信张家界公司宽带网络升级的公告 | 正文0字
+   * 2026-09-15 | 关于中国电信株洲公司宽带网络升级的公告 | 正文0字
+已写入 /tmp/tcout/announce.json (15 条)
+----- RESULT -----
+updated 2026-09-26 09:55 count 15
+1 2026-09-18 | 湖南电信装维延伸服务收费公示 | summary 0 | content 0 | att 0
+2 2026-09-16 | 关于中国电信张家界公司宽带网络升级的公告 | summary 0 | content 0 | att 0
+3 2026-09-15 | 关于中国电信株洲公司宽带网络升级的公告 | summary 0 | content 0 | att 0
+4 2026-09-14 | 中国电信股份有限公司湖南电子渠道部 互联网合作商招商公告 | summary 0 | content 0 | att 0
+5 2026-09-14 | 关于中国电信湘西、衡阳公司宽带网络升级的公告 | summary 0 | content 0 | att 0
+6 2026-09-08 | 关于中国电信株洲公司宽带网络升级的公告 | summary 0 | content 0 | att 0
+7 2026-09-05 | 关于中国电信株洲公司宽带网络升级的公告 | summary 0 | content 0 | att 0
+8 2026-09-01 | 关于中国电信株洲公司宽带网络升级的公告 | summary 0 | content 0 | att 0
+9 2026-08-24 | 关于中国电信怀化公司宽带网络升级的公告 | summary 0 | content 0 | att 0
+10 2026-08-20 | 中国电信股份有限公司湖南分公司2025年基站建设项目环境影响登记备案信息 | summary 0 | content 0 | att 0
+11 2026-08-12 | 关于可办理外籍人员新入网号卡业务的营业厅公示 | summary 0 | content 0 | att 0
+12 2026-07-31 | 关于规范互联网渠道售卡管理的公告 | summary 0 | content 0 | att 0
+13 2026-07-26 | 关于中国电信长沙公司网络升级的公告 | summary 0 | content 0 | att 0
+14 2026-07-23 | 关于中国电信长沙公司网络升级的公告 | summary 0 | content 0 | att 0
+15 2026-07-21 | 关于中国电信湘潭公司宽带网络升级的公告 | summary 0 | content 0 | att 0
