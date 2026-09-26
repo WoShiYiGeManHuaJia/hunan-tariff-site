@@ -16,6 +16,10 @@ on:
         description: "重点省份（focus 模式生效，拼音逗号分隔，如 hunan,guangdong）"
         type: string
         default: ""
+      gb_provs:
+        description: "广电省份（focus 模式生效，拼音逗号分隔，如 hunan,guangdong,shandong,henan）"
+        type: string
+        default: ""
       rebuild:
         description: "重建基线（跳过对比，不写历史）"
         type: boolean
@@ -62,6 +66,12 @@ jobs:
           FOCUS="${{ github.event.inputs.focus_provs }}"
           [ -n "$FOCUS" ] || FOCUS="${{ vars.FOCUS_PROVS }}"
           [ -n "$FOCUS" ] || FOCUS="hunan,guangdong"
+          # ── 广电省份独立配置（与电信分开）──
+          # 广电源站公开 34 个板块（全网 + 31 省 + 深圳），focus 模式下只抓这里列出的省。
+          # 加省请改仓库变量 GB_PROVS 或手动触发时填 gb_provs，逗号分隔。
+          GBP="${{ github.event.inputs.gb_provs }}"
+          [ -n "$GBP" ] || GBP="${{ vars.GB_PROVS }}"
+          [ -n "$GBP" ] || GBP="hunan,guangdong,shandong,henan"
           # 兜底：每周日跑一次全量，避免 focus 模式下其余省份永远不更新
           DOW=$(date -u +%u)
           if [ "$DOW" = "7" ]; then
@@ -70,13 +80,13 @@ jobs:
           fi
           GB_SCOPE=""
           if [ "$MODE" = "focus" ]; then
-            GB_SCOPE="--scopes quanguo,$FOCUS"
-            echo "模式: 重点（quanguo + $FOCUS）"
+            GB_SCOPE="--scopes quanguo,$GBP"
+            echo "模式: 重点（广电 quanguo + $GBP）"
           else
             echo "模式: 全量（全部板块）"
           fi
           echo "=== 开始 $(date -u +%FT%TZ) ===" > tg_run.log
-          echo "模式=$MODE 重点省=$FOCUS" >> tg_run.log
+          echo "模式=$MODE 重点省=$FOCUS 广电省=$GBP" >> tg_run.log
 
           set +e
           echo "--- 电信 ---" >> tg_run.log
