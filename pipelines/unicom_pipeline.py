@@ -445,6 +445,74 @@ NEED_EMA = float(os.getenv("UNICOM_NEED_EMA") or "0.8")
 # 池体积上限（条），超限时按 miss 从大到小淘汰，防止无限膨胀
 POOL_MAX = int(os.getenv("UNICOM_POOL_MAX") or "40000")
 
+# ── 防误报：陈年停售清理 + 单轮批量消失限流 ──────────────────────────
+# 2026-09-26 事故复盘：接口把公示列表里的陈年停售套餐一次性清出，
+# 单轮刷出「下架 374 条」。抽样核查全部样本：firstLevel 100% 为「停售套餐」、
+# offDate 100% 早于当天（最早 2022-12-31）。这些业务早已不在售，
+# 从列表里被清走不构成任何资费变化，必须与真下架剥离。
+SWEEP_LEVELS = set(
+    x.strip() for x in (os.getenv("UNICOM_SWEEP_LEVELS") or "停售套餐").split(",") if x.strip())
+CLEAR_SWEEP = os.getenv("UNICOM_CLEAR_SWEEP", "1") != "0"
+# offDate 距今超过这么多天才算「陈年」（避免把刚到期几天的真下架一起吞掉）
+SWEEP_GRACE_DAYS = int(os.getenv("UNICOM_SWEEP_GRACE") or "7")
+# 单轮最多释放多少条下架。接口口径大改（整类目下线 / 分页失效）时，
+# 池内成百上千条会同时跨过 miss 阈值；一次全放就会刷出几百条假下架。
+# 限流后：真下架只是分批报出（每轮 BULK_CAP_ABS 条），
+# 假下架下轮重新采到即静默复活，不会污染历史。
+BULK_TRIGGER_ABS = int(os.getenv("UNICOM_BULK_ABS") or "30")
+BULK_TRIGGER_FRAC = float(os.getenv("UNICOM_BULK_FRAC") or "0.05")
+BULK_CAP_ABS = int(os.getenv("UNICOM_BULK_CAP") or "20")
+BULK_CAP_FRAC = float(os.getenv("UNICOM_BULK_CAP_FRAC") or "0.02")
+# 隔离区：被判下架的条目先放这里观察 GRAVE_ROUNDS 轮再彻底丢弃。
+# 目的是切断「假下架 → 假新增」回环：接口随机采样导致某条没采到被判下架，
+# 下一轮采到又被当成全新业务报出，历史里凭空多出几十条。
+GRAVE_ROUNDS = int(os.getenv("UNICOM_GRAVE_ROUNDS") or "3")
+GRAVE_MAX = int(os.getenv("UNICOM_GRAVE_MAX") or "5000")
+
+
+def is_sweep_item(it, now=None):
+    """判定「陈年停售清理」——不是业务下架，不产生监控价值。
+
+    命中任一条件即视为清理：
+      · 源站 firstLevel 已标「停售套餐」等停售类目
+      · offDate 已过期超过 SWEEP_GRACE_DAYS 天（宽限几天，
+        避免把「昨天刚到期、今天被撤」的真下架一起吞掉）
+    """
+    import datetime as _dt
+    fl = str((it or {}).get("firstLevel") or "").strip()
+    if fl and fl in SWEEP_LEVELS:
+        return True
+    off = _item_date(it, "offDate")
+    if len(off) == 10 and off[:4].isdigit():
+        today = str(now)[:10] if now else time.strftime("%Y-%m-%d")
+        try:
+            d0 = _dt.date(*map(int, off.split("-")))
+            d1 = _dt.date(*map(int, today.split("-")))
+        except Exception:
+            return False
+        if (d1 - d0).days > SWEEP_GRACE_DAYS:
+            return True
+    return False
+
+
+def guard_bulk_removal(cands, pool_n, need, recs):
+    """单轮批量消失限流。cands 为 [(fp, rec)]，返回 (释放列表, 留池条数)。"""
+    if not cands:
+        return [], 0
+    trig = max(BULK_TRIGGER_ABS, int(BULK_TRIGGER_FRAC * max(1, pool_n)))
+    cap = max(BULK_CAP_ABS, int(BULK_CAP_FRAC * max(1, pool_n)))
+    if len(cands) <= trig:
+        return cands, 0
+    keep = cands[cap:]
+    out = cands[:cap]
+    for fp, rec in keep:
+        # 冻结在阈值上：下轮仍未采到立即释放，重新采到则静默复活
+        rec["miss"] = need
+    print("    [批量防护] %d 条同时跨过下架阈值（连续 %d 轮未采到），"
+          "超出口径变化容差 → 本轮仅释放 %d 条，其余 %d 条留池继续观察"
+          % (len(cands), need, len(out), len(keep)))
+    return out, len(keep)
+
 
 def _miss_need(hit_n, pool_n):
     """按本轮真实采样率推算「确认下架」所需的连续未出现轮数。
@@ -497,7 +565,7 @@ def save_pool(datadir, pool, meta=None):
     save(os.path.join(datadir, POOL_FILE), {"pool": pool, "meta": meta or {}})
 
 
-def pool_update(scope, cur_items, pool, meta=None):
+def pool_update(scope, cur_items, pool, meta=None, now=None):
     """用本轮采集结果更新累积池。
 
     返回 (added_items, removed_items, is_coldstart, is_warmup)
@@ -513,10 +581,12 @@ def pool_update(scope, cur_items, pool, meta=None):
         pool[scope] = {}
         for x in cur_items:
             pool[scope][digest_stable(x)] = {"item": x, "miss": 0}
-        return [], [], True, True
+        return [], [], True, True, 0
 
     recs = pool[scope]
     pool_n_before = len(recs)      # 更新前池内量，用于估算采样率
+    grave = ((meta.get(scope) or {}).get("grave") or {})
+    revived = 0
     cur_fps = set()
     added = []
     for x in cur_items:
@@ -524,11 +594,20 @@ def pool_update(scope, cur_items, pool, meta=None):
         cur_fps.add(fp)
         rec = recs.get(fp)
         if rec is None:
+            if fp in grave:
+                # 上轮才被判下架、这轮又采到了 —— 说明是采样误判，静默复活
+                grave.pop(fp, None)
+                recs[fp] = {"item": x, "miss": 0}
+                revived += 1
+                continue
             recs[fp] = {"item": x, "miss": 0}
             added.append(x)
         else:
             rec["item"] = x      # 用最新快照刷新（fee 等字段可能更新）
             rec["miss"] = 0
+    if revived:
+        print("    [假下架回滚] %d 条上轮被判下架的条目本轮重新采到 → "
+              "静默复活，不计为新增" % revived)
 
     removed = []
     # 命中已见业务的条数 = 本轮总条数 - 首次见到的条数
@@ -572,34 +651,75 @@ def pool_update(scope, cur_items, pool, meta=None):
     else:
         true_plateau = False
 
+    # ── 下架判定：收集候选 → 剥离陈年停售清理 → 限流释放 ──
+    candidates = []
     for fp, rec in list(recs.items()):
         if fp in cur_fps:
             continue
         miss = int(rec.get("miss") or 0) + 1
         # 预热期池不完整，miss 计数不可信，此时绝不判下架
         if (not warmup) and miss >= need:
-            removed.append(rec.get("item") or {})
-            recs.pop(fp, None)
+            candidates.append((fp, rec))
         else:
             rec["miss"] = miss
+
+    # ① 剥离「陈年停售清理」：早已不在售、只是从公示列表被清出，非业务下架
+    sweep, real_cands, cleared = [], [], 0
+    for fp, rec in candidates:
+        it = rec.get("item") or {}
+        if CLEAR_SWEEP and is_sweep_item(it, now):
+            sweep.append(fp)
+        else:
+            real_cands.append((fp, rec))
+    for fp in sweep:
+        it = (recs.pop(fp, None) or {}).get("item") or {}
+        if it:
+            grave[fp] = {"item": it, "miss": 0}
+    cleared = len(sweep)
+    if cleared:
+        print("    [存量清理] %d 条陈年停售/已过期条目从公示列表清出，"
+              "属接口清理而非业务下架 → 不计入资费变化" % cleared)
+
+    # ② 限流释放：单轮同时跨阈值过多 = 接口口径变化嫌疑，分批报出并留池观察
+    real_cands, _kept = guard_bulk_removal(real_cands, pool_n_before, need, recs)
+    for fp, rec in real_cands:
+        it = rec.get("item") or {}
+        removed.append(it)
+        recs.pop(fp, None)
+        if it:
+            grave[fp] = {"item": it, "miss": 0}
+
+    # ③ 隔离区老化：连续 GRAVE_ROUNDS 轮确实没再采到，才彻底丢弃
+    for fp in list(grave.keys()):
+        if fp in cur_fps:
+            continue
+        g = grave[fp]
+        g["miss"] = int(g.get("miss") or 0) + 1
+        if g["miss"] >= GRAVE_ROUNDS:
+            grave.pop(fp, None)
+    if len(grave) > GRAVE_MAX:
+        for fp, _ in sorted(grave.items(),
+                            key=lambda kv: -(kv[1].get("miss") or 0))[:len(grave) - GRAVE_MAX]:
+            grave.pop(fp, None)
 
     meta[scope] = {"need": need, "pool": len(recs), "rounds": rounds,
                    "grow": round(grow, 4), "est_total": round(est_total, 1),
                    "fill": round(fill_ratio, 3), "plateau": plateau,
-                   "converged": converged}
+                   "converged": converged, "grave": grave,
+                   "revived": revived, "cleared": cleared}
     if warmup:
         print("    [预热 %d 轮] 池内 %d / 全集约 %d（完整度 %.0f%%）；"
               "本轮新见 %d 条、增长 %.2f%%，其中约 %d 条属建池补齐 → 不计入资费变化"
               % (rounds, pool_n_before, int(est_total), 100.0 * fill_ratio,
                  len(added), 100.0 * grow, int(expected_fill)))
-        return [], [], False, True
+        return [], [], False, True, cleared
     # 已收敛：仍可能有零星补齐，只报显著超出补齐预期的部分
     excess = int(len(added) - expected_fill * FILL_MARGIN)
     if excess <= 0:
         if len(added):
             print("    [已收敛] 本轮新见 %d 条，未超出补齐预期 %d 条 → 不报"
                   % (len(added), int(expected_fill * FILL_MARGIN)))
-        return [], removed, False, False
+        return [], removed, False, False, cleared
     if excess < len(added):
         print("    [已收敛] 本轮新见 %d 条，扣除补齐预期 %d 条，按 %d 条计"
               % (len(added), int(expected_fill * FILL_MARGIN), excess))
@@ -610,7 +730,7 @@ def pool_update(scope, cur_items, pool, meta=None):
         print("    [命中 %d / 池内 %d] 采样率约 %.0f%%，下架确认需连续 %d 轮未采到"
               % (hit_n, pool_n_before,
                  100.0 * hit_n / pool_n_before if pool_n_before else 0, need))
-    return added, removed, False, False
+    return added, removed, False, False, cleared
 
 
 def pool_items(pool, scope):
@@ -791,7 +911,7 @@ def main():
             # 省板块对比口径：剔除全网产品（与原逻辑一致）
             cur_items = [x for x in cur_items if digest_stable(x) not in qu_fp]
         cur_items = filter_test_items(cur_items, verbose=False)
-        added, removed, cold, warm = pool_update(sc, cur_items, pool, meta)
+        added, removed, cold, warm, cleared = pool_update(sc, cur_items, pool, meta, now=now)
         # 采样轮换会产生大量假变更：老业务被记成新增、仍在架的被记成下架。
         # 先按上下线日期剔除，再决定是否记录本轮。
         added, removed, _fakes = filter_sampling_fakes(added, removed, now)
@@ -805,10 +925,15 @@ def main():
             print("  %s 池补齐中，本轮不记变化（池内 %d 条）" % (sc, len(pool.get(sc) or {})))
             continue
         if not added and not removed:
-            print("  %s 无变化（池内 %d 条）" % (sc, len(pool.get(sc) or {})))
+            if cleared:
+                print("  %s 无资费变化（清理陈年停售 %d 条，池内 %d 条）"
+                      % (sc, cleared, len(pool.get(sc) or {})))
+            else:
+                print("  %s 无变化（池内 %d 条）" % (sc, len(pool.get(sc) or {})))
             continue
         r = {
             "added": len(added), "removed": len(removed), "modified": 0,
+            "cleared": cleared,
             "added_names": [x.get("title", "") for x in added],
             "removed_names": [x.get("title", "") for x in removed],
             "modified_names": [],
@@ -819,7 +944,10 @@ def main():
             "removed_list": [_brief(x) for x in removed],
             "modified_list": [],
         }
-        print("  %s 新增 %d / 下架 %d（池内 %d 条）" % (sc, len(added), len(removed), len(pool.get(sc) or {})))
+        print("  %s 新增 %d / 下架 %d%s（池内 %d 条）"
+              % (sc, len(added), len(removed),
+                 " / 清理陈年停售 %d" % cleared if cleared else "",
+                 len(pool.get(sc) or {})))
         r = slim_change(r)
         if has_real_change(r):
             changes[sc] = r
