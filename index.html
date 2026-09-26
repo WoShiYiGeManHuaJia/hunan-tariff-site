@@ -1809,8 +1809,51 @@ function dvRow(k, v){
   return '<div class="dv-r"><div class="dv-k">' + esc(k) + '</div>' +
          '<div class="dv-v ' + c + '">' + esc(v) + '</div></div>';
 }
+var FIELD_CN = {
+  "title":"业务名称","name":"业务名称","planName":"业务名称",
+  "fee":"资费标准","feesStandard":"资费标准","feeUnit":"资费单位",
+  "firstLevel":"归属","secondLevel":"资费类型","codeType":"资费类型",
+  "reportNo":"方案编号","planNo":"方案编号","planCode":"方案编号",
+  "useScope":"适用范围","saleChnl":"销售渠道","channel":"销售渠道",
+  "onDate":"上线日期","onlineDate":"上线日期","effectDate":"生效日期",
+  "offDate":"下线日期","offlineDate":"下线日期",
+  "validPeriod":"有效期限","inNetReq":"在网要求","onlinePeriod":"在网要求",
+  "unsubscribe":"退订方式","responsibility":"违约责任",
+  "extraFees":"超出资费说明","serviceContent":"其他服务内容",
+  "otherNotes":"其他说明","remark":"备注","desc":"说明","description":"说明",
+  "content":"内容","minute":"国内通话","voice":"国内通话",
+  "commonData":"国内通用流量","data":"国内通用流量","dataUnit":"流量单位",
+  "sms":"国内短信","orientTraffic":"定向流量","broadBand":"宽带","bandwidth":"宽带",
+  "iptv":"移动高清","province":"适用地区","region":"适用地区","area":"适用地区",
+  "status":"状态","packageType":"套餐类型","productType":"产品类型",
+  "regionTraffic":"区域流量","regionTrafficUnit":"流量单位",
+  "secondLevelType":"资费类型","firstLevelType":"资费类型"
+};
+function cnField(k){ return FIELD_CN[k] || k; }
+/* 把任意来源的字段对象统一成中文键名，并合并「值+单位」 */
+function cnFields(o){
+  if(!o || typeof o !== "object"){ return {}; }
+  var r = {}, fee = "", feeU = "", dt = "", dtU = "", rg = "", rgU = "";
+  Object.keys(o).forEach(function(k){
+    var v = o[k];
+    if(v === "" || v == null){ return; }
+    var ck = cnField(k);
+    if(k === "feeUnit"){ feeU = String(v); return; }
+    if(k === "dataUnit"){ dtU = String(v); return; }
+    if(k === "regionTrafficUnit"){ rgU = String(v); return; }
+    if(ck === "\u8d44\u8d39\u6807\u51c6"){ fee = String(v); return; }
+    if(ck === "\u56fd\u5185\u901a\u7528\u6d41\u91cf"){ dt = String(v); return; }
+    if(ck === "\u533a\u57df\u6d41\u91cf"){ rg = String(v); return; }
+    if(ck === "\u4e1a\u52a1\u540d\u79f0"){ return; }
+    if(!Object.prototype.hasOwnProperty.call(r, ck)){ r[ck] = String(v); }
+  });
+  if(fee !== ""){ r["\u8d44\u8d39\u6807\u51c6"] = (/[\u5143\u5206\u89d2]/.test(fee) || !feeU) ? fee : fee + feeU; }
+  if(dt  !== ""){ r["\u56fd\u5185\u901a\u7528\u6d41\u91cf"] = (/(GB|MB|TB|KB)/i.test(dt) || !dtU) ? dt : dt + dtU; }
+  if(rg  !== ""){ r["\u533a\u57df\u6d41\u91cf"] = (/(GB|MB|TB|KB)/i.test(rg) || !rgU) ? rg : rg + rgU; }
+  return r;
+}
 function dvHtml(it){
-  var o = it.fields || {}, html = "";
+  var o = cnFields(it.fields || {}), html = "";
   var price = o["资费标准"] || "", code = o["方案编号"] || "";
   if(price || code){
     html += '<div class="dv-hero">' +
@@ -2065,14 +2108,25 @@ function openHistDetail(hi, ci, type, bi){
   }
   var wrap = document.getElementById("hmCurWrap"), dl = document.getElementById("hmCur");
   if(cur && cur.fields){
-    var html = "";
-    Object.keys(cur.fields).forEach(function(k){
-      var v = cur.fields[k];
-      if(v === "" || v == null){ return; }
-      html += "<dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd>";
+    var cf = cnFields(cur.fields);
+    var sf = (typeof snap !== "undefined" && snap) ? cnFields(snap)
+           : ((typeof af !== "undefined" && af) ? cnFields(af) : {});
+    var __emp = function(v){ var t = String(v == null ? "" : v).replace(/\s+/g, "");
+      return (t === "" || t === "\u65e0" || t === "null" || t === "undefined" || t === "-" || t === "\u2014" || t === "\u2013"); };
+    var __nv = function(v){ return String(v == null ? "" : v).replace(/\s+/g, "").replace(/[\u2014\u2013-]/g, ""); };
+    var diff = {};
+    Object.keys(cf).forEach(function(k){
+      if(__emp(cf[k])){ return; }
+      if(__nv(cf[k]) === __nv(sf[k])){ return; }
+      diff[k] = cf[k];
     });
-    if(html){ dl.innerHTML = html; wrap.style.display = ""; }
-    else { wrap.style.display = "none"; }
+    var dn = Object.keys(diff).length;
+    if(dn === 0){ dl.innerHTML = ""; wrap.style.display = "none"; }
+    else{
+      var html = "";
+      Object.keys(diff).forEach(function(k){ html += "<dt>" + esc(k) + "</dt><dd>" + esc(diff[k]) + "</dd>"; });
+      dl.innerHTML = html; wrap.style.display = "";
+    }
   } else { wrap.style.display = "none"; }
   document.getElementById("hmMask").classList.add("on");
 }
