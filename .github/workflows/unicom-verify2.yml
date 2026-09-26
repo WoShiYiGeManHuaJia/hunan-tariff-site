@@ -1,0 +1,85 @@
+name: Unicom Removed Verify2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unicom-verify2
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 核验下架
+        run: |
+          mkdir -p unicom/data
+          echo "=== verify $(date -u +%FT%TZ) ===" > fetch_run.log
+          ls -la tools/ >> fetch_run.log 2>&1
+          python3 -u tools/verify_removed.py >> fetch_run.log 2>&1 || true
+          echo "exit=$?" >> fetch_run.log
+          tail -80 fetch_run.log
+
+      - name: 提交
+        if: always()
+        run: |
+          set -e
+          # 备份本次产物（防止被远程新提交冲掉）
+          rm -rf /tmp/art && mkdir -p /tmp/art
+          cp -a unicom /tmp/art/ 2>/dev/null || true
+          cp -f fetch_run.log /tmp/art/ 2>/dev/null || true
+          # 硬对齐远端，彻底消除 push 冲突
+          git fetch origin main || true
+          git reset --hard FETCH_HEAD || true
+          # ── 原子恢复产物 ──
+          # 此前是 rm -rf unicom 后再 cp，且 cp 带 || true：
+          # 一旦 cp 失败（磁盘满 / /tmp 被清理 / 权限），目录已被删除，
+          # git add -A 会把「整个数据目录消失」当成正常变更提交上去。
+          # 改为先复制到 .new、校验存在、再 mv 原子替换；缺失即中止。
+          if [ ! -d /tmp/art/unicom ]; then
+            echo "::error::产物目录缺失（/tmp/art/unicom），中止提交以避免误删线上数据"
+            exit 1
+          fi
+          rm -rf unicom.new
+          cp -a /tmp/art/unicom ./unicom.new || { echo "::error::产物复制失败，中止"; exit 1; }
+          rm -rf unicom
+          mv unicom.new unicom || { echo "::error::产物替换失败，中止"; exit 1; }
+          # 日志仅留在工作区供本轮 tail 查看，不再提交：
+          # 此前用 git add -f 强制绕过 .gitignore，导致每轮把日志写进仓库，
+          # 与「删日志减负」的清理相互抵消。
+          cp -f /tmp/art/fetch_run.log ./fetch_run.log 2>/dev/null || true
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "无变化"
+          else
+            git commit -q -m "verify $(date -u +%FT%TZ)"
+            PUSHED=0
+            for i in 1 2 3 4 5; do
+              if git push origin main; then echo "已推送"; PUSHED=1; break; fi
+              echo "[warn] push 失败，重新对齐后重试 ($i/5)"
+              git fetch origin main
+              git reset --hard FETCH_HEAD
+              cp -a /tmp/art/unicom/. ./unicom/ 2>/dev/null || echo "[warn] 产物恢复失败（保留远端版本）"
+              cp -f /tmp/art/fetch_run.log ./fetch_run.log 2>/dev/null || true
+              git add -A
+              git commit -q -m "verify retry$i" || true
+              sleep 8
+            done
+            if [ "$PUSHED" -ne 1 ]; then
+              echo "::error::连续5次 git push 均失败"
+              exit 1
+            fi
+          fi
+          ls -la fetch_run.log 2>/dev/null | head -2
