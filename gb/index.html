@@ -760,6 +760,7 @@ a.opc{text-decoration:none;display:block}
     <span class="ind" id="ind"></span>
     <button class="tab on" data-v="overview">数据总览</button>
     <button class="tab" data-v="quanguo">全国资费</button>
+    <button class="tab" data-v="prov">省份资费</button>
     <button class="tab" data-v="history">变化历史</button>
     <button class="tab" data-v="announce"><span id="anTabTxt">广电公告</span><span class="an-dot" id="anDot"></span></button>
     <button class="tab" data-v="about">关于</button>
@@ -773,27 +774,30 @@ a.opc{text-decoration:none;display:block}
     <section class="view on" id="v-overview">
       <div class="stats">
         <div class="stat"><div class="stat-ic">🌐</div><div class="stat-n" data-num="1558">0</div><div class="stat-l">全网通用资费</div></div>
-        <div class="stat"><div class="stat-ic">🗺️</div><div class="stat-n" data-num="137">0</div><div class="stat-l">全国在售资费（去重）</div></div>
-        <div class="stat a"><div class="stat-ic">👤</div><div class="stat-n" id="stPersonal">0</div><div class="stat-l" id="stPersonalL">全国在售资费</div></div>
-        <div class="stat b"><div class="stat-ic">🏢</div><div class="stat-n" id="stGq">0</div><div class="stat-l" id="stGqL">全国停售/其他</div></div>
+        <div class="stat"><div class="stat-ic">🗺️</div><div class="stat-n" data-num="42818">0</div><div class="stat-l">31 省资费合计（去重）</div></div>
+        <div class="stat a"><div class="stat-ic">👤</div><div class="stat-n" id="stPersonal">0</div><div class="stat-l" id="stPersonalL">本省个人资费</div></div>
+        <div class="stat b"><div class="stat-ic">🏢</div><div class="stat-n" id="stGq">0</div><div class="stat-l" id="stGqL">本省政企资费</div></div>
       </div>
 
       <div class="panel glass">
         <div class="ph">
-          <h2 class="pt">全国资费统计</h2>
-          <span class="pk-t" id="ovProv" style="padding:6px 12px;border-radius:10px;background:var(--glass-2,#eef4ff);font-weight:700">全国</span>
+          <h2 class="pt">省份资费统计</h2>
+          <button class="pick" id="ovProv" data-pick="prov" data-target="ov"><span class="pk-t">湖南</span><span class="pk-s"></span><i class="pk-a">▾</i></button>
           <span class="ps" id="ovDesc">六大类分布</span>
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
           <div class="stat" style="flex:1 1 200px;padding:14px">
             <div class="stat-n" id="ovTotal" style="font-size:26px">0</div>
-            <div class="stat-l" id="ovTotalL">全国资费总数</div>
+            <div class="stat-l" id="ovTotalL">本省资费总数</div>
           </div>
         </div>
         <div class="bars" id="ovBars"></div>
       </div>
 
-      
+      <div class="panel glass">
+        <div class="ph"><h2 class="pt">各省资费总量排行</h2><span class="ps">Top 12</span></div>
+        <div class="bars" id="rankBars"></div>
+      </div>
     </section>
 
     <section class="view" id="v-quanguo">
@@ -857,7 +861,7 @@ a.opc{text-decoration:none;display:block}
           <p>本页面展示中国移动「全网资费」及各省（默认湖南）的公开资费资料，数据由自动监控程序定期抓取官网并存入代码仓库，再发布为静态网页。</p>
           <ul>
             <li><b>数据来源：</b>中国移动官网公开资费专区</li>
-            <li><b>全国口径：</b>中国广电资费为全国统一口径，本站仅展示全国通用资费，不区分省份</li>
+            <li><b>省份切换：</b>「省份资费」页可自助选择其他省份，默认湖南；变化历史同样按省份标注</li>
             <li><b>更新方式：</b>自动定时抓取比对，有变化即刷新本页</li>
             <li><b>数据口径：</b>以官网「适用地区」「适用范围」字段为准，仅供参考</li>
             <li><b>运营商：</b>顶部可切换运营商主题，目前仅中国移动已接入抓取数据</li>
@@ -1085,7 +1089,7 @@ function __bootReal(){
     var latest = rs[0] || {}, hist = [], ann = rs[1] || {};
     D.updated = latest.updated || "";
     var ps = latest.prov_stats || {};
-    var def = "quanguo"; /* 广电为全国站点，不区分省份 */
+    var def = latest.default || "hunan";
     var hd = latest.dist || {};
     var hp = 0, hg = 0;
     Object.keys(hd).forEach(function(k){
