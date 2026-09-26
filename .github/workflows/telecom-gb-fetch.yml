@@ -78,13 +78,9 @@ jobs:
             echo "（周日）强制全量"
             MODE="full"
           fi
-          GB_SCOPE=""
-          if [ "$MODE" = "focus" ]; then
-            GB_SCOPE="--scopes quanguo,$GBP"
-            echo "模式: 重点（广电 quanguo + $GBP）"
-          else
-            echo "模式: 全量（全部板块）"
-          fi
+          # 广电为全国统一口径：只抓 quanguo（全国）板块，永不抓任何省份
+          GB_SCOPE="--scopes quanguo"
+          echo "模式: 广电仅全国（quanguo）"
           echo "=== 开始 $(date -u +%FT%TZ) ===" > tg_run.log
           echo "模式=$MODE 重点省=$FOCUS 广电省=$GBP" >> tg_run.log
 
