@@ -365,17 +365,13 @@ def _tc_post2(obj, url=None):
                  "Accept": "application/json, text/plain, */*", "Origin": "https://www.189.cn",
                  "Referer": "https://www.189.cn/web/notice/index.html",
                  "Fcode": TC_FCODE, "TransactionId": tid, "Accept-Language": "zh-CN,zh;q=0.9"})
-    # 复用同一个带 CookieJar 的 opener：瑞数 WAF 对「无会话 + 高频重试」返回
-    # 412 Precondition Failed，实测带会话、单条最多重试 2 次、间隔 1.2s 可稳定拿到正文。
-    global _TC_OPENER
-    if _TC_OPENER is None:
-        import http.cookiejar
-        _TC_OPENER = urllib.request.build_opener(
-            urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    # 必须和列表请求走同一套发送通道：实测「列表 urlopen + 详情 opener」混用会
+    # 被瑞数判成会话不一致，详情全部返回 412 Precondition Failed；两处都用
+    # urlopen 直连（cookie 由 urllib 默认处理器托管）时 15/15 全部拿到正文。
     last = None
     for a in range(2):
         try:
-            with _TC_OPENER.open(req, timeout=30) as r:
+            with urllib.request.urlopen(req, timeout=30) as r:
                 raw = r.read()
                 if r.headers.get("Content-Encoding") == "gzip":
                     raw = gzip.decompress(raw)
@@ -384,9 +380,6 @@ def _tc_post2(obj, url=None):
             last = e
             time.sleep(3 * (a + 1))
     raise last
-
-
-_TC_OPENER = None
 
 
 def _tc_date(s):
