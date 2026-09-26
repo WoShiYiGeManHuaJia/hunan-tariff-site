@@ -24,6 +24,7 @@ jobs:
         run: |
           git config user.name "bot"
           git config user.email "bot@users.noreply.github.com"
+          git pull --rebase origin main || true
           git add -f tools/verify_result.json tools/verify_out.txt
           git diff --cached --quiet || git commit -m "联通下架核验结果 $(date -u +%F_%H%M)"
-          git push
+          for i in 1 2 3 4 5; do git push && break || (git pull --rebase origin main; sleep 3); done
