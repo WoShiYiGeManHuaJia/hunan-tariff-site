@@ -66,8 +66,11 @@ UNI_HDRS = {
 # 公告走 189.cn 网厅「帮助中心/公告」推荐位接口：
 #   POST /wtBusiness/wtservice/nc/recPos/getRecPosInfo.do
 #   请求体 AES-CBC 加密 + RSA(内置公钥) 加密 key/iv，响应为明文 JSON。
-# 列表已含标题与时间；详情接口为瑞数 WAF 保护且未开放，故只出标题+日期+官网链接。
+# 列表已含标题与时间；详情页正文经 getAnnouncementDetail.do 抓取（type+offerCode
+# +provinceCode+cityCode），与列表同一套 AES-CBC/RSA 加密，已实测可返回 content。
 TC_REC_URL = "https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
+TC_DETAIL_URL = "https://www.189.cn/wtBusiness/wtservice/nc/announcement/getAnnouncementDetail.do"
+TC_SITE = "https://www.189.cn"
 TC_PROVINCE = "600203"          # 湖南（与资费接口同一套 provCode；只抓湖南，不含其他省）
 TC_SHOP_ID = "20001"
 TC_TYPE = "wt_sy_bzzx"          # 首页-帮助中心/公告位
@@ -339,6 +342,43 @@ def _tc_post(obj):
     raise last
 
 
+def _tc_post2(obj, url=None):
+    """与 _tc_post 同加密，但可调任意 189.cn 接口（默认详情接口）"""
+    from Crypto.Cipher import AES, PKCS1_v1_5
+    from Crypto.PublicKey import RSA
+    from Crypto.Util.Padding import pad
+    import base64, gzip, random
+
+    target = url or TC_DETAIL_URL
+    pub = RSA.import_key(base64.b64decode(TC_PUBKEY_B64))
+    key = os.urandom(16)
+    iv = os.urandom(16)
+    ct = AES.new(key, AES.MODE_CBC, iv).encrypt(pad(json.dumps(obj, ensure_ascii=False).encode(), 16))
+    inner = json.dumps({"key": base64.b64encode(key).decode(),
+                        "iv": base64.b64encode(iv).decode()}, separators=(",", ":"))
+    payload = {"param": base64.b64encode(ct).decode(),
+               "key": base64.b64encode(PKCS1_v1_5.new(pub).encrypt(inner.encode())).decode()}
+    tid = "".join("%x" % random.randint(0, 15) for _ in range(32))
+    req = urllib.request.Request(
+        target, data=json.dumps(payload, separators=(",", ":")).encode(), method="POST",
+        headers={"User-Agent": UA, "Content-Type": "application/json;charset=UTF-8",
+                 "Accept": "application/json, text/plain, */*", "Origin": "https://www.189.cn",
+                 "Referer": "https://www.189.cn/web/notice/index.html",
+                 "Fcode": TC_FCODE, "TransactionId": tid, "Accept-Language": "zh-CN,zh;q=0.9"})
+    last = None
+    for a in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                raw = r.read()
+                if r.headers.get("Content-Encoding") == "gzip":
+                    raw = gzip.decompress(raw)
+                return json.loads(raw.decode("utf-8", "replace"))
+        except Exception as e:
+            last = e
+            time.sleep(2 * (a + 1))
+    raise last
+
+
 def _tc_date(s):
     """20260918145157 / 2026-09-18 12:00 → 2026-09-18"""
     t = str(s or "").strip()
@@ -383,8 +423,46 @@ def fetch_telecom():
     items.sort(key=lambda x: (x["date"], x["id"]), reverse=True)
     items = items[:MAX_KEEP]
     print("[电信] 按日期降序取最新 %d 条" % len(items))
+    # ── 逐条抓正文 ──
+    # 详情接口与列表共用同一套加密；单条失败只清空该条正文，不影响其余公告，
+    # 也不影响列表本身（标题+日期始终保留）。
+    ok = 0
+    for it in items:
+        try:
+            d = _tc_post2({"type": TC_TYPE, "offerCode": it["id"],
+                           "provinceCode": TC_PROVINCE, "cityCode": ""})
+            node = (d.get("data") or {}) if isinstance(d, dict) else {}
+            raw_html = (node.get("content") or "").strip()
+            if not raw_html:
+                print("[电信] 详情空: %s" % it["title"][:24])
+                continue
+            # 相对路径先补成电信域名，避免被 clean_html 拼到移动站点上
+            raw_html = re.sub(r'(<img[^>]*?src=)["\'](?!https?://|data:)([^"\']*)["\']',
+                              lambda m: m.group(1) + '"' + TC_SITE + m.group(2) + '"',
+                              raw_html, flags=re.I)
+            raw_html = re.sub(r'(<a[^>]*?href=)["\'](?!https?://|#|mailto:)([^"\']*)["\']',
+                              lambda m: m.group(1) + '"' + TC_SITE + m.group(2) + '"',
+                              raw_html, flags=re.I)
+            content = clean_html(raw_html)
+            if node.get("title"):
+                it["title"] = node["title"].strip()
+            it["summary"] = html_to_text(content)[:120]
+            it["content"] = content
+            # 正文里的图片也当附件列出，方便直接点开看原图
+            atts = find_attachments(content, TC_SITE)
+            for m in re.finditer(r'<img[^>]*?src=["\']([^"\']+)["\']', content, flags=re.I):
+                u = m.group(1)
+                if u.startswith("http") and u not in [a["url"] for a in atts]:
+                    atts.append({"name": os.path.basename(u.split("?")[0]) or "图片", "url": u})
+            it["attachments"] = atts
+            ok += 1
+        except Exception as e:
+            print("[电信] 详情 %s 失败: %s" % (it["id"], str(e)[:80]))
+            it["summary"], it["content"], it["attachments"] = "", "", []
+        time.sleep(0.4)
+    print("[电信] 正文抓取成功 %d/%d 条" % (ok, len(items)))
     for it in items[:3]:
-        print("   * %s | %s" % (it["date"], it["title"][:40]))
+        print("   * %s | %s | 正文%d字" % (it["date"], it["title"][:32], len(it.get("content") or "")))
     return items
 
 
