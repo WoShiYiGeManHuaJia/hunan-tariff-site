@@ -1,13 +1,23 @@
 province map sample: {'北京': ('011', '110'), '天津': ('013', '130'), '河北': ('018', '180')}
 === hunan target=91 pid=074 cid=741 attr=2 ===
-FATAL Traceback (most recent call last):
-  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/tools/verify_removed.py", line 123, in <module>
-    main()
-  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/tools/verify_removed.py", line 108, in main
-    seen = sample(pid, cid, attr)
-           ^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/tools/verify_removed.py", line 60, in sample
-    q = ("provinceId=%s&cityId=%s&tariffAttributes=%s&firstLevel=1&secondLevel=%s"
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: not all arguments converted during string formatting
-
+   pass 1: +732 cum 732 (17s)
+   pass 2: +0 cum 732 (33s)
+   pass 3: +0 cum 732 (50s)
+   pass 4: +0 cum 732 (67s)
+   pass 5: +0 cum 732 (85s)
+   -> sampled=732 still=0 absent=91
+=== quanguo target=143 pid= cid= attr=1 ===
+   pass 1: +806 cum 806 (16s)
+   pass 2: +0 cum 806 (33s)
+   pass 3: +0 cum 806 (51s)
+   pass 4: +0 cum 806 (67s)
+   pass 5: +0 cum 806 (82s)
+   -> sampled=806 still=1 absent=142
+=== guangdong target=60 pid=051 cid=510 attr=2 ===
+   pass 1: +782 cum 782 (19s)
+   pass 2: +0 cum 782 (41s)
+   pass 3: +0 cum 782 (57s)
+   pass 4: +0 cum 782 (74s)
+   pass 5: +0 cum 782 (90s)
+   -> sampled=782 still=0 absent=60
+DONE
