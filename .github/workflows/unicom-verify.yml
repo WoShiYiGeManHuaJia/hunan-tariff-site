@@ -22,8 +22,10 @@ jobs:
       - name: Run verification
         run: |
           ls -la tools/ || true
-          python3 tools/verify_removed.py
+          python3 tools/verify_removed.py > /tmp/py.log 2>&1
           echo "exit=$?"
+          cp -f /tmp/py.log unicom/data/verify_out.txt || true
+          cat /tmp/py.log | head -40
       - name: Commit
         if: always()
         run: |
