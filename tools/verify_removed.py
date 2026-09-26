@@ -17,7 +17,11 @@ _cj = http.cookiejar.CookieJar()
 _op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_cj))
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LOG = open(os.path.join(HERE, "verify_out.txt"), "w", encoding="utf-8")
+ROOT = os.path.dirname(HERE)
+OUTD = os.path.join(ROOT, "unicom", "data")
+os.makedirs(OUTD, exist_ok=True)
+LOG = open(os.path.join(OUTD, "verify_out.txt"), "w", encoding="utf-8")
+log = None
 
 
 def log(*a):
@@ -109,7 +113,7 @@ def main():
                    "still_present": len(hit), "absent": len(miss),
                    "present_sample": hit[:15], "absent_sample": miss[:10]}
         log("   -> sampled=%d still=%d absent=%d" % (len(seen), len(hit), len(miss)))
-    json.dump(res, open(os.path.join(HERE, "verify_result.json"), "w", encoding="utf-8"),
+    json.dump(res, open(os.path.join(OUTD, "verify_result.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     log("DONE")
 
