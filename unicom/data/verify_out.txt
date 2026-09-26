@@ -1,0 +1,13 @@
+province map sample: {'北京': ('011', '110'), '天津': ('013', '130'), '河北': ('018', '180')}
+=== hunan target=91 pid=074 cid=741 attr=2 ===
+FATAL Traceback (most recent call last):
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/tools/verify_removed.py", line 123, in <module>
+    main()
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/tools/verify_removed.py", line 108, in main
+    seen = sample(pid, cid, attr)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/tools/verify_removed.py", line 60, in sample
+    q = ("provinceId=%s&cityId=%s&tariffAttributes=%s&firstLevel=1&secondLevel=%s"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: not all arguments converted during string formatting
+
