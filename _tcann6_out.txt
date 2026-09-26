@@ -22,7 +22,7 @@
    * 2026-09-15 | 关于中国电信株洲公司宽带网络升级的公告 | 正文0字
 已写入 /tmp/tcout/announce.json (15 条)
 ----- RESULT -----
-updated 2026-09-26 09:55 count 15
+updated 2026-09-26 10:02 count 15
 1 2026-09-18 | 湖南电信装维延伸服务收费公示 | summary 0 | content 0 | att 0
 2 2026-09-16 | 关于中国电信张家界公司宽带网络升级的公告 | summary 0 | content 0 | att 0
 3 2026-09-15 | 关于中国电信株洲公司宽带网络升级的公告 | summary 0 | content 0 | att 0
