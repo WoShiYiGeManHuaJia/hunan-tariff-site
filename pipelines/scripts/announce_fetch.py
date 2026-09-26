@@ -365,18 +365,28 @@ def _tc_post2(obj, url=None):
                  "Accept": "application/json, text/plain, */*", "Origin": "https://www.189.cn",
                  "Referer": "https://www.189.cn/web/notice/index.html",
                  "Fcode": TC_FCODE, "TransactionId": tid, "Accept-Language": "zh-CN,zh;q=0.9"})
+    # 复用同一个带 CookieJar 的 opener：瑞数 WAF 对「无会话 + 高频重试」返回
+    # 412 Precondition Failed，实测带会话、单条最多重试 2 次、间隔 1.2s 可稳定拿到正文。
+    global _TC_OPENER
+    if _TC_OPENER is None:
+        import http.cookiejar
+        _TC_OPENER = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     last = None
-    for a in range(4):
+    for a in range(2):
         try:
-            with urllib.request.urlopen(req, timeout=30) as r:
+            with _TC_OPENER.open(req, timeout=30) as r:
                 raw = r.read()
                 if r.headers.get("Content-Encoding") == "gzip":
                     raw = gzip.decompress(raw)
                 return json.loads(raw.decode("utf-8", "replace"))
         except Exception as e:
             last = e
-            time.sleep(2 * (a + 1))
+            time.sleep(3 * (a + 1))
     raise last
+
+
+_TC_OPENER = None
 
 
 def _tc_date(s):
@@ -413,6 +423,9 @@ def fetch_telecom():
             "id": str(eid),
             "title": title,
             "date": dt,
+            # 详情接口必须用该条目自身的 type：公告位( wt_sy_bzzx )之外还挂着
+            # 集团公告位( wt_sy_jtgg )等，写死 TC_TYPE 会对少数条目取不到正文。
+            "_type": (x.get("type") or TC_TYPE),
             # 详情接口受瑞数 WAF 保护、未开放，统一跳官网公告页
             "page_url": TC_NOTICE_PAGE,
             "summary": "",
@@ -429,7 +442,7 @@ def fetch_telecom():
     ok = 0
     for it in items:
         try:
-            d = _tc_post2({"type": TC_TYPE, "offerCode": it["id"],
+            d = _tc_post2({"type": it.get("_type") or TC_TYPE, "offerCode": it["id"],
                            "provinceCode": TC_PROVINCE, "cityCode": ""})
             node = (d.get("data") or {}) if isinstance(d, dict) else {}
             raw_html = (node.get("content") or "").strip()
@@ -459,7 +472,10 @@ def fetch_telecom():
         except Exception as e:
             print("[电信] 详情 %s 失败: %s" % (it["id"], str(e)[:80]))
             it["summary"], it["content"], it["attachments"] = "", "", []
-        time.sleep(0.4)
+            time.sleep(2.5)
+        time.sleep(1.2)
+    for it in items:
+        it.pop("_type", None)
     print("[电信] 正文抓取成功 %d/%d 条" % (ok, len(items)))
     for it in items[:3]:
         print("   * %s | %s | 正文%d字" % (it["date"], it["title"][:32], len(it.get("content") or "")))
