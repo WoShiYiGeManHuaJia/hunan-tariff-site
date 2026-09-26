@@ -3,12 +3,17 @@ name: Unicom Removed Verify (one-off)
 on:
   workflow_dispatch:
 
+concurrency:
+  group: unicom-verify
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    permissions:
-      contents: write
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -16,15 +21,33 @@ jobs:
           python-version: '3.11'
       - name: Run verification
         run: |
-          ls -la tools/
+          ls -la tools/ || true
           python3 tools/verify_removed.py
           echo "exit=$?"
-          cat tools/verify_out.txt
-      - name: Commit result
+      - name: Commit
+        if: always()
         run: |
-          git config user.name "bot"
-          git config user.email "bot@users.noreply.github.com"
-          git pull --rebase origin main || true
-          git add -f tools/verify_result.json tools/verify_out.txt
-          git diff --cached --quiet || git commit -m "联通下架核验结果 $(date -u +%F_%H%M)"
-          for i in 1 2 3 4 5; do git push && break || (git pull --rebase origin main; sleep 3); done
+          set -e
+          rm -rf /tmp/art && mkdir -p /tmp/art
+          cp -f unicom/data/verify_out.txt /tmp/art/ 2>/dev/null || true
+          cp -f unicom/data/verify_result.json /tmp/art/ 2>/dev/null || true
+          git fetch origin main || true
+          git reset --hard FETCH_HEAD || true
+          cp -f /tmp/art/verify_out.txt unicom/data/ 2>/dev/null || true
+          cp -f /tmp/art/verify_result.json unicom/data/ 2>/dev/null || true
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A unicom/data/verify_out.txt unicom/data/verify_result.json
+          if git diff --cached --quiet; then echo "无变化"; else
+            git commit -q -m "verify $(date -u +%FT%TZ)"
+            for i in 1 2 3 4 5; do
+              if git push origin main; then echo "已推送"; exit 0; fi
+              git fetch origin main; git reset --hard FETCH_HEAD
+              cp -f /tmp/art/verify_out.txt unicom/data/ 2>/dev/null || true
+              cp -f /tmp/art/verify_result.json unicom/data/ 2>/dev/null || true
+              git add -A unicom/data/verify_out.txt unicom/data/verify_result.json
+              git commit -q -m "verify retry$i" || true
+              sleep 8
+            done
+            echo "::error::push failed"; exit 1
+          fi
