@@ -16,6 +16,7 @@ import datetime
 import json
 import os
 import shutil
+import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAP = os.path.join(ROOT, "snapshots")
@@ -200,6 +201,60 @@ def filter_sampling_removed(sec, removed, today):
         print(f"  [采样校验] 板块 {sec} 剔除 {dropped} 条「下线日期仍在未来」的假下架"
               f"（原 {len(removed)} 条，保留 {len(keep)} 条真下架）")
     return keep, dropped
+
+
+# 补录判据（与 clean_fake_added.py 同源，阈值放宽到 30 天）：
+# 抓取每天多轮，真上架的「上线日期」必然就在本轮或最近几天；而漏采补录的
+# 存量业务上线日期往往在数月甚至数年前。2 天过严——江西 09-23 上线的中秋
+# 国庆假日流量包（09-28 才采到）会被误杀，故放宽为 30 天。
+STALE_ONLINE_DAYS = int(os.getenv("STALE_ONLINE_DAYS") or "30")
+# 陈年停售硬判据：下线日期已过期的业务绝无可能"新上架"，一旦出现在 added
+# 里必然是源站把历史停售条目补录回来（河南 09-28 的 139 条中 137 条属此类）。
+REJECT_EXPIRED_ADDED = os.getenv("REJECT_EXPIRED_ADDED", "1").strip() != "0"
+
+
+def _parse_item_date(item, key):
+    """解析条目字段（上线日期/下线日期）为 date；无或不可解析返回 None。"""
+    fields = (item or {}).get("fields") or {}
+    v = str(fields.get(key) or "").strip()
+    if not v:
+        return None
+    m = re.search(r"(\d{4})\s*[-/年.]\s*(\d{1,2})\s*[-/月.]\s*(\d{1,2})", v)
+    if not m:
+        return None
+    try:
+        return datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except Exception:
+        return None
+
+
+def filter_stale_added(sec, added, today):
+    """剔除「存量补录」冒充的新增。
+
+    源站按分类随机子集采样：上一轮没采到的存量业务，本轮采到即被 diff 判成
+    "新增"。实测河南 09-28 一次冒出 139 条"新增"，上线日期集中在 2019~2025 年、
+    137 条下线日期早已过期 —— 全部是上一轮漏采、本轮补回，不是新上架。
+    两条判据（命中其一即判补录）：
+      A 硬：下线日期已过期 —— 过期业务不可能新上架，必是陈年补录
+      B 软：上线日期早于记录日 STALE_ONLINE_DAYS 天以上 —— 这才上架不合常理
+    两条都取不到日期时保留，宁可多报也不漏真新增。
+    """
+    if not added:
+        return added, []
+    real, restored = [], []
+    for a in added:
+        off = _parse_item_date(a, "下线日期")
+        on = _parse_item_date(a, "上线日期")
+        stale = False
+        if REJECT_EXPIRED_ADDED and off is not None and off < today:
+            stale = True                      # A：早已下线，不可能新上架
+        elif on is not None and (today - on).days > STALE_ONLINE_DAYS:
+            stale = True                      # B：上线太久，属漏采补录
+        (restored if stale else real).append(a)
+    if restored:
+        print(f"  [新增校验] 板块 {sec} 剔除 {len(restored)} 条存量补录"
+              f"（原 {len(added)} 条，保留 {len(real)} 条真新增）")
+    return real, restored
 
 
 def clean_upgrade_false_records(history, st):
@@ -489,8 +544,13 @@ def main():
         # 采样缺失二次校验：本轮净减少时，剔除「下线日期仍在未来」的假下架。
         # 河南曾一次性假下架 1613 条（96% 下线日期在未来），靠条数阈值（0.7）
         # 只能拦住大幅缩水，小幅缩水仍会漏网，故再按业务字段逐条核验。
-        if _new_n < _old_n:
-            removed, _dropped = filter_sampling_removed(sec, removed, _today)
+        # 采样缺失二次校验（恒执行）：原实现只在「本轮净减少」时启用，理由是
+        # 净增代表采样充分。但江西 09-28 本轮净增（+84/-14）时仍出现 14 条
+        # 「下线日期 2026-12 ~ 2030 年」的假下架 —— 净增不代表采样充分，
+        # 源站子集采样下增减与充分性无关。故去掉该限制。
+        removed, _dropped = filter_sampling_removed(sec, removed, _today)
+        # 新增对称核验：剔除存量补录，避免上一轮漏采的业务冒充本轮上架
+        added, _restored = filter_stale_added(sec, added, _today)
         if added or removed or modified:
             has_change = True
         rec[sec] = {
@@ -501,6 +561,10 @@ def main():
             "removed_names": [name_of(r) for r in removed],
             "modified_names": [name_of(m) for m in modified],
         }
+        if _restored:
+            # 补录不计入新增、不参与推送，仅留名供排查
+            rec[sec]["restored"] = len(_restored)
+            rec[sec]["restored_names"] = [name_of(x) for x in _restored][:200]
         if added:
             rec[sec]["added_details"] = {
                 name_of(a): (a.get("fields") or {}) for a in added
