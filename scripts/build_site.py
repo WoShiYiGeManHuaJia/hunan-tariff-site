@@ -77,6 +77,29 @@ def load(path):
         return None
 
 
+def clean_html(v):
+    """展示层归一化：剥离源站字段里混入的 HTML 标签与实体。
+
+    源站约 2026-09-29 起把「其他服务内容」「其他说明」等字段改成了富文本
+    （带 <p>…</p> 包裹）。标签本身不是业务变化，直接展示会让修改前后
+    看起来满屏 <p>，且 <p>-</p> 与 - 会被误判成一处改动。
+    """
+    x = "" if v is None else str(v)
+    x = re.sub(r"<br\s*/?>", " ", x, flags=re.I)
+    x = re.sub(r"</?p[^>]*>", " ", x, flags=re.I)
+    x = re.sub(r"<[^>]*>", "", x)
+    x = re.sub(r"&(?:nbsp|amp|lt|gt|quot|#39);", " ", x, flags=re.I)
+    return re.sub(r"\s+", " ", x).strip()
+
+
+def clean_fields(fields):
+    """对一整份字段快照做展示层清洗（值不变则原样返回）。"""
+    if not isinstance(fields, dict):
+        return fields
+    return {k: clean_html(v) if isinstance(v, str) else v
+            for k, v in fields.items()}
+
+
 def name_of(item):
     return (item.get("name") or "").strip()
 
@@ -521,11 +544,11 @@ def main():
                 }
                 if _a:
                     rec[sec]["added_details"] = {
-                        name_of(x): (x.get("fields") or {}) for x in _a
+                        name_of(x): clean_fields(x.get("fields") or {}) for x in _a
                     }
                 if _r:
                     rec[sec]["removed_details"] = {
-                        name_of(x): (x.get("fields") or {}) for x in _r
+                        name_of(x): clean_fields(x.get("fields") or {}) for x in _r
                     }
             else:
                 rec[sec] = {"note": "baseline"}
@@ -567,11 +590,11 @@ def main():
             rec[sec]["restored_names"] = [name_of(x) for x in _restored][:200]
         if added:
             rec[sec]["added_details"] = {
-                name_of(a): (a.get("fields") or {}) for a in added
+                name_of(a): clean_fields(a.get("fields") or {}) for a in added
             }
         if removed:
             rec[sec]["removed_details"] = {
-                name_of(r): (r.get("fields") or {}) for r in removed
+                name_of(r): clean_fields(r.get("fields") or {}) for r in removed
             }
         if modified_details:
             diff_details[sec] = modified_details
@@ -581,8 +604,12 @@ def main():
             rec[sec]["modified_details"] = dict(list(modified_details.items())[:MDET_LIMIT])
             # 修改前后完整字段快照（供前端并排对比），同样限量防止膨胀
             MSNAP_LIMIT = int(os.getenv("MODIFIED_SNAPSHOT_LIMIT") or "60")
-            rec[sec]["modified_before"] = dict(list(mod_before.items())[:MSNAP_LIMIT])
-            rec[sec]["modified_after"] = dict(list(mod_after.items())[:MSNAP_LIMIT])
+            rec[sec]["modified_before"] = {
+                k: clean_fields(v) for k, v in list(mod_before.items())[:MSNAP_LIMIT]
+            }
+            rec[sec]["modified_after"] = {
+                k: clean_fields(v) for k, v in list(mod_after.items())[:MSNAP_LIMIT]
+            }
 
     # 回填历史记录中缺失的字段级修改明细（当日志只有名称列表、无 detail 时，用本次 diff 补齐）
     for rec0 in history:
