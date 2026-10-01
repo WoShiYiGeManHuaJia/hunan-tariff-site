@@ -29,6 +29,7 @@ _SSL_CNF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mobil
 if os.path.exists(_SSL_CNF):
     os.environ.setdefault("OPENSSL_CONF", _SSL_CNF)
 
+import ssl
 import urllib.request
 import urllib.parse
 
@@ -98,9 +99,32 @@ KEEP_TAGS = {"p", "br", "div", "span", "a", "img", "strong", "b", "em", "i", "u"
              "h2", "h3", "h4", "blockquote"}
 
 
+def _ssl_ctx():
+    """源站 10086.cn 的 TLS 已降级到「不安全旧版重协商」，新版 OpenSSL 默认拒绝，
+    表现为 curl: (35) unsafe legacy renegotiation disabled / urllib SSLError。
+    这里显式开启 OP_LEGACY_SERVER_CONNECT，保证公告抓取不被 TLS 握手挡住。"""
+    try:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        try:
+            ctx.options |= ssl.OP_LEGACY_SERVER_CONNECT
+        except Exception:
+            pass
+        return ctx
+    except Exception:
+        return None
+
+
+_SSL_CTX = _ssl_ctx()
+
+
 def _http_get(url, headers=None, timeout=30):
     req = urllib.request.Request(url, headers=headers or {"User-Agent": UA})
-    return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "ignore")
+    try:
+        return urllib.request.urlopen(req, timeout=timeout, context=_SSL_CTX).read().decode("utf-8", "ignore")
+    except TypeError:
+        return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "ignore")
 
 
 def _http_post(url, form, headers=None, timeout=30):
