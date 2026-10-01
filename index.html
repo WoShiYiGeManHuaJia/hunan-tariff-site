@@ -1606,6 +1606,7 @@ function histBody(hi, cs){
   return cs.map(function(x){ return provBlock(hi, x.ci, x.c, true); }).join("");
 }
 function histFill(hi, openFirst){
+  loadHistDetail(hi);   /* 展开即预取详情分片，用户点业务名时无需等待 */
   var cs = histCs(D.history[hi] || {});
   if(openFirst && cs.length && HIST_POPEN[hi + "_" + cs[0].ci] === undefined){
     HIST_POPEN[hi + "_" + cs[0].ci] = true;
@@ -2054,11 +2055,47 @@ function ckPollRun(tk, t0){
   }, 10000);
 }
 
+/* ---------- 变更详情按需加载 ----------
+   history.json 只保留摘要（计数 + 业务名），详情（字段快照/差异）拆成
+   data/hist/<ts>.json 分片。原先 15MB 一次性下载 + JSON.parse 是
+   「变化历史」打开卡顿十几分钟的唯一原因。 */
+var HIST_DET = {}, HIST_DETQ = {};
+function histDetUrl(h){
+  return DATA_BASE + "hist/" + String(h && h.ts ? h.ts : "").replace(/[^0-9A-Za-z]/g, "-") + ".json";
+}
+function loadHistDetail(hi, cb){
+  var h = D.history[hi];
+  if(!h){ if(cb){ cb(); } return; }
+  if(HIST_DET[h.ts]){ if(cb){ cb(); } return; }
+  if(HIST_DETQ[h.ts]){
+    HIST_DETQ[h.ts].then(function(){ if(cb){ cb(); } }).catch(function(){ if(cb){ cb(); } });
+    return;
+  }
+  HIST_DETQ[h.ts] = __j(histDetUrl(h)).then(function(det){
+    (h.changes || []).forEach(function(c){
+      var blk = (det || {})[c.prov];
+      if(!blk){ return; }
+      Object.keys(blk).forEach(function(k){ c[k] = blk[k]; });
+    });
+    HIST_DET[h.ts] = true;
+  }).catch(function(){ HIST_DET[h.ts] = true; });
+  HIST_DETQ[h.ts].then(function(){ if(cb){ cb(); } }).catch(function(){ if(cb){ cb(); } });
+}
+
 /* ---------- 变更详情弹窗 ---------- */
 var curHist = null;
 function openHistDetail(hi, ci, type, bi){
   var h = D.history[hi]; if(!h){ return; }
   var c = h.changes[ci]; if(!c){ return; }
+  if(!HIST_DET[h.ts]){
+    try{
+      document.getElementById("hmTitle").textContent = "加载详情…";
+      document.getElementById("hmDiff").innerHTML = '<div class="dfnone">正在加载该轮变更详情…</div>';
+      document.getElementById("hmMask").classList.add("on");
+    }catch(e){}
+    loadHistDetail(hi, function(){ openHistDetail(hi, ci, type, bi); });
+    return;
+  }
   var md = c.modified_details || {};
   var arr = type === "add" ? (c.added_names || [])
           : (type === "del" ? (c.removed_names || [])
