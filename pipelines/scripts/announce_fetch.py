@@ -475,11 +475,46 @@ def fetch_telecom():
     return items
 
 
+def merge_keep(items, path):
+    """与已有公告合并，按 id 去重、按 date 降序取 MAX_KEEP 条。
+
+    源站列表页偶发只返回少量条目（分页/缓存异常），若直接覆盖写盘，
+    先前已抓到的较新公告会被丢掉，表现为「最新公告日期倒退」
+    （实测 09-23 被冲掉，线上最新退回 09-17）。
+    合并后只增不减：已在库里的公告即便本轮没抓到也保留。
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            old = json.load(f)
+        old_items = old.get("items") or []
+    except Exception:
+        old_items = []
+    by_id = {}
+    for it in (items or []):
+        if it.get("id"):
+            by_id[str(it["id"])] = it
+    n_new = len(by_id)
+    for it in old_items:
+        k = str(it.get("id") or "")
+        if k and k not in by_id:
+            by_id[k] = it
+    merged = list(by_id.values())
+    # 内容更完整的优先（新抓取的带 content/summary，覆盖旧的同 id 空壳）
+    merged.sort(key=lambda x: (x.get("date") or ""), reverse=True)
+    merged = merged[:MAX_KEEP]
+    if len(merged) != n_new:
+        print(f"[合并] 本轮抓到 {n_new} 条，合并已有记录后保留 {len(merged)} 条")
+    return merged
+
+
 def write_json(items, path):
+    items = merge_keep(items, path)
     data = {"updated": now_str(), "count": len(items), "items": items}
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, path)
     print(f"已写入 {path} ({len(items)} 条)")
 
 
