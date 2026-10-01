@@ -1,0 +1,43 @@
+name: zz-ann-probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 抓移动湖南公告列表（多 URL 变体）
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          for U in \
+            "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361.json" \
+            "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361_1.json" \
+            "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361_2.json" \
+            "https://www.10086.cn/aboutus/news/pannounce/hn/731/index.json" ; do
+            echo "### URL $U"
+            curl -sS -m 30 -A "$UA" \
+              -H "Referer: https://www.10086.cn/aboutus/news/pannounce/hn/" \
+              -H "Accept: application/json, text/plain, */*" \
+              "$U" -o /tmp/r.json -w "http=%{http_code} size=%{size_download}\n" || continue
+            python3 - <<'PY' || echo "  (解析失败)"
+          import json
+          j=json.load(open('/tmp/r.json',encoding='utf-8'))
+          lst=(j.get('cData') or {}).get('list') or []
+          print("  条数:",len(lst))
+          rows=[]
+          for r in lst:
+              h=r.get('detail_href') or ''
+              import re
+              m=re.search(r'_detail_(\d+)\.',h)
+              rows.append((m.group(1) if m else '', r.get('publishTime') or '', (r.get('noticeTitle') or '')[:40]))
+          rows.sort(key=lambda x:(-int(x[0] or 0)))
+          for i,(a,b,c) in enumerate(rows[:20]):
+              print("   %2d id=%-8s %-12s %s"%(i+1,a,b,c))
+          tot=0
+          for k in ('totalCount','total','recordCount','pageCount'):
+              v=(j.get('cData') or {}).get(k)
+              if v: print("  cData.%s = %s"%(k,v))
+          PY
+          done
