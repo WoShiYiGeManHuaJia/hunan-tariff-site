@@ -100,6 +100,69 @@ def clean_fields(fields):
             for k, v in fields.items()}
 
 
+_HIST_DET_KEYS = ("added_details", "removed_details", "modified_details",
+                  "modified_before", "modified_after")
+
+
+def _hist_ts_file(ts):
+    """时间戳 -> 安全文件名：2026-10-01 14:36:52 -> 2026-10-01-14-36-52.json"""
+    return re.sub(r"[^0-9A-Za-z]", "-", str(ts)) + ".json"
+
+
+def _write_history_split(data_dir, history):
+    """写摘要 history.json + 每条记录一个详情分片 data/hist/<ts>.json。
+
+    摘要只保留计数与业务名（前端列表渲染用），体积约为整份的 4%；
+    详情（字段快照/差异明细）在用户点开某条记录时才按 ts 拉取。
+    """
+    hist_dir = os.path.join(data_dir, "hist")
+    os.makedirs(hist_dir, exist_ok=True)
+    keep = set()
+    slim_all = []
+    for rec in (history or []):
+        ts = rec.get("ts")
+        if not ts:
+            continue
+        slim = {"ts": ts}
+        det = {}
+        for sec, blk in rec.items():
+            if sec == "ts" or not isinstance(blk, dict):
+                continue
+            s2, d2 = {}, {}
+            for k, v in blk.items():
+                if k in _HIST_DET_KEYS:
+                    if v:
+                        d2[k] = v
+                else:
+                    s2[k] = v
+            slim[sec] = s2
+            if d2:
+                det[sec] = d2
+        slim_all.append(slim)
+        keep.add(_hist_ts_file(ts))
+        if det:
+            p = os.path.join(hist_dir, _hist_ts_file(ts))
+            tmp = p + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(det, f, ensure_ascii=False, separators=(",", ":"))
+            os.replace(tmp, p)
+        # 摘要
+    tmp_h = os.path.join(data_dir, "history.json.tmp")
+    with open(tmp_h, "w", encoding="utf-8") as f:
+        json.dump(slim_all, f, ensure_ascii=False, separators=(",", ":"))
+    os.replace(tmp_h, os.path.join(data_dir, "history.json"))
+    # 清理已不在历史里的旧分片，避免仓库无限膨胀
+    try:
+        for fn in os.listdir(hist_dir):
+            if fn not in keep:
+                os.remove(os.path.join(hist_dir, fn))
+    except Exception:
+        pass
+    sz = os.path.getsize(os.path.join(data_dir, "history.json"))
+    print("  history 摘要 %.2f MB（详情分片按需加载）" % (sz / 1048576.0))
+    return sz
+
+
 def name_of(item):
     return (item.get("name") or "").strip()
 
@@ -632,8 +695,9 @@ def main():
     if has_change and not (history and same_change(history[-1], rec)):
         history.append(rec)
         history = history[-60:]
-    with open(os.path.join(DATA, "history.json"), "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
+    # history.json 只写摘要，详情拆到 data/hist/<ts>.json 按需加载。
+    # 原来单文件 15MB，前端一次性下载 + 解析导致「变化历史」打开卡十几分钟。
+    _write_history_split(DATA, history)
 
     # 4) 保存本次快照副本到站点 prev/（下次 diff 用）
     for sec in sections:
