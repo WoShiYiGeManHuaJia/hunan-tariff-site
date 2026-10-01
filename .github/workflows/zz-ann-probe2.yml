@@ -1,0 +1,61 @@
+name: zz-ann-probe2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: 抓移动湖南公告列表
+        id: p
+        run: |
+          {
+            echo '```'
+            echo "== 探测时间 $(date -u +%FT%TZ) =="
+            UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            for U in \
+              "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361.json" \
+              "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361_1.json" \
+              "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361_2.json" \
+              "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361_3.json" ; do
+              echo "### $U"
+              code=$(curl -sS -m 30 -A "$UA" -H "Referer: https://www.10086.cn/aboutus/news/pannounce/hn/" \
+                -H "Accept: application/json, text/plain, */*" "$U" -o /tmp/r.json -w "%{http_code}") || { echo "curl失败"; continue; }
+              echo "http=$code size=$(stat -c%s /tmp/r.json)"
+              [ "$code" = "200" ] || continue
+              python3 - <<'PY'
+          import json,re
+          try: j=json.load(open('/tmp/r.json',encoding='utf-8'))
+          except Exception as e: print("解析失败",e); raise SystemExit
+          cd=j.get('cData') or {}
+          lst=cd.get('list') or []
+          print("条数:",len(lst))
+          for k in ('totalCount','total','recordCount','pageCount','pageNo','pageSize'):
+              if cd.get(k): print("cData.%s = %s"%(k,cd[k]))
+          rows=[]
+          for r in lst:
+              m=re.search(r'_detail_(\d+)\.', r.get('detail_href') or '')
+              rows.append((m.group(1) if m else '', r.get('publishTime') or '', (r.get('noticeTitle') or '')[:44]))
+          rows.sort(key=lambda x: -int(x[0] or 0))
+          for i,(a,b,c) in enumerate(rows[:20]):
+              print(" %2d id=%-8s %-12s %s"%(i+1,a,b,c))
+          PY
+            done
+            echo '```'
+          } > /tmp/out.md 2>&1
+          cat /tmp/out.md >> $GITHUB_STEP_SUMMARY
+      - name: 提交
+        run: |
+          mkdir -p logs
+          cp /tmp/out.md logs/ann_probe_move.md
+          git config user.name "probe-bot"
+          git config user.email "probe@bot.local"
+          git add -A logs
+          if git diff --cached --quiet; then echo "无变化"; else git commit -m "probe: 移动公告探测 $(date -u +%FT%TZ)"; fi
+          for i in 1 2 3 4 5; do
+            git pull --rebase -X theirs origin main >/dev/null 2>&1 || true
+            git push origin main && { echo "push ok"; break; } || sleep 5
+          done
