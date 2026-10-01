@@ -2,42 +2,52 @@ name: zz-ann-probe
 on:
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
       - name: 抓移动湖南公告列表（多 URL 变体）
         run: |
           UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          OUT=logs/ann_probe_move.txt
+          mkdir -p logs
+          echo "== 探测时间 $(date -u +%FT%TZ) ==" > $OUT
           for U in \
             "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361.json" \
             "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361_1.json" \
             "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361_2.json" \
             "https://www.10086.cn/aboutus/news/pannounce/hn/731/index.json" ; do
-            echo "### URL $U"
-            curl -sS -m 30 -A "$UA" \
+            echo "### URL $U" >> $OUT
+            code=$(curl -sS -m 30 -A "$UA" \
               -H "Referer: https://www.10086.cn/aboutus/news/pannounce/hn/" \
               -H "Accept: application/json, text/plain, */*" \
-              "$U" -o /tmp/r.json -w "http=%{http_code} size=%{size_download}\n" || continue
-            python3 - <<'PY' || echo "  (解析失败)"
-          import json
+              "$U" -o /tmp/r.json -w "%{http_code}") || { echo "  curl失败" >> $OUT; continue; }
+            echo "http=$code size=$(stat -c%s /tmp/r.json)" >> $OUT
+            [ "$code" = "200" ] || { echo "  (非200，跳过解析)" >> $OUT; continue; }
+            python3 - >> $OUT 2>&1 <<'PY'
+          import json,re
           j=json.load(open('/tmp/r.json',encoding='utf-8'))
-          lst=(j.get('cData') or {}).get('list') or []
+          cd=j.get('cData') or {}
+          lst=cd.get('list') or []
           print("  条数:",len(lst))
+          for k in ('totalCount','total','recordCount','pageCount','pageNo','pageSize'):
+              if cd.get(k): print("  cData.%s = %s"%(k,cd[k]))
           rows=[]
           for r in lst:
-              h=r.get('detail_href') or ''
-              import re
-              m=re.search(r'_detail_(\d+)\.',h)
-              rows.append((m.group(1) if m else '', r.get('publishTime') or '', (r.get('noticeTitle') or '')[:40]))
-          rows.sort(key=lambda x:(-int(x[0] or 0)))
+              m=re.search(r'_detail_(\d+)\.', r.get('detail_href') or '')
+              rows.append((m.group(1) if m else '', r.get('publishTime') or '', (r.get('noticeTitle') or '')[:44]))
+          rows.sort(key=lambda x: -int(x[0] or 0))
           for i,(a,b,c) in enumerate(rows[:20]):
               print("   %2d id=%-8s %-12s %s"%(i+1,a,b,c))
-          tot=0
-          for k in ('totalCount','total','recordCount','pageCount'):
-              v=(j.get('cData') or {}).get(k)
-              if v: print("  cData.%s = %s"%(k,v))
           PY
           done
+      - name: 提交结果
+        run: |
+          git config user.name "probe-bot"
+          git config user.email "probe@bot.local"
+          git add logs/ann_probe_move.txt
+          git diff --cached --quiet && echo "无变化" || git commit -m "probe: 移动公告源站探测结果 $(date -u +%FT%TZ)"
+          git push || echo "push失败"
