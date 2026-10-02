@@ -154,6 +154,31 @@ jobs:
           cp -a _site/data/. data/ 2>/dev/null || true
           rm -rf data/prev 2>/dev/null || true
           rm -f data/peaks.json          # 内部降级判定峰值，不公开
+          # 分片完整性校验：history.json 每条有变化的记录都应对应一个 hist/<ts>.json。
+          # 缺失会让前端点开显示「无修改后记录」。这里只告警不中断。
+          python3 - <<'PY' || echo "[warn] 分片校验脚本异常"
+          import json, os, re
+          try:
+              h = json.load(open("data/history.json", encoding="utf-8"))
+          except Exception as e:
+              print("history 读取失败", e); raise SystemExit
+          def f(t): return re.sub(r"[^0-9A-Za-z]", "-", str(t)) + ".json"
+          have = set(os.listdir("data/hist")) if os.path.isdir("data/hist") else set()
+          miss = []
+          for r in h:
+              ts = r.get("ts")
+              if not ts: continue
+              changed = False
+              for k, v in r.items():
+                  if k == "ts" or not isinstance(v, dict): continue
+                  if (v.get("added") or v.get("removed") or v.get("modified") or v.get("restored")):
+                      changed = True
+              if changed and f(ts) not in have:
+                  miss.append(ts)
+          print("history 记录 %d，分片 %d，缺失 %d" % (len(h), len(have), len(miss)))
+          if miss:
+              print("::warning::以下轮次缺少详情分片: " + ", ".join(miss[:5]))
+          PY
           rm -rf _site _prev snapshots   # 中间产物不入库
           echo "data 文件数: $(ls data | wc -l)"
 
