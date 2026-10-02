@@ -148,7 +148,11 @@ jobs:
           # 覆盖回去会把根目录已修好的版本回滚（如「无变化不占位」）。
           # 根目录文件即 Pages 部署源，由 git 维护。
           mkdir -p data
-          cp -f _site/data/*.json data/ 2>/dev/null || true
+          # ★ 必须用 -a 同步整个目录：history 详情分片在 _site/data/hist/ 子目录，
+          #   旧写法 `cp _site/data/*.json` 只拷顶层文件，hist/ 永远进不了仓库，
+          #   导致每轮新记录的详情都是空的（点开显示「无修改后记录」）。
+          cp -a _site/data/. data/ 2>/dev/null || true
+          rm -rf data/prev 2>/dev/null || true
           rm -f data/peaks.json          # 内部降级判定峰值，不公开
           rm -rf _site _prev snapshots   # 中间产物不入库
           echo "data 文件数: $(ls data | wc -l)"
