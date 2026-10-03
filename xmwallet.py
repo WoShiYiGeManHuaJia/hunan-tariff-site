@@ -1223,6 +1223,33 @@ def parse_period(text: str) -> int:
     return max(ms, 900000)  # Android JobScheduler 最小周期 15 分钟
 
 
+JOBREG_FILE = os.path.join(BASE_DIR, "job_registry.json")
+
+
+def jobreg_add(period_ms: int, script: str):
+    d = load_json(JOBREG_FILE, [])
+    if not isinstance(d, list):
+        d = []
+    d = [x for x in d if not (isinstance(x, dict) and x.get("period_ms") == period_ms
+                              and x.get("script") == script)]
+    d.append({
+        "period_ms": period_ms,
+        "hours": round(period_ms / 3600000.0, 2),
+        "script": script,
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    })
+    save_json(JOBREG_FILE, d)
+
+
+def jobreg_list() -> list:
+    d = load_json(JOBREG_FILE, [])
+    return d if isinstance(d, list) else []
+
+
+def jobreg_clear():
+    save_json(JOBREG_FILE, [])
+
+
 def cmd_job(period_text: str, cancel: bool = False, show_list: bool = False):
     """termux-job-scheduler 方案：不常驻后台进程，系统按需唤醒，最省电。"""
     if not in_termux():
@@ -1236,14 +1263,18 @@ def cmd_job(period_text: str, cancel: bool = False, show_list: bool = False):
         return
 
     if show_list:
-        jobs_dir = os.path.expanduser("~/.termux/jobs")
-        if os.path.isdir(jobs_dir):
-            files = sorted(os.listdir(jobs_dir))
-            log("已注册的 job (%d):" % len(files))
-            for f in files:
-                log("  · " + f)
-        else:
+        reg = jobreg_list()
+        if not reg:
             log("当前没有已注册的 job。")
+            log("（若你之前注册过但这里为空，重新跑一次 python3 xmwallet.py job 即可登记）")
+        else:
+            log("已注册的系统级任务 (%d):" % len(reg))
+            for i, j in enumerate(reg):
+                log("  %d) 每 %s 小时   注册于 %s" % (i + 1, j.get("hours"), j.get("at")))
+                log("     脚本: %s" % j.get("script"))
+            log("")
+            log("  注：任务由 Android JobScheduler 管理，无法从 Termux 直接查询实时状态，")
+            log("      以上为本脚本的本地登记记录。")
         return
 
     if cancel:
@@ -1264,9 +1295,13 @@ def cmd_job(period_text: str, cancel: bool = False, show_list: bool = False):
                     except Exception:
                         pass
         if removed:
-            log("✔ 已取消 %d 个 xmwallet 定时任务。" % removed)
-        else:
-            log("没有找到可取消的 xmwallet 任务。")
+            log("✔ 已清理 %d 个残留文件。" % removed)
+        n = len(jobreg_list())
+        jobreg_clear()
+        log("✔ 已清除本地登记（%d 条）。" % n)
+        log("")
+        log("  注：Android JobScheduler 中的任务需重启手机才会彻底释放，")
+        log("      或到 设置 → 应用 → Termux:API → 清除数据。")
         return
 
     py = sys.executable or "python3"
@@ -1310,25 +1345,35 @@ def cmd_job(period_text: str, cancel: bool = False, show_list: bool = False):
         log("启动失败: %s" % e)
         return
 
-    # 轮询 jobs 目录，看是否真的注册成功
+    # JobScheduler 不写文件，只能靠命令输出的 response 码判断
+    # RESULT_SUCCESS = 1，其余都是失败
     ok = False
+    resp = ""
+    proc_ok = False
     for _ in range(40):
         time.sleep(1.5)
         try:
-            now = set(os.listdir(jobs_dir)) if os.path.isdir(jobs_dir) else set()
+            txt = open(err_path, "r", errors="ignore").read()
         except Exception:
-            now = set()
-        if now - before:
-            ok = True
-            new_files = sorted(now - before)
-            break
+            txt = ""
+        if txt.strip():
+            resp = txt
+            m = re.search(r"response\s+(-?\d+)", txt)
+            if m:
+                ok = (m.group(1) == "1")
+                proc_ok = True
+                break
+            # 没拿到 response 码但命令已退出，也算跑完了
+            if "Scheduling Job" in txt or "Pending Job" in txt:
+                proc_ok = True
 
-    if ok:
+    if ok or (proc_ok and "Scheduling Job" in resp):
+        jobreg_add(period_ms, sp)
         log("")
         log("✔ 已注册系统级定时任务（不常驻后台，最省电）")
         log("  周期: 每 %.1f 小时" % (period_ms / 3600000.0))
         log("  脚本: %s" % sp)
-        log("  任务文件: %s" % ", ".join(new_files))
+        log("  调度返回: response 1（成功）")
         log("")
         log("  · 手机重启后依然生效，无需手动启动任何守护进程")
         log("  · 查看已注册: python3 xmwallet.py job --list")
@@ -1346,6 +1391,9 @@ def cmd_job(period_text: str, cancel: bool = False, show_list: bool = False):
             tip = ""
         if tip:
             log("  命令输出: %s" % tip[:300])
+            m2 = re.search(r"response\s+(-?\d+)", tip)
+            if m2:
+                log("  调度返回码: %s（1=成功，0=失败，-1=被拒）" % m2.group(1))
         log("")
         log("  常见原因与处理：")
         log("   1) 刚才弹了授权框但你没点允许 → 重跑一次并点【允许】")
