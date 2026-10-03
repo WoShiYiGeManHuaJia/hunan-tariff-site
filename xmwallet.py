@@ -545,6 +545,7 @@ class Wallet:
     """封装 STS 换票与任务接口。"""
 
     def __init__(self, user_id: str, pass_token: str):
+        self.last_balance_raw = None
         self.user_id = str(user_id or "")
         self.pass_token = pass_token or ""
         self.session = requests.Session()
@@ -635,6 +636,7 @@ class Wallet:
             return None
 
         d = self._get("queryUserBalanceWithFrozen", {})
+        self.last_balance_raw = ("queryUserBalanceWithFrozen", d)
         if d and d.get("code") == 0:
             v = d.get("value")
             if not isinstance(v, dict):
@@ -658,6 +660,8 @@ class Wallet:
 
         # 备用接口
         d2 = self._get("queryUserGoldRichSum", {})
+        if d2 is not None:
+            self.last_balance_raw = ("queryUserGoldRichSum", d2)
         if d2 and d2.get("code") == 0:
             v2 = d2.get("value")
             n = self._as_int(v2) if not isinstance(v2, dict) else pick(v2, TOTAL_KEYS)
@@ -667,6 +671,18 @@ class Wallet:
             return {"ok": True, "days": n / 100.0, "avail": n / 100.0, "raw": d2}
 
         return None
+
+    def balance_retry(self, times: int = 3):
+        """余额接口偶发抽风，失败就多试几次。"""
+        last = None
+        for i in range(times):
+            r = self.balance()
+            if r:
+                return r
+            last = r
+            if i < times - 1:
+                time.sleep(2 + i * 2)
+        return last
 
     def history(self) -> List[Dict[str, Any]]:
         d = self._get("queryUserJoinList", {"pageNum": 1, "pageSize": 30})
@@ -774,7 +790,7 @@ def run_account(acc: Dict[str, Any]) -> str:
         return "账号 %s 换票失败，passToken 可能已失效，请重新 login" % name
     log("  会话就绪")
 
-    bal = w.balance()
+    bal = w.balance_retry()
     if bal:
         log("  当前会员时长: %.2f 天（可用 %.2f 天）" % (bal["days"], bal["avail"]))
     else:
@@ -861,7 +877,7 @@ def run_account(acc: Dict[str, Any]) -> str:
             val = 0
         log("   %d. %s  +%.2f天  %s" % (i, r.get("createTime"), val / 100.0, r.get("desc") or ""))
 
-    bal2 = w.balance()
+    bal2 = w.balance_retry()
     if bal2:
         log("  结算后会员时长: %.2f 天" % bal2["days"])
     else:
@@ -962,6 +978,22 @@ def cmd_run(only: str = ""):
         log("（未配置钉钉，跳过推送。配置: python3 xmwallet.py dingtalk <webhook>）")
 
 
+def dump_balance_raw(w) -> str:
+    """取不到余额时，把接口原始返回压缩成一行，方便回传诊断。"""
+    if not getattr(w, "last_balance_raw", None):
+        return "  (接口无任何返回)"
+    name, d = w.last_balance_raw
+    if d is None:
+        return "  接口 %s: 无返回（请求失败）" % name
+    if not isinstance(d, dict):
+        return "  接口 %s: 返回类型 %s -> %s" % (name, type(d).__name__, str(d)[:200])
+    txt = json.dumps(d, ensure_ascii=False, separators=(",", ":"))
+    cut = txt[:600]
+    return ("  接口 %s | code=%s desc=%s\n  原文: %s%s"
+            % (name, d.get("code"), d.get("desc") or d.get("message") or "",
+               cut, " ...(截断)" if len(txt) > 600 else ""))
+
+
 def cmd_status():
     accounts = load_accounts()
     if not accounts:
@@ -974,7 +1006,7 @@ def cmd_status():
         if not w.login_by_ticket():
             log("  换票失败，凭据可能已失效")
             continue
-        bal = w.balance()
+        bal = w.balance_retry()
         if bal:
             log("  会员时长: %.2f 天（可用 %.2f 天）" % (bal["days"], bal["avail"]))
         else:
@@ -984,6 +1016,9 @@ def cmd_status():
                 log("  上次记录: %.2f 天（记于 %s）" % (c["days"], c.get("at", "?")))
             else:
                 log("  会员时长: 未知（接口本次未返回，不代表为 0）")
+            log("  ---- 诊断信息（请把这段发我）----")
+            log(dump_balance_raw(w))
+            log("  --------------------------------")
         today = time.strftime("%Y-%m-%d")
         rows = [r for r in w.history() if (r.get("createTime") or "").startswith(today)]
         log("  今日流水: %d 条" % len(rows))
