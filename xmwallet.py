@@ -620,10 +620,13 @@ class Wallet:
 
     def balance(self) -> Optional[Dict[str, Any]]:
         """查会员时长。取不到就返回 None，绝不返回假的 0.00。"""
-        TOTAL_KEYS = ("totalBalance", "balance", "userBalance", "totalAmount",
-                      "amount", "goldBalance", "sumBalance", "remainBalance")
-        AVAIL_KEYS = ("availableBalance", "availBalance", "balance",
-                      "totalBalance", "usableBalance", "remainBalance")
+        # 实测字段：value = {currentBalance, frozenBalance, availableBalance}
+        TOTAL_KEYS = ("currentBalance", "totalBalance", "balance", "userBalance",
+                      "totalAmount", "amount", "goldBalance", "sumBalance",
+                      "remainBalance", "pointBalance", "totalPoint")
+        AVAIL_KEYS = ("availableBalance", "availBalance", "currentBalance",
+                      "balance", "totalBalance", "usableBalance", "remainBalance")
+        FROZEN_KEYS = ("frozenBalance", "frozen", "freezeBalance")
 
         def pick(v: dict, keys):
             if not isinstance(v, dict):
@@ -655,8 +658,18 @@ class Wallet:
                 return None          # 取不到就是取不到，不报 0.00
             if avail is None:
                 avail = total
+            frozen = pick(v, FROZEN_KEYS)
+            if frozen is None and isinstance(v, dict):
+                for sub in ("balanceInfo", "userBalanceInfo", "data", "account"):
+                    if isinstance(v.get(sub), dict):
+                        frozen = pick(v[sub], FROZEN_KEYS)
+                        if frozen is not None:
+                            break
+            if frozen is None:
+                frozen = 0
             balcache_save(total / 100.0, avail / 100.0)
-            return {"ok": True, "days": total / 100.0, "avail": avail / 100.0, "raw": v}
+            return {"ok": True, "days": total / 100.0, "avail": avail / 100.0,
+                    "frozen": frozen / 100.0, "raw": v}
 
         # 备用接口
         d2 = self._get("queryUserGoldRichSum", {})
@@ -664,11 +677,15 @@ class Wallet:
             self.last_balance_raw = ("queryUserGoldRichSum", d2)
         if d2 and d2.get("code") == 0:
             v2 = d2.get("value")
-            n = self._as_int(v2) if not isinstance(v2, dict) else pick(v2, TOTAL_KEYS)
+            if isinstance(v2, dict):
+                n = pick(v2, TOTAL_KEYS)
+            else:
+                n = self._as_int(v2)          # 实测这里直接是 10578
             if n is None:
                 return None
             balcache_save(n / 100.0, n / 100.0)
-            return {"ok": True, "days": n / 100.0, "avail": n / 100.0, "raw": d2}
+            return {"ok": True, "days": n / 100.0, "avail": n / 100.0,
+                    "frozen": 0.0, "raw": d2}
 
         return None
 
@@ -792,7 +809,7 @@ def run_account(acc: Dict[str, Any]) -> str:
 
     bal = w.balance_retry()
     if bal:
-        log("  当前会员时长: %.2f 天（可用 %.2f 天）" % (bal["days"], bal["avail"]))
+        log("  当前会员时长: %.2f 天（可用 %.2f 天，冻结 %.2f 天）" % (bal["days"], bal["avail"], bal.get("frozen", 0.0)))
     else:
         c = balcache_read()
         if c:
@@ -1008,7 +1025,7 @@ def cmd_status():
             continue
         bal = w.balance_retry()
         if bal:
-            log("  会员时长: %.2f 天（可用 %.2f 天）" % (bal["days"], bal["avail"]))
+            log("  会员时长: %.2f 天（可用 %.2f 天，冻结 %.2f 天）" % (bal["days"], bal["avail"], bal.get("frozen", 0.0)))
         else:
             c = balcache_read()
             if c:
