@@ -657,6 +657,8 @@ def run_account(acc: Dict[str, Any]) -> str:
 
     summary = "账号 %s：今日领取 %d 笔 %s" % (name, len(gained), "、".join(gained[-3:]) if gained else "（无）")
     log("  " + summary)
+    if gained:
+        stamp_write()
     return summary
 
 
@@ -714,6 +716,122 @@ def cmd_status():
             log("    %s  +%.2f天  %s" % (r.get("createTime"), val / 100.0, r.get("desc") or ""))
         log("  凭据更新于: %s" % (acc.get("updatedAt") or acc.get("createdAt") or "未知"))
 
+
+
+STAMP_FILE = os.path.expanduser("~/.xmwallet_last_run")
+BASHRC = os.path.expanduser("~/.bashrc")
+HOOK_BEGIN = "# >>> xmwallet auto-run hook >>>"
+HOOK_END = "# <<< xmwallet auto-run hook <<<"
+
+
+def stamp_read() -> int:
+    try:
+        return int(open(STAMP_FILE).read().strip())
+    except Exception:
+        return 0
+
+
+def stamp_write():
+    try:
+        open(STAMP_FILE, "w").write(str(int(time.time())))
+    except Exception:
+        pass
+
+
+def cmd_job_diag():
+    """诊断 termux-job-scheduler 为什么卡住。"""
+    log("")
+    log("===== job-scheduler 诊断 =====")
+    log("1) 命令行工具 termux-job-scheduler : %s"
+        % ("存在" if has_job_scheduler() else "缺失（pkg install termux-api）"))
+    log("2) Termux:API  App                 : %s"
+        % ("已装" if has_api_app() else "未装 ← 最可能的原因"))
+
+    jobs_dir = os.path.expanduser("~/.termux/jobs")
+    try:
+        n = len(os.listdir(jobs_dir)) if os.path.isdir(jobs_dir) else 0
+        log("3) 任务目录 ~/.termux/jobs         : %s（%d 个）"
+            % ("存在" if os.path.isdir(jobs_dir) else "不存在", n))
+    except Exception as e:
+        log("3) 任务目录                        : 读取失败 %s" % e)
+
+    if has_job_scheduler():
+        log("")
+        log("4) 尝试调用（5 秒超时，看它到底返回什么）...")
+        try:
+            r = subprocess.run(["termux-job-scheduler", "--help"],
+                               capture_output=True, text=True, timeout=5)
+            out = (r.stdout or "") + (r.stderr or "")
+            log("   返回码 %s，输出: %s" % (r.returncode, out.strip()[:200] or "(空)"))
+        except subprocess.TimeoutExpired:
+            log("   ✖ 5 秒无响应 → 它卡在等授权弹窗，说明 App 没装或被拦")
+        except Exception as e:
+            log("   调用异常: %s" % e)
+
+    log("")
+    if not has_api_app():
+        log("结论：Termux:API App 没装。光 pkg install termux-api 不够，")
+        log("      必须单独装 App（和 Termux 同一个来源）。")
+        log("")
+        log("装不了的话，直接用更省电、零依赖的方案：")
+        log("  python3 xmwallet.py hook")
+    else:
+        log("结论：App 已装。卡住多半是授权弹窗没点，或电池优化拦了。")
+        log("      去系统设置 → 应用 → Termux:API → 电池 → 设为「不优化」")
+    log("")
+
+
+# ---------------------------------------------------------------- bashrc 钩子（零依赖兜底）
+
+def cmd_hook(install: bool = True, hours: str = "20"):
+    """打开 Termux 时按需补跑：不常驻进程，不装任何 App，零额外耗电。"""
+    try:
+        g = int(float(hours) * 3600)
+    except Exception:
+        g = 20 * 3600
+
+    cur = ""
+    if os.path.isfile(BASHRC):
+        cur = open(BASHRC, "r", encoding="utf-8", errors="ignore").read()
+
+    # 先清旧钩子
+    if HOOK_BEGIN in cur and HOOK_END in cur:
+        i = cur.index(HOOK_BEGIN)
+        j = cur.index(HOOK_END) + len(HOOK_END)
+        cur = (cur[:i] + cur[j:]).rstrip("\n") + "\n"
+
+    if not install:
+        open(BASHRC, "w", encoding="utf-8").write(cur)
+        log("✔ 已移除 bashrc 钩子。")
+        return
+
+    py = sys.executable or "python3"
+    script = os.path.abspath(__file__)
+    block = (
+        HOOK_BEGIN + "\n"
+        "# 距上次成功运行超过 %d 小时就补跑一次；后台运行，不阻塞\n"
+        "( \n"
+        "  last=0; [ -f %s ] && last=$(cat %s 2>/dev/null || echo 0);\n"
+        "  now=$(date +%%s);\n"
+        "  if [ $(( now - ${last:-0} )) -gt %d ]; then\n"
+        "    nohup sh -c 'cd %s && %s %s run; date +%%s > %s' \\\n"
+        "      >> %s 2>&1 &\n"
+        "  fi\n"
+        ") >/dev/null 2>&1\n"
+        + HOOK_END + "\n"
+    ) % (g // 3600, STAMP_FILE, STAMP_FILE, g, BASE_DIR, py, script, STAMP_FILE, LOG_FILE)
+
+    open(BASHRC, "w", encoding="utf-8").write(cur.rstrip("\n") + "\n\n" + block)
+    log("")
+    log("✔ 已安装 bashrc 钩子（零依赖，最省电）")
+    log("  规则：每次打开 Termux，若距上次运行超过 %d 小时，后台补跑一次" % (g // 3600))
+    log("  文件：%s" % BASHRC)
+    log("")
+    log("  · 不常驻任何进程，不开 Termux 就完全不耗电")
+    log("  · 后台执行，打开 Termux 不会卡")
+    log("  · 移除：python3 xmwallet.py hook --remove")
+    log("  · 改间隔：python3 xmwallet.py hook 12")
+    log("")
 
 # ---------------------------------------------------------------- 定时方案
 
@@ -964,12 +1082,14 @@ def cmd_cron():
 def main():
     ap = argparse.ArgumentParser(description="小米钱包每日任务（Termux 版）")
     ap.add_argument("cmd", nargs="?", default="run",
-                    choices=["login", "run", "status", "job", "cron", "import"], help="子命令")
+                    choices=["login", "run", "status", "job", "hook", "cron", "import"], help="子命令")
     ap.add_argument("name", nargs="?", default="", help="账号别名（login/指定账号 run 时用）")
     ap.add_argument("src", nargs="?", default="", help="凭据来源（import 时用：文件路径或 JSON）")
     ap.add_argument("-p", "--period", default="24h", help="任务周期，如 24h / 12h / 90m（默认 24h）")
     ap.add_argument("--list", action="store_true", help="job: 查看已注册任务")
     ap.add_argument("--cancel", action="store_true", help="job: 取消已注册任务")
+    ap.add_argument("--diag", action="store_true", help="job: 诊断为什么卡住")
+    ap.add_argument("--remove", action="store_true", help="hook: 移除钩子")
     args = ap.parse_args()
 
     if args.cmd == "login":
@@ -981,7 +1101,12 @@ def main():
     elif args.cmd == "status":
         cmd_status()
     elif args.cmd == "job":
-        cmd_job(args.period, cancel=args.cancel, show_list=args.list)
+        if args.diag:
+            cmd_job_diag()
+        else:
+            cmd_job(args.period, cancel=args.cancel, show_list=args.list)
+    elif args.cmd == "hook":
+        cmd_hook(install=not args.remove, hours=args.period if args.period != "24h" else "20")
     elif args.cmd == "import":
         if not args.name:
             sys.exit("用法: python3 xmwallet.py import <别名> <文件路径或JSON>")
