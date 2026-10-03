@@ -744,6 +744,18 @@ def has_job_scheduler() -> bool:
     return bool(which("termux-job-scheduler"))
 
 
+def has_api_app() -> bool:
+    """termux-job-scheduler 依赖 Termux:API 这个 App，光装包没用。"""
+    if os.path.isdir("/data/data/com.termux.api"):
+        return True
+    try:
+        r = subprocess.run(["pm", "list", "packages", "com.termux.api"],
+                           capture_output=True, text=True, timeout=15)
+        return "com.termux.api" in (r.stdout or "")
+    except Exception:
+        return False
+
+
 def has_crontab() -> bool:
     from shutil import which
     return bool(which("crontab"))
@@ -813,25 +825,61 @@ def cmd_job(period_text: str, cancel: bool = False, show_list: bool = False):
     sp = _write_job_script(py, script)
     period_ms = parse_period(period_text)
 
+    if not has_api_app():
+        log("")
+        log("✖ 检测到问题：Termux:API 这个 App 没装。")
+        log("  pkg install termux-api 只装了命令行工具，")
+        log("  真正干活的 App 要单独装（和 Termux 同一个来源）：")
+        log("    https://f-droid.org/packages/com.termux.api/")
+        log("  装完再执行: python3 xmwallet.py job")
+        return
+
+    jobs_dir = os.path.expanduser("~/.termux/jobs")
+    try:
+        before = set(os.listdir(jobs_dir)) if os.path.isdir(jobs_dir) else set()
+    except Exception:
+        before = set()
+
     cmd = [
         "termux-job-scheduler",
         "--script", sp,
         "--period-ms", str(period_ms),
-        "--persisted", "true",       # 重启后依然生效
-        "--battery-not-low", "false", # 低电量也执行，避免整天错过
+        "--persisted", "true",
+        "--battery-not-low", "false",
         "--network", "any",
     ]
+
+    log("")
+    log("正在注册，若手机弹出「Termux:API 授权」请点【允许】...")
+
+    # 后台启动：不等它返回，避免权限弹窗阻塞导致超时
+    err_path = os.path.join(BASE_DIR, ".job_err.txt")
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        errf = open(err_path, "w")
+        subprocess.Popen(cmd, stdout=errf, stderr=errf, start_new_session=True)
     except Exception as e:
-        log("注册失败: %s" % e)
+        log("启动失败: %s" % e)
         return
 
-    if r.returncode == 0:
+    # 轮询 jobs 目录，看是否真的注册成功
+    ok = False
+    for _ in range(40):
+        time.sleep(1.5)
+        try:
+            now = set(os.listdir(jobs_dir)) if os.path.isdir(jobs_dir) else set()
+        except Exception:
+            now = set()
+        if now - before:
+            ok = True
+            new_files = sorted(now - before)
+            break
+
+    if ok:
         log("")
         log("✔ 已注册系统级定时任务（不常驻后台，最省电）")
         log("  周期: 每 %.1f 小时" % (period_ms / 3600000.0))
         log("  脚本: %s" % sp)
+        log("  任务文件: %s" % ", ".join(new_files))
         log("")
         log("  · 手机重启后依然生效，无需手动启动任何守护进程")
         log("  · 查看已注册: python3 xmwallet.py job --list")
@@ -841,7 +889,22 @@ def cmd_job(period_text: str, cancel: bool = False, show_list: bool = False):
         log("  提示：Android 的 JobScheduler 不保证精确时点，")
         log("        实际执行可能偏移几十分钟，属正常现象。")
     else:
-        log("注册失败: %s" % (r.stderr or r.stdout or "未知错误").strip()[:200])
+        log("")
+        log("✖ 60 秒内没看到任务文件生成，注册可能没成功。")
+        try:
+            tip = open(err_path, "r", errors="ignore").read().strip()
+        except Exception:
+            tip = ""
+        if tip:
+            log("  命令输出: %s" % tip[:300])
+        log("")
+        log("  常见原因与处理：")
+        log("   1) 刚才弹了授权框但你没点允许 → 重跑一次并点【允许】")
+        log("   2) Termux:API App 没装（见上方提示）")
+        log("   3) 系统把 Termux:API 的「电池优化」开着 → 去设置里改成不优化")
+        log("")
+        log("  重新尝试: python3 xmwallet.py job")
+        log("  查看结果: python3 xmwallet.py job --list")
 
 
 def cmd_cron():
