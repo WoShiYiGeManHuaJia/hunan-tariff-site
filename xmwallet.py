@@ -448,19 +448,63 @@ class Wallet:
             return None
 
     # ---- 查询 ----
+    @staticmethod
+    def _as_int(v) -> Optional[int]:
+        """安全转整数；遇到 dict/list/None 返回 None，而不是崩或当成 0。"""
+        if v is None or isinstance(v, (dict, list, bool)):
+            return None
+        try:
+            return int(float(v))
+        except (ValueError, TypeError):
+            return None
+
     def balance(self) -> Optional[Dict[str, Any]]:
+        """查会员时长。取不到就返回 None，绝不返回假的 0.00。"""
+        TOTAL_KEYS = ("totalBalance", "balance", "userBalance", "totalAmount",
+                      "amount", "goldBalance", "sumBalance", "remainBalance")
+        AVAIL_KEYS = ("availableBalance", "availBalance", "balance",
+                      "totalBalance", "usableBalance", "remainBalance")
+
+        def pick(v: dict, keys):
+            if not isinstance(v, dict):
+                return None
+            for k in keys:
+                if k in v:
+                    n = self._as_int(v[k])
+                    if n is not None:
+                        return n
+            return None
+
         d = self._get("queryUserBalanceWithFrozen", {})
         if d and d.get("code") == 0:
-            v = d.get("value") or {}
-            total = int(v.get("totalBalance") or v.get("balance") or 0)
-            avail = int(v.get("availableBalance") or v.get("totalBalance") or 0)
+            v = d.get("value")
+            if not isinstance(v, dict):
+                v = {}
+            total = pick(v, TOTAL_KEYS)
+            avail = pick(v, AVAIL_KEYS)
+            if total is None and isinstance(v, dict):
+                # 有些版本把余额藏在嵌套里，兜一层
+                for sub in ("balanceInfo", "userBalanceInfo", "data", "account"):
+                    if isinstance(v.get(sub), dict):
+                        total = pick(v[sub], TOTAL_KEYS)
+                        if total is not None:
+                            avail = pick(v[sub], AVAIL_KEYS)
+                            break
+            if total is None:
+                return None          # 取不到就是取不到，不报 0.00
+            if avail is None:
+                avail = total
             return {"ok": True, "days": total / 100.0, "avail": avail / 100.0, "raw": v}
-        if d and d.get("code") != 0:
-            # 兼容另一套字段名
-            d2 = self._get("queryUserGoldRichSum", {})
-            if d2 and d2.get("code") == 0:
-                return {"ok": True, "days": int(d2.get("value", 0)) / 100.0,
-                        "avail": int(d2.get("value", 0)) / 100.0, "raw": d2}
+
+        # 备用接口
+        d2 = self._get("queryUserGoldRichSum", {})
+        if d2 and d2.get("code") == 0:
+            v2 = d2.get("value")
+            n = self._as_int(v2) if not isinstance(v2, dict) else pick(v2, TOTAL_KEYS)
+            if n is None:
+                return None
+            return {"ok": True, "days": n / 100.0, "avail": n / 100.0, "raw": d2}
+
         return None
 
     def history(self) -> List[Dict[str, Any]]:
@@ -573,7 +617,7 @@ def run_account(acc: Dict[str, Any]) -> str:
     if bal:
         log("  当前会员时长: %.2f 天（可用 %.2f 天）" % (bal["days"], bal["avail"]))
     else:
-        log("  会员时长查询失败，继续尝试任务")
+        log("  会员时长: 未知（接口本次未返回，不代表为 0）")
 
     gained: List[str] = []
     rounds = 0
@@ -654,6 +698,8 @@ def run_account(acc: Dict[str, Any]) -> str:
     bal2 = w.balance()
     if bal2:
         log("  结算后会员时长: %.2f 天" % bal2["days"])
+    else:
+        log("  结算后会员时长: 未知（接口本次未返回，不代表为 0）")
 
     summary = "账号 %s：今日领取 %d 笔 %s" % (name, len(gained), "、".join(gained[-3:]) if gained else "（无）")
     log("  " + summary)
@@ -705,6 +751,8 @@ def cmd_status():
         bal = w.balance()
         if bal:
             log("  会员时长: %.2f 天（可用 %.2f 天）" % (bal["days"], bal["avail"]))
+        else:
+            log("  会员时长: 未知（接口本次未返回，不代表为 0）")
         today = time.strftime("%Y-%m-%d")
         rows = [r for r in w.history() if (r.get("createTime") or "").startswith(today)]
         log("  今日流水: %d 条" % len(rows))
