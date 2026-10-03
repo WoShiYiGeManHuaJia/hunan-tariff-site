@@ -715,34 +715,185 @@ def cmd_status():
         log("  凭据更新于: %s" % (acc.get("updatedAt") or acc.get("createdAt") or "未知"))
 
 
-def cmd_cron():
+# ---------------------------------------------------------------- 定时方案
+
+def _job_script_path() -> str:
+    return os.path.join(BASE_DIR, "xmwallet-run.sh")
+
+
+def _write_job_script(py: str, script: str) -> str:
+    """job-scheduler 只能调 shell 脚本，生成一层包装。"""
+    sp = _job_script_path()
+    body = (
+        "#!/data/data/com.termux/files/usr/bin/sh\n"
+        "# xmwallet 定时执行包装脚本（由 xmwallet.py job 生成）\n"
+        "cd %s\n"
+        "%s %s run\n"
+    ) % (BASE_DIR, py, script)
+    with open(sp, "w", encoding="utf-8") as f:
+        f.write(body)
+    try:
+        os.chmod(sp, 0o755)
+    except Exception:
+        pass
+    return sp
+
+
+def has_job_scheduler() -> bool:
+    from shutil import which
+    return bool(which("termux-job-scheduler"))
+
+
+def has_crontab() -> bool:
+    from shutil import which
+    return bool(which("crontab"))
+
+
+def parse_period(text: str) -> int:
+    """把 24h / 12h30m / 90m 之类转成毫秒，最小 15 分钟。"""
+    text = (text or "24h").strip().lower()
+    m = re.match(r"^(\d+(?:\.\d+)?)\s*(h|m|d)?$", text)
+    if not m:
+        return 86400000
+    val = float(m.group(1))
+    unit = m.group(2) or "h"
+    mult = {"m": 60000, "h": 3600000, "d": 86400000}[unit]
+    ms = int(val * mult)
+    return max(ms, 900000)  # Android JobScheduler 最小周期 15 分钟
+
+
+def cmd_job(period_text: str, cancel: bool = False, show_list: bool = False):
+    """termux-job-scheduler 方案：不常驻后台进程，系统按需唤醒，最省电。"""
     if not in_termux():
-        log("当前不在 Termux 环境，仅打印参考配置：")
+        log("当前不在 Termux，无法注册 job。")
+        return
+
+    if not has_job_scheduler():
+        log("未检测到 termux-job-scheduler，请先安装：")
+        log("  pkg install termux-api")
+        log("装完重新执行: python3 xmwallet.py job")
+        return
+
+    if show_list:
+        jobs_dir = os.path.expanduser("~/.termux/jobs")
+        if os.path.isdir(jobs_dir):
+            files = sorted(os.listdir(jobs_dir))
+            log("已注册的 job (%d):" % len(files))
+            for f in files:
+                log("  · " + f)
+        else:
+            log("当前没有已注册的 job。")
+        return
+
+    if cancel:
+        sp = _job_script_path()
+        removed = 0
+        jobs_dir = os.path.expanduser("~/.termux/jobs")
+        if os.path.isdir(jobs_dir):
+            for f in sorted(os.listdir(jobs_dir)):
+                fp = os.path.join(jobs_dir, f)
+                try:
+                    content = open(fp, "r", encoding="utf-8", errors="ignore").read()
+                except Exception:
+                    continue
+                if "xmwallet" in content:
+                    try:
+                        os.remove(fp)
+                        removed += 1
+                    except Exception:
+                        pass
+        if removed:
+            log("✔ 已取消 %d 个 xmwallet 定时任务。" % removed)
+        else:
+            log("没有找到可取消的 xmwallet 任务。")
+        return
+
+    py = sys.executable or "python3"
+    script = os.path.abspath(__file__)
+    sp = _write_job_script(py, script)
+    period_ms = parse_period(period_text)
+
+    cmd = [
+        "termux-job-scheduler",
+        "--script", sp,
+        "--period-ms", str(period_ms),
+        "--persisted", "true",       # 重启后依然生效
+        "--battery-not-low", "false", # 低电量也执行，避免整天错过
+        "--network", "any",
+    ]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    except Exception as e:
+        log("注册失败: %s" % e)
+        return
+
+    if r.returncode == 0:
+        log("")
+        log("✔ 已注册系统级定时任务（不常驻后台，最省电）")
+        log("  周期: 每 %.1f 小时" % (period_ms / 3600000.0))
+        log("  脚本: %s" % sp)
+        log("")
+        log("  · 手机重启后依然生效，无需手动启动任何守护进程")
+        log("  · 查看已注册: python3 xmwallet.py job --list")
+        log("  · 取消任务:   python3 xmwallet.py job --cancel")
+        log("  · 改周期:     python3 xmwallet.py job 12h")
+        log("")
+        log("  提示：Android 的 JobScheduler 不保证精确时点，")
+        log("        实际执行可能偏移几十分钟，属正常现象。")
+    else:
+        log("注册失败: %s" % (r.stderr or r.stdout or "未知错误").strip()[:200])
+
+
+def cmd_cron():
+    """crond 方案：需常驻后台进程，更耗电。仅在 job 方案不可用时用。"""
+    log("")
+    log("⚠  crond 需要常驻后台进程，比 termux-job-scheduler 耗电。")
+    log("   更省电的方案: python3 xmwallet.py job")
+    log("")
+
     py = sys.executable or "python3"
     script = os.path.abspath(__file__)
     line = "0 9 * * * %s %s run >> %s 2>&1" % (py, script, LOG_FILE)
-    log("")
-    log("建议的 crontab 行（每天 9:00 执行）：")
-    log("  " + line)
-    log("")
-    if in_termux():
-        try:
-            cur = subprocess.run(["crontab", "-l"], capture_output=True, text=True, timeout=15).stdout or ""
-        except Exception:
-            cur = ""
-        if script in cur:
-            log("crontab 中已存在该任务，无需重复添加。")
+
+    if not in_termux():
+        log("当前不在 Termux，仅打印参考配置：")
+        log("  " + line)
+        return
+
+    if not has_crontab():
+        log("未检测到 crontab，请先安装: pkg install cronie")
+        log("（或者直接用更省电的方案: python3 xmwallet.py job）")
+        return
+    else:
+        log("cronie 已安装 ✔")
+
+    try:
+        cur = subprocess.run(["crontab", "-l"], capture_output=True, text=True, timeout=15).stdout or ""
+    except Exception:
+        cur = ""
+
+    if script in cur:
+        log("crontab 中已存在该任务，无需重复添加。")
+    else:
+        new = cur.rstrip("\n") + "\n" + line + "\n"
+        r = subprocess.run(["crontab", "-"], input=new, text=True, timeout=20, capture_output=True)
+        if r.returncode == 0:
+            log("✔ 已写入 crontab: " + line)
         else:
-            new = cur.rstrip("\n") + "\n" + line + "\n"
-            p = subprocess.run(["crontab", "-"], input=new, text=True, timeout=20,
-                               capture_output=True)
-            if p.returncode == 0:
-                log("✔ 已写入 crontab。请先执行一次: crond  或在 ~/.bashrc 加上 crond")
-            else:
-                log("写入失败，请手动执行: crontab -e  然后粘贴上面的行")
-    log("")
-    log("提示：Termux 需先安装 cronie  → pkg install cronie")
-    log("      Android 8+ 也可用 termux-job-scheduler 更省电。")
+            log("写入失败，请手动执行: crontab -e  然后粘贴：")
+            log("  " + line)
+            return
+
+    # 实时显示 crond 是否在跑
+    try:
+        ps = subprocess.run(["pgrep", "-x", "crond"], capture_output=True, text=True, timeout=10).stdout.strip()
+    except Exception:
+        ps = ""
+    if ps:
+        log("crond 运行状态: 已在运行 (pid %s)" % ps.split()[0])
+    else:
+        log("crond 运行状态: 未启动 → 执行 crond 启动；")
+        log("                  Termux 被系统回收后需重新启动。")
 
 
 # ---------------------------------------------------------------- 入口
@@ -750,9 +901,12 @@ def cmd_cron():
 def main():
     ap = argparse.ArgumentParser(description="小米钱包每日任务（Termux 版）")
     ap.add_argument("cmd", nargs="?", default="run",
-                    choices=["login", "run", "status", "cron", "import"], help="子命令")
+                    choices=["login", "run", "status", "job", "cron", "import"], help="子命令")
     ap.add_argument("name", nargs="?", default="", help="账号别名（login/指定账号 run 时用）")
     ap.add_argument("src", nargs="?", default="", help="凭据来源（import 时用：文件路径或 JSON）")
+    ap.add_argument("-p", "--period", default="24h", help="任务周期，如 24h / 12h / 90m（默认 24h）")
+    ap.add_argument("--list", action="store_true", help="job: 查看已注册任务")
+    ap.add_argument("--cancel", action="store_true", help="job: 取消已注册任务")
     args = ap.parse_args()
 
     if args.cmd == "login":
@@ -763,6 +917,8 @@ def main():
         cmd_run(args.name)
     elif args.cmd == "status":
         cmd_status()
+    elif args.cmd == "job":
+        cmd_job(args.period, cancel=args.cancel, show_list=args.list)
     elif args.cmd == "import":
         if not args.name:
             sys.exit("用法: python3 xmwallet.py import <别名> <文件路径或JSON>")
