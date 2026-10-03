@@ -137,14 +137,13 @@ summary{font-size:13px;color:var(--brand);cursor:pointer;padding:6px 0}
 <div class="step">
   <h2><span class="n">8</span> 钉钉推送 <span class="badge key">自动生成命令</span></h2>
   <p style="margin:0;font-size:13px;color:var(--sub)">把你的机器人信息粘进去，下面会自动生成一条命令，复制后到 Termux 执行即可。</p>
+  <div class="ok">页面<b>不保存、不上传</b>任何输入，刷新即清空。信息只在你手机浏览器内存里，用来拼命令。</div>
 
   <label>Webhook 地址</label>
-  <input type="text" id="wh" placeholder="https://oapi.dingtalk.com/robot/send?access_token=..." oninput="gen()">
+  <input type="text" id="wh" placeholder="https://oapi.dingtalk.com/robot/send?access_token=（你的）" oninput="gen()">
 
   <label>加签密钥（SEC 开头，选填）</label>
   <input type="text" id="sec" placeholder="SEC..." oninput="gen()">
-
-  <button class="copy big" onclick="fillDemo()">填入我的机器人配置</button>
 
   <label style="margin-top:12px">生成的命令：</label>
   <code class="gen" id="genCmd">（填入上面信息后自动生成）</code>
@@ -163,8 +162,8 @@ summary{font-size:13px;color:var(--brand);cursor:pointer;padding:6px 0}
     </div>
   </details>
 
-  <div class="warn">页面上的输入<b>只在你手机浏览器里处理，不会上传</b>。<br>
-  但 Webhook 等于群发消息权限，介意的话用完可在钉钉群里重置机器人。</div>
+  <div class="warn">Webhook 等于<b>往你群里发消息的权限</b>，别发给别人、别贴到公开地方。<br>
+  用完若担心泄露，去钉钉群 → 群设置 → 智能群助手 → 点机器人 → <b>重新生成 Webhook</b>（旧的立刻失效）。</div>
 </div>
 
 <!-- 9 -->
@@ -213,9 +212,6 @@ summary{font-size:13px;color:var(--brand);cursor:pointer;padding:6px 0}
 </div>
 
 <script>
-var DEMO_WH="https://oapi.dingtalk.com/robot/send?access_token=ae5a8057dafc786b4a951a48bba8651f9c41b0e58c33520830c13e7beca20160";
-var DEMO_SEC="SECfb786599c38cafc37c3a73c87f51786763f5e0cf6e08835f0cbd9f3fa42c3bd0";
-
 function esc(s){
   return s.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\$/g,'\\$').replace(/`/g,'\\`');
 }
@@ -234,11 +230,6 @@ function gen(){
   var cmd='python3 xmwallet.py dingtalk "'+esc(wh)+'"';
   if(sec) cmd+=' --secret "'+esc(sec)+'"';
   el.textContent=cmd;
-}
-function fillDemo(){
-  document.getElementById('wh').value=DEMO_WH;
-  document.getElementById('sec').value=DEMO_SEC;
-  gen();
 }
 function cp(id,btn){
   var t=document.getElementById(id).innerText;
