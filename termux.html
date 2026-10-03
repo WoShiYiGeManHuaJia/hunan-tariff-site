@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Termux 安装 + 小米钱包脚本</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--line:#e3ebf5;--txt:#1c2733;--sub:#6b7a8d;--brand:#2f7cf6;--ok:#0aa06e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;padding:14px 12px 40px}
+h1{font-size:19px;margin:6px 0 2px}
+.lead{color:var(--sub);font-size:13px;margin:0 0 16px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(31,60,110,.05)}
+.step h2{font-size:15px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.n{background:var(--brand);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+a.dl{display:block;text-align:center;background:var(--brand);color:#fff;text-decoration:none;border-radius:12px;padding:13px;font-weight:600;margin:8px 0 4px;font-size:15px}
+a.dl.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand)}
+a.dl:active{opacity:.75}
+code{background:#eef3fa;border:1px solid var(--line);border-radius:8px;padding:9px 10px;display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;word-break:break-all;white-space:pre-wrap;margin:6px 0;color:#123}
+button.copy{background:#eef3fa;border:1px solid var(--line);color:var(--brand);border-radius:8px;padding:6px 12px;font-size:12.5px;margin-top:4px}
+button.copy:active{background:#dfe9f7}
+.tip{background:#fff7e6;border:1px solid #ffe2ab;color:#8a5a00;border-radius:10px;padding:9px 11px;font-size:12.5px;margin-top:8px}
+.warn{background:#fdecec;border:1px solid #f7c9c9;color:#a33;border-radius:10px;padding:9px 11px;font-size:12.5px;margin-top:8px}
+.done{color:var(--ok);font-size:13px}
+small{color:var(--sub)}
+</style>
+</head>
+<body>
+
+<h1>📦 Termux 安装 + 小米钱包脚本</h1>
+<p class="lead">按顺序做，每步点一下就行。命令都带「复制」，复制后到 Termux 里长按粘贴。</p>
+
+<div class="step">
+  <h2><span class="n">1</span> 下载 Termux（33MB）</h2>
+  <p style="margin:0;color:var(--sub);font-size:13px">绝大多数手机点第一个。装不上再试第二个。</p>
+  <a class="dl" href="https://github.com/termux/termux-app/releases/download/v0.118.3/termux-app_v0.118.3%2Bgithub-debug_arm64-v8a.apk">⬇ 下载 Termux（arm64，推荐）</a>
+  <a class="dl ghost" href="https://github.com/termux/termux-app/releases/download/v0.118.3/termux-app_v0.118.3%2Bgithub-debug_universal.apk">⬇ 通用版（112MB，装不上再用）</a>
+  <div class="tip">下载完点开安装包 → 系统提示「未知来源」→ 允许一次 → 安装。<br>
+  若提示「无法安装」，先去 F-Droid 装：<a href="https://f-droid.org/packages/com.termux/">f-droid.org/packages/com.termux</a></div>
+</div>
+
+<div class="step">
+  <h2><span class="n">2</span> 打开 Termux，装环境</h2>
+  <p style="margin:0;color:var(--sub);font-size:13px">第一次打开会下载基础包，等它跑完出现 <code style="display:inline;padding:1px 5px">$</code> 再粘命令。</p>
+  <code id="c1">pkg update -y &amp;&amp; pkg install -y python cronie termux-api &amp;&amp; pip install requests qrcode</code>
+  <button class="copy" onclick="cp('c1',this)">复制</button>
+  <div class="tip">中间问 <b>Y/N</b> 一律回车默认。跑完回到 <code style="display:inline;padding:1px 5px">$</code> 就是好了。cronie / termux-api 装不上也没关系，只是不能定时。</div>
+</div>
+
+<div class="step">
+  <h2><span class="n">3</span> 下载脚本</h2>
+  <code id="c2">curl -sSL -o xmwallet.py https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/xmwallet@main/xmwallet.py</code>
+  <button class="copy" onclick="cp('c2',this)">复制</button>
+  <div class="tip">如果卡住或报错，换成这条：<br>
+  <code id="c2b">curl -sSL -o xmwallet.py https://raw.githubusercontent.com/WoShiYiGeManHuaJia/xmwallet/main/xmwallet.py</code>
+  <button class="copy" onclick="cp('c2b',this)">复制备用</button></div>
+</div>
+
+<div class="step">
+  <h2><span class="n">4</span> 扫码登录（只做一次）</h2>
+  <code id="c3">python3 xmwallet.py login 我的号</code>
+  <button class="copy" onclick="cp('c3',this)">复制</button>
+  <div class="tip">屏幕会出一个二维码 → 用<b>小米手机自带的「扫一扫」</b>扫 → 手机上点【允许登录】。<br>
+  二维码扫不了？命令下面会跟一行 <b>https</b> 开头的链接，长按复制到手机浏览器打开授权，效果一样。<br>
+  <span class="done">✔ 看到「登录成功」就成了。</span></div>
+</div>
+
+<div class="step">
+  <h2><span class="n">5</span> 验证 + 跑一次</h2>
+  <code id="c4">python3 xmwallet.py status</code>
+  <button class="copy" onclick="cp('c4',this)">复制</button>
+  <p style="margin:6px 0 0;color:var(--sub);font-size:13px">能显示「会员时长 XX 天」就通了。然后：</p>
+  <code id="c5">python3 xmwallet.py run</code>
+  <button class="copy" onclick="cp('c5',this)">复制</button>
+</div>
+
+<div class="step">
+  <h2><span class="n">6</span> 挂每天自动跑（可选）</h2>
+  <code id="c6">python3 xmwallet.py cron &amp;&amp; crond</code>
+  <button class="copy" onclick="cp('c6',this)">复制</button>
+  <div class="tip">Termux 被系统杀掉定时任务就不跑了，想稳一点可以在手机设置里把 Termux 设为「允许后台运行 / 锁定后台」。</div>
+</div>
+
+<div class="warn">
+<b>⚠️ 两句实话</b><br>
+· 这个脚本没法提前验证「能不能真领到会员」，必须你真实账号扫了码才知道。<br>
+· 小米随时可能改接口校验，届时跑完把 <code style="display:inline;padding:1px 5px">xmwallet.log</code> 发我，我照着改。<br>
+· <code style="display:inline;padding:1px 5px">passToken</code> 等于账号凭证，不要外传。
+</div>
+
+<script>
+function cp(id,btn){
+  var t=document.getElementById(id).innerText;
+  var ta=document.createElement('textarea');
+  ta.value=t;ta.style.position='fixed';ta.style.left='-9999px';
+  document.body.appendChild(ta);ta.select();
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);}
+    else{document.execCommand('copy');}
+    btn.innerText='已复制 ✓';
+  }catch(e){btn.innerText='请长按手动复制';}
+  document.body.removeChild(ta);
+  setTimeout(function(){btn.innerText='复制';},1800);
+}
+</script>
+</body>
+</html>
