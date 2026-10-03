@@ -62,6 +62,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ACCOUNT_FILE = os.path.join(BASE_DIR, "accounts.json")
 DEVICE_FILE = os.path.join(BASE_DIR, "device.json")
 DINGTALK_FILE = os.path.join(BASE_DIR, "dingtalk.json")
+BALCACHE_FILE = os.path.join(BASE_DIR, "balance_cache.json")
 LOG_FILE = os.path.join(BASE_DIR, "xmwallet.log")
 MAX_LOG_BYTES = 512 * 1024
 
@@ -307,6 +308,25 @@ def cmd_dingtalk(webhook: str, secret: str = "", keyword: str = "",
 
 def jitter(a: float, b: float) -> float:
     return random.uniform(a, b)
+
+
+def balcache_save(days: float, avail: float):
+    """取到真实余额就记下来，供下次取不到时兜底显示。"""
+    try:
+        save_json(BALCACHE_FILE, {
+            "days": round(days, 2),
+            "avail": round(avail, 2),
+            "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+    except Exception:
+        pass
+
+
+def balcache_read() -> Optional[Dict[str, Any]]:
+    d = load_json(BALCACHE_FILE, None)
+    if isinstance(d, dict) and d.get("days") is not None:
+        return d
+    return None
 
 
 def build_run_report(results: List[str], stamp: str) -> str:
@@ -633,6 +653,7 @@ class Wallet:
                 return None          # 取不到就是取不到，不报 0.00
             if avail is None:
                 avail = total
+            balcache_save(total / 100.0, avail / 100.0)
             return {"ok": True, "days": total / 100.0, "avail": avail / 100.0, "raw": v}
 
         # 备用接口
@@ -642,6 +663,7 @@ class Wallet:
             n = self._as_int(v2) if not isinstance(v2, dict) else pick(v2, TOTAL_KEYS)
             if n is None:
                 return None
+            balcache_save(n / 100.0, n / 100.0)
             return {"ok": True, "days": n / 100.0, "avail": n / 100.0, "raw": d2}
 
         return None
@@ -756,7 +778,12 @@ def run_account(acc: Dict[str, Any]) -> str:
     if bal:
         log("  当前会员时长: %.2f 天（可用 %.2f 天）" % (bal["days"], bal["avail"]))
     else:
-        log("  会员时长: 未知（接口本次未返回，不代表为 0）")
+        c = balcache_read()
+        if c:
+            log("  当前会员时长: 未知（接口本次未返回）")
+            log("  上次记录: %.2f 天（记于 %s）" % (c["days"], c.get("at", "?")))
+        else:
+            log("  当前会员时长: 未知（接口本次未返回，不代表为 0）")
 
     gained: List[str] = []
     rounds = 0
@@ -838,13 +865,63 @@ def run_account(acc: Dict[str, Any]) -> str:
     if bal2:
         log("  结算后会员时长: %.2f 天" % bal2["days"])
     else:
-        log("  结算后会员时长: 未知（接口本次未返回，不代表为 0）")
+        c = balcache_read()
+        if c:
+            log("  结算后会员时长: 未知（接口本次未返回）")
+            log("  上次记录: %.2f 天（记于 %s）" % (c["days"], c.get("at", "?")))
+        else:
+            log("  结算后会员时长: 未知（接口本次未返回，不代表为 0）")
 
     summary = "账号 %s：今日领取 %d 笔 %s" % (name, len(gained), "、".join(gained[-3:]) if gained else "（无）")
     log("  " + summary)
     if gained:
         stamp_write()
     return summary
+
+
+def cmd_debug():
+    """把余额/任务的接口原始返回完整打出来，用于定位字段问题。"""
+    accounts = load_accounts()
+    if not accounts:
+        log("还没有账号，先执行: python3 xmwallet.py login <别名>")
+        return
+    acc = accounts[0]
+    w = Wallet(acc.get("userId", ""), acc.get("passToken", ""))
+    log("")
+    log("===== 接口原始返回诊断 =====")
+    log("账号: %s" % acc.get("name"))
+    if not w.login_by_ticket():
+        log("换票失败，无法诊断。")
+        return
+    log("换票成功")
+    log("")
+
+    for api_name in ("queryUserBalanceWithFrozen", "queryUserGoldRichSum",
+                     "queryUserJoinList"):
+        log("---------- %s ----------" % api_name)
+        d = w._get(api_name, {"pageNum": 1, "pageSize": 5}, retry_ticket=False)
+        if d is None:
+            log("  (请求失败或无返回)")
+        elif not isinstance(d, dict):
+            log("  返回类型: %s  值: %s" % (type(d).__name__, str(d)[:300]))
+        else:
+            log("  code = %s | desc = %s" % (d.get("code"), d.get("desc") or d.get("message") or ""))
+            txt = json.dumps(d, ensure_ascii=False)
+            # 只打印前 1500 字符，避免刷屏
+            log("  原文: " + (txt[:1500] + (" ...(截断)" if len(txt) > 1500 else "")))
+        log("")
+
+    log("---------- getTask ----------")
+    t = w.get_task()
+    if t:
+        txt = json.dumps(t, ensure_ascii=False)
+        log("  " + (txt[:1500] + (" ...(截断)" if len(txt) > 1500 else "")))
+    else:
+        log("  (未取到任务)")
+    log("")
+    log("=" * 40)
+    log("请把上面【原文】部分完整截图发我，我按真实字段改解析。")
+    log("（里面没有密码，但建议打码 userId 再发）")
 
 
 def cmd_run(only: str = ""):
@@ -901,7 +978,12 @@ def cmd_status():
         if bal:
             log("  会员时长: %.2f 天（可用 %.2f 天）" % (bal["days"], bal["avail"]))
         else:
-            log("  会员时长: 未知（接口本次未返回，不代表为 0）")
+            c = balcache_read()
+            if c:
+                log("  会员时长: 未知（接口本次未返回）")
+                log("  上次记录: %.2f 天（记于 %s）" % (c["days"], c.get("at", "?")))
+            else:
+                log("  会员时长: 未知（接口本次未返回，不代表为 0）")
         today = time.strftime("%Y-%m-%d")
         rows = [r for r in w.history() if (r.get("createTime") or "").startswith(today)]
         log("  今日流水: %d 条" % len(rows))
@@ -1279,7 +1361,7 @@ def cmd_cron():
 def main():
     ap = argparse.ArgumentParser(description="小米钱包每日任务（Termux 版）")
     ap.add_argument("cmd", nargs="?", default="run",
-                    choices=["login", "run", "status", "job", "hook", "cron", "dingtalk", "import"], help="子命令")
+                    choices=["login", "run", "status", "debug", "job", "hook", "cron", "dingtalk", "import"], help="子命令")
     ap.add_argument("name", nargs="?", default="", help="账号别名（login/指定账号 run 时用）")
     ap.add_argument("src", nargs="?", default="", help="凭据来源（import 时用：文件路径或 JSON）")
     ap.add_argument("-p", "--period", default="24h", help="任务周期，如 24h / 12h / 90m（默认 24h）")
@@ -1300,6 +1382,8 @@ def main():
         cmd_run(args.name)
     elif args.cmd == "status":
         cmd_status()
+    elif args.cmd == "debug":
+        cmd_debug()
     elif args.cmd == "job":
         if args.diag:
             cmd_job_diag()
