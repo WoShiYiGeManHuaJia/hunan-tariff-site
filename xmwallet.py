@@ -732,11 +732,8 @@ class Wallet:
 
     # ---- 任务动作 ----
     def click_task(self, task_id, brows_task_id, brows_click_url_id) -> bool:
-        d = self._get("clickTask", {
-            "taskId": task_id, "browsTaskId": brows_task_id,
-            "browsClickUrlId": brows_click_url_id, "clickEntryType": "undefined",
-            "festivalStatus": "0",
-        })
+        # newBrowsTask=true 是服务端开始计时的开关，缺了 completeTask 会报 110006
+        d = self.click_task_full(task_id, brows_task_id, brows_click_url_id)
         return bool(d and d.get("code") == 0)
 
     def complete_task(self, task_id, brows_task_id, brows_click_url_id, seconds: int):
@@ -749,15 +746,21 @@ class Wallet:
 
     def click_task_full(self, task_id, brows_task_id, brows_click_url_id):
         return self._get("clickTask", {
-            "taskId": task_id, "browsTaskId": brows_task_id,
+            "taskId": task_id, "taskCode": TASK_CODE,
+            "newBrowsTask": "true",
+            "browsTaskId": brows_task_id,
             "browsClickUrlId": brows_click_url_id, "clickEntryType": "undefined",
             "festivalStatus": "0",
         })
 
     def luck_draw(self, user_task_id: str = ""):
-        p = {}
-        if user_task_id:
-            p["userTaskId"] = user_task_id
+        dev = getattr(self, "dev", None) or get_device(self.user_id)
+        p = {
+            "userTaskId": str(user_task_id or ""),
+            "imei": dev.get("imei", ""),
+            "longitude": dev.get("longitude", ""),
+            "latitude": dev.get("latitude", ""),
+        }
         return self._get("luckDraw", p)
 
     # ---- 时长解析 ----
