@@ -30,6 +30,9 @@ xmwallet.py —— 小米钱包「看视频得会员」每日任务自动化（T
 """
 
 import argparse
+import base64
+import hashlib
+import hmac
 import json
 import os
 import random
@@ -37,6 +40,8 @@ import re
 import subprocess
 import sys
 import time
+import urllib.parse
+import urllib.request
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -56,6 +61,7 @@ except Exception:
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ACCOUNT_FILE = os.path.join(BASE_DIR, "accounts.json")
 DEVICE_FILE = os.path.join(BASE_DIR, "device.json")
+DINGTALK_FILE = os.path.join(BASE_DIR, "dingtalk.json")
 LOG_FILE = os.path.join(BASE_DIR, "xmwallet.log")
 MAX_LOG_BYTES = 512 * 1024
 
@@ -176,8 +182,141 @@ def notify(title: str, content: str):
         pass
 
 
+def load_dingtalk() -> Dict[str, str]:
+    d = load_json(DINGTALK_FILE, {})
+    return d if isinstance(d, dict) else {}
+
+
+def dingtalk_enabled() -> bool:
+    d = load_dingtalk()
+    return bool(d.get("webhook"))
+
+
+def dingtalk_sign(secret: str):
+    """钉钉加签：timestamp + \n + secret 做 HMAC-SHA256，再 base64 + urlencode。"""
+    ts = str(round(time.time() * 1000))
+    string_to_sign = "%s\n%s" % (ts, secret)
+    h = hmac.new(secret.encode("utf-8"), string_to_sign.encode("utf-8"), hashlib.sha256).digest()
+    return ts, urllib.parse.quote_plus(base64.b64encode(h).decode("utf-8"))
+
+
+def dingtalk_send(title: str, text: str, retries: int = 2) -> bool:
+    """推送 markdown 消息到钉钉机器人。未配置则静默跳过。"""
+    cfg = load_dingtalk()
+    webhook = (cfg.get("webhook") or "").strip()
+    if not webhook:
+        return False
+
+    url = webhook
+    secret = (cfg.get("secret") or "").strip()
+    if secret:
+        ts, sign = dingtalk_sign(secret)
+        sep = "&" if "?" in url else "?"
+        url = "%s%stimestamp=%s&sign=%s" % (url, sep, ts, sign)
+
+    # 关键词方式时，正文必须含机器人设定的关键词
+    kw = (cfg.get("keyword") or "").strip()
+    body_text = text
+    if kw and kw not in body_text:
+        body_text = "%s\n\n%s" % (kw, text)
+
+    payload = {
+        "msgtype": "markdown",
+        "markdown": {"title": title, "text": body_text},
+    }
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(
+                url, data=data,
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                res = json.loads(resp.read().decode("utf-8", "ignore"))
+            if res.get("errcode") == 0:
+                log("  ✔ 钉钉推送成功")
+                return True
+            log("  钉钉返回: errcode=%s %s" % (res.get("errcode"), res.get("errmsg")))
+            return False
+        except Exception as e:
+            if attempt < retries:
+                time.sleep(3)
+            else:
+                log("  钉钉推送失败: %s" % e)
+    return False
+
+
+def cmd_dingtalk(webhook: str, secret: str = "", keyword: str = "",
+                 remove: bool = False, test: bool = False):
+    cfg = load_dingtalk()
+    if remove:
+        for k in ("webhook", "secret", "keyword"):
+            cfg.pop(k, None)
+        save_json(DINGTALK_FILE, cfg)
+        log("✔ 已清除钉钉配置。")
+        return
+    if webhook:
+        cfg["webhook"] = webhook.strip()
+        if secret:
+            cfg["secret"] = secret.strip()
+        if keyword:
+            cfg["keyword"] = keyword.strip()
+        save_json(DINGTALK_FILE, cfg)
+        log("✔ 钉钉配置已保存到 %s" % os.path.basename(DINGTALK_FILE))
+        log("  webhook: %s..." % webhook[:48])
+        log("  加签: %s" % ("已启用" if secret else "未启用"))
+        log("  关键词: %s" % (keyword or "未设置"))
+    if test or webhook:
+        log("")
+        log("正在发送测试消息...")
+        ok = dingtalk_send(
+            "xmwallet 测试",
+            "### xmwallet 钉钉推送测试\n\n"
+            "- 时间: %s\n- 状态: 配置正常\n\n"
+            "收到这条就说明推送通道通了。"
+            % datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
+        if not ok:
+            log("")
+            log("没收到的话按这个顺序查：")
+            log("  1) webhook 是否完整（access_token= 后面那一长串）")
+            log("  2) 安全设置：加签方式要把 secret 也配上")
+            log("      关键词方式要保证正文含该关键词")
+            log("  3) 机器人是否被停用")
+    if not webhook and not test and not remove:
+        cur = load_dingtalk()
+        if cur.get("webhook"):
+            log("当前已配置: %s..." % cur["webhook"][:48])
+            log("  加签: %s | 关键词: %s"
+                % ("已启用" if cur.get("secret") else "未启用", cur.get("keyword") or "未设置"))
+            log("")
+            log("测试: python3 xmwallet.py dingtalk --test")
+            log("移除: python3 xmwallet.py dingtalk --remove")
+        else:
+            log("还没配置钉钉。用法：")
+            log("  python3 xmwallet.py dingtalk <webhook地址>")
+            log("  python3 xmwallet.py dingtalk <webhook地址> --secret <加签密钥>")
+            log("  python3 xmwallet.py dingtalk <webhook地址> --keyword 小米钱包")
+            log("")
+            log("去钉钉群 → 群设置 → 智能群助手 → 添加机器人 → 自定义，")
+            log("复制 Webhook 地址；安全设置推荐选「加签」，把密钥一起给我。")
+
+
+
 def jitter(a: float, b: float) -> float:
     return random.uniform(a, b)
+
+
+def build_run_report(results: List[str], stamp: str) -> str:
+    """把一次 run 的结果拼成钉钉 markdown。"""
+    lines = ["### 小米钱包每日任务", "", "**%s**" % stamp, ""]
+    for r in results:
+        lines.append("- %s" % r)
+    lines.append("")
+    lines.append("> 由 Termux 自动推送")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------- 设备指纹
@@ -733,7 +872,17 @@ def cmd_run(only: str = ""):
     log("############ 全部执行完毕 ############")
     for r in results:
         log("  · " + r)
+
     notify("小米钱包任务完成", "；".join(results)[:180])
+    if dingtalk_enabled():
+        log("")
+        log("正在推送到钉钉...")
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        dingtalk_send("小米钱包每日任务 %s" % stamp,
+                      build_run_report(results, stamp))
+    else:
+        log("")
+        log("（未配置钉钉，跳过推送。配置: python3 xmwallet.py dingtalk <webhook>）")
 
 
 def cmd_status():
@@ -1130,14 +1279,17 @@ def cmd_cron():
 def main():
     ap = argparse.ArgumentParser(description="小米钱包每日任务（Termux 版）")
     ap.add_argument("cmd", nargs="?", default="run",
-                    choices=["login", "run", "status", "job", "hook", "cron", "import"], help="子命令")
+                    choices=["login", "run", "status", "job", "hook", "cron", "dingtalk", "import"], help="子命令")
     ap.add_argument("name", nargs="?", default="", help="账号别名（login/指定账号 run 时用）")
     ap.add_argument("src", nargs="?", default="", help="凭据来源（import 时用：文件路径或 JSON）")
     ap.add_argument("-p", "--period", default="24h", help="任务周期，如 24h / 12h / 90m（默认 24h）")
     ap.add_argument("--list", action="store_true", help="job: 查看已注册任务")
     ap.add_argument("--cancel", action="store_true", help="job: 取消已注册任务")
     ap.add_argument("--diag", action="store_true", help="job: 诊断为什么卡住")
-    ap.add_argument("--remove", action="store_true", help="hook: 移除钩子")
+    ap.add_argument("--remove", action="store_true", help="hook / dingtalk: 移除")
+    ap.add_argument("--test", action="store_true", help="dingtalk: 发送测试消息")
+    ap.add_argument("--secret", default="", help="dingtalk: 加签密钥")
+    ap.add_argument("--keyword", default="", help="dingtalk: 安全关键词")
     args = ap.parse_args()
 
     if args.cmd == "login":
@@ -1153,6 +1305,11 @@ def main():
             cmd_job_diag()
         else:
             cmd_job(args.period, cancel=args.cancel, show_list=args.list)
+    elif args.cmd == "dingtalk":
+        src = args.src or (args.name if args.name and args.name.startswith("http") else "")
+        secret = args.secret or (args.src if args.src and not args.src.startswith("http") else "")
+        cmd_dingtalk(src, secret=secret, keyword=args.keyword,
+                     remove=args.remove, test=args.test)
     elif args.cmd == "hook":
         cmd_hook(install=not args.remove, hours=args.period if args.period != "24h" else "20")
     elif args.cmd == "import":
