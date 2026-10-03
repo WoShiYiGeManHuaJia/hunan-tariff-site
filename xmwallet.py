@@ -747,6 +747,13 @@ class Wallet:
             "browseTime": str(seconds * 1000 if seconds > 0 else 0),
         })
 
+    def click_task_full(self, task_id, brows_task_id, brows_click_url_id):
+        return self._get("clickTask", {
+            "taskId": task_id, "browsTaskId": brows_task_id,
+            "browsClickUrlId": brows_click_url_id, "clickEntryType": "undefined",
+            "festivalStatus": "0",
+        })
+
     def luck_draw(self, user_task_id: str = ""):
         p = {}
         if user_task_id:
@@ -862,7 +869,8 @@ def run_account(acc: Dict[str, Any]) -> str:
         rounds += 1
         log("  --- 第 %d 轮 ---" % (period_done + 1))
 
-        w.click_task(task_id, brows_task_id, brows_click_url_id)
+        ck = w.click_task_full(task_id, brows_task_id, brows_click_url_id)
+        log("  clickTask -> %s" % brief(ck))
         if seconds == 0:
             wait = round(jitter(2.0, 3.5), 1)
             log("  0 秒即时任务，拟真缓冲 %.1f 秒" % wait)
@@ -871,10 +879,13 @@ def run_account(acc: Dict[str, Any]) -> str:
             log("  任务时长 %d 秒 + 缓冲，共等待 %d 秒" % (seconds, wait))
         time.sleep(wait)
 
-        w.complete_task(task_id, brows_task_id, brows_click_url_id, seconds)
+        ct = w.complete_task(task_id, brows_task_id, brows_click_url_id, seconds)
+        log("  completeTask(browseTime=%sms) -> %s" % (seconds * 1000, brief(ct)))
         time.sleep(jitter(1.5, 2.5))
 
-        got = draw_prize(w.luck_draw(user_task_id))
+        ld = w.luck_draw(user_task_id)
+        log("  luckDraw -> %s" % brief(ld))
+        got = draw_prize(ld)
         if got:
             gained.append(got)
             log("  ✔ 领取: %s" % got)
@@ -955,6 +966,23 @@ def cmd_debug():
     log("=" * 40)
     log("请把上面【原文】部分完整截图发我，我按真实字段改解析。")
     log("（里面没有密码，但建议打码 userId 再发）")
+
+
+def brief(d) -> str:
+    """把接口返回压缩成一行，用于排查。"""
+    if d is None:
+        return "无返回（请求失败）"
+    if not isinstance(d, dict):
+        return "类型%s: %s" % (type(d).__name__, str(d)[:120])
+    parts = ["code=%s" % d.get("code")]
+    if d.get("desc"):
+        parts.append("desc=%s" % d.get("desc"))
+    if d.get("success") is not None:
+        parts.append("success=%s" % d.get("success"))
+    v = d.get("value")
+    if v not in (None, "", {}, []):
+        parts.append("value=%s" % (json.dumps(v, ensure_ascii=False)[:200]))
+    return " ".join(str(x) for x in parts)
 
 
 def cmd_run(only: str = ""):
