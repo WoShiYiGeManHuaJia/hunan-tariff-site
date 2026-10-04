@@ -101,7 +101,7 @@ def clean_fields(fields):
 
 
 _HIST_DET_KEYS = ("added_details", "removed_details", "modified_details",
-                  "modified_before", "modified_after")
+                  "modified_before", "modified_after", "restored_details")
 
 
 def _hist_ts_file(ts):
@@ -783,9 +783,13 @@ def main():
             "modified_names": [name_of(m) for m in modified],
         }
         if _restored:
-            # 补录不计入新增、不参与推送，仅留名供排查
+            # 补录不计入新增、不参与推送，仅留名供排查；
+            # 同时保留完整字段快照，前端详情弹窗才能展示资费内容
             rec[sec]["restored"] = len(_restored)
             rec[sec]["restored_names"] = [name_of(x) for x in _restored][:200]
+            rec[sec]["restored_details"] = {
+                name_of(x): clean_fields(x.get("fields") or {}) for x in _restored[:200]
+            }
         if added:
             rec[sec]["added_details"] = {
                 name_of(a): clean_fields(a.get("fields") or {}) for a in added
