@@ -1442,8 +1442,7 @@ function renderList(scope){
   var pages = Math.max(1, Math.ceil(arr.length / per));
   if(s.page > pages){ s.page = pages; }
   var slice = arr.slice((s.page-1)*per, s.page*per);
-  pager.innerHTML = "";
-  (function(){
+    (function(){
     if(!slice.length){
       box.innerHTML = '<div class="empty"><span class="ei">🔍</span>没有匹配的资费，换个关键词试试' +
         '<div style="margin-top:12px"><button class="btn" data-f="clearf" data-scope="' + scope + '">清除全部筛选</button></div></div>';
@@ -1451,7 +1450,7 @@ function renderList(scope){
       box.innerHTML = slice.map(function(it,i){ return cardHTML(it,i); }).join("");
     }
     hint.textContent = "共 " + fmt(arr.length) + " 条 · 第 " + s.page + "/" + pages + " 页 · 左右滑动翻页";
-    if(pager.__pages !== pages){
+    if(pager.__pages !== pages || !pager.querySelector("[data-pg]")){
       var btns = [];
       for(var k = 1; k <= pages; k++){
         btns.push('<button class="pg' + (k === s.page ? " on" : "") + '" data-pg="' + k + '">' + k + "</button>");
