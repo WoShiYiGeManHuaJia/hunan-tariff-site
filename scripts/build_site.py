@@ -213,6 +213,115 @@ def _clip_fields(fields, limit=300):
     return out
 
 
+
+_PLAN_CODE_KEYS = ("方案编号", "productCode", "goodsCode", "businessCode", "业务编码", "编码")
+
+
+def _item_plan_code(item):
+    """取条目的方案编号（业务的稳定标识），用于改名后仍能配对。"""
+    f = (item or {}).get("fields") or {}
+    for k in _PLAN_CODE_KEYS:
+        v = str(f.get(k) or "").strip()
+        if v:
+            return v
+    return ""
+
+
+def _norm_match_key(item):
+    """配对用归一化名：剥离年份后缀与 A/B/C 版等版本号。
+
+    源站会批量给存量业务改名（加「2026」「A版」），按原名求差会把同一业务
+    拆成「删除+新增」两条假变化。归一化后能唯一匹配即视为同一业务。
+    """
+    n = str(name_of(item) or "")
+    n = re.sub(r"\s+", "", n)
+    n = re.sub(r"(?:20\d{2})(?:版|年)", "", n)
+    n = re.sub(r"[（(]?[A-Za-z]{1,2}版[)）]?", "", n)
+    n = re.sub(r"[（(]?[Vv]\d+[)）]?", "", n)
+    return n
+
+
+def _core_overlap(a, b):
+    """去掉括号内容与数字后的字符重合度（Jaccard）。
+
+    用于拦截「方案编号相同但确属不同业务」的误配，
+    例如「咪咕悦看流量合约（24个月）」与「咪咕短剧加油包（24个月）」。
+    """
+    import re as _re
+    def core(t):
+        t = _re.sub(r"[\uff08\(][^\uff09\)]*[\uff09\)]", "", str(t or ""))
+        t = _re.sub(r"[0-9A-Za-z]+", "", t)
+        return set(t.replace(" ", ""))
+    A, B = core(a), core(b)
+    if not A or not B:
+        return 0.0
+    return len(A & B) / float(len(A | B))
+
+
+def _pair_renamed(added, removed):
+    """把「改名/改编号」造成的 删除+新增 配对起来。
+
+    返回 (pairs, added_left, removed_left)；pairs 为 [(old_item, new_item), ...]。
+    仅在归一化名/方案编号于两侧都唯一时才配对，避免张冠李戴。
+    """
+    def groups(items, keyfn):
+        g = {}
+        for i, it in enumerate(items):
+            k = keyfn(it)
+            if k:
+                g.setdefault(k, []).append(i)
+        return g
+
+    ga_code, gr_code = groups(added, _item_plan_code), groups(removed, _item_plan_code)
+    ga_name, gr_name = groups(added, _norm_match_key), groups(removed, _norm_match_key)
+    used_a, used_r, pairs = set(), set(), []
+    # 方案编号是业务的稳定标识，优先用它配对
+    for chan, (ga, gr) in enumerate(((ga_code, gr_code), (ga_name, gr_name))):
+        for k in set(ga) & set(gr):
+            if len(ga[k]) != 1 or len(gr[k]) != 1:
+                continue
+            ai, ri = ga[k][0], gr[k][0]
+            if ai in used_a or ri in used_r:
+                continue
+            # 方案编号通道：编号相同但名称核心词几乎不重合 → 判为不同业务，不配对
+            if chan == 0 and _core_overlap(name_of(added[ai]), name_of(removed[ri])) < 0.5:
+                continue
+            pairs.append((removed[ri], added[ai]))
+            used_a.add(ai)
+            used_r.add(ri)
+    return (pairs,
+            [x for i, x in enumerate(added) if i not in used_a],
+            [x for i, x in enumerate(removed) if i not in used_r])
+
+
+def _field_noise(old_items, new_items):
+    """原名相同但内容有差异的条目数（字段口径升级时的噪音 modified 量）。"""
+    om = {name_of(i): i for i in (old_items or [])}
+    nm = {name_of(i): i for i in (new_items or [])}
+    return [k for k in om if k in nm and om[k] != nm[k]]
+
+
+def pair_renamed_only(old_items, new_items):
+    """只做改名/改编号配对，不做字段比对。用于字段结构升级场景——
+    此时字段差异全是噪音，但改名是真实变化，必须保留。"""
+    om = {name_of(i): i for i in (old_items or [])}
+    nm = {name_of(i): i for i in (new_items or [])}
+    _a = [nm[k] for k in nm if k not in om]
+    _r = [om[k] for k in om if k not in nm]
+    pairs, added, removed = _pair_renamed(_a, _r)
+    modified, details, before, after = [], {}, {}, {}
+    for oi, ni in pairs:
+        on, nn = name_of(oi), name_of(ni)
+        det = field_diff(oi, ni)
+        if on != nn:
+            det = [{"field": "业务名称", "from": on, "to": nn}] + det
+        modified.append(ni)
+        details[nn] = det
+        before[nn] = _clip_fields(oi.get("fields") or {})
+        after[nn] = _clip_fields(ni.get("fields") or {})
+    return added, removed, modified, details, before, after
+
+
 def diff_items(old_items, new_items):
     """返回 (新增, 下架, 修改, 修改明细 name->[{field,from,to}],
              修改前快照 name->fields, 修改后快照 name->fields)。以名称为 key。
@@ -233,6 +342,20 @@ def diff_items(old_items, new_items):
             modified_details[k] = field_diff(om[k], nm[k])
             mod_before[k] = _clip_fields(om[k].get("fields") or {})
             mod_after[k] = _clip_fields(nm[k].get("fields") or {})
+    # 改名/改编号配对：源站会批量给存量业务加年份后缀或版本号
+    # （「优享畅享59元折扣」→「优享畅享59元折扣2026」、
+    #   「全家享99元（…）」→「全家享99元A版（…）」），按名求差会把同一业务
+    # 拆成「删除+新增」两条假变化，归一化后唯一匹配即判为 modified。
+    pairs, added, removed = _pair_renamed(added, removed)
+    for oi, ni in pairs:
+        on, nn = name_of(oi), name_of(ni)
+        det = field_diff(oi, ni)
+        if on != nn:
+            det = [{"field": "业务名称", "from": on, "to": nn}] + det
+        modified.append(ni)
+        modified_details[nn] = det
+        mod_before[nn] = _clip_fields(oi.get("fields") or {})
+        mod_after[nn] = _clip_fields(ni.get("fields") or {})
     return added, removed, modified, modified_details, mod_before, mod_after
 
 
@@ -591,18 +714,26 @@ def main():
         # ★ 曾因这里直接重建基线，把「全民百G礼包网龄版」5 个真新增一并吞掉，
         #   故改为只抑制 modified，保留 added/removed。
         if _structure_upgraded(old_items, items):
-            _a, _r, _m, _md, _mb, _ma = diff_items(old_items, items)
-            print(f"  [升级] 板块 {sec} 字段结构变化：抑制 {len(_m)} 条 modified 误报，"
-                  f"保留真实新增 {len(_a)} / 下架 {len(_r)}")
-            if _a or _r:
+            # 字段结构升级时只抑制「字段口径变化」造成的噪音 modified；
+            # 但假下架过滤与改名配对照常执行——2026-10-04 一轮正是因这里
+            # 跳过了两者，误报 2564 条假下架、并把 78 条改名拆成删+增。
+            _a, _r, _m, _md, _mb, _ma = pair_renamed_only(old_items, items)
+            _noise = len(_field_noise(old_items, items))
+            _r, _drop = filter_sampling_removed(sec, _r, _today)
+            if _drop:
+                print(f"  [采样校验] 板块 {sec} 剔除假下架 {_drop} 条"
+                      f"（下线日期未到，判定为仍在架）")
+            print(f"  [升级] 板块 {sec} 字段结构变化：抑制 {_noise} 条字段噪音 modified，"
+                  f"保留改名 {len(_m)} / 新增 {len(_a)} / 下架 {len(_r)}")
+            if _a or _r or _m:
                 has_change = True
                 rec[sec] = {
                     "added": len(_a),
                     "removed": len(_r),
-                    "modified": 0,
+                    "modified": len(_m),
                     "added_names": [name_of(x) for x in _a],
                     "removed_names": [name_of(x) for x in _r],
-                    "modified_names": [],
+                    "modified_names": [name_of(x) for x in _m],
                     "note": "structure_upgraded",
                 }
                 if _a:
@@ -613,6 +744,10 @@ def main():
                     rec[sec]["removed_details"] = {
                         name_of(x): clean_fields(x.get("fields") or {}) for x in _r
                     }
+                if _m:
+                    rec[sec]["modified_details"] = _md
+                    rec[sec]["modified_before"] = _mb
+                    rec[sec]["modified_after"] = _ma
             else:
                 rec[sec] = {"note": "baseline"}
             continue
