@@ -2098,12 +2098,20 @@ function openHistDetail(hi, ci, type, bi){
   var box = document.getElementById("hmDiff");
   var bf = (type === "mod") ? ((c.modified_before || {})[name] || null) : null;
   var af = (type === "mod") ? ((c.modified_after || {})[name] || null) : null;
-  var snap = ((type === "add" || type === "rst") ? (c.added_details || {})
-            : (type === "del" ? (c.removed_details || {}) : {}))[name] || null;
+  var snap = (type === "add" ? (c.added_details || {})
+            : (type === "rst" ? (c.restored_details || {})
+            : (type === "del" ? (c.removed_details || {}) : {})))[name] || null;
+  var snapFallback = false;
+  if(!snap && (type === "rst" || type === "add")){
+    for(var _si = 0; _si < D.items.length; _si++){
+      if(D.items[_si].name === name){ snap = D.items[_si].fields || null; snapFallback = true; break; }
+    }
+  }
   if(type === "mod"){
     box.innerHTML = modUnifiedHtml(bf, af, rows);
   } else if(snap){
-    var nt = type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
+    var nt = type === "rst" ? ("该业务为往期已上线、因采样缺失本轮补录，非新上架"
+           + (snapFallback ? "\uff08\u4ee5\u4e0b\u4e3a\u5f53\u524d\u5728\u67b6\u5185\u5bb9\uff09" : ""))
            : (type === "add" ? "新增业务：无「修改前」记录"
            : "已下线业务：无「修改后」记录");
     box.innerHTML = '<div class="dfnote">' + nt + '</div>' + dvHtml({ name:name, fields:snap });
