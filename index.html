@@ -346,11 +346,25 @@ body{
 
 /* ---------- 修改前后完整字段对比表 ---------- */
 /* ---------- 修改详情：完整字段对照折叠 ---------- */
+/* 未变动行：合并成一格，不显示「修改前/修改后」标签 */
+.cmp-table tr.cmp-same th{padding-left:11px}
+.cmp-keep{display:block}
+.cmp-keepv{color:var(--tx2)}
+.cmp-keepflag{display:inline-block;margin-left:7px;font-size:9.5px;font-weight:700;letter-spacing:.3px;
+  padding:1.5px 6px;border-radius:6px;background:var(--glass2);color:var(--tx3);border:1px solid var(--bd);
+  vertical-align:1px}
+@media(max-width:640px){
+  .cmp-table tr.cmp-same td.cmp-keep{display:block;padding:0}
+  .cmp-table td.cmp-keep::before{content:none}
+}
+
 .cmp-fold{margin-top:12px;border-radius:12px;border:1px solid var(--bd);background:var(--glass);overflow:hidden}
 .cmp-fold>summary{cursor:pointer;padding:10px 13px;font-size:11.5px;font-weight:700;color:var(--tx2);
   list-style:none;display:flex;align-items:center;gap:7px}
 .cmp-fold>summary::-webkit-details-marker{display:none}
-.cmp-fold>summary::before{content:'\u25b8';font-size:11px;color:var(--tx3);transition:transform .2s}
+.cmp-fold>summary::before{content:'';width:0;height:0;flex:0 0 auto;
+  border-left:5px solid var(--tx3);border-top:4px solid transparent;border-bottom:4px solid transparent;
+  transition:transform .2s}
 .cmp-fold[open]>summary::before{transform:rotate(90deg)}
 .cmp-fold .cmp-wrap{border:0;border-radius:0;border-top:1px solid var(--bd)}
 
@@ -2262,7 +2276,13 @@ function modUnifiedHtml(bf, af, rows){
       var b = (bf[k] == null || bf[k] === "") ? "\u2014" : String(bf[k]);
       var a = (af[k] == null || af[k] === "") ? "\u2014" : String(af[k]);
       var same = (b === a); if(same){ nUn++; }
-      return '<tr' + (same ? "" : ' class="cmp-diff"') + '><th>' + esc(k) + "</th>" +
+      if(same){
+        /* 未变动：合并成一格只显示当前值，不再标「修改前/修改后」 */
+        return '<tr class="cmp-same"><th>' + esc(k) + "</th>" +
+          '<td class="cmp-keep" colspan="2"><span class="cmp-keepv">' + esc(b) + "</span>" +
+          '<span class="cmp-keepflag">\u672a\u53d8\u52a8</span></td></tr>';
+      }
+      return '<tr class="cmp-diff"><th><span class="cmp-flag">\u6539\u52a8</span>' + esc(k) + "</th>" +
         '<td data-l="\u4fee\u6539\u524d" class="cmp-old">' + esc(b) + "</td>" +
         '<td data-l="\u4fee\u6539\u540e" class="cmp-new">' + esc(a) + "</td></tr>";
     }).join("");
