@@ -2076,6 +2076,26 @@ function ckPollRun(tk, t0){
   }, 10000);
 }
 
+/* 各省在架快照缓存：补录/新增条目没存字段时按省取，避免重复下载 */
+var PROV_SNAP = {}, PROV_SNAPQ = {};
+function provSnap(prov, cb){
+  if(!prov){ cb(null); return; }
+  if(PROV_SNAP[prov]){ cb(PROV_SNAP[prov]); return; }
+  if(PROV_SNAPQ[prov]){ PROV_SNAPQ[prov].push(cb); return; }
+  PROV_SNAPQ[prov] = [cb];
+  var done = function(map){
+    PROV_SNAP[prov] = map || {};
+    var q = PROV_SNAPQ[prov] || []; PROV_SNAPQ[prov] = null;
+    q.forEach(function(fn){ try{ fn(map || {}); }catch(e){} });
+  };
+  __j(DATA_BASE + prov + ".json").then(function(j){
+    var arr = (j && j.items) ? j.items : (Array.isArray(j) ? j : []);
+    var m = {};
+    arr.forEach(function(it){ if(it && it.name){ m[it.name] = it.fields || {}; } });
+    done(m);
+  }).catch(function(){ done({}); });
+}
+
 /* ---------- 变更详情弹窗 ---------- */
 var curHist = null;
 function openHistDetail(hi, ci, type, bi){
@@ -2102,20 +2122,29 @@ function openHistDetail(hi, ci, type, bi){
   var snap = (type === "add" ? (c.added_details || {})
             : (type === "rst" ? (c.restored_details || {})
             : (type === "del" ? (c.removed_details || {}) : {})))[name] || null;
-  var snapFallback = false;
-  if(!snap && (type === "rst" || type === "add")){
-    for(var _si = 0; _si < D.items.length; _si++){
-      if(D.items[_si].name === name){ snap = D.items[_si].fields || null; snapFallback = true; break; }
-    }
-  }
   if(type === "mod"){
     box.innerHTML = modUnifiedHtml(bf, af, rows);
   } else if(snap){
-    var nt = type === "rst" ? ("该业务为往期已上线、因采样缺失本轮补录，非新上架"
-           + (snapFallback ? "\uff08\u4ee5\u4e0b\u4e3a\u5f53\u524d\u5728\u67b6\u5185\u5bb9\uff09" : ""))
+    var nt = type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
            : (type === "add" ? "新增业务：无「修改前」记录"
            : "已下线业务：无「修改后」记录");
     box.innerHTML = '<div class="dfnote">' + nt + '</div>' + dvHtml({ name:name, fields:snap });
+  } else if((type === "rst" || type === "add") && c.prov){
+    /* 旧轮次的补录/新增只存了名字没有字段快照；这里按省份拉取当前在架数据补齐。
+       D.items 只有当前浏览的板块，跨省查不到，所以必须按 c.prov 单独取。 */
+    box.innerHTML = '<div class="dfnone">正在读取 ' + esc(c.name || c.prov) + ' 在架数据…</div>';
+    (function(_hi,_ci,_ty,_bi,_nm){
+      provSnap(c.prov, function(map){
+        if(!(curHist && curHist.name === _nm && curHist.type === _ty)){ return; }
+        var b = document.getElementById("hmDiff"); if(!b){ return; }
+        var f = map ? (map[_nm] || null) : null;
+        var tip = _ty === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架（以下为当前在架内容）"
+                                : "新增业务：无「修改前」记录（以下为当前在架内容）";
+        b.innerHTML = f ? ('<div class="dfnote">' + tip + '</div>' + dvHtml({name:_nm, fields:f}))
+          : ('<div class="dfnone">' + (_ty === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
+              : "新增业务：无「修改前」记录") + '</div>');
+      });
+    })(hi, ci, type, bi, name);
   } else {
     box.innerHTML = '<div class="dfnone">' +
       (type === "mod" ? "该业务本次未记录字段级差异"
