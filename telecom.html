@@ -315,7 +315,9 @@ body{
 [data-theme="light"] .tag.qty{background:rgba(51,86,111,.08)}
 .ti-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;user-select:none;padding:2px 0}
 .ti-hd:active{opacity:.7}
-.ti-ar{display:inline-block;width:13px;font-size:11px;color:var(--tx3);transition:transform .22s cubic-bezier(.34,1.56,.64,1);flex:none}
+.ti-ar{display:inline-block;width:0;height:0;flex:none;
+  border-left:5px solid var(--tx3);border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;
+  margin-right:8px;transition:transform .22s cubic-bezier(.34,1.56,.64,1);transform-origin:25% 50%}
 .ti.open>.ti-hd>.ti-ar{transform:rotate(90deg)}
 .ti-ti{font-size:12.5px;font-weight:700;color:var(--tx)}
 .mini-bars{display:inline-flex;gap:3px;align-items:center;vertical-align:middle;margin-left:1px}
@@ -1598,7 +1600,7 @@ function provBlock(hi, ci, c, lazy){
   if(!lazy || op){ body = provBody(hi, ci, c); }
   return '<div class="tg' + (op ? " open" : "") + '" data-pk="' + hi + "_" + ci + '">' +
     '<div class="tg-hd" data-tog="prov" data-hi="' + hi + '" data-ci="' + ci + '">' +
-      '<span class="ti-ar">▸</span><span class="ti-p">' + esc(c.name) + "</span>" +
+      '<span class="ti-ar"></span><span class="ti-p">' + esc(c.name) + "</span>" +
       '<div class="ti-r">' + pills + "</div></div>" +
     '<div class="tg-bd"' + (op ? ">" + body : ' data-lazy="1" style="display:none">') + "</div></div>";
 }
@@ -1638,7 +1640,7 @@ function recHtml(o, first){
   var bd = op ? (">" + histFill(hi, true)) : ' data-lazy="1" style="display:none">';
   return '<div class="ti' + (op ? " open" : "") + '" data-hi="' + hi + '">' +
     '<div class="ti-hd" data-tog="rec" data-hi="' + hi + '">' +
-      '<span class="ti-ar">▸</span><span class="ti-ti">资费变更</span>' +
+      '<span class="ti-ar"></span><span class="ti-ti">资费变更</span>' +
       '<span class="ti-ts">' + esc(h.ts) + "</span>" +
       (first ? '<span class="ti-new">最新</span>' : "") +
       '<span class="ti-sum">' + (cs.length ? histBars(cs) : '<span class="pill p-rst">无变化</span>') + "</span></div>" +
