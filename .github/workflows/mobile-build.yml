@@ -21,7 +21,9 @@ permissions:
   contents: write
 
 concurrency:
-  group: mobile-build
+  # 与 dingtalk-summary.yml 共用同一 group：两个 workflow 都会跑 build_site.py，
+  # 必须互斥排队，否则并发写会让 history.json 的 ts 与 data/hist 分片文件名错位。
+  group: tariff-build
   cancel-in-progress: false
 
 jobs:
