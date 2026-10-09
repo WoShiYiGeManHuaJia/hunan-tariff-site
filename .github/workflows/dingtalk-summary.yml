@@ -65,7 +65,13 @@ permissions:
 # concurrency 让新任务排队等旧的跑完，而不是并发跑多个
 #（并发会让多个 notify 同时读到同一份 history，推送内容重复）。
 concurrency:
-  group: tariff-notify
+  # 必须与 mobile-build.yml 使用同一个 group。
+  # 两个 workflow 都会跑 build_site.py 写 history.json / data/hist 分片，
+  # 之前 group 不同（mobile-build / tariff-notify）导致并发执行：
+  # 两进程各自取不同的 now，互相 git reset+push 覆盖，
+  # 最终 history.json 里的 ts 与分片文件名对不上，前端按 ts 取分片 404，
+  # 表现为「有变动记录但点开没有修改前/后详情」。
+  group: tariff-build
   cancel-in-progress: false
 
 jobs:
