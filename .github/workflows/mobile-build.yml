@@ -191,6 +191,16 @@ jobs:
           rm -rf /tmp/art && mkdir -p /tmp/art
           cp -a data /tmp/art/ 2>/dev/null || true
           cp -f index.html app.js style.css common-extras.js /tmp/art/ 2>/dev/null || true
+          # ★ 必须一并备份本轮新抓的快照：main.py 把结果写进
+          #   pipelines/mobile/snapshots/，而下面 git reset --hard 会把它打回
+          #   远程旧版本。此前漏备份 → snapshots 永远停在 2026-09-12，
+          #   notify 每 12 小时拿这批死快照覆盖 data/：
+          #     ① 线上 31 省被回退到 09-12 的旧数据
+          #     ② 死快照独有的业务被当成「本轮新增」→ 虚报 3177 条
+          #   这就是「三天两头报假数据」的根因。
+          mkdir -p /tmp/art/snap
+          cp -a pipelines/mobile/snapshots/. /tmp/art/snap/ 2>/dev/null || true
+          echo "备份快照文件数: $(find /tmp/art/snap -maxdepth 1 -type f -name '*.json' | wc -l)"
           git fetch origin main || true
           git reset --hard FETCH_HEAD || true
           # ── 原子恢复产物 ──
@@ -206,6 +216,12 @@ jobs:
           rm -rf data
           mv data.new data || { echo "::error::data 替换失败，中止"; exit 1; }
           cp -f /tmp/art/index.html /tmp/art/app.js /tmp/art/style.css /tmp/art/common-extras.js . 2>/dev/null || true
+          # 恢复本轮新快照，避免 git reset --hard 把它打回 09-12 旧版本
+          if [ "$(find /tmp/art/snap -maxdepth 1 -type f -name '*.json' | wc -l)" -gt 0 ]; then
+            mkdir -p pipelines/mobile/snapshots
+            cp -a /tmp/art/snap/. pipelines/mobile/snapshots/ || echo "::warning::快照恢复失败"
+            echo "恢复快照文件数: $(find pipelines/mobile/snapshots -maxdepth 1 -type f -name '*.json' | wc -l)"
+          fi
           # 重打「自己创建」下载包：配置中心 push-center.html 的下载按钮指向
           # tariff-fetch-source.zip，该包必须与 main 分支代码一致。此前它是
           # 手工打的一次性产物，改了代码不会跟着变，下载的人拿到旧代码。
@@ -224,6 +240,7 @@ jobs:
               git fetch origin main
               git reset --hard FETCH_HEAD
               cp -a /tmp/art/data/. ./data/ 2>/dev/null || true
+              cp -a /tmp/art/snap/. pipelines/mobile/snapshots/ 2>/dev/null || true
               cp -f /tmp/art/index.html /tmp/art/app.js /tmp/art/style.css /tmp/art/common-extras.js . 2>/dev/null || true
               git add -A
               git commit -q -m "mobile fetch+build $(date -u +%FT%TZ) retry$i" || true
