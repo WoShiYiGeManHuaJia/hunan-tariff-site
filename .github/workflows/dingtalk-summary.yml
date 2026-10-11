@@ -231,7 +231,12 @@ jobs:
             exit 0
           fi
           mkdir -p data
-          cp -f _site/data/*.json data/ 2>/dev/null || true
+          # ★ 必须用 -a 同步整个目录：history 详情分片在 _site/data/hist/ 子目录。
+          #   旧写法 `cp _site/data/*.json` 只拷顶层文件，hist/ 永远进不了仓库，
+          #   导致「本轮 notify 构建产生的记录」点开显示「无修改后记录」
+          #   （实测 2026-10-11 14:06:20 那条就是这样丢的）。
+          #   这与 mobile-build.yml 已修的坑完全相同，此处此前漏改。
+          cp -a _site/data/. data/ 2>/dev/null || true
           rm -f data/peaks.json
           rm -rf _site _prev snapshots
 
