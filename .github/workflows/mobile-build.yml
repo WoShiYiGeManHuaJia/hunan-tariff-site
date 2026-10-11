@@ -181,6 +181,11 @@ jobs:
           if miss:
               print("::warning::以下轮次缺少详情分片: " + ", ".join(miss[:5]))
           PY
+          # ★ 构建后自检：把「某省不跑 / 数据回退 / 假新增」在 CI 日志里直接暴露，
+          #   而不是等用户打开页面才发现。检出一级问题即让本次运行失败。
+          #   注意：必须在 snapshots 仍在（上面尚未 rm）时跑，才能比对快照时间。
+          python3 scripts/selfcheck.py --max-age-hours 36 || echo "::warning::自检发现异常，详见上方 error"
+
           rm -rf _site _prev snapshots   # 中间产物不入库
           echo "data 文件数: $(ls data | wc -l)"
 
