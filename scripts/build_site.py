@@ -625,6 +625,23 @@ def main():
         old_n = len((old_j or {}).get("items") or []) if old_j else 0
         cnt = int((state.get(sec) or {}).get("rounds", 0) or 0)
 
+        # 时间倒退保护：snapshots/ 是持久目录，focus 模式下未重抓的省份会一直
+        # 停留在旧快照。拿它当本轮数据会造成双重破坏：
+        #   ① 线上 data/<sec>.json 被回退到旧版本（用户看到过期数据）
+        #   ② 旧快照独有的业务被当成「本轮新增」→ 凭空虚报上千条
+        # 实测 2026-10-11 notify 那轮因此把安徽等 31 省回退到 09-12 数据，
+        # 并虚报 3177 条新增。故快照时间早于基线时一律保留线上数据。
+        _nts = (new_j or {}).get("timestamp") or ""
+        _ots = (old_j or {}).get("timestamp") or ""
+        if new_j and old_j and _nts and _ots and _nts < _ots:
+            shutil.copy(old_src, os.path.join(DATA, sec + ".json"))
+            st[sec] = stat_section(sec, PREV)
+            state[sec] = {"rounds": 0, "stale_snapshot": now,
+                          "snap_ts": _nts, "base_ts": _ots}
+            print(f"  [过期快照] 板块 {sec} 快照 {_nts} 早于基线 {_ots}，"
+                  f"保留线上数据，本轮不比对")
+            continue
+
         if old_n > 0 and new_n < old_n * SEC_DROP_RATIO:
             cnt += 1
             if new_n > 0 and cnt >= SEC_DEGRADE_ACCEPT:
