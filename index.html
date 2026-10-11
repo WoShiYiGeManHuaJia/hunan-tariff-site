@@ -2152,15 +2152,15 @@ function openHistDetail(hi, ci, type, bi){
   } else if(snap){
     var nt = type === "rst" ? ("该业务为往期已上线、因采样缺失本轮补录，非新上架"
            + (snapFallback ? "\uff08\u4ee5\u4e0b\u4e3a\u5f53\u524d\u5728\u67b6\u5185\u5bb9\uff09" : ""))
-           : (type === "add" ? "该业务本次新上架，以下为上架时的配置"
-           : "该业务本次已下线，以下为下架时留存的完整配置");
+           : (type === "add" ? "新增业务：无「修改前」记录"
+           : "已下线业务：无「修改后」记录");
     box.innerHTML = '<div class="dfnote">' + nt + '</div>' + dvHtml({ name:name, fields:snap });
   } else {
     box.innerHTML = '<div class="dfnone">' +
       (type === "mod" ? "该业务本次未记录字段级差异"
-        : (type === "add" ? "该业务本次新上架，但未留存上架时的字段快照"
+        : (type === "add" ? "新增业务：无「修改前」记录"
         : (type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
-        : "该业务已下线，本轮未留存下架时的字段快照"))) + "</div>";
+        : "已下线业务：无「修改后」记录"))) + "</div>";
   }
   var cur = null;
   for(var i = 0; i < D.items.length; i++){
