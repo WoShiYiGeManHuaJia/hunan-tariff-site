@@ -282,6 +282,13 @@ jobs:
           # 备份产物（防止被远程新提交冲掉）
           rm -rf /tmp/art && mkdir -p /tmp/art
           cp -a data    /tmp/art/ 2>/dev/null || true
+          # ★ 与 mobile-build 同款修复：本轮抓取产出的新快照必须一并备份。
+          #   否则下面 git reset --hard 会把 snapshots 打回远程旧版本，
+          #   下一轮 mobile-build 的基线（data/）已含本轮新数据、快照却是旧的，
+          #   时间倒退保护会让真实变化被整轮跳过（各省「不跑」）。
+          mkdir -p /tmp/art/snap
+          cp -a pipelines/mobile/snapshots/. /tmp/art/snap/ 2>/dev/null || true
+          echo "备份移动快照文件数: $(find /tmp/art/snap -maxdepth 1 -type f -name '*.json' | wc -l)"
           cp -a unicom  /tmp/art/ 2>/dev/null || true
           cp -a telecom /tmp/art/ 2>/dev/null || true
           cp -a gb      /tmp/art/ 2>/dev/null || true
@@ -294,6 +301,11 @@ jobs:
               cp -a "/tmp/art/$d" "./$d"
             fi
           done
+          if [ "$(find /tmp/art/snap -maxdepth 1 -type f -name '*.json' | wc -l)" -gt 0 ]; then
+            mkdir -p pipelines/mobile/snapshots
+            cp -a /tmp/art/snap/. pipelines/mobile/snapshots/ || echo "::warning::移动快照恢复失败"
+            echo "恢复移动快照文件数: $(find pipelines/mobile/snapshots -maxdepth 1 -type f -name '*.json' | wc -l)"
+          fi
           git config user.name "tariff-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
