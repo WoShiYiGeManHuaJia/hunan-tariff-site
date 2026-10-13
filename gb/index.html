@@ -2095,12 +2095,126 @@ function provSnap(prov, cb){
   }).catch(function(){ done({}); });
 }
 
-/* ---------- 变更详情弹窗 ---------- */
-var curHist = null;
+/* ══════════ 变更详情弹窗 · 四页统一渲染（v2 · 2026-10-13）══════════
+   四个页面（移动 / 广电 / 电信 / 联通）引用完全相同的一份代码：
+   动作徽章 → 说明条 → 字段卡片（dfrow）→ 空态，视觉与措辞全站一致。 */
+var HIST_TMAP = {
+  add: ["新增上架", "p-add"], del: ["下线停售", "p-del"],
+  mod: ["字段修改", "p-mod"], rst: ["漏采补录", "p-rst"]
+};
+var HIST_NOTE = {
+  add: "新增业务，本轮首次出现于在架列表",
+  del: "已下线业务，以下为下架时留存的字段快照",
+  mod: "字段修改，以下为逐字段的修改前后对照",
+  rst: "往期已上线业务，因上轮采样缺失而本轮补录，非新上架"
+};
+function histEmptyBox(msg){
+  return '<div class="dfnone">' + esc(msg || "暂无内容") + '</div>';
+}
+function histDiffRows(rows, bf, af){
+  bf = bf || {}; af = af || {};
+  function nz(v){ return v == null ? "" : String(v); }
+  var out = [], seen = {};
+  (rows || []).forEach(function(r){
+    var k = r && r.field ? r.field : "";
+    if(!k || seen[k]){ return; }
+    seen[k] = 1;
+    var b = nz(r["from"]), a = nz(r.to);
+    if(b === "" && a === ""){ return; }
+    out.push({ k:k, b:(b || "（空）"), a:(a || "（空）") });
+  });
+  var keys = [];
+  Object.keys(bf).forEach(function(k){ if(keys.indexOf(k) < 0){ keys.push(k); } });
+  Object.keys(af).forEach(function(k){ if(keys.indexOf(k) < 0){ keys.push(k); } });
+  keys.forEach(function(k){
+    if(seen[k]){ return; }
+    var b = nz(bf[k]), a = nz(af[k]);
+    if(b === a){ return; }
+    seen[k] = 1;
+    out.push({ k:k, b:(b || "（空）"), a:(a || "（空）") });
+  });
+  if(!out.length){ return histEmptyBox("该业务本次未记录到字段级差异"); }
+  return '<div class="dfnote"><span class="cmp-badge">共 ' + out.length + ' 处改动</span>已按字段逐条列出修改前后</div>' +
+    out.map(function(r, i){
+      return '<div class="dfrow" style="animation-delay:' + Math.min(i * 45, 270) + 'ms">' +
+        '<div class="df-f">' + esc(r.k) + '</div>' +
+        '<div class="df-v">' +
+        '<div class="df-line"><span class="df-tag df-old">修改前</span><span class="df-txt df-oldv">' + esc(r.b) + '</span></div>' +
+        '<div class="df-arrow">↓</div>' +
+        '<div class="df-line"><span class="df-tag df-new">修改后</span><span class="df-txt df-newv">' + esc(r.a) + '</span></div>' +
+        '</div></div>';
+    }).join("");
+}
+function histSnapRows(snap){
+  var o = cnFields(snap || {}), keys = Object.keys(o).filter(function(k){
+    var v = o[k]; return !(v == null || String(v).replace(/\s+/g, "") === "");
+  });
+  if(!keys.length){ return histEmptyBox("该业务未留存任何字段内容"); }
+  var ORDER = ["资费标准", "方案编号", "归属", "资费类型", "适用范围", "适用地区",
+               "上线日期", "下线日期", "有效期限", "在网要求", "销售渠道", "退订方式",
+               "违约责任", "超出资费说明", "其他服务内容", "其他说明"];
+  var head = keys.filter(function(k){ return ORDER.indexOf(k) >= 0; })
+                 .sort(function(a, b){ return ORDER.indexOf(a) - ORDER.indexOf(b); });
+  var rest = keys.filter(function(k){ return ORDER.indexOf(k) < 0; });
+  var all = head.concat(rest);
+  return '<div class="dfnote"><span class="cmp-badge">共 ' + all.length + ' 项字段</span>以下为该业务的完整字段快照</div>' +
+    all.map(function(k, i){
+      return '<div class="dfrow" style="animation-delay:' + Math.min(i * 45, 270) + 'ms">' +
+        '<div class="df-f">' + esc(k) + '</div>' +
+        '<div class="df-v"><div class="df-line"><span class="df-txt df-newv">' + esc(o[k]) + '</span></div></div></div>';
+    }).join("");
+}
+/* 跨省兜底：优先按省份取在架快照（provSnap），否则回落到当前板块 D.items */
+function histFieldsOf(name, prov, cb){
+  if(typeof provSnap === "function" && prov){
+    provSnap(prov, function(map){ cb((map && map[name]) || null); });
+    return;
+  }
+  var f = null;
+  for(var i = 0; i < D.items.length; i++){
+    if(D.items[i].name === name){ f = D.items[i].fields || null; break; }
+  }
+  cb(f);
+}
+function histCurDiff(name, type, af){
+  var wrap = document.getElementById("hmCurWrap"), dl = document.getElementById("hmCur");
+  if(!wrap || !dl){ return; }
+  var cur = null;
+  for(var i = 0; i < D.items.length; i++){
+    if(D.items[i].name === name){ cur = D.items[i]; break; }
+  }
+  if(type !== "mod" || !cur || !cur.fields){
+    dl.innerHTML = ""; wrap.style.display = "none"; return;
+  }
+  var cf = cnFields(cur.fields);
+  var sf = af ? cnFields(af) : {};
+  var emp = function(v){ var t = String(v == null ? "" : v).replace(/\s+/g, "");
+    return (t === "" || t === "无" || t === "null" || t === "undefined" || t === "-" || t === "—" || t === "–"); };
+  var nvr = function(v){ return String(v == null ? "" : v).replace(/\s+/g, "").replace(/[—–-]/g, ""); };
+  var diff = {};
+  Object.keys(cf).forEach(function(k){
+    if(emp(cf[k])){ return; }
+    if(nvr(cf[k]) === nvr(sf[k])){ return; }
+    diff[k] = cf[k];
+  });
+  if(Object.keys(diff).length === 0){ dl.innerHTML = ""; wrap.style.display = "none"; return; }
+  var html = "";
+  Object.keys(diff).forEach(function(k){ html += "<dt>" + esc(k) + "</dt><dd>" + esc(diff[k]) + "</dd>"; });
+  dl.innerHTML = html; wrap.style.display = "";
+}
 function openHistDetail(hi, ci, type, bi){
   var h = D.history[hi]; if(!h){ return; }
   var c = h.changes[ci]; if(!c){ return; }
-  var md = c.modified_details || {};
+  /* 分片懒加载：仅索引页启用（HIST_DET 存在时才走） */
+  if(typeof HIST_DET === "object" && HIST_DET && !HIST_DET[h.ts]){
+    try{
+      document.getElementById("hmTitle").textContent = "加载详情…";
+      document.getElementById("hmDiff").innerHTML = histEmptyBox("正在加载该轮变更详情…");
+      document.getElementById("hmMask").classList.add("on");
+    }catch(e){}
+    loadHistDetail(hi, function(){ openHistDetail(hi, ci, type, bi); });
+    return;
+  }
   var arr = type === "add" ? (c.added_names || [])
           : (type === "del" ? (c.removed_names || [])
           : (type === "rst" ? (c.restored_names || []) : (c.modified_names || [])));
@@ -2108,77 +2222,61 @@ function openHistDetail(hi, ci, type, bi){
   if(!name){ return; }
   curHist = { name:name, type:type, prov:c.name || "", ts:h.ts || "" };
   document.getElementById("hmTitle").textContent = name;
-  var tl = type === "add" ? "新增上架" : (type === "del" ? "下线停售"
-        : (type === "rst" ? "漏采补录" : "字段修改"));
-  var tc = type === "add" ? "p-add" : (type === "del" ? "p-del" : (type === "rst" ? "p-rst" : "p-mod"));
+
+  /* ① 动作徽章（四类统一） */
+  var tc = HIST_TMAP[type] || ["变更", "p-mod"];
   document.getElementById("hmHead").innerHTML =
-    '<span class="pill ' + tc + '">' + tl + '</span>' +
-    '<span class="dfmeta">' + esc(c.name || "") + " \u00b7 " + esc(h.ts || "") + "</span>";
-  var rows = (type === "mod") ? (md[name] || []) : [];
-  var box = document.getElementById("hmDiff");
+    '<span class="pill ' + tc[1] + '">' + tc[0] + '</span>' +
+    '<span class="dfmeta">' + esc(c.name || "") + " · " + esc(h.ts || "") + "</span>";
+
+  /* ② 取数据 */
+  var rows = (type === "mod") ? ((c.modified_details || {})[name] || []) : [];
   var bf = (type === "mod") ? ((c.modified_before || {})[name] || null) : null;
   var af = (type === "mod") ? ((c.modified_after || {})[name] || null) : null;
   var snap = (type === "add" ? (c.added_details || {})
             : (type === "rst" ? (c.restored_details || {})
             : (type === "del" ? (c.removed_details || {}) : {})))[name] || null;
+
+  /* ③ 说明条 */
+  var note = HIST_NOTE[type] || "";
+
+  /* ④ 主体（同一套 dfrow 卡片） */
+  var box = document.getElementById("hmDiff");
   if(type === "mod"){
-    box.innerHTML = modUnifiedHtml(bf, af, rows);
-  } else if(snap){
-    var nt = type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
-           : (type === "add" ? "新增业务：无「修改前」记录"
-           : "已下线业务：无「修改后」记录");
-    box.innerHTML = '<div class="dfnote">' + nt + '</div>' + dvHtml({ name:name, fields:snap });
-  } else if((type === "rst" || type === "add") && c.prov){
-    /* 旧轮次的补录/新增只存了名字没有字段快照；这里按省份拉取当前在架数据补齐。
-       D.items 只有当前浏览的板块，跨省查不到，所以必须按 c.prov 单独取。 */
-    box.innerHTML = '<div class="dfnone">正在读取 ' + esc(c.name || c.prov) + ' 在架数据…</div>';
-    (function(_hi,_ci,_ty,_bi,_nm){
-      provSnap(c.prov, function(map){
-        if(!(curHist && curHist.name === _nm && curHist.type === _ty)){ return; }
-        var b = document.getElementById("hmDiff"); if(!b){ return; }
-        var f = map ? (map[_nm] || null) : null;
-        var tip = _ty === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架（以下为当前在架内容）"
-                                : "新增业务：无「修改前」记录（以下为当前在架内容）";
-        b.innerHTML = f ? ('<div class="dfnote">' + tip + '</div>' + dvHtml({name:_nm, fields:f}))
-          : ('<div class="dfnone">' + (_ty === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
-              : "新增业务：无「修改前」记录") + '</div>');
-      });
-    })(hi, ci, type, bi, name);
-  } else {
-    box.innerHTML = '<div class="dfnone">' +
-      (type === "mod" ? "该业务本次未记录字段级差异"
-        : (type === "add" ? "新增业务：无「修改前」记录"
-        : (type === "rst" ? "该业务为往期已上线、因采样缺失本轮补录，非新上架"
-        : "已下线业务：无「修改后」记录"))) + "</div>";
+    box.innerHTML = '<div class="dfnote">' + esc(note) + '</div>' + histDiffRows(rows, bf, af);
+    histCurDiff(name, type, af);
+    document.getElementById("hmMask").classList.add("on");
+    return;
   }
-  var cur = null;
-  for(var i = 0; i < D.items.length; i++){
-    if(D.items[i].name === name){ cur = D.items[i]; break; }
+  if(snap && Object.keys(snap).length){
+    box.innerHTML = '<div class="dfnote">' + esc(note) + '</div>' + histSnapRows(snap);
+    histCurDiff(name, type, af);
+    document.getElementById("hmMask").classList.add("on");
+    return;
   }
-  var wrap = document.getElementById("hmCurWrap"), dl = document.getElementById("hmCur");
-  if(cur && cur.fields){
-    var cf = cnFields(cur.fields);
-    var sf = (typeof snap !== "undefined" && snap) ? cnFields(snap)
-           : ((typeof af !== "undefined" && af) ? cnFields(af) : {});
-    var __emp = function(v){ var t = String(v == null ? "" : v).replace(/\s+/g, "");
-      return (t === "" || t === "\u65e0" || t === "null" || t === "undefined" || t === "-" || t === "\u2014" || t === "\u2013"); };
-    var __nv = function(v){ return String(v == null ? "" : v).replace(/\s+/g, "").replace(/[\u2014\u2013-]/g, ""); };
-    var diff = {};
-    Object.keys(cf).forEach(function(k){
-      if(__emp(cf[k])){ return; }
-      if(__nv(cf[k]) === __nv(sf[k])){ return; }
-      diff[k] = cf[k];
+  if(type === "add" || type === "rst"){
+    box.innerHTML = '<div class="dfnone">正在读取 ' + esc(c.name || "") + ' 在架数据…</div>';
+    document.getElementById("hmMask").classList.add("on");
+    histFieldsOf(name, c.prov || c.name, function(f){
+      if(!(curHist && curHist.name === name && curHist.type === type)){ return; }
+      var b = document.getElementById("hmDiff"); if(!b){ return; }
+      if(f && Object.keys(f).length){
+        b.innerHTML = '<div class="dfnote">' + esc(note + "（以下为当前在架内容）") + '</div>' + histSnapRows(f);
+      } else {
+        b.innerHTML = histEmptyBox(note);
+      }
+      histCurDiff(name, type, af);
     });
-    var dn = Object.keys(diff).length;
-    if(dn === 0){ dl.innerHTML = ""; wrap.style.display = "none"; }
-    else{
-      var html = "";
-      Object.keys(diff).forEach(function(k){ html += "<dt>" + esc(k) + "</dt><dd>" + esc(diff[k]) + "</dd>"; });
-      dl.innerHTML = html; wrap.style.display = "";
-    }
-  } else { wrap.style.display = "none"; }
+    return;
+  }
+  box.innerHTML = '<div class="dfnote">' + esc(note) + '</div>' + histEmptyBox("本轮未留存该业务的字段快照");
+  histCurDiff(name, type, af);
   document.getElementById("hmMask").classList.add("on");
 }
+
+/* ---------- 变更详情弹窗 ---------- */
+var curHist = null;
+
 function closeHist(){ document.getElementById("hmMask").classList.remove("on"); curHist = null; }
 function cmpHtml(bf, af, nDiff){
   bf = bf || {}; af = af || {};
