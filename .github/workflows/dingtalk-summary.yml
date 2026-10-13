@@ -25,6 +25,11 @@ name: Tariff Notify
 #     这两个板块；这不影响其余三家的重点省份设置。
 
 on:
+  # 外部精确触发（cron-job.org / 服务器 crontab 调 GitHub API 用）
+  # 这是唯一能保证「北京 08:00 / 20:00 准点」的方式：
+  # GitHub 自带 schedule 在免费账号上实测延迟 5~9 小时，无法靠改 cron 修正。
+  repository_dispatch:
+    types: [notify]
   schedule:
     # focus 模式下各家耗时：移动 ~4 分 / 电信广电 ~5 分 / 联通 ~7 分，
     # 三家在本 workflow 内顺序跑约 20 分钟，10:00 与 20:00 推送前有足够余量。
@@ -75,12 +80,53 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+
+  # ══════════ 推送时间窗守卫 ══════════
+  # GitHub schedule 实测延迟 5~9 小时，cron 写几点都拦不住平台排队。
+  # 与其让它在下午三点乱发一条，不如：不在目标窗口内就直接不推。
+  #   早场 北京 07:30–09:30
+  #   晚场 北京 19:30–21:30
+  # 外部触发器（cron-job.org）在 08:00 / 20:00 通过 repository_dispatch
+  # 打进来，必定落在窗口内；手动触发不受窗口限制。
+  window:
+    runs-on: ubuntu-latest
+    outputs:
+      ok:   ${{ steps.w.outputs.ok }}
+      slot: ${{ steps.w.outputs.slot }}
+      bj:   ${{ steps.w.outputs.bj }}
+    steps:
+      - id: w
+        run: |
+          python3 - <<'PYEOF'
+          import datetime, os
+          bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+          hm = bj.hour * 60 + bj.minute
+          WINDOWS = [(7 * 60 + 30, 9 * 60 + 30, "早场"), (19 * 60 + 30, 21 * 60 + 30, "晚场")]
+          slot, ok = "", False
+          for a, b, nm in WINDOWS:
+              if a <= hm <= b:
+                  slot, ok = nm, True
+                  break
+          ev = os.environ.get("GITHUB_EVENT_NAME", "")
+          # 手动触发 / 外部 dispatch 一律放行；只有 schedule 受窗口约束
+          if ev in ("workflow_dispatch", "repository_dispatch"):
+              ok = True
+              slot = slot or ("手动" if ev == "workflow_dispatch" else "外部触发")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write("ok=%s\n" % ("true" if ok else "false"))
+              f.write("slot=%s\n" % slot)
+              f.write("bj=%s\n" % bj.strftime("%m-%d %H:%M"))
+          print("[窗口守卫] 现在北京 %s，事件 %s，判定 %s（%s）"
+                % (bj.strftime("%m-%d %H:%M"), ev, "放行" if ok else "跳过", slot or "窗口外"))
+          PYEOF
+
   # ══════════ 数据新鲜度检查（仅定时推送时）═════════
   # GitHub 的 schedule 会延迟（今天早间抓取名义 08:47、实际 13:27 才跑完），
   # 若推送时当日数据还没抓完，就会把上一轮旧内容当「今日变化」推走。
   # 这里先量一下数据年龄，陈旧则让下面的 fetch 本轮自抓一遍再推。
   fresh:
-    if: github.event_name == 'schedule'
+    needs: window
+    if: github.event_name == 'schedule' || github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
     outputs:
       stale:  ${{ steps.chk.outputs.stale }}
@@ -134,18 +180,19 @@ jobs:
 
   # ══════════ 抓取（手动 / 定时且数据陈旧时）══════════
   fetch:
-    needs: fresh
+    needs: [window, fresh]
     # 手动触发且选了「手动推送(重点省)」/「全量推送」→ 抓取；
     # 定时触发 → 当日抓取本由三个 workflow 在 08:47/09:17/09:37 完成，
     #   但若它们被 GitHub 延迟、数据仍陈旧（fresh.stale=true），本轮自己
     #   抓一遍再推，避免推成「昨天的变化」。
     if: >-
-      always() && (
+      always() && needs.window.outputs.ok == 'true' && (
         (github.event_name == 'workflow_dispatch' && (
           contains(github.event.inputs.action, '重点省') ||
           contains(github.event.inputs.action, '全量')
         )) ||
-        (github.event_name == 'schedule' && needs.fresh.outputs.stale == 'true')
+        (github.event_name == 'schedule' && needs.fresh.outputs.stale == 'true') ||
+        github.event_name == 'repository_dispatch'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -334,11 +381,12 @@ jobs:
 
   # ══════════ 推送 ══════════
   notify:
-    needs: fetch
+    needs: [window, fetch]
     # fetch 被跳过或失败时也照常推送（推当前已有数据）
     if: >-
-      always() && (
+      always() && needs.window.outputs.ok == 'true' && (
         github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'repository_dispatch' ||
         (github.event_name == 'schedule' && vars.NOTIFY_MODE != 'focus_manual')
       )
     runs-on: ubuntu-latest
