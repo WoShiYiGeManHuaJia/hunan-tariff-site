@@ -1,0 +1,149 @@
+============================================================
+[电信] 列表接口
+  code=S_COMMON_0000 message=操作成功
+  floorItems = 149
+  --- item ---
+     colorValue             None
+     contentOne             None
+     customAmountFlag       0
+     externalOfferCode      518652200001
+     flagSelected           0
+     floorItems             None
+     iconUrl                None
+     imageRatio             None
+     imageUrl               None
+     link                   None
+     linkType               None
+     liveStartTime          20260731190000
+     mainOfferCode          5186522
+     offerEffDate           1785307587000
+     offerExpDate           None
+     offerId                None
+     offerLatestTime        2026-07-29 14:46:27
+     offerName              关于规范互联网渠道售卡管理的公告-集团
+     offerProvinces         1000000037
+     offerShop              20001
+     offerType              None
+     order                  1
+     originalColorValue     None
+     promotionalFlow        None
+     promotionalPrice       None
+     promotionalText        None
+     recommender            cc-010001002000.rmc-wt_sy_jtgg.fd-0.od-1.eoc-518652200001
+     sceneId                wt_sy_jtgg##38237##default##518652200001##010001002000##3##N##N##1##N#
+     showType               None
+     subTitle               None
+     subscriptImageUrl      None
+     tabType                None
+     threePictureAddress    None
+     timeStamp              1785307587000
+     title                  关于规范互联网渠道售卡管理的公告
+     totalAmountWeight      0
+     type                   wt_sy_jtgg
+     userOwe                0
+  --- item ---
+     colorValue             None
+     contentOne             None
+     customAmountFlag       0
+     externalOfferCode      715577900001
+     flagSelected           0
+     floorItems             None
+     iconUrl                None
+     imageRatio             None
+     imageUrl               None
+     link                   None
+     linkType               None
+     liveStartTime          20261012144715
+     mainOfferCode          7155779
+     offerEffDate           1791787861000
+     offerExpDate           None
+     offerId                None
+     offerLatestTime        2026-10-12 14:51:01
+     offerName              关于中国电信株洲公司宽带网络升级的公告20261012
+     offerProvinces         600203
+     offerShop              20001
+     offerType              None
+     order                  1
+     originalColorValue     None
+     promotionalFlow        None
+     promotionalPrice       None
+     promotionalText        None
+     recommender            cc-010001002000.rmc-wt_sy_bzzx.fd-2.od-1.eoc-715577900001
+     sceneId                wt_sy_bzzx##39035##default##715577900001##010001002000##0##N##37241620
+     showType               None
+     subTitle               None
+     subscriptImageUrl      None
+     tabType                None
+     threePictureAddress    None
+     timeStamp              1791787861000
+     title                  关于中国电信株洲公司宽带网络升级的公告
+     totalAmountWeight      1791787631000
+     type                   wt_sy_bzzx
+     userOwe                0
+  --- item ---
+     colorValue             None
+     contentOne             None
+     customAmountFlag       0
+     externalOfferCode      714843100001
+     flagSelected           0
+     floorItems             None
+     iconUrl                None
+     imageRatio             None
+     imageUrl               None
+     link                   None
+     linkType               None
+     liveStartTime          20261012144715
+     mainOfferCode          7148431
+     offerEffDate           1791787815000
+     offerExpDate           None
+     offerId                None
+     offerLatestTime        2026-10-12 14:50:15
+     offerName              关于中国电信张家界公司宽带网络升级的公告20261012
+     offerProvinces         600203
+     offerShop              20001
+     offerType              None
+     order                  2
+     originalColorValue     None
+     promotionalFlow        None
+     promotionalPrice       None
+     promotionalText        None
+     recommender            cc-010001002000.rmc-wt_sy_bzzx.fd-2.od-2.eoc-714843100001
+     sceneId                wt_sy_bzzx##39035##default##714843100001##010001002000##0##N##37241620
+     showType               None
+     subTitle               None
+     subscriptImageUrl      None
+     tabType                None
+     threePictureAddress    None
+     timeStamp              1791787815000
+     title                  关于中国电信张家界公司宽带网络升级的公告
+     totalAmountWeight      1791787631000
+     type                   wt_sy_bzzx
+     userOwe                0
+[电信] 详情接口尝试（最新 3 条 × 4 种参数组合）
+  ## 关于规范互联网渠道售卡管理的公告 | externalOfferCode='518652200001' offerCode='' id='' type='wt_sy_jtgg'
+     A type自身+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
+     B type自身+id    ERR ERR <HTTPError 412: 'Precondition Failed'>
+     C 写死type+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
+     D 加shopId      ERR ERR <HTTPError 412: 'Precondition Failed'>
+  ## 关于中国电信株洲公司宽带网络升级的公告 | externalOfferCode='715577900001' offerCode='' id='' type='wt_sy_bzzx'
+     A type自身+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
+     B type自身+id    ERR ERR <HTTPError 412: 'Precondition Failed'>
+     C 写死type+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
+     D 加shopId      ERR ERR <HTTPError 412: 'Precondition Failed'>
+  ## 关于中国电信张家界公司宽带网络升级的公告 | externalOfferCode='714843100001' offerCode='' id='' type='wt_sy_bzzx'
+     A type自身+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
+     B type自身+id    ERR ERR <HTTPError 412: 'Precondition Failed'>
+     C 写死type+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
+     D 加shopId      ERR ERR <HTTPError 412: 'Precondition Failed'>
+============================================================
+[联通] 列表接口
+  province='074' pageSize=100  顶层keys=['result', 'pageNo', 'totalPages', 'pageSize', 'totalCount'] result=100 最新日期=['2026-09-29', '2026-09-22', '2026-09-18']
+      totalCount=117
+      首条字段: {'title': '关于部分产品变更的公示', 'publishTime': '2026-09-18', 'creatorProvinceName': '湖南', 'id': '2c1adc23a0ca122201a0f1889b7c000b'}
+  province='074' pageSize=12   顶层keys=['result', 'pageNo', 'totalPages', 'pageSize', 'totalCount'] result=12 最新日期=['2026-09-29', '2026-09-22', '2026-09-18']
+      totalCount=117
+      首条字段: {'title': '关于部分产品变更的公示', 'publishTime': '2026-09-18', 'creatorProvinceName': '湖南', 'id': '2c1adc23a0ca122201a0f1889b7c000b'}
+  province='' pageSize=100 -> ERR <HTTPError 500: 'Internal Error'>
+  province='' pageSize=12 -> ERR <HTTPError 500: 'Internal Error'>
+  详情 id=2c1a61eea0ca0d6301a0eadb4c4b0083 noticeTime=2026-09-29 content=36116字 keys=['title', 'noticeTime', 'noticeDetails', 'inscribeCreator', 'id']
+  详情 id=2c1a61eea0ca0d6301a0d2e03ca3003f noticeTime=2026-09-22 content=451997字 keys=['title', 'noticeTime', 'noticeDetails', 'inscribeCreator', 'id']
