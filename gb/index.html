@@ -2915,7 +2915,7 @@ function openAnn(i){
   if(!x){ return; }
   var body = '<div class="an-dv">' +
     '<div class="an-dv-d">' + esc(x.date || "") + "</div>" +
-    '<div class="an-dv-c">' + (x.content || x.summary || "（暂无正文）") + "</div>" +
+    '<div class="an-dv-c">' + ((x.content || x.summary || "").trim() || '<div class="dfnone">该公告正文需在官网查看（源站接口未开放正文抓取）</div>') + "</div>" +
     (x.page_url ? '<div class="an-dv-l"><a href="' + esc(x.page_url) + '" target="_blank" rel="noopener">查看原文 ↗</a></div>' : "") +
     "</div>";
   document.getElementById("mTitle").textContent = x.title || "公告详情";
