@@ -1,149 +1,24 @@
 ============================================================
-[电信] 列表接口
-  code=S_COMMON_0000 message=操作成功
-  floorItems = 149
-  --- item ---
-     colorValue             None
-     contentOne             None
-     customAmountFlag       0
-     externalOfferCode      518652200001
-     flagSelected           0
-     floorItems             None
-     iconUrl                None
-     imageRatio             None
-     imageUrl               None
-     link                   None
-     linkType               None
-     liveStartTime          20260731190000
-     mainOfferCode          5186522
-     offerEffDate           1785307587000
-     offerExpDate           None
-     offerId                None
-     offerLatestTime        2026-07-29 14:46:27
-     offerName              关于规范互联网渠道售卡管理的公告-集团
-     offerProvinces         1000000037
-     offerShop              20001
-     offerType              None
-     order                  1
-     originalColorValue     None
-     promotionalFlow        None
-     promotionalPrice       None
-     promotionalText        None
-     recommender            cc-010001002000.rmc-wt_sy_jtgg.fd-0.od-1.eoc-518652200001
-     sceneId                wt_sy_jtgg##38237##default##518652200001##010001002000##3##N##N##1##N#
-     showType               None
-     subTitle               None
-     subscriptImageUrl      None
-     tabType                None
-     threePictureAddress    None
-     timeStamp              1785307587000
-     title                  关于规范互联网渠道售卡管理的公告
-     totalAmountWeight      0
-     type                   wt_sy_jtgg
-     userOwe                0
-  --- item ---
-     colorValue             None
-     contentOne             None
-     customAmountFlag       0
-     externalOfferCode      715577900001
-     flagSelected           0
-     floorItems             None
-     iconUrl                None
-     imageRatio             None
-     imageUrl               None
-     link                   None
-     linkType               None
-     liveStartTime          20261012144715
-     mainOfferCode          7155779
-     offerEffDate           1791787861000
-     offerExpDate           None
-     offerId                None
-     offerLatestTime        2026-10-12 14:51:01
-     offerName              关于中国电信株洲公司宽带网络升级的公告20261012
-     offerProvinces         600203
-     offerShop              20001
-     offerType              None
-     order                  1
-     originalColorValue     None
-     promotionalFlow        None
-     promotionalPrice       None
-     promotionalText        None
-     recommender            cc-010001002000.rmc-wt_sy_bzzx.fd-2.od-1.eoc-715577900001
-     sceneId                wt_sy_bzzx##39035##default##715577900001##010001002000##0##N##37241620
-     showType               None
-     subTitle               None
-     subscriptImageUrl      None
-     tabType                None
-     threePictureAddress    None
-     timeStamp              1791787861000
-     title                  关于中国电信株洲公司宽带网络升级的公告
-     totalAmountWeight      1791787631000
-     type                   wt_sy_bzzx
-     userOwe                0
-  --- item ---
-     colorValue             None
-     contentOne             None
-     customAmountFlag       0
-     externalOfferCode      714843100001
-     flagSelected           0
-     floorItems             None
-     iconUrl                None
-     imageRatio             None
-     imageUrl               None
-     link                   None
-     linkType               None
-     liveStartTime          20261012144715
-     mainOfferCode          7148431
-     offerEffDate           1791787815000
-     offerExpDate           None
-     offerId                None
-     offerLatestTime        2026-10-12 14:50:15
-     offerName              关于中国电信张家界公司宽带网络升级的公告20261012
-     offerProvinces         600203
-     offerShop              20001
-     offerType              None
-     order                  2
-     originalColorValue     None
-     promotionalFlow        None
-     promotionalPrice       None
-     promotionalText        None
-     recommender            cc-010001002000.rmc-wt_sy_bzzx.fd-2.od-2.eoc-714843100001
-     sceneId                wt_sy_bzzx##39035##default##714843100001##010001002000##0##N##37241620
-     showType               None
-     subTitle               None
-     subscriptImageUrl      None
-     tabType                None
-     threePictureAddress    None
-     timeStamp              1791787815000
-     title                  关于中国电信张家界公司宽带网络升级的公告
-     totalAmountWeight      1791787631000
-     type                   wt_sy_bzzx
-     userOwe                0
-[电信] 详情接口尝试（最新 3 条 × 4 种参数组合）
-  ## 关于规范互联网渠道售卡管理的公告 | externalOfferCode='518652200001' offerCode='' id='' type='wt_sy_jtgg'
-     A type自身+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
-     B type自身+id    ERR ERR <HTTPError 412: 'Precondition Failed'>
-     C 写死type+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
-     D 加shopId      ERR ERR <HTTPError 412: 'Precondition Failed'>
-  ## 关于中国电信株洲公司宽带网络升级的公告 | externalOfferCode='715577900001' offerCode='' id='' type='wt_sy_bzzx'
-     A type自身+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
-     B type自身+id    ERR ERR <HTTPError 412: 'Precondition Failed'>
-     C 写死type+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
-     D 加shopId      ERR ERR <HTTPError 412: 'Precondition Failed'>
-  ## 关于中国电信张家界公司宽带网络升级的公告 | externalOfferCode='714843100001' offerCode='' id='' type='wt_sy_bzzx'
-     A type自身+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
-     B type自身+id    ERR ERR <HTTPError 412: 'Precondition Failed'>
-     C 写死type+eoc   ERR ERR <HTTPError 412: 'Precondition Failed'>
-     D 加shopId      ERR ERR <HTTPError 412: 'Precondition Failed'>
+[联通] 分页全量
+  page1 -> 100 条 (totalCount=117)
+  page2 -> 17 条 (totalCount=117)
+  合计 117 条，最新 8 条：
+     2026-09-29 | 关于固定电话实名制补登及防范语音网关盗打风险的重要公示 | 2c1a61eea0ca0d6301a0eadb4c4b0083
+     2026-09-22 | 合约产品停售公告 | 2c1a61eea0ca0d6301a0d2e03ca3003f
+     2026-09-18 | 关于部分产品变更的公示 | 2c1adc23a0ca122201a0f1889b7c000b
+     2026-09-18 | 关于部分产品停售的公示 | 2c1a61eea0ca0d6301a0ec31d4090087
+     2026-09-17 | 湖南联通畅游轻享版联名游戏流量包使用指南 | 2c1ae2dda087728d01a0aeb93b5d000b
+     2026-09-17 | 预存享终端电子券活动可参与机型公示说明 | 2c1ab377a087728d01a0ae043fc00028
+     2026-09-04 | 产品停售公告 | 2c1ae2dda087728d01a08956ee240001
+     2026-09-01 | “来电来信免打扰”服务用户指南 | 2c1a5bce9fec27a201a0572264900095
+  condition=1 -> 20 条 最新=['', '', '']
+  condition=2 -> 2 条 最新=['', '']
 ============================================================
-[联通] 列表接口
-  province='074' pageSize=100  顶层keys=['result', 'pageNo', 'totalPages', 'pageSize', 'totalCount'] result=100 最新日期=['2026-09-29', '2026-09-22', '2026-09-18']
-      totalCount=117
-      首条字段: {'title': '关于部分产品变更的公示', 'publishTime': '2026-09-18', 'creatorProvinceName': '湖南', 'id': '2c1adc23a0ca122201a0f1889b7c000b'}
-  province='074' pageSize=12   顶层keys=['result', 'pageNo', 'totalPages', 'pageSize', 'totalCount'] result=12 最新日期=['2026-09-29', '2026-09-22', '2026-09-18']
-      totalCount=117
-      首条字段: {'title': '关于部分产品变更的公示', 'publishTime': '2026-09-18', 'creatorProvinceName': '湖南', 'id': '2c1adc23a0ca122201a0f1889b7c000b'}
-  province='' pageSize=100 -> ERR <HTTPError 500: 'Internal Error'>
-  province='' pageSize=12 -> ERR <HTTPError 500: 'Internal Error'>
-  详情 id=2c1a61eea0ca0d6301a0eadb4c4b0083 noticeTime=2026-09-29 content=36116字 keys=['title', 'noticeTime', 'noticeDetails', 'inscribeCreator', 'id']
-  详情 id=2c1a61eea0ca0d6301a0d2e03ca3003f noticeTime=2026-09-22 content=451997字 keys=['title', 'noticeTime', 'noticeDetails', 'inscribeCreator', 'id']
+[电信] 正文替代来源探测
+  GET https://www.189.cn/web/notice/index.html         -> None len=38
+  GET https://www.189.cn/web/notice                    -> None len=38
+  样本: 关于中国电信株洲公司宽带网络升级的公告 | eoc=715577900001 sceneId=wt_sy_bzzx##39035##default##715577900001 mainOfferCode=7155779
+  GET https://www.189.cn/web/notice/detail.html?offerCode=7155 -> None len=38
+  GET https://www.189.cn/web/notice/index.html?offerCode=71557 -> None len=38
+  GET https://www.189.cn/web/notice/detail.html?id=7155779     -> None len=38
+  GET https://www.189.cn/web/noticeDetail.html?offerCode=71557 -> None len=38
