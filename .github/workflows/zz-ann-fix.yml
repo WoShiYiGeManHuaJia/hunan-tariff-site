@@ -1,0 +1,24 @@
+name: AnnFixRun
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome -q
+      - run: |
+          PYTHONPATH=pipelines python3 -u pipelines/scripts/announce_fetch.py             --uni-dir unicom/data --tc-dir telecom/data 2>&1 | tee _annfix_out.txt
+      - name: 提交
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add unicom/data/announce.json telecom/data/announce.json _annfix_out.txt
+          git commit -q -m "announce fix $(date -u +%F' '%T) UTC" || echo "no change"
+          for i in 1 2 3 4 5; do git pull --rebase -q origin main && git push -q origin main && break; sleep 6; done
