@@ -1,0 +1,27 @@
+[联通] 拉取公告列表 ...
+[联通] 翻页取全量 117 条（totalCount=117）
+[联通] 列表 117 条，按日期降序取最新 15 条
+已写入 /home/runner/work/hunan-tariff-site/hunan-tariff-site/unicom/data/announce.json (15 条)
+[电信] 拉取湖南公告列表 (provinceCode=600203) ...
+[电信] 列表 149 条
+[电信] 按日期降序取最新 15 条
+[电信] 详情 715737200001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 715577900001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 715568600001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 714843100001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 712941700001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 712907400001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 570447200001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 567750700001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 567768800001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 567676400001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 566924800001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 563739300001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 540248600001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 539122600001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 详情 532603000001 失败: HTTP Error 412: Precondition Failed（保留既有正文）
+[电信] 正文抓取成功 0/15 条
+   * 2026-10-12 | 关于中国电信长沙公司移动网络升级的公告 | 正文0字
+   * 2026-10-12 | 关于中国电信株洲公司宽带网络升级的公告 | 正文0字
+   * 2026-10-12 | 关于中国电信宁乡公司双凫铺机房割接的公告 | 正文0字
+已写入 /home/runner/work/hunan-tariff-site/hunan-tariff-site/telecom/data/announce.json (15 条)
