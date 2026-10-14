@@ -291,10 +291,26 @@ def fetch_uni():
     print("[联通] 拉取公告列表 ...")
     # 源站返回顺序 ≠ 时间顺序，且 pageSize 过小时「取最新 N 条」会漏掉真正最新的公告。
     # 改为一次多拉(100条)、按发布日期降序后再截断，确保拿到的是时间上最新的 MAX_KEEP 条。
-    raw = _http_post(UNI_LIST_URL, {"pageNo": "1", "pageSize": "100",
-                                    "province": UNI_PROVINCE, "condition": "0", "title": ""}, UNI_HDRS)
-    j = json.loads(raw)
-    lst = j.get("result") or []
+    # 源站 totalCount 可能大于单页上限，只拉第 1 页会漏掉落在后面的新公告
+    # （实测 totalCount=117，pageSize=100 时第 2 页还有 17 条）。改为翻页取全量。
+    lst, total = [], None
+    for _pg in range(1, 6):
+        try:
+            _raw = _http_post(UNI_LIST_URL, {"pageNo": str(_pg), "pageSize": "100",
+                                             "province": UNI_PROVINCE, "condition": "0",
+                                             "title": ""}, UNI_HDRS)
+            _j = json.loads(_raw)
+        except Exception as e:
+            print(f"[联通] 第 {_pg} 页失败: {e}")
+            break
+        _one = _j.get("result") or []
+        if total is None:
+            total = _j.get("totalCount")
+        lst += _one
+        if not _one or (total and len(lst) >= int(total)):
+            break
+        time.sleep(0.4)
+    print(f"[联通] 翻页取全量 {len(lst)} 条（totalCount={total}）")
     items = []
     for row in lst:
         items.append({
@@ -487,8 +503,9 @@ def fetch_telecom():
             it["attachments"] = atts
             ok += 1
         except Exception as e:
-            print("[电信] 详情 %s 失败: %s" % (it["id"], str(e)[:80]))
-            it["summary"], it["content"], it["attachments"] = "", "", []
+            # 详情接口受瑞数 WAF 保护，境外机房一律 412。此时绝不把已抓到的正文清空，
+            # 由 merge_keep 继承上一次成功的内容，避免「抓到过又变回暂无正文」。
+            print("[电信] 详情 %s 失败: %s（保留既有正文）" % (it["id"], str(e)[:80]))
             time.sleep(2.5)
         time.sleep(1.2)
     for it in items:
@@ -513,10 +530,25 @@ def merge_keep(items, path):
         old_items = old.get("items") or []
     except Exception:
         old_items = []
+    old_by_id = {}
+    for it in old_items:
+        k = str(it.get("id") or "")
+        if k:
+            old_by_id[k] = it
     by_id = {}
     for it in (items or []):
-        if it.get("id"):
-            by_id[str(it["id"])] = it
+        k = str(it.get("id") or "")
+        if not k:
+            continue
+        # 本轮若没抓到正文（接口被 WAF 挡），沿用上次成功的正文，绝不回退成空
+        if not (it.get("content") or "").strip():
+            o = old_by_id.get(k) or {}
+            if (o.get("content") or "").strip():
+                it["content"] = o.get("content", "")
+                it["summary"] = o.get("summary", "") or it.get("summary", "")
+                it["attachments"] = o.get("attachments", []) or it.get("attachments", [])
+                it["page_url"] = o.get("page_url", "") or it.get("page_url", "")
+        by_id[k] = it
     n_new = len(by_id)
     for it in old_items:
         k = str(it.get("id") or "")
