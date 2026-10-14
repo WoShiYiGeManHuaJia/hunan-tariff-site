@@ -1,119 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""公告抓取探测（电信详情为空 / 联通列表不更新）——只打印，不写盘"""
-import json, os, sys, time, re, base64, gzip, random, ssl
-import urllib.request
+"""第二轮探测：联通分页全量 / 电信正文替代来源"""
+import json, os, time, base64, gzip, random, re, ssl
+import urllib.request, urllib.parse
 from Crypto.Cipher import AES, PKCS1_v1_5
 from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad
 
+UA_M = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+        "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1")
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-# ── 电信 ─────────────────────────────────────────────
-TC_REC = "https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
-TC_DET = "https://www.189.cn/wtBusiness/wtservice/nc/announcement/getAnnouncementDetail.do"
-TC_PROV = "600203"
-TC_TYPE = "wt_sy_bzzx"
-TC_FCODE = "Y121043001"
-TC_PUBKEY = (
-    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIv"
-    "CpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mi"
-    "f5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+i"
-    "p2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlb"
-    "KZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5K"
-    "LF/30wIDAQAB"
-)
-
-
-def tc_post(url, obj, tries=3):
-    pub = RSA.import_key(base64.b64decode(TC_PUBKEY))
-    last = None
-    for a in range(tries):
-        try:
-            key = os.urandom(16)
-            iv = os.urandom(16)
-            ct = AES.new(key, AES.MODE_CBC, iv).encrypt(pad(json.dumps(obj, ensure_ascii=False).encode(), 16))
-            inner = json.dumps({"key": base64.b64encode(key).decode(),
-                                "iv": base64.b64encode(iv).decode()}, separators=(",", ":"))
-            payload = {"param": base64.b64encode(ct).decode(),
-                       "key": base64.b64encode(PKCS1_v1_5.new(pub).encrypt(inner.encode())).decode()}
-            tid = "".join("%x" % random.randint(0, 15) for _ in range(32))
-            req = urllib.request.Request(
-                url, data=json.dumps(payload, separators=(",", ":")).encode(), method="POST",
-                headers={"User-Agent": UA, "Content-Type": "application/json;charset=UTF-8",
-                         "Accept": "application/json, text/plain, */*",
-                         "Origin": "https://www.189.cn",
-                         "Referer": "https://www.189.cn/web/notice/index.html",
-                         "Fcode": TC_FCODE, "TransactionId": tid,
-                         "Accept-Language": "zh-CN,zh;q=0.9"})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                raw = r.read()
-                if r.headers.get("Content-Encoding") == "gzip":
-                    raw = gzip.decompress(raw)
-                return json.loads(raw.decode("utf-8", "replace"))
-        except Exception as e:
-            last = "ERR " + repr(e)[:160]
-            time.sleep(2 * (a + 1))
-    return {"__err": last}
-
-
-def probe_telecom():
-    print("=" * 60)
-    print("[电信] 列表接口")
-    r = tc_post(TC_REC, {"shopId": "20001", "type": TC_TYPE, "order": 1,
-                         "provinceCode": TC_PROV, "cityCode": ""})
-    if r.get("__err"):
-        print("  列表失败:", r["__err"])
-        return
-    print("  code=%s message=%s" % (r.get("code"), r.get("message")))
-    fis = []
-    for d in (r.get("data") or []):
-        for x in (d.get("floorItems") or []):
-            fis.append(x)
-    print("  floorItems =", len(fis))
-    if not fis:
-        return
-    for x in fis[:3]:
-        print("  --- item ---")
-        for k in sorted(x.keys()):
-            v = x.get(k)
-            s = str(v)
-            print("     %-22s %s" % (k, s[:70]))
-    # 详情尝试
-    print("[电信] 详情接口尝试（最新 3 条 × 4 种参数组合）")
-    for x in fis[:3]:
-        title = (x.get("title") or "")[:22]
-        eoc = x.get("externalOfferCode") or ""
-        oid = x.get("offerCode") or ""
-        iid = x.get("id") or ""
-        typ = x.get("type") or TC_TYPE
-        print("  ## %s | externalOfferCode=%r offerCode=%r id=%r type=%r"
-              % (title, eoc, oid, iid, typ))
-        combos = [
-            ("A type自身+eoc", {"type": typ, "offerCode": eoc, "provinceCode": TC_PROV, "cityCode": ""}),
-            ("B type自身+id", {"type": typ, "offerCode": iid, "provinceCode": TC_PROV, "cityCode": ""}),
-            ("C 写死type+eoc", {"type": TC_TYPE, "offerCode": eoc, "provinceCode": TC_PROV, "cityCode": ""}),
-            ("D 加shopId", {"shopId": "20001", "type": typ, "offerCode": eoc,
-                            "provinceCode": TC_PROV, "cityCode": ""}),
-        ]
-        for nm, obj in combos:
-            d = tc_post(TC_DET, obj, tries=2)
-            if d.get("__err"):
-                print("     %-14s ERR %s" % (nm, d["__err"][:90]))
-                continue
-            node = d.get("data") or {}
-            c = node.get("content") or ""
-            print("     %-14s code=%s msg=%s dataKeys=%s content=%d字"
-                  % (nm, d.get("code"), str(d.get("message"))[:30],
-                     (list(node.keys())[:8] if isinstance(node, dict) else type(node).__name__),
-                     len(str(c))))
-            time.sleep(1.2)
-
-
-# ── 联通 ─────────────────────────────────────────────
+# ───────── 联通 ─────────
 UNI_LIST = "https://www.10010.com/mall/service/query/announcementquery"
-UNI_DET = "https://www.10010.com/mall/service/query/announcementquerydetail"
 UNI_HDRS = {
     "User-Agent": UA,
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -125,62 +25,155 @@ UNI_HDRS = {
 }
 
 
-def uni_post(url, data):
-    req = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode(),
+def uni_post(data):
+    req = urllib.request.Request(UNI_LIST, data=urllib.parse.urlencode(data).encode(),
                                  headers=UNI_HDRS, method="POST")
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.loads(r.read().decode("utf-8", "replace"))
 
 
-def probe_unicom():
+def probe_unicom_all():
     print("=" * 60)
-    print("[联通] 列表接口")
-    import urllib.parse
-    for prov in ["074", ""]:
-        for ps in ["100", "12"]:
-            try:
-                j = uni_post(UNI_LIST, {"pageNo": "1", "pageSize": ps,
-                                        "province": prov, "condition": "0", "title": ""})
-            except Exception as e:
-                print("  province=%r pageSize=%s -> ERR %s" % (prov, ps, repr(e)[:110]))
-                continue
-            lst = j.get("result") or []
-            dates = sorted([(r.get("publishTime") or "")[:10] for r in lst], reverse=True)
-            print("  province=%-4r pageSize=%-4s 顶层keys=%s result=%d 最新日期=%s"
-                  % (prov, ps, list(j.keys())[:10], len(lst), dates[:3]))
-            for k in ("total", "totalCount", "pageCount", "records", "count"):
-                if k in j:
-                    print("      %s=%s" % (k, j[k]))
-            if lst:
-                print("      首条字段:", {k: str(v)[:40] for k, v in list(lst[0].items())[:12]})
-            time.sleep(0.6)
-    # 详情抽查
-    try:
-        j = uni_post(UNI_LIST, {"pageNo": "1", "pageSize": "12",
-                                "province": "074", "condition": "0", "title": ""})
+    print("[联通] 分页全量")
+    all_rows, total = [], None
+    for p in range(1, 5):
+        try:
+            j = uni_post({"pageNo": str(p), "pageSize": "100", "province": "074",
+                          "condition": "0", "title": ""})
+        except Exception as e:
+            print("  page%d ERR %s" % (p, repr(e)[:90]))
+            break
         lst = j.get("result") or []
-        for row in sorted(lst, key=lambda r: (r.get("publishTime") or ""), reverse=True)[:2]:
-            did = row.get("id")
-            d = uni_post(UNI_DET, {"announcementId": did, "pageSize": "12",
-                                   "pageNo": "1", "province": "074"})
-            n = d.get("tNoticeDto") or {}
-            print("  详情 id=%s noticeTime=%s content=%d字 keys=%s"
-                  % (did, str(n.get("noticeTime"))[:20], len(str(n.get("noticeDetails") or "")),
-                     list(n.keys())[:8]))
-            time.sleep(0.6)
+        total = j.get("totalCount")
+        print("  page%d -> %d 条 (totalCount=%s)" % (p, len(lst), total))
+        all_rows += lst
+        if not lst or len(all_rows) >= (total or 0):
+            break
+        time.sleep(0.5)
+    rows = sorted(all_rows, key=lambda r: (r.get("publishTime") or ""), reverse=True)
+    print("  合计 %d 条，最新 8 条：" % len(rows))
+    for r in rows[:8]:
+        print("     %s | %s | %s" % ((r.get("publishTime") or "")[:10],
+                                      (r.get("title") or "")[:34], r.get("id")))
+    # 其它 condition 值是否含更新的公告
+    for cond in ["1", "2"]:
+        try:
+            j = uni_post({"pageNo": "1", "pageSize": "20", "province": "074",
+                          "condition": cond, "title": ""})
+            lst = j.get("result") or []
+            d = sorted([(x.get("publishTime") or "")[:10] for x in lst], reverse=True)
+            print("  condition=%s -> %d 条 最新=%s" % (cond, len(lst), d[:3]))
+        except Exception as e:
+            print("  condition=%s ERR %s" % (cond, repr(e)[:80]))
+        time.sleep(0.5)
+
+
+# ───────── 电信 ─────────
+TC_REC = "https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
+TC_PROV = "600203"
+TC_FCODE = "Y121043001"
+TC_PUBKEY = (
+    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIv"
+    "CpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mi"
+    "f5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+i"
+    "p2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlb"
+    "KZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5K"
+    "LF/30wIDAQAB"
+)
+
+
+def tc_post(url, obj, tries=2):
+    pub = RSA.import_key(base64.b64decode(TC_PUBKEY))
+    key = os.urandom(16); iv = os.urandom(16)
+    ct = AES.new(key, AES.MODE_CBC, iv).encrypt(pad(json.dumps(obj, ensure_ascii=False).encode(), 16))
+    inner = json.dumps({"key": base64.b64encode(key).decode(),
+                        "iv": base64.b64encode(iv).decode()}, separators=(",", ":"))
+    payload = {"param": base64.b64encode(ct).decode(),
+               "key": base64.b64encode(PKCS1_v1_5.new(pub).encrypt(inner.encode())).decode()}
+    tid = "".join("%x" % random.randint(0, 15) for _ in range(32))
+    req = urllib.request.Request(url, data=json.dumps(payload, separators=(",", ":")).encode(),
+                                 method="POST",
+                                 headers={"User-Agent": UA, "Content-Type": "application/json;charset=UTF-8",
+                                          "Accept": "application/json, text/plain, */*",
+                                          "Origin": "https://www.189.cn",
+                                          "Referer": "https://www.189.cn/web/notice/index.html",
+                                          "Fcode": TC_FCODE, "TransactionId": tid,
+                                          "Accept-Language": "zh-CN,zh;q=0.9"})
+    last = None
+    for a in range(tries):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                raw = r.read()
+                if r.headers.get("Content-Encoding") == "gzip":
+                    raw = gzip.decompress(raw)
+                return json.loads(raw.decode("utf-8", "replace"))
+        except Exception as e:
+            last = "ERR " + repr(e)[:120]
+            time.sleep(2)
+    return {"__err": last}
+
+
+def http_get(url, hdrs=None, timeout=25):
+    req = urllib.request.Request(url, headers=hdrs or {"User-Agent": UA,
+                                                       "Accept-Language": "zh-CN,zh;q=0.9"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = r.read()
+            if r.headers.get("Content-Encoding") == "gzip":
+                raw = gzip.decompress(raw)
+            return r.status, raw.decode("utf-8", "replace")
     except Exception as e:
-        print("  详情探测失败:", repr(e)[:120])
+        return None, repr(e)[:120]
+
+
+def probe_telecom_alt():
+    print("=" * 60)
+    print("[电信] 正文替代来源探测")
+    # 1) 官网公告页能否直连
+    for u in ["https://www.189.cn/web/notice/index.html",
+              "https://www.189.cn/web/notice"]:
+        st, body = http_get(u)
+        print("  GET %-48s -> %s len=%s" % (u[:48], st, len(body) if isinstance(body, str) else body))
+        if st == 200 and isinstance(body, str):
+            # 找详情链接格式
+            links = set(re.findall(r'["\'](/web/[^"\']*detail[^"\']*)["\']', body)) or \
+                    set(re.findall(r'["\'](/web/notice[^"\']{0,60})["\']', body))
+            print("     候选链接:", list(links)[:8])
+    # 2) 拿列表，尝试用 sceneId / mainOfferCode 构造详情 URL
+    r = tc_post(TC_REC, {"shopId": "20001", "type": "wt_sy_bzzx", "order": 1,
+                         "provinceCode": TC_PROV, "cityCode": ""})
+    if r.get("__err"):
+        print("  列表失败:", r["__err"]); return
+    fis = []
+    for d in (r.get("data") or []):
+        for x in (d.get("floorItems") or []):
+            fis.append(x)
+    fis = [x for x in fis if x.get("externalOfferCode")]
+    fis.sort(key=lambda x: str(x.get("liveStartTime") or ""), reverse=True)
+    x = fis[0]
+    eoc = x["externalOfferCode"]; sid = x.get("sceneId") or ""; mcode = x.get("mainOfferCode") or ""
+    print("  样本: %s | eoc=%s sceneId=%s mainOfferCode=%s" % ((x.get("title") or "")[:24], eoc, sid[:40], mcode))
+    cands = [
+        "https://www.189.cn/web/notice/detail.html?offerCode=%s" % eoc,
+        "https://www.189.cn/web/notice/index.html?offerCode=%s" % eoc,
+        "https://www.189.cn/web/notice/detail.html?id=%s" % mcode,
+        "https://www.189.cn/web/noticeDetail.html?offerCode=%s" % eoc,
+    ]
+    for u in cands:
+        st, body = http_get(u)
+        n = len(body) if isinstance(body, str) else 0
+        print("  GET %-56s -> %s len=%s" % (u[:56], st, n))
+        if st == 200 and n > 2000:
+            txt = re.sub(r"<[^>]+>", " ", body)
+            print("     文本片段:", re.sub(r"\s+", " ", txt)[:120])
 
 
 if __name__ == "__main__":
-    import urllib.parse
     try:
-        probe_telecom()
+        probe_unicom_all()
     except Exception:
-        import traceback
-        print("[电信] 探测异常\n" + traceback.format_exc()[:1500])
+        import traceback; print(traceback.format_exc()[:1200])
     try:
-        probe_unicom()
+        probe_telecom_alt()
     except Exception:
-        import traceback
-        print("[联通] 探测异常\n" + traceback.format_exc()[:1500])
+        import traceback; print(traceback.format_exc()[:1200])
