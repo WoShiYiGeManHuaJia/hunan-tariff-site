@@ -1,0 +1,56 @@
+name: zz-verify-dedup
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 复刻 window 去重逻辑做真实验证
+        run: |
+          python3 - <<'PYEOF' 2>&1 | tee data/_verify_dedup.txt
+          import datetime, os, json, base64, urllib.request
+          bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+          hm = bj.hour * 60 + bj.minute
+          day = bj.strftime("%Y-%m-%d")
+          WINDOWS = [(7*60,10*60,"早场"), (19*60,22*60,"晚场")]
+          slot = ""
+          for a,b,nm in WINDOWS:
+              if a <= hm <= b: slot = nm; break
+          print("北京时刻 =", bj.strftime("%m-%d %H:%M"), "| 判定场次 =", slot or "窗口外")
+
+          def read_marks():
+              try:
+                  rq = urllib.request.Request(
+                      "https://api.github.com/repos/%s/contents/data/.notify_marks.json" % os.environ["REPO"],
+                      headers={"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+                               "User-Agent": "notify-guard"})
+                  raw = json.load(urllib.request.urlopen(rq, timeout=30))
+                  if raw.get("content"):
+                      return json.loads(base64.b64decode(raw["content"]).decode("utf-8")), "API读取成功"
+              except Exception as ex:
+                  return {}, "API读取失败: %s" % str(ex)[:120]
+              return {}, "文件不存在(404)"
+
+          marks, how = read_marks()
+          print("读标记方式 =", how)
+          print("标记内容   =", json.dumps(marks, ensure_ascii=False))
+          today = marks.get(day) if isinstance(marks.get(day), list) else []
+          for s in ["早场","晚场"]:
+              dup = (s in today)
+              print("  模拟 schedule + 场次=%s -> dup=%s -> %s" % (
+                  s, dup, "跳过(正确去重)" if dup else "放行"))
+          PYEOF
+      - name: 提交验证结果
+        run: |
+          git config user.name bot
+          git config user.email bot@users.noreply.github.com
+          git add -f data/_verify_dedup.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "verify dedup $(date -u +%Y%m%d%H%M%S)"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin main && exit 0; sleep 5; done
