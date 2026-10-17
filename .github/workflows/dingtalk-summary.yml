@@ -105,7 +105,7 @@ jobs:
       - id: w
         run: |
           python3 - <<'PYEOF'
-          import datetime, os, json
+          import datetime, os, json, base64
           bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
           hm = bj.hour * 60 + bj.minute
           day = bj.strftime("%Y-%m-%d")
@@ -121,9 +121,20 @@ jobs:
           manual = (ev == "workflow_dispatch")
           # 场次去重：cron 设了多个覆盖点（应对延迟漂移），没有这个去重，
           # 多个点会各推一条 —— 又变回「一天乱推好几次」。
+          # 用 API 读，而不是读 checkout 下来的文件：
+          # checkout 拿到的是「触发本工作流的那个 commit」，可能已被别的任务
+          # 覆盖；API 读到的一定是远端最新，去重才准。
           marks = {}
           try:
-              marks = json.load(open("data/.notify_marks.json", encoding="utf-8"))
+              import urllib.request
+              rq = urllib.request.Request(
+                  "https://api.github.com/repos/%s/contents/data/.notify_marks.json"
+                  % os.environ.get("GITHUB_REPOSITORY", ""),
+                  headers={"Authorization": "Bearer " + os.environ.get("GITHUB_TOKEN", ""),
+                           "User-Agent": "notify-guard"})
+              raw = json.load(urllib.request.urlopen(rq, timeout=30))
+              if raw.get("content"):
+                  marks = json.loads(base64.b64decode(raw["content"]).decode("utf-8"))
           except Exception:
               marks = {}
           today = marks.get(day) if isinstance(marks, dict) else None
@@ -459,40 +470,44 @@ jobs:
       - name: 记录本场次已推送（防同场次重复推）
         if: always() && needs.window.outputs.ok == 'true'
         env:
-          SLOT: ${{ needs.window.outputs.slot }}
+          SLOT:     ${{ needs.window.outputs.slot }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO:     ${{ github.repository }}
         run: |
           python3 - <<'PYEOF'
-          import datetime, os, json
+          import datetime, os, json, base64, urllib.request
           slot = os.environ.get("SLOT", "")
           if not slot or slot == "窗口外":
               print("无有效场次，不写标记"); raise SystemExit(0)
           bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
           day = bj.strftime("%Y-%m-%d")
-          p = "data/.notify_marks.json"
-          m = {}
-          try: m = json.load(open(p, encoding="utf-8"))
-          except Exception: m = {}
+          repo, tok = os.environ["REPO"], os.environ["GH_TOKEN"]
+          url = "https://api.github.com/repos/%s/contents/data/.notify_marks.json" % repo
+          H = {"Authorization": "Bearer " + tok, "User-Agent": "notify-guard",
+               "Accept": "application/vnd.github+json"}
+          m, old = {}, None
+          try:
+              raw = json.load(urllib.request.urlopen(urllib.request.Request(url, headers=H), timeout=30))
+              old = raw.get("sha")
+              if raw.get("content"):
+                  m = json.loads(base64.b64decode(raw["content"]).decode("utf-8"))
+          except Exception:
+              m = {}
           if not isinstance(m, dict): m = {}
           cut = (bj - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
-          for k in list(m.keys()):
-              if k < cut: m.pop(k, None)
+          for kk in list(m.keys()):
+              if kk < cut: m.pop(kk, None)
           cur = m.get(day) if isinstance(m.get(day), list) else []
           if slot not in cur: cur.append(slot)
           m[day] = cur
-          os.makedirs("data", exist_ok=True)
-          json.dump(m, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-          print("[场次标记] %s -> %s" % (day, cur))
+          body = {"message": "notify mark %s %s" % (day, slot),
+                  "content": base64.b64encode(json.dumps(m, ensure_ascii=False, indent=2)
+                                              .encode()).decode()}
+          if old: body["sha"] = old
+          rq = urllib.request.Request(url, data=json.dumps(body).encode(), method="PUT", headers=H)
+          try:
+              json.load(urllib.request.urlopen(rq, timeout=40))
+              print("[场次标记] 已提交 %s -> %s" % (day, cur))
+          except Exception as e:
+              print("[场次标记] 提交失败（不影响本次推送）：%s" % str(e)[:120])
           PYEOF
-      - name: 提交推送标记
-        if: always() && needs.window.outputs.ok == 'true'
-        run: |
-          git config user.name bot
-          git config user.email bot@users.noreply.github.com
-          git add -f data/.notify_marks.json
-          git diff --cached --quiet && { echo "无变化"; exit 0; }
-          git commit -m "notify mark $(date -u +%Y%m%d%H%M%S)"
-          for i in 1 2 3 4 5; do
-            git pull --rebase origin main && git push origin main && exit 0
-            sleep 5
-          done
-          echo "标记提交失败（不影响本次推送）"
