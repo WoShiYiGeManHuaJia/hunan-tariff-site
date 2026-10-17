@@ -98,6 +98,13 @@ jobs:
       ok:   ${{ steps.w.outputs.ok }}
       slot: ${{ steps.w.outputs.slot }}
       bj:   ${{ steps.w.outputs.bj }}
+    env:
+      # 根因（2026-10-17 去重失效）：Actions 默认**没有** GITHUB_TOKEN 环境
+      # 变量，只有 secrets.GITHUB_TOKEN。上面读标记若不注入，Authorization
+      # 就成了 "Bearer "（空）→ API 401 → 读不到标记 → 永远判定「没推过」
+      # → 同一场次连推两条。notify job 侧注入了 GH_TOKEN 所以写得进，
+      # 读写不对称导致去重形同虚设。
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       # 需要读场次标记（防同场次重复推），故必须先 checkout
       - uses: actions/checkout@v4
@@ -137,7 +144,10 @@ jobs:
               raw = json.load(urllib.request.urlopen(rq, timeout=30))
               if raw.get("content"):
                   marks = json.loads(base64.b64decode(raw["content"]).decode("utf-8"))
-          except Exception:
+              print("[去重] API 读到标记: %s" % json.dumps(marks, ensure_ascii=False))
+          except Exception as ex:
+              # 读不到标记 = 去重失效，必须显眼报警，不能静默放行
+              print("[去重][警告] 读标记失败，本轮去重失效: %s" % str(ex)[:140])
               marks = {}
           today = marks.get(day) if isinstance(marks, dict) else None
           today = today if isinstance(today, list) else []
@@ -150,8 +160,8 @@ jobs:
               f.write("ok=%s\n" % ("true" if ok else "false"))
               f.write("slot=%s\n" % (slot or "窗口外"))
               f.write("bj=%s\n" % bj.strftime("%m-%d %H:%M"))
-          print("[窗口守卫] 北京 %s | 事件 %s | 场次 %s | 今日已推 %s | -> %s"
-                % (bj.strftime("%m-%d %H:%M"), ev, slot or "无", today, reason))
+          print("[窗口守卫] 北京 %s | 事件 %s | 场次 %s | 今日已推 %s | dup=%s | -> %s"
+                % (bj.strftime("%m-%d %H:%M"), ev, slot or "无", today, dup, reason))
           PYEOF
 
   fresh:
@@ -511,5 +521,8 @@ jobs:
               json.load(urllib.request.urlopen(rq, timeout=40))
               print("[场次标记] 已提交 %s -> %s" % (day, cur))
           except Exception as e:
-              print("[场次标记] 提交失败（不影响本次推送）：%s" % str(e)[:120])
+              # 写不进标记 = 下一条重复推送必然发生，这里必须让 job 失败，
+              # 否则就像上次一样：step 显示 success，实际去重从来没生效。
+              print("[场次标记][严重] 提交失败，下一轮会重复推送: %s" % str(e)[:160])
+              raise SystemExit(1)
           PYEOF
