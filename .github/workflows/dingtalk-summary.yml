@@ -39,11 +39,13 @@ on:
     #   现改到北京16:00，并配合下方 fresh 检查兜底（数据陈旧则本轮自抓再推）。
     # 北京 08:23（cron 一律按 UTC）；用 23 分避开整点排队高峰
     # 注：当天抓取 08:47 才开始，故本轮 fresh 检查会判定陈旧，先自抓再推
-    - cron: "23 0 * * *"
+    - cron: "20 19 * * *"
     #   晚场必须排在晚间抓取(移动20:47/电信广电21:17/联通21:37)之后：
     #   原 北京20:00 比抓取还早47分钟，只能报当天早上08:47的数据，整整旧12小时。
     # 北京 20:23；同样避开整点
-    - cron: "23 12 * * *"
+    - cron: "20 20 * * *"
+    - cron: "20 7 * * *"
+    - cron: "20 8 * * *"
   workflow_dispatch:
     inputs:
       action:
@@ -95,35 +97,50 @@ jobs:
       slot: ${{ steps.w.outputs.slot }}
       bj:   ${{ steps.w.outputs.bj }}
     steps:
+      # 需要读场次标记（防同场次重复推），故必须先 checkout
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
       - id: w
         run: |
           python3 - <<'PYEOF'
-          import datetime, os
+          import datetime, os, json
           bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
           hm = bj.hour * 60 + bj.minute
-          WINDOWS = [(7 * 60 + 30, 9 * 60 + 30, "早场"), (19 * 60 + 30, 21 * 60 + 30, "晚场")]
-          slot, ok = "", False
+          day = bj.strftime("%Y-%m-%d")
+          # 窗口放宽到 3 小时：GitHub 自带 schedule 的延迟实测在 4~7 小时之间
+          # 漂移，放宽后各种延迟都能落进窗口；重复推送由下面「每场次每天只推
+          # 一次」兜住，所以放宽窗口不会导致一天推好几次。
+          WINDOWS = [(7 * 60, 10 * 60, "早场"), (19 * 60, 22 * 60, "晚场")]
+          slot = ""
           for a, b, nm in WINDOWS:
               if a <= hm <= b:
-                  slot, ok = nm, True
-                  break
+                  slot = nm; break
           ev = os.environ.get("GITHUB_EVENT_NAME", "")
-          # 手动触发 / 外部 dispatch 一律放行；只有 schedule 受窗口约束
-          if ev in ("workflow_dispatch", "repository_dispatch"):
-              ok = True
-              slot = slot or ("手动" if ev == "workflow_dispatch" else "外部触发")
+          manual = (ev == "workflow_dispatch")
+          # 场次去重：cron 设了多个覆盖点（应对延迟漂移），没有这个去重，
+          # 多个点会各推一条 —— 又变回「一天乱推好几次」。
+          marks = {}
+          try:
+              marks = json.load(open("data/.notify_marks.json", encoding="utf-8"))
+          except Exception:
+              marks = {}
+          today = marks.get(day) if isinstance(marks, dict) else None
+          today = today if isinstance(today, list) else []
+          dup = (not manual) and slot != "" and (slot in today)
+          ok = True if manual else (slot != "" and not dup)
+          reason = ("手动触发" if manual else
+                    ("窗口外" if slot == "" else
+                     ("今天%s已推过 → 跳过" % slot if dup else "放行")))
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write("ok=%s\n" % ("true" if ok else "false"))
-              f.write("slot=%s\n" % slot)
+              f.write("slot=%s\n" % (slot or "窗口外"))
               f.write("bj=%s\n" % bj.strftime("%m-%d %H:%M"))
-          print("[窗口守卫] 现在北京 %s，事件 %s，判定 %s（%s）"
-                % (bj.strftime("%m-%d %H:%M"), ev, "放行" if ok else "跳过", slot or "窗口外"))
+          print("[窗口守卫] 北京 %s | 事件 %s | 场次 %s | 今日已推 %s | -> %s"
+                % (bj.strftime("%m-%d %H:%M"), ev, slot or "无", today, reason))
           PYEOF
 
-  # ══════════ 数据新鲜度检查（仅定时推送时）═════════
-  # GitHub 的 schedule 会延迟（今天早间抓取名义 08:47、实际 13:27 才跑完），
-  # 若推送时当日数据还没抓完，就会把上一轮旧内容当「今日变化」推走。
-  # 这里先量一下数据年龄，陈旧则让下面的 fetch 本轮自抓一遍再推。
   fresh:
     needs: window
     if: github.event_name == 'schedule' || github.event_name == 'repository_dispatch'
@@ -438,3 +455,44 @@ jobs:
           SITE_URL:         ${{ vars.SITE_URL || 'https://woshiyigemanhuajia.github.io/hunan-tariff-site/' }}
           SITE_ROOT:        "."
         run: python3 scripts/dingtalk_summary.py
+
+      - name: 记录本场次已推送（防同场次重复推）
+        if: always() && needs.window.outputs.ok == 'true'
+        env:
+          SLOT: ${{ needs.window.outputs.slot }}
+        run: |
+          python3 - <<'PYEOF'
+          import datetime, os, json
+          slot = os.environ.get("SLOT", "")
+          if not slot or slot == "窗口外":
+              print("无有效场次，不写标记"); raise SystemExit(0)
+          bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+          day = bj.strftime("%Y-%m-%d")
+          p = "data/.notify_marks.json"
+          m = {}
+          try: m = json.load(open(p, encoding="utf-8"))
+          except Exception: m = {}
+          if not isinstance(m, dict): m = {}
+          cut = (bj - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+          for k in list(m.keys()):
+              if k < cut: m.pop(k, None)
+          cur = m.get(day) if isinstance(m.get(day), list) else []
+          if slot not in cur: cur.append(slot)
+          m[day] = cur
+          os.makedirs("data", exist_ok=True)
+          json.dump(m, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          print("[场次标记] %s -> %s" % (day, cur))
+          PYEOF
+      - name: 提交推送标记
+        if: always() && needs.window.outputs.ok == 'true'
+        run: |
+          git config user.name bot
+          git config user.email bot@users.noreply.github.com
+          git add -f data/.notify_marks.json
+          git diff --cached --quiet && { echo "无变化"; exit 0; }
+          git commit -m "notify mark $(date -u +%Y%m%d%H%M%S)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin main && exit 0
+            sleep 5
+          done
+          echo "标记提交失败（不影响本次推送）"
