@@ -468,6 +468,12 @@ body{
 .mask.on{display:flex;animation:fin .28s ease}
 /* 检测弹窗 */
 .ckbox{padding:2px 2px 4px}
+.ck-wait{font-size:11.5px;color:var(--tx2);text-align:center;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.ck-logs{margin:8px auto 0;max-width:300px;text-align:left}
+.cklog{font-size:11px;color:var(--tx2);line-height:1.6;padding:3px 8px;border-radius:7px;background:var(--glass2);border:1px solid var(--bd);margin-bottom:4px}
+.cklog span{font-weight:700;color:var(--op1);margin-right:5px;font-variant-numeric:tabular-nums}
+.cklog.bad{color:var(--bad);border-color:rgba(251,113,133,.3)}
+.cklog.bad span{color:var(--bad)}
 .ckspin{width:46px;height:46px;margin:8px auto 14px;position:relative}
 .ckspin i{position:absolute;inset:0;border-radius:50%;border:3px solid var(--bd2);
   border-top-color:var(--op1);border-right-color:var(--op2);animation:ckspin .9s linear infinite}
@@ -963,6 +969,8 @@ a.opc{text-decoration:none;display:block}
         <div class="ckspin" id="ckSpin"><i></i></div>
         <div class="ckstat" id="ckStat">正在读取线上数据…</div>
         <div class="ckmeta" id="ckMeta"></div>
+        <div class="ck-wait" id="ckWait"></div>
+        <div class="ck-logs" id="ckLog"></div>
         <div class="ckbar"><span id="ckBar"></span></div>
         <ul class="cktips">
           <li>本页每 15 秒比对一次线上数据，<b>一旦有更新会自动刷新</b></li>
@@ -1970,7 +1978,7 @@ function dvHtml(it){
 }
 function closeModal(){ document.getElementById("mask").classList.remove("on"); }
 /* ---------- 检测最新资费 ---------- */
-var CK = { t:null, n:0, base:"", max:40 };
+var CK = { t:null, cd:null, n:0, base:"", max:40, left:15, paused:false };
 function ckGhUrl(){
   return "https://github.com/WoShiYiGeManHuaJia/hunan-tariff-site/actions/workflows/" + CK_WF;
 }
@@ -1985,10 +1993,22 @@ function ckOpen(){
   m.classList.add("on");
   ckStopTimer();
   CK.n = 0;
+  CK.left = 15;
   CK.t = setInterval(ckTick, 15000);
+  ckStartCd();
   ckTick();
 }
-function ckStopTimer(){ if(CK.t){ clearInterval(CK.t); CK.t = null; } }
+function ckStartCd(){
+  ckStopCd();
+  CK.cd = setInterval(function(){
+    CK.left = (CK.left || 15) - 3;
+    if(CK.left <= 0){ CK.left = 15; }
+    ckCountdown();
+  }, 3000);
+  ckCountdown();
+}
+function ckStopCd(){ if(CK.cd){ clearInterval(CK.cd); CK.cd = null; } }
+function ckStopTimer(){ if(CK.t){ clearInterval(CK.t); CK.t = null; } ckStopCd(); }
 function ckStop(){
   ckStopTimer();
   var s = document.getElementById("ckStat");
@@ -2002,18 +2022,53 @@ function ckMin(){
   if(!CK.t){ CK.t = setInterval(ckTick, 15000); }
   toast("已在后台继续检测，有更新会自动刷新");
 }
+function ckPause(){
+  // 只停轮询，不清 CK.n / CK.base，恢复后接着跑
+  if(CK.t){ clearInterval(CK.t); CK.t = null; ckStopCd(); CK.paused = true; var w=document.getElementById("ckWait"); if(w){ w.textContent = "已暂停（配置弹窗打开中）"; } }
+}
+function ckResume(){
+  if(CK.paused && !CK.t){
+    CK.paused = false;
+    CK.t = setInterval(ckTick, 15000);
+    ckStartCd();
+    ckTick();
+  }
+}
+function ckCountdown(){
+  // 每 3 秒提示一次「距下次检测还有几秒」，让等待有明确反馈
+  if(!CK.t) return;
+  var el = document.getElementById("ckWait");
+  if(!el){ return; }
+  var s = CK.left || 15;
+  if(s <= 0){ el.textContent = "正在请求…"; return; }
+  el.textContent = "距下次检测 " + s + " 秒（第 " + CK.n + " / " + CK.max + " 次）";
+}
 function ckTick(){
   if(!document.getElementById("ckMask")) { ckStopTimer(); return; }
   CK.n++;
   var st = document.getElementById("ckStat");
   var mt = document.getElementById("ckMeta");
   var bar = document.getElementById("ckBar");
+  var log = document.getElementById("ckLog");
+  var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
   if(bar){ bar.style.width = Math.min(100, Math.round(CK.n / CK.max * 100)) + "%"; }
+  if(st){ st.textContent = "正在请求线上数据…（第 " + CK.n + " / " + CK.max + " 次）"; }
   fetch(DATA_BASE + "latest.json?_=" + Date.now(), {cache:"no-store"}).then(function(r){
     if(!r.ok){ throw new Error("HTTP " + r.status); }
     return r.json();
   }).then(function(j){
+    var ms = Math.round(((window.performance && performance.now) ? performance.now() : Date.now()) - t0);
     var u = (j && j.updated) ? j.updated : "";
+    var now = new Date();
+    var hm = ("0"+now.getHours()).slice(-2) + ":" + ("0"+now.getMinutes()).slice(-2) + ":" + ("0"+now.getSeconds()).slice(-2);
+    // 每一次请求都留痕，用户能确认它真的在查
+    if(log){
+      var li = document.createElement("div");
+      li.className = "cklog";
+      li.innerHTML = '<span>'+hm+'</span> 已请求线上数据 · HTTP 200 · '+ms+'ms · 线上 '+(u||'未知');
+      log.insertBefore(li, log.firstChild);
+      while(log.children.length > 4){ log.removeChild(log.lastChild); }
+    }
     if(u && CK.base && u !== CK.base){
       ckStopTimer();
       if(st){ st.textContent = "检测到新数据，正在刷新页面…"; }
@@ -2032,11 +2087,20 @@ function ckTick(){
       document.getElementById("ckSpin").classList.add("done");
       return;
     }
-    if(st){ st.textContent = "正在比对…（第 " + CK.n + " 次，每 15 秒一次）"; }
-    if(mt){ mt.innerHTML = "当前数据更新于 <b>" + (CK.base || "未知") + "</b>"; }
+    if(st){ st.textContent = "线上仍为 " + (u || CK.base || "未知") + "（第 " + CK.n + " / " + CK.max + " 次）"; }
+    if(mt){ mt.innerHTML = "本机数据 <b>" + (CK.base || "未知") + "</b> ｜ 比对耗时 " + ms + "ms ｜ 15 秒后重查"; }
   }).catch(function(e){
+    var hm2 = new Date();
+    var hms = ("0"+hm2.getHours()).slice(-2)+":"+("0"+hm2.getMinutes()).slice(-2)+":"+("0"+hm2.getSeconds()).slice(-2);
+    if(log){
+      var li2 = document.createElement("div");
+      li2.className = "cklog bad";
+      li2.innerHTML = '<span>'+hms+'</span> 请求失败：' + (e && e.message ? e.message : e);
+      log.insertBefore(li2, log.firstChild);
+      while(log.children.length > 4){ log.removeChild(log.lastChild); }
+    }
     if(CK.n >= CK.max){ ckStop(); return; }
-    if(st){ st.textContent = "网络请求失败，稍后自动重试…（第 " + CK.n + " 次）"; }
+    if(st){ st.textContent = "网络请求失败，15 秒后重试…（第 " + CK.n + " 次）"; }
   });
 }
 
@@ -2800,6 +2864,10 @@ function psTest(){
   });
 }
 function psOpen(){
+  // 打开配置时把「检测最新资费」的轮询停掉。
+  // 否则 15 秒一次的 fetch + 整页重绘会在配置弹窗下面继续跑，
+  // 手机上一边轮询网络一边渲染两层弹窗，就是卡顿的直接来源。
+  ckPause();
   psLoad();
   psRenderAll();
   var m = document.getElementById("psMask");
@@ -2808,7 +2876,10 @@ function psOpen(){
   if(g){ g.href = "https://github.com/WoShiYiGeManHuaJia/hunan-tariff-site/actions/workflows/" + CK_WF; }
   m.classList.add("on");
 }
-function psClose(){ var m = document.getElementById("psMask"); if(m){ m.classList.remove("on"); } }
+function psClose(){
+  var m = document.getElementById("psMask"); if(m){ m.classList.remove("on"); }
+  ckResume();   // 关掉配置后，之前在后台跑的检测恢复
+}
 psLoad();
 // 监听挂在弹窗容器上（而不是 document 捕获阶段）。
 // 之前页面任何一次点击都要跑 3 次 closest，等于给整站点击都加了税。
