@@ -502,6 +502,15 @@ body{
   border-radius:10px;background:var(--glass2);border:1px solid var(--bd)}
 .ckpl{font-size:12px;font-weight:700;color:var(--tx2);flex:0 0 auto}
 .ckpsel{flex:1 1 auto;min-width:0;font-size:13px;font-weight:700;color:var(--tx);font-family:inherit;
+.ckpsel-btn{display:flex;align-items:center;gap:7px;cursor:pointer;text-align:left;
+  padding:8px 11px;border-radius:11px;border:1px solid var(--bd2);background:var(--glass2);
+  transition:border-color .18s,background .18s}
+.ckpsel-btn:hover{border-color:var(--ac)}
+.ckpsel-btn:active{transform:scale(.98)}
+.ckpv-dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.ckpv-nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:800}
+.ckpv-ar{flex:none;font-style:normal;color:var(--tx3);font-size:12px}
+[data-theme="light"] .ckpsel-btn{background:#fff;border-color:#dbe6f5}
   padding:5px 8px;border-radius:8px;background:var(--bg2);border:1px solid var(--bd2);outline:none}
 .ck-wait{font-size:11.5px;color:var(--tx2);text-align:center;margin:6px 0 2px;font-variant-numeric:tabular-nums}
 .ck-logs{margin:8px auto 0;max-width:300px;text-align:left}
@@ -672,8 +681,17 @@ body{
 .pv-ck{position:absolute;top:3px;right:4px;width:15px;height:15px;border-radius:50%;
   display:none;align-items:center;justify-content:center;font-size:9.5px;font-weight:900;
   background:rgba(255,255,255,.28);color:#fff;line-height:1}
-.pv.on{border:2px solid var(--ica);background:linear-gradient(150deg,var(--ica),var(--icb));
-  color:#fff;box-shadow:0 5px 14px rgba(0,0,0,.28);padding:8px 4px 7px}
+.pv.on{border:2px solid var(--ica);
+  background:linear-gradient(150deg,var(--ica) 0%,var(--icb) 100%);
+  background-color:var(--ica);            /* 兜底：渐变失效时也不是白底 */
+  color:#fff!important;                   /* 选中文字恒为白，配深色渐变 */
+  box-shadow:0 5px 14px rgba(0,0,0,.28);padding:8px 4px 7px}
+.pv.on .pv-nm,.pv.on .pv-ct{color:#fff!important}
+.pv.on .pv-ck{color:#fff!important;background:rgba(0,0,0,.32)}
+/* 浅色主题下同样保证选中项是可读的深色底 */
+[data-theme="light"] .pv.on{background:linear-gradient(150deg,var(--ica) 0%,var(--icb) 100%);
+  background-color:var(--ica);color:#fff!important;border-color:var(--ica)}
+[data-theme="light"] .pv.on .pv-nm,[data-theme="light"] .pv.on .pv-ct{color:#fff!important}
 .pv.on .pv-nm{color:#fff;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,.35)}
 .pv.on .pv-ct{color:rgba(255,255,255,.9)}
 .pv.on .pv-dot{background:rgba(255,255,255,.85);box-shadow:none}
@@ -1037,7 +1055,11 @@ a.opc{text-decoration:none;display:block}
       <div class="ckbox">
         <div class="ckprov">
           <span class="ckpl">检测范围</span>
-          <select id="ckProv" class="ckpsel"></select>
+          <button type="button" id="ckProvBtn" class="ckpsel ckpsel-btn">
+            <span class="ckpv-dot" id="ckProvDot"></span>
+            <span class="ckpv-nm" id="ckProvNm">湖南</span>
+            <i class="ckpv-ar">▾</i>
+          </button>
         </div>
         <div class="ckspin" id="ckSpin"><i></i></div>
         <div class="ckstat" id="ckStat">正在读取线上数据…</div>
@@ -2080,9 +2102,23 @@ function ckSecOf(j, k){
   for(var i=0;i<arr.length;i++){ if(arr[i] && arr[i].section === k){ return arr[i]; } }
   return null;
 }
+function ckProvPaint(){
+  var nm = document.getElementById("ckProvNm");
+  var dot = document.getElementById("ckProvDot");
+  if(nm){ nm.textContent = ckProvName(CK.prov || "hunan"); }
+  if(dot){
+    var c = null;
+    try{ c = (typeof PROV_REGION !== "undefined" && typeof REGION_COLOR !== "undefined")
+      ? (REGION_COLOR[PROV_REGION[ckProvName(CK.prov || "hunan")]] || REGION_COLOR["其他"]) : null; }catch(e){ c = null; }
+    if(c && c.length >= 2){
+      dot.style.display = "";
+      dot.style.background = "linear-gradient(135deg," + c[0] + "," + c[1] + ")";
+    }else{ dot.style.display = "none"; }
+  }
+}
 function ckProvInit(){
+  var btn = document.getElementById("ckProvBtn");
   var sel = document.getElementById("ckProv");
-  if(!sel){ return; }
   var L = ckProvList(), cur = "";
   try{ cur = localStorage.getItem(ckProvKey()) || ""; }catch(e){}
   if(!cur){ cur = "hunan"; }
@@ -2090,18 +2126,41 @@ function ckProvInit(){
   for(var i=0;i<L.length;i++){ if(L[i][1] === cur){ hit = true; break; } }
   if(!hit){ cur = "hunan"; }
   CK.prov = cur;
-  var h = "";
-  for(var j=0;j<L.length;j++){
-    h += '<option value="' + L[j][1] + '"' + (L[j][1] === cur ? " selected" : "") + '>' + L[j][0] + '</option>';
+  ckProvPaint();
+  // 兼容：若页面上仍是旧的 <select>，照旧填充
+  if(sel && sel.tagName === "SELECT"){
+    var h = "";
+    for(var j=0;j<L.length;j++){
+      h += '<option value="' + L[j][1] + '"' + (L[j][1] === cur ? " selected" : "") + '>' + L[j][0] + '</option>';
+    }
+    sel.innerHTML = h;
+    sel.onchange = function(){ ckProvSet(sel.value); };
   }
-  sel.innerHTML = h;
-  sel.onchange = function(){
-    CK.prov = sel.value;
-    LD.prov = CK.prov;
-    try{ localStorage.setItem(ckProvKey(), CK.prov); }catch(e){}
-    ldRefresh();
-    ckRestart();
-  };
+  if(btn){
+    btn.onclick = function(){
+      // 复用页面通用的省份网格选择器（与首页同一套美化 UI）
+      var opts = [];
+      for(var k=0;k<L.length;k++){
+        var m = null;
+        try{ m = (typeof provMeta !== "undefined") ? provMeta(L[k][0]) : null; }catch(e){ m = null; }
+        opts.push({ value:L[k][1], label:L[k][0],
+          abbr: (m && m.abbr) || L[k][0].slice(0,1),
+          region: (m && m.region) || "其他",
+          ca: (m && m.ca) || "#64748b", cb: (m && m.cb) || "#94a3b8",
+          total: 0, pct: 0 });
+      }
+      openPicker({ title:"选择检测省份 · v6", value: CK.prov, options: opts, groupBy: true,
+        onPick: function(v){ ckProvSet(v); } });
+    };
+  }
+}
+function ckProvSet(k){
+  CK.prov = k;
+  LD.prov = k;
+  try{ localStorage.setItem(ckProvKey(), k); }catch(e){}
+  ckProvPaint();
+  ldRefresh();
+  ckRestart();
 }
 function ckRestart(){
   // 换省份 = 换基线，从头开始检测
