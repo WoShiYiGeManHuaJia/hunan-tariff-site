@@ -757,7 +757,12 @@ a.opc{text-decoration:none;display:block}
 .psmini{font-size:11px;font-weight:600;padding:3px 9px;border-radius:8px;border:1px solid var(--bd2);background:transparent;color:var(--tx2);cursor:pointer}
 .psmini:active{opacity:.6}
 .pspills{display:flex;flex-wrap:wrap;gap:6px}
-.pspill{font-size:12px;font-weight:600;padding:5px 11px;border-radius:9px;border:1px solid var(--bd2);background:var(--bg2);color:var(--tx2);cursor:pointer;user-select:none;transition:.15s}
+.pspill{font-size:12px;font-weight:600;padding:5px 11px;border-radius:9px;border:1px solid var(--bd2);background:var(--bg2);color:var(--tx2);cursor:pointer;user-select:none;
+  transition:background .12s linear,border-color .12s linear,color .12s linear;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#psMask .mb{max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch;contain:layout paint}
+#psMask .modal{contain:layout}
+#psMask .pspills{contain:layout style}
 .pspill.on{background:var(--op3);border-color:var(--op3);color:#fff}
 .psrow{border:1px solid var(--bd2);border-radius:12px;padding:10px 12px;margin:0 0 8px;background:var(--bg2)}
 .psrow .pshd{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--tx);cursor:pointer}
@@ -2668,7 +2673,16 @@ function psLoad(){
     if(!Array.isArray(PS.push.provs) || !PS.push.provs.length) PS.push.provs = PS_DEF.push.provs.slice();
   }catch(e){}
 }
+var _psST = null;
 function psSaveCfg(){
+  // 防抖：连点省份/连续打字时只在停手 260ms 后写一次。
+  // localStorage 是同步阻塞 IO，逐次写是弹窗卡顿的主因。
+  if(_psST){ clearTimeout(_psST); }
+  _psST = setTimeout(psSaveNow, 260);
+  return true;
+}
+function psSaveNow(){
+  _psST = null;
   try{
     var raw = localStorage.getItem(PS_KEY), d = {};
     try{ d = raw ? JSON.parse(raw) : {}; }catch(e){ d = {}; }
@@ -2703,13 +2717,21 @@ function psRenderOps(){
       + (o[1] === PS_OP ? " · 本页" : "") + '</div>';
   }).join("");
 }
+var _psEl = {};
+function psEl(id){ return _psEl[id] || (_psEl[id] = document.getElementById(id)); }
 function psRenderProvs(){
-  var box = document.getElementById("psProvs"); if(!box) return;
-  box.innerHTML = PS_PROV.map(function(p){
-    var on = PS.push.provs.indexOf(p[1]) >= 0;
-    return '<div class="pspill' + (on ? " on" : "") + '" data-psprov="' + p[1] + '">' + p[0] + '</div>';
-  }).join("");
-  var c = document.getElementById("psProvCnt");
+  var box = psEl("psProvs"); if(!box) return;
+  // 一次性拼好再写入，避免 32 次 innerHTML 抖动
+  var h = "", sel = PS.push.provs;
+  for(var i=0;i<PS_PROV.length;i++){
+    var p = PS_PROV[i];
+    h += '<div class="pspill' + (sel.indexOf(p[1]) >= 0 ? " on" : "") + '" data-psprov="' + p[1] + '">' + p[0] + '</div>';
+  }
+  box.innerHTML = h;
+  psProvCnt();
+}
+function psProvCnt(){
+  var c = psEl("psProvCnt");
   if(c){ c.textContent = "已选 " + PS.push.provs.length + " / " + PS_PROV.length; }
 }
 function psRenderAll(){ psRenderCh(); psRenderOps(); psRenderProvs(); }
@@ -2787,7 +2809,14 @@ function psOpen(){
 }
 function psClose(){ var m = document.getElementById("psMask"); if(m){ m.classList.remove("on"); } }
 psLoad();
-document.addEventListener("click", function(e){
+// 监听挂在弹窗容器上（而不是 document 捕获阶段）。
+// 之前页面任何一次点击都要跑 3 次 closest，等于给整站点击都加了税。
+var psBox = document.getElementById("psMask");
+if(!psBox){
+  // 容器还没渲染出来（理论上不会），退回 document，但用冒泡阶段
+  psBox = document;
+}
+psBox.addEventListener("click", function(e){
   var t = e.target;
   var sw = t.closest ? t.closest("[data-pssw]") : null;
   if(sw){
@@ -2812,24 +2841,27 @@ document.addEventListener("click", function(e){
     var v2 = pv.getAttribute("data-psprov"), j = PS.push.provs.indexOf(v2);
     if(j >= 0){ PS.push.provs.splice(j, 1); } else { PS.push.provs.push(v2); }
     pv.classList.toggle("on", PS.push.provs.indexOf(v2) >= 0);
-    var c = document.getElementById("psProvCnt");
-    if(c){ c.textContent = "已选 " + PS.push.provs.length + " / " + PS_PROV.length; }
-    psSaveCfg();
+    psProvCnt(); psSaveCfg();
     return;
   }
   if(t.id === "psProvAll"){ PS.push.provs = PS_PROV.map(function(p){ return p[1]; }); psRenderProvs(); psSaveCfg(); return; }
   if(t.id === "psProvNone"){ PS.push.provs = []; psRenderProvs(); psSaveCfg(); return; }
-  if(t.id === "psX" || t.id === "psSave"){ if(t.id === "psSave"){ psSaveCfg(); toast("推送配置已保存到本设备"); } psClose(); return; }
+  if(t.id === "psX" || t.id === "psSave"){
+    // 关闭前立刻落盘，不等防抖，避免用户点了保存却没写进去
+    if(t.id === "psSave"){ psSaveNow(); toast("推送配置已保存到本设备"); }
+    else { psSaveNow(); }
+    psClose(); return;
+  }
   if(t.id === "psTest"){ psTest(); return; }
   if(t.id === "psCenter"){ window.open("push-center.html", "_blank"); return; }
-}, true);
-document.addEventListener("input", function(e){
+}, false);
+psBox.addEventListener("input", function(e){
   var f = e.target.closest ? e.target.closest("[data-psfld]") : null;
   if(!f) return;
   var p = f.getAttribute("data-psfld").split(".");
   PS[p[0]][p[1]] = f.value;
-  psSaveCfg();
-}, true);
+  psSaveCfg();          // 已防抖，连续打字不会逐字符写盘
+}, false);
 
 document.addEventListener("click", function(e){
   var el = e.target;
