@@ -473,6 +473,16 @@ body{
 .ldp{border:1px solid var(--bd2)}
 .ldp.flash{animation:ldflash 1.6s ease}
 @keyframes ldflash{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}100%{box-shadow:0 0 0 14px rgba(52,211,153,0)}}
+.ldbox{margin:10px auto 0;max-width:340px;border-radius:12px;border:1px solid var(--bd2);
+  background:var(--glass2);padding:10px 12px;text-align:left}
+.ldbox.flash{animation:ldflash 1.6s ease}
+.ldhd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.ldhd-t{font-size:11.5px;font-weight:800;color:var(--tx2);letter-spacing:.2px;flex:none}
+.ldhd-s{font-size:11px;font-weight:700;color:var(--op1);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ldbody2{min-height:40px;min-width:0}
+.ldsum{font-size:12.5px;font-weight:700;color:var(--tx2);margin-bottom:6px;font-variant-numeric:tabular-nums}
+.ldsum b{font-weight:800;margin-right:1px}
+.ldsum b.a{color:var(--ok)} .ldsum b.d{color:var(--bad)} .ldsum b.m{color:var(--warn)} .ldsum b.z{color:var(--tx3)}
 .ldbody{min-height:64px}
 .ldempty{font-size:12.5px;color:var(--tx2);text-align:center;padding:16px 8px}
 .ldrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
@@ -546,10 +556,32 @@ body{
 .mx:hover{background:var(--bad);color:#fff;border-color:transparent;transform:rotate(90deg)}
 .mb{padding:16px 18px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1 1 auto;min-height:0}
 /* 选择弹窗列表：禁止被 flex 压扁，保证可滚动 */
-#pkMask .mb{max-height:none}
+/* 选择弹窗：整体不超过 66vh，列表区独立滚动，手机上不再顶满屏 */
+#pkMask .mb{max-height:min(40vh,320px);overscroll-behavior:contain}
 #pkMask .optlist{flex:none}
 #pkMask .opt{flex:none;min-height:50px}
-#pkMask .modal{max-height:92vh}
+#pkMask .modal{max-height:66vh;width:min(560px,100%)}
+/* 网格：手机 4 列、平板 5 列、电脑 6 列，一屏看完全部省份 */
+.optlist.pkgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+@media (min-width:480px){ .optlist.pkgrid{grid-template-columns:repeat(5,minmax(0,1fr))} }
+@media (min-width:768px){ .optlist.pkgrid{grid-template-columns:repeat(6,minmax(0,1fr))} }
+@media (min-width:1100px){ .optlist.pkgrid{grid-template-columns:repeat(8,minmax(0,1fr))} }
+.pg{position:relative;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:8px 4px 7px;border-radius:11px;border:1px solid var(--bd);background:var(--glass2);
+  color:var(--tx);font-family:inherit;overflow:hidden;transition:transform .14s,border-color .18s,background .18s;
+  animation:pgin .28s cubic-bezier(.22,1,.36,1) backwards}
+@keyframes pgin{from{opacity:0;transform:scale(.9)}}
+.pg:active{transform:scale(.94)}
+.pg-ab{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:12.5px;font-weight:800;
+  color:#fff;background:linear-gradient(135deg,var(--ica),var(--icb));box-shadow:0 3px 9px rgba(0,0,0,.16);flex:none}
+.pg-n{font-size:11.5px;font-weight:700;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-c{font-size:10px;color:var(--tx3);font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.pg.on{border-color:transparent;background:linear-gradient(135deg,var(--ica),var(--icb));color:#fff;
+  box-shadow:0 6px 16px rgba(0,0,0,.2)}
+.pg.on .pg-c{color:rgba(255,255,255,.82)}
+.pg.on .pg-ab{background:rgba(255,255,255,.22);box-shadow:none}
+[data-theme="light"] .pg{background:#f4f8fd;border-color:#dbe6f5}
+.pk-search .search input{font-size:16px}  /* 手机端避免聚焦自动放大 */
 .mf{padding:13px 18px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:9px;flex:none}
 .kv{display:grid;grid-template-columns:96px 1fr;gap:10px 14px;font-size:12.5px;margin:0}
 .dv-hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -864,15 +896,6 @@ a.opc{text-decoration:none;display:block}
         <div class="stat b"><div class="stat-ic">🏢</div><div class="stat-n" id="stGq">0</div><div class="stat-l" id="stGqL">本省政企资费</div></div>
       </div>
 
-      <div class="panel glass ldp" id="ldBox">
-        <div class="ph">
-          <h2 class="pt">最新检测</h2>
-          <button class="pick" id="ldProv" data-pick="ldprov"><span class="pk-t">湖南</span><span class="pk-s"></span><i class="pk-a">▾</i></button>
-          <span class="ps" id="ldDesc">等待检测</span>
-        </div>
-        <div class="ldbody" id="ldBody"><div class="ldempty">正在读取最近一次变化…</div></div>
-      </div>
-
       <div class="panel glass">
         <div class="ph">
           <h2 class="pt">省份资费统计</h2>
@@ -1009,6 +1032,10 @@ a.opc{text-decoration:none;display:block}
         <div class="ckstat" id="ckStat">正在读取线上数据…</div>
         <div class="ckmeta" id="ckMeta"></div>
         <div class="ck-wait" id="ckWait"></div>
+        <div class="ldbox" id="ldBox">
+          <div class="ldhd"><span class="ldhd-t">最新一次资费变化</span><span class="ldhd-s" id="ldDesc">读取中…</span></div>
+          <div class="ldbody2" id="ldBody"><div class="ldempty">正在读取最近一次变化…</div></div>
+        </div>
         <div class="ck-logs" id="ckLog"></div>
         <div class="ckbar"><span id="ckBar"></span></div>
         <ul class="cktips">
@@ -2016,7 +2043,9 @@ function ckProvInit(){
   sel.innerHTML = h;
   sel.onchange = function(){
     CK.prov = sel.value;
+    LD.prov = CK.prov;
     try{ localStorage.setItem(ckProvKey(), CK.prov); }catch(e){}
+    ldRefresh();
     ckRestart();
   };
 }
@@ -2059,6 +2088,7 @@ function ckOpen(){
   var m = document.getElementById("ckMask");
   if(!m){ return; }
   ckProvInit();
+  LD.prov = CK.prov;
   var s0 = ckSecOf(D, CK.prov);
   CK.baseU = (s0 && s0.updated) || D.updated || "";
   CK.baseT = (s0 && s0.total) || 0;
@@ -2069,6 +2099,8 @@ function ckOpen(){
   document.getElementById("ckBar").style.width = "0%";
   document.getElementById("ckSpin").classList.remove("done");
   m.classList.add("on");
+  ldSetDesc("");
+  ldRefresh();
   ckStopTimer();
   CK.n = 0;
   CK.left = 15;
@@ -2076,6 +2108,7 @@ function ckOpen(){
   ckStartCd();
   ckTick();
 }
+function ldSetDesc(t){ var d = document.getElementById("ldDesc"); if(d){ d.textContent = t || "读取中…"; } }
 function ckStartCd(){
   ckStopCd();
   CK.cd = setInterval(function(){
@@ -2129,15 +2162,11 @@ function ldProvInit(){
   try{ cur = localStorage.getItem(ldKey()) || ""; }catch(e){}
   if(!cur){ cur = (typeof CK !== "undefined" && CK.prov) ? CK.prov : "hunan"; }
   LD.prov = cur;
-  var t = document.querySelector("#ldProv .pk-t");
-  if(t){ t.textContent = ckProvName(cur); }
 }
 function ldSetProv(k){
   LD.prov = k;
   try{ localStorage.setItem(ldKey(), k); }catch(e){}
   if(typeof CK !== "undefined"){ CK.prov = k; try{ localStorage.setItem(ckProvKey(), k); }catch(e2){} }
-  var t = document.querySelector("#ldProv .pk-t");
-  if(t){ t.textContent = ckProvName(k); }
   var sel = document.getElementById("ckProv"); if(sel){ sel.value = k; }
   ldRefresh();
 }
@@ -2157,33 +2186,30 @@ function ldRender(v, ts){
   var pname = ckProvName(LD.prov);
   if(!v){
     box.innerHTML = '<div class="ldempty">「' + ldEsc(pname) + '」暂无变化记录</div>';
-    if(desc){ desc.textContent = "暂无变化"; }
+    ldSetDesc("暂无变化");
     return;
   }
   var a = v.added || 0, d = v.removed || 0, m = v.modified || 0;
   var tot = a + d + m;
-  var h = '<div class="ldts">检测范围 <b>' + ldEsc(pname) + '</b> ｜ 记录时间 <b>' + ldEsc(ts || v.ts || "未知") + '</b></div>';
+  var h = '<div class="ldts">记录时间 <b>' + ldEsc(ts || v.ts || "未知") + '</b></div>';
   if(tot === 0){
-    h += '<div class="ldrow">';
-    h += '<div class="ldc"><div class="n">0</div><div class="l">新增</div></div>';
-    h += '<div class="ldc"><div class="n">0</div><div class="l">下架</div></div>';
-    h += '<div class="ldc"><div class="n">0</div><div class="l">修改</div></div>';
-    h += '</div><div class="ldempty" style="padding:8px">该轮无变化</div>';
+    h += '<div class="ldsum"><b class="z">0</b> 新增 · <b class="z">0</b> 下架 · <b class="z">0</b> 修改</div>';
+    h += '<div class="ldempty" style="padding:6px">该轮无变化</div>';
     box.innerHTML = h;
-    if(desc){ desc.textContent = "该轮无变化"; }
+    ldSetDesc("该轮无变化");
     return;
   }
-  h += '<div class="ldrow">';
-  h += '<div class="ldc a"><div class="n">' + a + '</div><div class="l">新增</div></div>';
-  h += '<div class="ldc d"><div class="n">' + d + '</div><div class="l">下架</div></div>';
-  h += '<div class="ldc m"><div class="n">' + m + '</div><div class="l">修改</div></div>';
-  h += '</div>';
+  h += '<div class="ldsum"><b class="a">+' + a + '</b> 新增 · <b class="d">-' + d + '</b> 下架 · <b class="m">~' + m + '</b> 修改</div>';
   var an = v.added_names || [], dn = v.removed_names || [], mn = v.modified_names || [];
-  if(an.length){ h += '<div class="ldsec">新增</div><div class="ldchips">' + ldChips(an, "a") + '</div>'; }
-  if(dn.length){ h += '<div class="ldsec">下架</div><div class="ldchips">' + ldChips(dn, "d") + '</div>'; }
-  if(mn.length){ h += '<div class="ldsec">修改</div><div class="ldchips">' + ldChips(mn, "m") + '</div>'; }
+  var pick = [];
+  if(an.length){ pick.push(["新增", an, "a"]); }
+  if(dn.length){ pick.push(["下架", dn, "d"]); }
+  if(mn.length){ pick.push(["修改", mn, "m"]); }
+  for(var i = 0; i < pick.length; i++){
+    h += '<div class="ldsec">' + pick[i][0] + '</div><div class="ldchips">' + ldChips(pick[i][1], pick[i][2], 4) + '</div>';
+  }
   box.innerHTML = h;
-  if(desc){ desc.textContent = "新增" + a + " · 下架" + d + " · 修改" + m; }
+  ldSetDesc("+" + a + " / -" + d + " / ~" + m);
 }
 function ldFlash(){
   var b = document.getElementById("ldBox");
@@ -2713,7 +2739,7 @@ function openPicker(cfg){
   pkCfg = cfg;
   document.getElementById("pkTitle").textContent = cfg.title || "请选择";
   var wrap = document.getElementById("pkSearchWrap");
-  wrap.style.display = (cfg.options.length > 8) ? "" : "none";
+  wrap.style.display = "";   // 常显：省份多，随时可搜
   var si = document.getElementById("pkSearch");
   si.value = "";
   var hasT = cfg.groupBy && cfg.options.length > 0 &&
@@ -2728,6 +2754,9 @@ function openPicker(cfg){
         '<span class="pk-sum-i b">合计 ' + fmt(tot) + " 条</span>";
     }else{ sumEl.style.display = "none"; sumEl.innerHTML = ""; }
   }
+  // 网格模式完全够看，快捷条只在列表模式下保留
+  var qEl2 = document.getElementById("pkQuick");
+  if(qEl2 && pkCfg.groupBy){ qEl2.style.display = "none"; qEl2.innerHTML = ""; }
   var qEl = document.getElementById("pkQuick");
   if(qEl){
     if(hasT && cfg.options.length > 6){
@@ -2753,12 +2782,31 @@ function renderPickList(kw){
     if(!k){ return true; }
     return String(o.label).toLowerCase().indexOf(k) >= 0 ||
       String(o.abbr || "").toLowerCase().indexOf(k) >= 0 ||
-      String(o.region || "").toLowerCase().indexOf(k) >= 0;
+      String(o.region || "").toLowerCase().indexOf(k) >= 0 ||
+      String(o.value || "").toLowerCase().indexOf(k) >= 0;
   });
   if(!list.length){
     box.innerHTML = '<div class="opt-empty">没有匹配的选项</div>';
     return;
   }
+  // 省份选择（groupBy）默认走紧凑网格，一屏看完全部；搜索时同样用网格，便于快速定位
+  if(pkCfg.groupBy){
+    box.className = "optlist pkgrid";
+    var g = "", gi = 0;
+    list.forEach(function(o){
+      var on = o.value === pkCfg.value;
+      var c = REGION_COLOR[o.region] || REGION_COLOR["其他"];
+      g += '<button class="pg' + (on ? " on" : "") + '" data-v="' + esc(o.value) + '"'
+        + ' style="--ica:' + c[0] + ";--icb:" + c[1] + ";animation-delay:" + Math.min(gi*10,200) + 'ms">'
+        + '<span class="pg-ab">' + esc(o.abbr || o.label.slice(0,1)) + '</span>'
+        + '<span class="pg-n">' + esc(o.label) + '</span>'
+        + '<span class="pg-c">' + fmt(o.total || 0) + '</span></button>';
+      gi++;
+    });
+    box.innerHTML = g;
+    return;
+  }
+  box.className = "optlist";
   var di = 0;
   function item(o){
     var on = o.value === pkCfg.value;
@@ -3259,6 +3307,13 @@ document.addEventListener("click", function(e){
     closePicker();
     return;
   }
+  /* 网格省份卡 */
+  var pg = el.closest ? el.closest(".pg") : null;
+  if(pg && pkCfg){
+    pkCfg.onPick(pg.getAttribute("data-v"));
+    closePicker();
+    return;
+  }
   /* 快捷省份芯片 */
   var pq = el.closest ? el.closest(".pk-q") : null;
   if(pq && pkCfg){
@@ -3270,14 +3325,6 @@ document.addEventListener("click", function(e){
   var pk = el.closest ? el.closest(".pick") : null;
   if(pk){
     var kind = pk.getAttribute("data-pick");
-    if(kind === "ldprov"){
-      // 只改「最新检测」卡片的检测范围，不影响页面主省份视图
-      openPicker({ title:"选择检测省份", value:LD.prov, options:provOptions(), groupBy:true, onPick:function(v){
-        ldSetProv(v);
-        toast("检测范围已切换为 " + ckProvName(v));
-      }});
-      return;
-    }
     if(kind === "prov"){
       var target = pk.getAttribute("data-target");
       openPicker({ title:"选择省份", value:state.prov, options:provOptions(), groupBy:true, onPick:function(v){
