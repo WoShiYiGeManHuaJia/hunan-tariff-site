@@ -3195,6 +3195,18 @@ function psOpen(){
   // 否则 15 秒一次的 fetch + 整页重绘会在配置弹窗下面继续跑，
   // 手机上一边轮询网络一边渲染两层弹窗，就是卡顿的直接来源。
   ckPause();
+psLoad();
+  psRenderAll();
+  var m = document.getElementById("psMask");
+  if(!m){ window.open("push-center.html", "_blank"); return; }
+  var g = document.getElementById("psGh");
+  if(g){ g.href = "https://github.com/WoShiYiGeManHuaJia/hunan-tariff-site/actions/workflows/" + CK_WF; }
+  m.classList.add("on");
+}
+function psClose(){
+  var m = document.getElementById("psMask"); if(m){ m.classList.remove("on"); }
+  ckResume();   // 关掉配置后，之前在后台跑的检测恢复
+}
   /* ---------- 站点一次性公告：每个版本只在每台设备弹一次 ---------- */
 var SITE_NOTICE = {
   ver: "2026-10-18-a",
@@ -3243,18 +3255,6 @@ function ntShow(){
 function ntAuto(){
   try{ if(localStorage.getItem(ntKey()) === "1"){ return; } }catch(e){}
   try{ ntShow(); }catch(e){}
-}
-psLoad();
-  psRenderAll();
-  var m = document.getElementById("psMask");
-  if(!m){ window.open("push-center.html", "_blank"); return; }
-  var g = document.getElementById("psGh");
-  if(g){ g.href = "https://github.com/WoShiYiGeManHuaJia/hunan-tariff-site/actions/workflows/" + CK_WF; }
-  m.classList.add("on");
-}
-function psClose(){
-  var m = document.getElementById("psMask"); if(m){ m.classList.remove("on"); }
-  ckResume();   // 关掉配置后，之前在后台跑的检测恢复
 }
 psLoad();
 try{ setTimeout(ntAuto, 700); }catch(e){}   // 一次性公告：延后弹，避免跟首屏加载抢资源
