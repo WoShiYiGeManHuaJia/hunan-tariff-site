@@ -2162,14 +2162,24 @@ function ckProvInit(){
       // 复用页面通用的省份网格选择器（与首页同一套美化 UI）
       var opts = [];
       for(var k=0;k<L.length;k++){
-        var m = null;
-        try{ m = (typeof provMeta !== "undefined") ? provMeta(L[k][0]) : null; }catch(e){ m = null; }
-        opts.push({ value:L[k][1], label:L[k][0],
-          abbr: (m && m.abbr) || L[k][0].slice(0,1),
+        var nm = L[k][0], sec = L[k][1], m = null;
+        try{ m = (typeof provMeta !== "undefined") ? provMeta(nm) : null; }catch(e){ m = null; }
+        // 条数取页面真实数据（在架数），而不是写死 0
+        var tot = 0;
+        try{
+          if(sec === "quanguo"){ tot = (D && D.stats && D.stats.quanguo_total) || 0; }
+          else if(typeof PROV_MAP !== "undefined" && PROV_MAP[sec]){ tot = PROV_MAP[sec].total || 0; }
+          else if(typeof NAME_MAP !== "undefined"){ /* 数据未就绪时兜底 0 */ }
+        }catch(e){ tot = 0; }
+        opts.push({ value:sec, label:nm,
+          abbr: (m && m.abbr) || nm.slice(0,1),
           region: (m && m.region) || "其他",
           ca: (m && m.ca) || "#64748b", cb: (m && m.cb) || "#94a3b8",
-          total: 0, pct: 0 });
+          total: tot, sub: tot ? String(tot) : "—", pct: 0 });
       }
+      var mx = 0;
+      opts.forEach(function(o){ if(o.total > mx){ mx = o.total; } });
+      opts.forEach(function(o){ o.pct = mx ? Math.max(6, Math.round(o.total / mx * 100)) : 0; });
       openPicker({ title:"选择检测省份 · v6", value: CK.prov, options: opts, groupBy: true,
         onPick: function(v){ ckProvSet(v); } });
     };
@@ -2928,7 +2938,7 @@ function renderPickList(kw){
         + '<span class="pv-ck">✓</span>'
         + '<span class="pv-nm">' + esc(o.label) + '</span>'
         + '<span class="pv-sub"><span class="pv-dot"></span>'
-        + '<span class="pv-ct">' + fmt(o.total || 0) + '</span></span></button>';
+        + '<span class="pv-ct">' + (o.total ? fmt(o.total) : (o.sub || "—")) + '</span></span></button>';
       gi++;
     });
     box.innerHTML = g;
@@ -3294,6 +3304,7 @@ psLoad();
 try{ setTimeout(ntAuto, 700); }catch(e){}   // 一次性公告：延后弹，避免跟首屏加载抢资源
 // 最新检测卡片：页面载入即渲染所选省份最近一次变化
 try{ ldProvInit(); ldRefresh(); }catch(e){}
+try{ ckProvInit(); }catch(e){}   // 载入即绑定省份按钮，不必等检测弹窗打开
 // 监听挂在弹窗容器上（而不是 document 捕获阶段）。
 // 之前页面任何一次点击都要跑 3 次 closest，等于给整站点击都加了税。
 var psBox = document.getElementById("psMask");
