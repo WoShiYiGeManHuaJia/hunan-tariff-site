@@ -612,6 +612,7 @@ body{
 [data-theme="light"] .pv{background:#f4f8fd;border-color:#dbe6f5}
 [data-theme="light"] .pv.on{border-color:var(--ica)}
 /* ---- 站点一次性公告 ---- */
+.pk-sum-h{margin-top:6px;font-size:11px;color:var(--tx3);line-height:1.5}
 .ntbox{font-size:13px;line-height:1.75}
 .ntv{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:11px;
   font-weight:800;color:#fff;background:linear-gradient(135deg,var(--op1),var(--op2));margin-bottom:10px}
@@ -2162,31 +2163,37 @@ function ckProvInit(){
   }
   if(btn){
     btn.onclick = function(){
-      // 复用页面通用的省份网格选择器（与首页同一套美化 UI）
+      // 打开前先把 history 拉到手，否则「最新变化次数」会是空的
+      try{ ldRefresh(function(){ ckProvOpen(L); }); }catch(e){ ckProvOpen(L); }
+    };
+  }
+}
+function ckProvOpen(L){
+  try{
       var opts = [];
       for(var k=0;k<L.length;k++){
         var nm = L[k][0], sec = L[k][1], m = null;
         try{ m = (typeof provMeta !== "undefined") ? provMeta(nm) : null; }catch(e){ m = null; }
-        // 条数取页面真实数据（在架数），而不是写死 0
-        var tot = 0;
-        try{
-          if(sec === "quanguo"){ tot = (D && D.stats && D.stats.quanguo_total) || 0; }
-          else if(typeof PROV_MAP !== "undefined" && PROV_MAP[sec]){ tot = PROV_MAP[sec].total || 0; }
-          else if(typeof NAME_MAP !== "undefined"){ /* 数据未就绪时兜底 0 */ }
-        }catch(e){ tot = 0; }
-        opts.push({ value:sec, label:nm,
+        // 这里是「资费检测」入口：显示该省【最新一次变化的次数】，
+        // 不是首页那个「在架条数」，两套口径分开，不要混用
+        var ch = null;
+        try{ ch = (typeof ldLatestChange === "function") ? ldLatestChange(sec) : null; }catch(e){ ch = null; }
+        var tot = ch ? ch.tot : 0;
+        var tip = nm + (ch ? ("　最新变化 " + ch.ts + "：新增" + ch.added + " / 下架" + ch.removed + " / 修改" + ch.modified)
+                           : "　暂无变化记录");
+        opts.push({ value:sec, label:nm, title:tip,
           abbr: (m && m.abbr) || nm.slice(0,1),
           region: (m && m.region) || "其他",
           ca: (m && m.ca) || "#64748b", cb: (m && m.cb) || "#94a3b8",
-          total: tot, sub: tot ? String(tot) : "—", pct: 0 });
+          total: tot, sub: "无变化", pct: 0 });
       }
       var mx = 0;
       opts.forEach(function(o){ if(o.total > mx){ mx = o.total; } });
       opts.forEach(function(o){ o.pct = mx ? Math.max(6, Math.round(o.total / mx * 100)) : 0; });
       openPicker({ title:"选择检测省份 · v6", value: CK.prov, options: opts, groupBy: true,
+        sumUnit:"次变化", hint:"数字为该省<b>最新一次</b>资费变化的条数（新增+下架+修改），非在架总数",
         onPick: function(v){ ckProvSet(v); } });
-    };
-  }
+  }catch(e){ /* 兜底：出错也至少能选 */ }
 }
 function ckProvSet(k){
   CK.prov = k;
@@ -2302,7 +2309,21 @@ function ckCountdown(){
   el.textContent = "距下次检测 " + s + " 秒（第 " + CK.n + " / " + CK.max + " 次）";
 }
 /* ---- 最新检测卡片：显示所选省份最近一次的变化，检测到更新即替换 ---- */
-var LD = { prov:"", ts:"", q:null };
+var LD = { prov:"", ts:"", q:null, hist:null };
+// 取某省「最新一次」有变化的记录：返回 {tot, added, removed, modified, ts}
+// 注意：这里算的是变化次数，跟首页省份卡片的「在架条数」不是一回事，两者不要混用
+function ldLatestChange(prov){
+  var h = LD.hist;
+  if(!h || !h.length){ return null; }
+  for(var i = h.length - 1; i >= 0; i--){
+    var e = h[i], pv = e[prov];
+    if(pv){
+      var a = pv.added || 0, d = pv.removed || 0, m = pv.modified || 0, t = a + d + m;
+      if(t > 0){ return { tot:t, added:a, removed:d, modified:m, ts:e.ts || "" }; }
+    }
+  }
+  return null;
+}
 function ldKey(){ try{ return "ldProv__" + (typeof CK_WF !== "undefined" ? CK_WF : "site"); }catch(e){ return "ldProv__site"; } }
 function ldProvInit(){
   var cur = "";
@@ -2371,6 +2392,7 @@ function ldRefresh(cb){
   fetch(DATA_BASE + "history.json?_=" + Date.now(), {cache:"no-store"}).then(function(r){
     return r.ok ? r.json() : null;
   }).then(function(h){
+    LD.hist = h || null;          // 缓存：检测弹窗的省份选择器要用「最新一次变化次数」
     var v = null, ts = "";
     if(h && h.length){
       // 从最新往前找第一条该省有变化的记录
@@ -2925,7 +2947,10 @@ function openPicker(cfg){
       cfg.options.forEach(function(o){ tot += (o.total || 0); });
       sumEl.style.display = "";
       sumEl.innerHTML = '<span class="pk-sum-i">' + cfg.options.length + " 个省份</span>" +
-        '<span class="pk-sum-i b">合计 ' + fmt(tot) + " 条</span>";
+        '<span class="pk-sum-i b">合计 ' + fmt(tot) + (cfg.sumUnit ? (" " + cfg.sumUnit) : " 条") + "</span>";
+      if(cfg.hint){
+        sumEl.innerHTML += '<div class="pk-sum-h">' + cfg.hint + "</div>";
+      }
     }else{ sumEl.style.display = "none"; sumEl.innerHTML = ""; }
   }
   // 网格模式完全够看，快捷条只在列表模式下保留
@@ -2972,6 +2997,7 @@ function renderPickList(kw){
       var c = REGION_COLOR[o.region] || REGION_COLOR["其他"];
       g += '<button class="pv' + (on ? " on" : "") + '" data-v="' + esc(o.value) + '"'
         + ' role="radio" aria-checked="' + (on ? "true" : "false") + '"'
+        + (o.title ? ' title="' + esc(o.title) + '"' : "")
         + ' style="--ica:' + c[0] + ";--icb:" + c[1] + ";animation-delay:" + Math.min(gi*10,200) + 'ms">'
         + '<span class="pv-ck">✓</span>'
         + '<span class="pv-nm">' + esc(o.label) + '</span>'
