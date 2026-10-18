@@ -468,6 +468,11 @@ body{
 .mask.on{display:flex;animation:fin .28s ease}
 /* 检测弹窗 */
 .ckbox{padding:2px 2px 4px}
+.ckprov{display:flex;align-items:center;gap:8px;justify-content:center;margin:0 auto 10px;padding:8px 10px;max-width:320px;
+  border-radius:10px;background:var(--glass2);border:1px solid var(--bd)}
+.ckpl{font-size:12px;font-weight:700;color:var(--tx2);flex:0 0 auto}
+.ckpsel{flex:1 1 auto;min-width:0;font-size:13px;font-weight:700;color:var(--tx);font-family:inherit;
+  padding:5px 8px;border-radius:8px;background:var(--bg2);border:1px solid var(--bd2);outline:none}
 .ck-wait{font-size:11.5px;color:var(--tx2);text-align:center;margin:6px 0 2px;font-variant-numeric:tabular-nums}
 .ck-logs{margin:8px auto 0;max-width:300px;text-align:left}
 .cklog{font-size:11px;color:var(--tx2);line-height:1.6;padding:3px 8px;border-radius:7px;background:var(--glass2);border:1px solid var(--bd);margin-bottom:4px}
@@ -966,6 +971,10 @@ a.opc{text-decoration:none;display:block}
     <div class="mh"><h3 id="ckTitle">检测最新资费</h3><button class="mx" id="ckX">×</button></div>
     <div class="mb">
       <div class="ckbox">
+        <div class="ckprov">
+          <span class="ckpl">检测范围</span>
+          <select id="ckProv" class="ckpsel"></select>
+        </div>
         <div class="ckspin" id="ckSpin"><i></i></div>
         <div class="ckstat" id="ckStat">正在读取线上数据…</div>
         <div class="ckmeta" id="ckMeta"></div>
@@ -973,8 +982,8 @@ a.opc{text-decoration:none;display:block}
         <div class="ck-logs" id="ckLog"></div>
         <div class="ckbar"><span id="ckBar"></span></div>
         <ul class="cktips">
-          <li>本页每 15 秒比对一次线上数据，<b>一旦有更新会自动刷新</b></li>
-          <li>站点已配置定时抓取，通常无需手动操作</li>
+          <li>每 15 秒查询一次<b>所选省份</b>的在架数与更新时间，<b>有变化自动刷新</b></li>
+          <li>切换省份会立即以该省为基线重新检测（记住上次选择）</li>
           <li>想自定义推送渠道 / 运营商 / 省份，点下方「自定义推送」</li>
         </ul>
       </div>
@@ -1978,16 +1987,96 @@ function dvHtml(it){
 }
 function closeModal(){ document.getElementById("mask").classList.remove("on"); }
 /* ---------- 检测最新资费 ---------- */
-var CK = { t:null, cd:null, n:0, base:"", max:40, left:15, paused:false };
+var CK = { t:null, cd:null, n:0, base:"", max:40, left:15, paused:false, prov:"", baseU:"", baseT:0 };
 function ckGhUrl(){
   return "https://github.com/WoShiYiGeManHuaJia/hunan-tariff-site/actions/workflows/" + CK_WF;
+}
+/* ---- 单省份检测：只盯所选省份的在架数与更新时间 ----
+   注意：这里只改「检测弹窗」的比对维度；
+   站点原有的全量定时抓取（云端 cron）不做任何改动。 */
+function ckProvKey(){
+  try{ return "ckProv__" + (typeof CK_WF !== "undefined" ? CK_WF : "site"); }catch(e){ return "ckProv__site"; }
+}
+function ckProvList(){
+  // 复用自定义推送那一份省份表，避免两处维护
+  if(typeof PS_PROV !== "undefined" && PS_PROV && PS_PROV.length){ return PS_PROV; }
+  return [["全国","quanguo"],["湖南","hunan"],["广东","guangdong"]];
+}
+function ckProvName(k){
+  var L = ckProvList();
+  for(var i=0;i<L.length;i++){ if(L[i][1] === k){ return L[i][0]; } }
+  return k || "未知";
+}
+function ckSecOf(j, k){
+  var arr = (j && j.sections) ? j.sections : [];
+  for(var i=0;i<arr.length;i++){ if(arr[i] && arr[i].section === k){ return arr[i]; } }
+  return null;
+}
+function ckProvInit(){
+  var sel = document.getElementById("ckProv");
+  if(!sel){ return; }
+  var L = ckProvList(), cur = "";
+  try{ cur = localStorage.getItem(ckProvKey()) || ""; }catch(e){}
+  if(!cur){ cur = "hunan"; }
+  var hit = false;
+  for(var i=0;i<L.length;i++){ if(L[i][1] === cur){ hit = true; break; } }
+  if(!hit){ cur = "hunan"; }
+  CK.prov = cur;
+  var h = "";
+  for(var j=0;j<L.length;j++){
+    h += '<option value="' + L[j][1] + '"' + (L[j][1] === cur ? " selected" : "") + '>' + L[j][0] + '</option>';
+  }
+  sel.innerHTML = h;
+  sel.onchange = function(){
+    CK.prov = sel.value;
+    try{ localStorage.setItem(ckProvKey(), CK.prov); }catch(e){}
+    ckRestart();
+  };
+}
+function ckRestart(){
+  // 换省份 = 换基线，从头开始检测
+  ckStopTimer();
+  CK.n = 0; CK.left = 15;
+  var s0 = ckSecOf(D, CK.prov);
+  CK.baseU = (s0 && s0.updated) || D.updated || "";
+  CK.baseT = (s0 && s0.total) || 0;
+  var lg = document.getElementById("ckLog");
+  if(lg){ lg.innerHTML = ""; }
+  var b = document.getElementById("ckBar"); if(b){ b.style.width = "0%"; }
+  var sp = document.getElementById("ckSpin"); if(sp){ sp.classList.remove("done"); }
+  CK.t = setInterval(ckTick, 15000);
+  ckStartCd();
+  ckTick();
+}
+function ckDelta(pname, u, tt){
+  // 变化后再拉一次历史，补上「新增/下架/修改」明细
+  var st = document.getElementById("ckStat"), mt = document.getElementById("ckMeta");
+  fetch(DATA_BASE + "history.json?_=" + Date.now(), {cache:"no-store"}).then(function(r){
+    return r.ok ? r.json() : null;
+  }).then(function(h){
+    var v = null;
+    if(h && h.length){ var last = h[h.length - 1]; v = last[CK.prov] || null; }
+    var a = (v && v.added) || 0, rm = (v && v.removed) || 0, md = (v && v.modified) || 0;
+    var d = (a || rm || md) ? ("<br>最新一轮：新增 " + a + "、下架 " + rm + "、修改 " + md) : "";
+    if(st){ st.textContent = "「" + pname + "」有更新：在架 " + (CK.baseT || 0) + " → " + tt + " 条"; }
+    if(mt){ mt.innerHTML = "数据更新于 <b>" + (u || "未知") + "</b>" + d; }
+    setTimeout(function(){ location.href = location.pathname + "?_=" + Date.now(); }, 1500);
+  }).catch(function(){
+    if(st){ st.textContent = "「" + pname + "」有更新，正在刷新页面…"; }
+    setTimeout(function(){ location.href = location.pathname + "?_=" + Date.now(); }, 800);
+  });
 }
 function ckOpen(){
   var m = document.getElementById("ckMask");
   if(!m){ return; }
-  CK.base = D.updated || "";
-  document.getElementById("ckStat").textContent = "正在比对线上数据…";
-  document.getElementById("ckMeta").innerHTML = "当前数据更新于 <b>" + (CK.base || "未知") + "</b>";
+  ckProvInit();
+  var s0 = ckSecOf(D, CK.prov);
+  CK.baseU = (s0 && s0.updated) || D.updated || "";
+  CK.baseT = (s0 && s0.total) || 0;
+  CK.base = CK.baseU;
+  var lg = document.getElementById("ckLog"); if(lg){ lg.innerHTML = ""; }
+  document.getElementById("ckStat").textContent = "正在读取「" + ckProvName(CK.prov) + "」线上数据…";
+  document.getElementById("ckMeta").innerHTML = "基线：在架 <b>" + (CK.baseT || 0) + "</b> 条 · 更新于 <b>" + (CK.baseU || "未知") + "</b>";
   document.getElementById("ckBar").style.width = "0%";
   document.getElementById("ckSpin").classList.remove("done");
   m.classList.add("on");
@@ -2043,6 +2132,14 @@ function ckCountdown(){
   if(s <= 0){ el.textContent = "正在请求…"; return; }
   el.textContent = "距下次检测 " + s + " 秒（第 " + CK.n + " / " + CK.max + " 次）";
 }
+function ckLogAdd(log, hm, txt, bad){
+  if(!log){ return; }
+  var li = document.createElement("div");
+  li.className = "cklog" + (bad ? " bad" : "");
+  li.innerHTML = '<span>' + hm + '</span> ' + txt;
+  log.insertBefore(li, log.firstChild);
+  while(log.children.length > 4){ log.removeChild(log.lastChild); }
+}
 function ckTick(){
   if(!document.getElementById("ckMask")) { ckStopTimer(); return; }
   CK.n++;
@@ -2052,53 +2149,49 @@ function ckTick(){
   var log = document.getElementById("ckLog");
   var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
   if(bar){ bar.style.width = Math.min(100, Math.round(CK.n / CK.max * 100)) + "%"; }
-  if(st){ st.textContent = "正在请求线上数据…（第 " + CK.n + " / " + CK.max + " 次）"; }
+  var pname = ckProvName(CK.prov);
+  if(st){ st.textContent = "正在查询「" + pname + "」…（第 " + CK.n + " / " + CK.max + " 次）"; }
   fetch(DATA_BASE + "latest.json?_=" + Date.now(), {cache:"no-store"}).then(function(r){
     if(!r.ok){ throw new Error("HTTP " + r.status); }
     return r.json();
   }).then(function(j){
     var ms = Math.round(((window.performance && performance.now) ? performance.now() : Date.now()) - t0);
-    var u = (j && j.updated) ? j.updated : "";
+    var sec = ckSecOf(j, CK.prov);
     var now = new Date();
     var hm = ("0"+now.getHours()).slice(-2) + ":" + ("0"+now.getMinutes()).slice(-2) + ":" + ("0"+now.getSeconds()).slice(-2);
-    // 每一次请求都留痕，用户能确认它真的在查
-    if(log){
-      var li = document.createElement("div");
-      li.className = "cklog";
-      li.innerHTML = '<span>'+hm+'</span> 已请求线上数据 · HTTP 200 · '+ms+'ms · 线上 '+(u||'未知');
-      log.insertBefore(li, log.firstChild);
-      while(log.children.length > 4){ log.removeChild(log.lastChild); }
-    }
-    if(u && CK.base && u !== CK.base){
+    if(!sec){
+      // 该运营商没有这个板块（例如某省未开通），明确说出来而不是空转
+      ckLogAdd(log, hm, "本运营商暂无「" + pname + "」板块", true);
       ckStopTimer();
-      if(st){ st.textContent = "检测到新数据，正在刷新页面…"; }
-      if(mt){ mt.innerHTML = "最新更新于 <b>" + u + "</b>"; }
+      if(st){ st.textContent = "本运营商暂无「" + pname + "」板块，已停止"; }
+      if(mt){ mt.innerHTML = "请切换其它省份，或选择 <b>全国</b>"; }
+      return;
+    }
+    var u = sec.updated || "", tt = sec.total || 0;
+    ckLogAdd(log, hm, "已查 " + pname + " · 在架 " + tt + " 条 · 更新于 " + (u || "未知") + " · " + ms + "ms", false);
+    var changed = (CK.baseU && u && u !== CK.baseU) || (CK.baseT && tt && tt !== CK.baseT);
+    if(changed){
+      ckStopTimer();
+      if(st){ st.textContent = "「" + pname + "」检测到更新，正在读取明细…"; }
+      if(mt){ mt.innerHTML = "<b>" + pname + "</b> 数据更新于 <b>" + (u || "未知") + "</b>"; }
       document.getElementById("ckSpin").classList.add("done");
       if(bar){ bar.style.width = "100%"; }
-      setTimeout(function(){
-        location.href = location.pathname + "?_=" + Date.now();
-      }, 800);
+      ckDelta(pname, u, tt);
       return;
     }
     if(CK.n >= CK.max){
       ckStopTimer();
-      if(st){ st.textContent = "本次未检测到新数据"; }
-      if(mt){ mt.innerHTML = "线上数据仍为 <b>" + (u || CK.base || "未知") + "</b>，定时任务执行后会自动刷新"; }
+      if(st){ st.textContent = "本次未检测到「" + pname + "」的变化"; }
+      if(mt){ mt.innerHTML = "线上仍为 <b>" + (u || "未知") + "</b> · " + tt + " 条，定时任务执行后会自动刷新"; }
       document.getElementById("ckSpin").classList.add("done");
       return;
     }
-    if(st){ st.textContent = "线上仍为 " + (u || CK.base || "未知") + "（第 " + CK.n + " / " + CK.max + " 次）"; }
-    if(mt){ mt.innerHTML = "本机数据 <b>" + (CK.base || "未知") + "</b> ｜ 比对耗时 " + ms + "ms ｜ 15 秒后重查"; }
+    if(st){ st.textContent = pname + " · 在架 " + tt + " 条（第 " + CK.n + " / " + CK.max + " 次）"; }
+    if(mt){ mt.innerHTML = "基线 <b>" + (CK.baseU || "未知") + "</b> · " + CK.baseT + " 条 ｜ 线上 <b>" + (u || "未知") + "</b> · " + tt + " 条 ｜ " + ms + "ms"; }
   }).catch(function(e){
     var hm2 = new Date();
     var hms = ("0"+hm2.getHours()).slice(-2)+":"+("0"+hm2.getMinutes()).slice(-2)+":"+("0"+hm2.getSeconds()).slice(-2);
-    if(log){
-      var li2 = document.createElement("div");
-      li2.className = "cklog bad";
-      li2.innerHTML = '<span>'+hms+'</span> 请求失败：' + (e && e.message ? e.message : e);
-      log.insertBefore(li2, log.firstChild);
-      while(log.children.length > 4){ log.removeChild(log.lastChild); }
-    }
+    ckLogAdd(log, hms, "请求失败：" + (e && e.message ? e.message : e), true);
     if(CK.n >= CK.max){ ckStop(); return; }
     if(st){ st.textContent = "网络请求失败，15 秒后重试…（第 " + CK.n + " 次）"; }
   });
