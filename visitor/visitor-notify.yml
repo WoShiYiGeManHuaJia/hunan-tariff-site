@@ -1,0 +1,56 @@
+# 运营商资费变化 · 定时推送（访客自助版）
+#
+# 用法：把本文件放到【你自己的仓库】的 .github/workflows/ 目录下，
+#       再把 visitor_summary.py 放到仓库 scripts/ 目录下，
+#       然后去 Settings → Secrets and variables → Actions → Secrets
+#       填入你自己的 Webhook，就完事了。
+#
+# 这样做不会改动、也不会影响原数据仓的任何配置 —— 本工作流只读公开数据。
+
+name: 资费变化定时推送
+
+on:
+  schedule:
+    # GitHub 的 cron 一律按 UTC。下面两条 = 北京 08:00 与 20:00。
+    # 免费账号的定时任务可能被平台延后执行，属正常现象；
+    # 介意的话可改用 cron-job.org 等外部触发器定时打 repository_dispatch。
+    - cron: "0 0 * * *"     # 北京 08:00
+    - cron: "0 12 * * *"    # 北京 20:00
+  workflow_dispatch:        # 手动点一下立即推
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 推送资费变化
+        env:
+          # ── 至少填一个推送渠道（在仓库 Secrets 里）──
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET:  ${{ secrets.DINGTALK_SECRET }}
+          DINGTALK_KEYWORD: ${{ secrets.DINGTALK_KEYWORD }}
+          FEISHU_WEBHOOK:   ${{ secrets.FEISHU_WEBHOOK }}
+          FEISHU_SECRET:    ${{ secrets.FEISHU_SECRET }}
+          WECOM_WEBHOOK:    ${{ secrets.WECOM_WEBHOOK }}
+          SMTP_HOST:        ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:        ${{ secrets.SMTP_PORT }}
+          SMTP_USER:        ${{ secrets.SMTP_USER }}
+          SMTP_PASS:        ${{ secrets.SMTP_PASS }}
+          MAIL_TO:          ${{ secrets.MAIL_TO }}
+
+          # ── 可选过滤：不填就是全部 ──
+          # 只推哪些运营商（mobile 移动 / unicom 联通 / telecom 电信 / gb 广电）
+          # 例：mobile,unicom
+          PUSH_OPS:   ${{ vars.PUSH_OPS }}
+          # 只统计哪些省份（拼音，逗号分隔），填了才会在推送里列分省明细
+          # 例：quanguo,hunan,guangdong
+          PUSH_PROVS: ${{ vars.PUSH_PROVS }}
+          # 统计最近多少小时
+          SINCE_HOURS: ${{ vars.SINCE_HOURS || '24' }}
+        run: python3 scripts/visitor_summary.py
