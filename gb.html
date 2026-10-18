@@ -611,6 +611,18 @@ body{
 .pv.on .pv-ck{display:flex}
 [data-theme="light"] .pv{background:#f4f8fd;border-color:#dbe6f5}
 [data-theme="light"] .pv.on{border-color:var(--ica)}
+/* ---- 站点一次性公告 ---- */
+.ntbox{font-size:13px;line-height:1.75}
+.ntv{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:11px;
+  font-weight:800;color:#fff;background:linear-gradient(135deg,var(--op1),var(--op2));margin-bottom:10px}
+.ntd{font-size:11.5px;color:var(--tx3);font-weight:700;margin-bottom:12px}
+.nth{font-size:13.5px;font-weight:800;margin:14px 0 6px;color:var(--tx);display:flex;align-items:center;gap:6px}
+.nth::before{content:'';width:3px;height:13px;border-radius:2px;background:linear-gradient(180deg,var(--op1),var(--op2))}
+.ntul{margin:0;padding-left:18px}
+.ntul li{margin-bottom:5px}
+.ntul b{color:var(--op1)}
+.nttip{margin-top:12px;padding:9px 11px;border-radius:10px;background:var(--glass2);border:1px solid var(--bd);
+  font-size:11.5px;color:var(--tx2)}
 .pk-search .search input{font-size:16px}  /* 手机端避免聚焦自动放大 */
 .mf{padding:13px 18px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:9px;flex:none}
 .kv{display:grid;grid-template-columns:96px 1fr;gap:10px 14px;font-size:12.5px;margin:0}
@@ -1128,6 +1140,15 @@ a.opc{text-decoration:none;display:block}
     <div class="mh"><h3 id="mTitle">资费详情</h3><button class="mx" id="mx">×</button></div>
     <div class="mb"><div class="dv" id="mBody"></div></div>
     <div class="mf"><button class="btn" id="mCopy">复制名称</button><button class="btn pri" id="mOk">关闭</button></div>
+  </div>
+</div>
+
+<!-- 站点一次性公告（每个版本只弹一次） -->
+<div class="mask" id="ntMask">
+  <div class="modal">
+    <div class="mh"><h3 id="ntTitle">站点更新公告</h3><button class="mx" id="ntX">×</button></div>
+    <div class="mb"><div class="ntbox" id="ntBody"></div></div>
+    <div class="mf"><button class="btn pri" id="ntOk">知道了</button></div>
   </div>
 </div>
 
@@ -3174,7 +3195,56 @@ function psOpen(){
   // 否则 15 秒一次的 fetch + 整页重绘会在配置弹窗下面继续跑，
   // 手机上一边轮询网络一边渲染两层弹窗，就是卡顿的直接来源。
   ckPause();
-  psLoad();
+  /* ---------- 站点一次性公告：每个版本只在每台设备弹一次 ---------- */
+var SITE_NOTICE = {
+  ver: "2026-10-18-a",
+  badge: "v6 更新",
+  date: "2026-10-18",
+  title: "省份选择与资费检测体验优化",
+  body:
+    '<div class="nth">省份选择</div>' +
+    '<ul class="ntul">' +
+    "<li>改为<b>彩色卡片网格</b>，一屏看完全部省份，不用再上下滚长列表</li>" +
+    "<li>显示<b>省份全名</b>（如「内蒙古」「黑龙江」完整显示），缩写只作小色点</li>" +
+    "<li>新增<b>搜索框</b>：支持省名、简称（如「粤」）、大区（如「西南」）</li>" +
+    "<li><b>选中项高亮加强</b>：亮色边框 + 深色底 + 右上角 ✓，不会再白底白字看不清</li>" +
+    "<li>弹窗高度收小，手机看 3 列、电脑看 6 列，两端都适配</li>" +
+    "</ul>" +
+    '<div class="nth">资费检测</div>' +
+    '<ul class="ntul">' +
+    "<li>检测范围从原生下拉改为<b>自定义按钮</b>（带省份配色），四家运营商统一</li>" +
+    "<li>弹窗内新增<b>「最新一次资费变化」面板</b>：直接显示所选省份最近一轮的新增 / 下架 / 修改与业务名称</li>" +
+    "<li>抓到更新会<b>自动替换</b>面板内容并高亮闪烁，无需刷新页面</li>" +
+    "<li>检测日志逐条留痕，能看到每次请求的状态码与耗时</li>" +
+    "</ul>" +
+    '<div class="nttip">若界面未变化，请清除浏览器缓存，或访问 <b>hnvip.qd.je/index.html?v=6</b> 强制加载新版。</div>'
+};
+function ntKey(){ return "siteNotice__" + SITE_NOTICE.ver; }
+function ntClose(){
+  var m = document.getElementById("ntMask");
+  if(m){ m.classList.remove("on"); }
+  try{ localStorage.setItem(ntKey(), "1"); }catch(e){}
+}
+function ntShow(){
+  var m = document.getElementById("ntMask");
+  if(!m){ return; }
+  var t = document.getElementById("ntTitle");
+  var b = document.getElementById("ntBody");
+  if(t){ t.textContent = SITE_NOTICE.title || "站点更新公告"; }
+  if(b){
+    b.innerHTML = '<span class="ntv">' + esc(SITE_NOTICE.badge || "更新") + "</span>"
+      + '<div class="ntd">' + esc(SITE_NOTICE.date || "") + "</div>" + (SITE_NOTICE.body || "");
+  }
+  m.classList.add("on");
+  var ok = document.getElementById("ntOk"), x = document.getElementById("ntX");
+  if(ok){ ok.onclick = ntClose; }
+  if(x){ x.onclick = ntClose; }
+}
+function ntAuto(){
+  try{ if(localStorage.getItem(ntKey()) === "1"){ return; } }catch(e){}
+  try{ ntShow(); }catch(e){}
+}
+psLoad();
   psRenderAll();
   var m = document.getElementById("psMask");
   if(!m){ window.open("push-center.html", "_blank"); return; }
@@ -3187,6 +3257,7 @@ function psClose(){
   ckResume();   // 关掉配置后，之前在后台跑的检测恢复
 }
 psLoad();
+try{ setTimeout(ntAuto, 700); }catch(e){}   // 一次性公告：延后弹，避免跟首屏加载抢资源
 // 最新检测卡片：页面载入即渲染所选省份最近一次变化
 try{ ldProvInit(); ldRefresh(); }catch(e){}
 // 监听挂在弹窗容器上（而不是 document 捕获阶段）。
