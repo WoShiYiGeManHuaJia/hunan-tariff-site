@@ -69,11 +69,23 @@ TEST_MODE = "--test" in sys.argv
 
 # 站名 -> (history 路径, 显示名, 图标)
 SITES = [
-    ("data/history.json", "移动", "🔵"),
-    ("unicom/data/history.json", "联通", "🟠"),
-    ("telecom/data/history.json", "电信", "🟢"),
-    ("gb/data/history.json", "广电", "🟣"),
+    ("data/history.json", "移动", "🔵", "mobile"),
+    ("unicom/data/history.json", "联通", "🟠", "unicom"),
+    ("telecom/data/history.json", "电信", "🟢", "telecom"),
+    ("gb/data/history.json", "广电", "🟣", "gb"),
 ]
+
+# ── 推送过滤（可选；不设置则与历史行为完全一致：四家全推、只给总览）──
+# PUSH_OPS   只推哪些运营商，逗号分隔：mobile / unicom / telecom / gb
+#            例：mobile,unicom   留空 = 四家全推
+# PUSH_PROVS 只统计哪些省份（拼音，逗号分隔），并且推送里列出分省明细
+#            例：quanguo,hunan,guangdong   留空 = 不列明细、省份全算
+# 这两个变量由「自定义推送」弹窗选择后写入仓库 Variables 生效；不设就不变。
+def _env_list(key):
+    return [x.strip().lower() for x in os.getenv(key, "").split(",") if x.strip()]
+
+PUSH_OPS   = _env_list("PUSH_OPS")
+PUSH_PROVS = _env_list("PUSH_PROVS")
 
 CST = timezone(timedelta(hours=8))
 
@@ -178,7 +190,7 @@ def human_ago(dt, now):
     return "%d 天前" % int(secs // 86400)
 
 
-def summarize(hist, since):
+def summarize(hist, since, provs=None):
     """汇总某站「最新一轮」的变化。
 
     注意：这里刻意不累加窗口内所有轮次。之前累加导致 24h 内每轮推送
@@ -205,6 +217,9 @@ def summarize(hist, since):
             continue
         for k, v in e.items():
             if k == "ts" or not isinstance(v, dict):
+                continue
+            # 省份过滤：只对选中省份计数，未选中的整块跳过
+            if provs is not None and str(k).strip().lower() not in provs:
                 continue
             a = int(v.get("added", 0) or 0)
             r = int(v.get("removed", 0) or 0)
@@ -351,12 +366,24 @@ def main():
     lines = ["## 资费变化汇总", "",
              "**统计范围**：%s ~ %s (北京时间)" %
              (since.strftime("%m-%d %H:%M"), now.strftime("%m-%d %H:%M")), ""]
+    # 过滤条件写进正文，避免「数字变小了」被误判成漏推
+    _scope = []
+    if PUSH_OPS:
+        _scope.append("运营商：" + "、".join(
+            n for _, n, _, o in SITES if o in PUSH_OPS))
+    if PUSH_PROVS:
+        _scope.append("省份：" + "、".join(sec_cn(x) for x in PUSH_PROVS))
+    if _scope:
+        lines.append("**筛选**：" + " ｜ ".join(_scope))
+        lines.append("")
     any_change = False
     grand = [0, 0, 0]
 
-    for path, name, icon in SITES:
+    for path, name, icon, op in SITES:
+        if PUSH_OPS and op not in PUSH_OPS:
+            continue          # 运营商没勾选，整个跳过，连「无变化」都不提
         hist = load_history(path)
-        a, r, m, secs, batches = summarize(hist, since)
+        a, r, m, secs, batches = summarize(hist, since, PUSH_PROVS or None)
         grand[0] += a; grand[1] += r; grand[2] += m
         if not (a or r or m):
             # 说清「查过了但没变化」，而不是干巴巴一句「无变化」——
@@ -373,6 +400,13 @@ def main():
             continue
         any_change = True
         lines.append("- %s **%s**：新增 %d、下架 %d、修改 %d" % (icon, name, a, r, m))
+        # 省份过滤开启时列出分省明细（按变化量降序，最多 12 条，超出折叠）
+        if PUSH_PROVS:
+            _ss = sorted(secs, key=lambda x: -(x[1] + x[2] + x[3]))
+            for sn, sa, sr, sm, _note, _key in _ss[:12]:
+                lines.append("　└ %s：新增 %d、下架 %d、修改 %d" % (sn, sa, sr, sm))
+            if len(_ss) > 12:
+                lines.append("　└ 其余 %d 个省份略（详见网站「变化历史」）" % (len(_ss) - 12))
         # 批量同改：附一句说明，避免只看到一个大数字却不知道改了什么
         for sec_name, desc in batches[:3]:
             lines.append("　└ %s：%s" % (sec_name, desc))
