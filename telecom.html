@@ -750,6 +750,29 @@ a.opc{text-decoration:none;display:block}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+/* ---------- 自定义推送弹窗 ---------- */
+.pssec{margin:0 0 14px}
+.pssec:last-of-type{margin-bottom:0}
+.pst{font-size:12.5px;font-weight:700;color:var(--tx);margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pst .pscnt{font-weight:500;font-size:11.5px;color:var(--tx2);background:var(--bg2);border:1px solid var(--bd2);border-radius:8px;padding:2px 8px}
+.psmini{font-size:11px;font-weight:600;padding:3px 9px;border-radius:8px;border:1px solid var(--bd2);background:transparent;color:var(--tx2);cursor:pointer}
+.psmini:active{opacity:.6}
+.pspills{display:flex;flex-wrap:wrap;gap:6px}
+.pspill{font-size:12px;font-weight:600;padding:5px 11px;border-radius:9px;border:1px solid var(--bd2);background:var(--bg2);color:var(--tx2);cursor:pointer;user-select:none;transition:.15s}
+.pspill.on{background:var(--op3);border-color:var(--op3);color:#fff}
+.psrow{border:1px solid var(--bd2);border-radius:12px;padding:10px 12px;margin:0 0 8px;background:var(--bg2)}
+.psrow .pshd{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--tx);cursor:pointer}
+.psrow .pshd input{width:16px;height:16px;accent-color:var(--op3);flex:none}
+.psrow .pshd .pstag{font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--op3);color:#fff}
+.psbody{margin-top:8px;display:none}
+.psrow.on .psbody{display:block}
+.psinp{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:9px;border:1px solid var(--bd2);background:rgba(127,127,127,.08);color:var(--tx);font-size:12.5px;outline:none;margin:0 0 6px}
+.psinp::placeholder{color:var(--tx2);opacity:.75}
+.psnote{font-size:11.5px;color:var(--tx2);line-height:1.7;margin:6px 0 0}
+.cktips a{color:var(--op3);text-decoration:none;font-weight:600}
+.cktips a:active{opacity:.6}
+@media(max-width:420px){.pspill{font-size:11.5px;padding:4px 9px}}
 </style>
 </head>
 <body>
@@ -940,14 +963,48 @@ a.opc{text-decoration:none;display:block}
         <ul class="cktips">
           <li>本页每 15 秒比对一次线上数据，<b>一旦有更新会自动刷新</b></li>
           <li>站点已配置定时抓取，通常无需手动操作</li>
-          <li>想立即抓取，可点下方「立即触发抓取」打开 Actions 页运行</li>
+          <li>想自定义推送渠道 / 运营商 / 省份，点下方「自定义推送」</li>
         </ul>
       </div>
     </div>
     <div class="mf">
       <button class="btn" id="ckStop">停止检测</button>
       <button class="btn" id="ckOk">后台继续检测</button>
-      <button class="btn pri" id="ckGh">立即触发抓取</button>
+      <button class="btn pri" id="ckPush">自定义推送</button>
+    </div>
+  </div>
+</div>
+
+<!-- 自定义推送弹窗 -->
+<div class="mask" id="psMask">
+  <div class="modal" style="width:min(520px,100%)">
+    <div class="mh"><h3>自定义推送</h3><button class="mx" id="psX">×</button></div>
+    <div class="mb">
+      <div class="ckbox">
+        <div class="pssec">
+          <div class="pst">① 推送到哪些渠道</div>
+          <div id="psCh"></div>
+        </div>
+        <div class="pssec">
+          <div class="pst">② 推送哪些运营商</div>
+          <div class="pspills" id="psOps"></div>
+        </div>
+        <div class="pssec">
+          <div class="pst">③ 接收哪些省份 <span class="pscnt" id="psProvCnt"></span>
+            <button class="psmini" id="psProvAll">全选</button><button class="psmini" id="psProvNone">清空</button></div>
+          <div class="pspills" id="psProvs"></div>
+        </div>
+        <ul class="cktips">
+          <li>配置<b>只存在你本机浏览器</b>，与「推送中心」共用同一份，不上传任何服务器</li>
+          <li>钉钉 / 飞书 可由本页直连发送并测试；企业微信与邮箱需导出给脚本执行</li>
+          <li>想立即抓取最新数据：<a id="psGh" href="#" target="_blank" rel="noopener">打开 Actions 页 ↗</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="psCenter">完整推送中心</button>
+      <button class="btn" id="psTest">发送测试</button>
+      <button class="btn pri" id="psSave">保存配置</button>
     </div>
   </div>
 </div>
@@ -2528,6 +2585,217 @@ function applyOp(key){
 /* 手机端禁用点击涟漪：每次点击都 getBoundingClientRect() 强制同步布局 + 建 DOM + 播动画，
    是"点击后要等一两秒才有反应"的直接原因 */
 function __lite(){ return (window.innerWidth || document.documentElement.clientWidth || 0) <= 820; }
+/* ---------- 自定义推送（渠道 / 运营商 / 省份） ----------
+   配置存 localStorage 键 tariffPushCfg.v1，与 push-center.html 完全共用，
+   所以在任意一个页面改过，四个运营商页面都同步生效。 */
+var PS_KEY = "tariffPushCfg.v1";
+var PS_OP  = "telecom";
+var PS_OPS = [["移动","mobile"],["电信","telecom"],["联通","unicom"],["广电","gb"]];
+var PS_PROV = [["全国","quanguo"],["北京","beijing"],["天津","tianjin"],["河北","hebei"],["山西","shanxi"],["内蒙古","neimenggu"],["辽宁","liaoning"],["吉林","jilin"],["黑龙江","heilongjiang"],["上海","shanghai"],["江苏","jiangsu"],["浙江","zhejiang"],["安徽","anhui"],["福建","fujian"],["江西","jiangxi"],["山东","shandong"],["河南","henan"],["湖北","hubei"],["湖南","hunan"],["广东","guangdong"],["广西","guangxi"],["海南","hainan"],["重庆","chongqing"],["四川","sichuan"],["贵州","guizhou"],["云南","yunnan"],["西藏","xizang"],["陕西","shaanxi"],["甘肃","gansu"],["青海","qinghai"],["宁夏","ningxia"],["新疆","xinjiang"]];
+var PS_CH = [
+ {id:"dingtalk",name:"钉钉群机器人",color:"#00AACC",direct:1,
+  fields:[["webhook","Webhook 地址","https://oapi.dingtalk.com/robot/send?access_token=...",0],
+          ["secret","加签 Secret（选了「加签」才填，可留空）","SEC 开头",1],
+          ["keyword","自定义关键词（选了「关键词」才填，可留空）","如：资费",0]]},
+ {id:"feishu",name:"飞书群机器人",color:"#3370FF",direct:1,
+  fields:[["webhook","Webhook 地址","https://open.feishu.cn/open-apis/bot/v2/hook/...",0],
+          ["secret","签名校验 Secret（未开启可留空）","开启签名校验后填",1]]},
+ {id:"wecom",name:"企业微信群机器人",color:"#00B050",direct:0,
+  fields:[["webhook","Webhook 地址","https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...",0]],
+  note:"官方接口禁止浏览器跨域直连，配置保存后由脚本推送。"},
+ {id:"email",name:"邮箱通知（SMTP）",color:"#E98B2A",direct:0,
+  fields:[["host","SMTP 服务器","smtp.qq.com / smtp.139.com",0],
+          ["port","端口","465（SSL）或 587",0],
+          ["user","发件账号","you@qq.com",0],
+          ["pass","授权码 / 密码","QQ 邮箱用授权码，非登录密码",1],
+          ["to","收件邮箱","target@example.com",0]],
+  note:"浏览器无 SMTP 协议，配置保存后由脚本发信。"}
+];
+var PS_DEF = {dingtalk:{enabled:false,webhook:"",secret:"",keyword:""},feishu:{enabled:false,webhook:"",secret:""},
+ wecom:{enabled:false,webhook:""},email:{enabled:false,host:"",port:"465",user:"",pass:"",to:""},
+ push:{ops:["mobile","telecom","unicom","gb"],provs:["quanguo","hunan"]}};
+var PS = JSON.parse(JSON.stringify(PS_DEF));
+function psName(list,code){ for(var i=0;i<list.length;i++){ if(list[i][1]===code) return list[i][0]; } return code; }
+function psLoad(){
+  try{
+    var raw = localStorage.getItem(PS_KEY);
+    if(!raw) return;
+    var d = JSON.parse(raw);
+    PS_CH.forEach(function(c){ if(d && d[c.id]) Object.assign(PS[c.id], d[c.id]); });
+    if(d && d.push){
+      if(Array.isArray(d.push.ops) && d.push.ops.length) PS.push.ops = d.push.ops.slice();
+      // 与推送中心的 focusProvs 互通：那边改过省份，这边直接沿用，不用重选一遍
+      var pv = Array.isArray(d.push.provs) ? d.push.provs
+             : (Array.isArray(d.push.focusProvs) ? d.push.focusProvs : null);
+      if(pv) PS.push.provs = pv.slice();
+    }
+    if(!Array.isArray(PS.push.ops) || !PS.push.ops.length) PS.push.ops = PS_DEF.push.ops.slice();
+    if(!Array.isArray(PS.push.provs) || !PS.push.provs.length) PS.push.provs = PS_DEF.push.provs.slice();
+  }catch(e){}
+}
+function psSaveCfg(){
+  try{
+    var raw = localStorage.getItem(PS_KEY), d = {};
+    try{ d = raw ? JSON.parse(raw) : {}; }catch(e){ d = {}; }
+    PS_CH.forEach(function(c){ d[c.id] = Object.assign({}, d[c.id] || {}, PS[c.id]); });
+    d.push = Object.assign({}, d.push || {}, {ops:PS.push.ops, provs:PS.push.provs});
+    localStorage.setItem(PS_KEY, JSON.stringify(d));
+    return true;
+  }catch(e){ return false; }
+}
+function psRenderCh(){
+  var box = document.getElementById("psCh"); if(!box) return;
+  box.innerHTML = PS_CH.map(function(c){
+    var on = !!PS[c.id].enabled;
+    return '<div class="psrow' + (on ? " on" : "") + '" data-psrow="' + c.id + '">'
+      + '<label class="pshd"><input type="checkbox" data-pssw="' + c.id + '"' + (on ? " checked" : "") + '>'
+      + '<span style="width:8px;height:8px;border-radius:3px;background:' + c.color + ';flex:none"></span>'
+      + '<span>' + c.name + '</span>' + (c.direct ? '<span class="pstag">可直连测试</span>' : '<span class="pstag" style="background:var(--tx2)">需脚本</span>') + '</label>'
+      + '<div class="psbody">'
+      + c.fields.map(function(f){
+          var v = PS[c.id][f[0]] || "";
+          return '<input class="psinp" data-psfld="' + c.id + "." + f[0] + '" type="' + (f[3] ? "password" : "text") + '" value="' + String(v).replace(/"/g,"&quot;") + '" placeholder="' + f[1] + "（" + f[2] + "）" + '" autocomplete="off">';
+        }).join("")
+      + (c.note ? '<div class="psnote">' + c.note + '</div>' : "")
+      + '</div></div>';
+  }).join("");
+}
+function psRenderOps(){
+  var box = document.getElementById("psOps"); if(!box) return;
+  box.innerHTML = PS_OPS.map(function(o){
+    var on = PS.push.ops.indexOf(o[1]) >= 0;
+    return '<div class="pspill' + (on ? " on" : "") + '" data-psop="' + o[1] + '">' + o[0]
+      + (o[1] === PS_OP ? " · 本页" : "") + '</div>';
+  }).join("");
+}
+function psRenderProvs(){
+  var box = document.getElementById("psProvs"); if(!box) return;
+  box.innerHTML = PS_PROV.map(function(p){
+    var on = PS.push.provs.indexOf(p[1]) >= 0;
+    return '<div class="pspill' + (on ? " on" : "") + '" data-psprov="' + p[1] + '">' + p[0] + '</div>';
+  }).join("");
+  var c = document.getElementById("psProvCnt");
+  if(c){ c.textContent = "已选 " + PS.push.provs.length + " / " + PS_PROV.length; }
+}
+function psRenderAll(){ psRenderCh(); psRenderOps(); psRenderProvs(); }
+function psText(isTest){
+  var ops = PS.push.ops.map(function(o){ return psName(PS_OPS, o); }).join("、") || "未选择";
+  var pv  = PS.push.provs.map(function(p){ return psName(PS_PROV, p); }).join("、") || "未选择";
+  var cur = psName(PS_OPS, PS_OP);
+  if(isTest){
+    return "【资费监控】推送测试 ✓\n渠道连通正常，密钥未离开本设备。\n运营商：" + ops + "\n省份：" + pv + "\n（本页：" + cur + "）";
+  }
+  return "【资费监控】\n运营商：" + ops + "\n省份：" + pv + "\n最近 24 小时变化请查看站点「变化历史」。";
+}
+function psHmac(keyStr, msgStr){
+  return crypto.subtle.importKey("raw", new TextEncoder().encode(keyStr), {name:"HMAC", hash:"SHA-256"}, false, ["sign"])
+    .then(function(k){ return crypto.subtle.sign("HMAC", k, new TextEncoder().encode(msgStr)); })
+    .then(function(buf){ var s = "", u = new Uint8Array(buf); for(var i=0;i<u.length;i++) s += String.fromCharCode(u[i]); return btoa(s); });
+}
+function psSendOne(ch){
+  var c = PS[ch.id];
+  if(ch.id === "email"){ return Promise.resolve({id:ch.id, ok:true, msg:"配置已保存，SMTP 由脚本发信（浏览器无 SMTP 协议）"}); }
+  if(ch.id === "wecom"){ return Promise.resolve({id:ch.id, ok:true, msg:"配置已保存，企微由脚本推送（接口禁止浏览器跨域）"}); }
+  var url = (c.webhook || "").trim();
+  if(url.indexOf("https://") !== 0){ return Promise.resolve({id:ch.id, ok:false, msg:"Webhook 未填写或不是 https:// 开头"}); }
+  var headers = {"Content-Type":"application/json"}, body = {}, text = psText(true);
+  var prep = Promise.resolve(url);
+  if(ch.id === "dingtalk"){
+    if((c.secret || "").trim()){
+      prep = (function(){
+        var ts = String(Date.now());
+        return psHmac(c.secret.trim(), ts + "\n" + c.secret.trim()).then(function(sig){
+          return url + "&timestamp=" + ts + "&sign=" + encodeURIComponent(sig);
+        });
+      })();
+    }
+    body = {msgtype:"text", text:{content: ((c.keyword || "").trim() || "") + text}};
+  } else if(ch.id === "feishu"){
+    body = {msg_type:"text", content:{text:text}};
+    if((c.secret || "").trim()){
+      var ts2 = String(Math.floor(Date.now()/1000));
+      headers["X-Lark-Request-Timestamp"] = ts2;
+      prep = psHmac(ts2 + "\n" + c.secret.trim(), "").then(function(sig){ headers["X-Lark-Signature"] = sig; return url; });
+    }
+  }
+  return prep.then(function(u){
+    return fetch(u, {method:"POST", headers:headers, body:JSON.stringify(body)});
+  }).then(function(r){
+    return r.json()["catch"](function(){ return {}; }).then(function(j){
+      var ok = (j.errcode === 0 || j.StatusCode === 0 || j.code === 0 || r.ok);
+      return {id:ch.id, ok:ok, msg: ok ? "已发出，请查收" : ("接口返回：" + (j.errmsg || j.msg || JSON.stringify(j)))};
+    });
+  })["catch"](function(e){
+    return {id:ch.id, ok:false, msg:"请求失败（可能被跨域拦截）：" + (e && e.message ? e.message : e)};
+  });
+}
+function psTest(){
+  var sel = PS_CH.filter(function(c){ return PS[c.id].enabled; });
+  if(!sel.length){ toast("请先勾选至少一个推送渠道"); return; }
+  psSaveCfg();
+  toast("正在向 " + sel.length + " 个渠道发送…");
+  Promise.all(sel.map(psSendOne)).then(function(rs){
+    rs.forEach(function(r){
+      var nm = psName(PS_CH.map(function(c){ return [c.name, c.id]; }), r.id);
+      toast((r.ok ? "✓ " : "✗ ") + nm + "：" + r.msg);
+    });
+  });
+}
+function psOpen(){
+  psLoad();
+  psRenderAll();
+  var m = document.getElementById("psMask");
+  if(!m){ window.open("push-center.html", "_blank"); return; }
+  var g = document.getElementById("psGh");
+  if(g){ g.href = "https://github.com/WoShiYiGeManHuaJia/hunan-tariff-site/actions/workflows/" + CK_WF; }
+  m.classList.add("on");
+}
+function psClose(){ var m = document.getElementById("psMask"); if(m){ m.classList.remove("on"); } }
+psLoad();
+document.addEventListener("click", function(e){
+  var t = e.target;
+  var sw = t.closest ? t.closest("[data-pssw]") : null;
+  if(sw){
+    var id = sw.getAttribute("data-pssw");
+    PS[id].enabled = !PS[id].enabled;
+    sw.checked = PS[id].enabled;
+    var row = sw.closest("[data-psrow]");
+    if(row){ row.classList.toggle("on", PS[id].enabled); }
+    psSaveCfg();
+    return;
+  }
+  var op = t.closest ? t.closest("[data-psop]") : null;
+  if(op){
+    var v = op.getAttribute("data-psop"), i = PS.push.ops.indexOf(v);
+    if(i >= 0){ PS.push.ops.splice(i, 1); } else { PS.push.ops.push(v); }
+    op.classList.toggle("on", PS.push.ops.indexOf(v) >= 0);
+    psSaveCfg();
+    return;
+  }
+  var pv = t.closest ? t.closest("[data-psprov]") : null;
+  if(pv){
+    var v2 = pv.getAttribute("data-psprov"), j = PS.push.provs.indexOf(v2);
+    if(j >= 0){ PS.push.provs.splice(j, 1); } else { PS.push.provs.push(v2); }
+    pv.classList.toggle("on", PS.push.provs.indexOf(v2) >= 0);
+    var c = document.getElementById("psProvCnt");
+    if(c){ c.textContent = "已选 " + PS.push.provs.length + " / " + PS_PROV.length; }
+    psSaveCfg();
+    return;
+  }
+  if(t.id === "psProvAll"){ PS.push.provs = PS_PROV.map(function(p){ return p[1]; }); psRenderProvs(); psSaveCfg(); return; }
+  if(t.id === "psProvNone"){ PS.push.provs = []; psRenderProvs(); psSaveCfg(); return; }
+  if(t.id === "psX" || t.id === "psSave"){ if(t.id === "psSave"){ psSaveCfg(); toast("推送配置已保存到本设备"); } psClose(); return; }
+  if(t.id === "psTest"){ psTest(); return; }
+  if(t.id === "psCenter"){ window.open("push-center.html", "_blank"); return; }
+}, true);
+document.addEventListener("input", function(e){
+  var f = e.target.closest ? e.target.closest("[data-psfld]") : null;
+  if(!f) return;
+  var p = f.getAttribute("data-psfld").split(".");
+  PS[p[0]][p[1]] = f.value;
+  psSaveCfg();
+}, true);
+
 document.addEventListener("click", function(e){
   var el = e.target;
   var b = el.closest ? el.closest(".btn") : null;
@@ -2630,7 +2898,7 @@ document.addEventListener("click", function(e){
     if(el.id === "tkSave"){ ckTkSave(); return; }
     if(el.id === "tkClear"){ ckTkSet(""); var ip=document.getElementById("tkInput"); if(ip){ ip.value=""; } toast("已清除本机令牌"); return; }
     if(el.id === "tkGh"){ window.open(ckGhUrl(), "_blank"); return; }
-    if(el.id === "ckGh"){ ckTrigger(); return; }
+    if(el.id === "ckPush"){ psOpen(); return; }
   if(el.id === "opX"){ document.getElementById("opMask").classList.remove("on"); return; }
   if(el.id === "hmMask"){ closeHist(); return; }
   var mkEl = el.closest ? el.closest(".mask") : null;
