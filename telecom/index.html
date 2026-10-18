@@ -468,6 +468,26 @@ body{
 .mask.on{display:flex;animation:fin .28s ease}
 /* 检测弹窗 */
 .ckbox{padding:2px 2px 4px}
+/* ---- 最新检测卡片 ---- */
+.ldp{border:1px solid var(--bd2)}
+.ldp.flash{animation:ldflash 1.6s ease}
+@keyframes ldflash{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}100%{box-shadow:0 0 0 14px rgba(52,211,153,0)}}
+.ldbody{min-height:64px}
+.ldempty{font-size:12.5px;color:var(--tx2);text-align:center;padding:16px 8px}
+.ldrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.ldc{flex:1 1 86px;min-width:86px;border-radius:10px;padding:9px 10px;background:var(--glass2);border:1px solid var(--bd);text-align:center}
+.ldc .n{font-size:20px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.ldc .l{font-size:11px;color:var(--tx2);margin-top:2px;font-weight:600}
+.ldc.a .n{color:var(--ok)} .ldc.d .n{color:var(--bad)} .ldc.m .n{color:var(--warn)}
+.ldts{font-size:11.5px;color:var(--tx2);margin-bottom:8px;font-variant-numeric:tabular-nums}
+.ldts b{color:var(--tx)}
+.ldsec{font-size:11.5px;font-weight:700;color:var(--tx2);margin:8px 0 5px}
+.ldchips{display:flex;flex-wrap:wrap;gap:5px}
+.ldchip{font-size:11.5px;padding:4px 9px;border-radius:9px;background:var(--glass2);border:1px solid var(--bd);color:var(--tx);font-weight:600}
+.ldchip.a{border-color:rgba(52,211,153,.4);color:#7ff0c4}
+.ldchip.d{border-color:rgba(251,113,133,.4);color:#ff97a8}
+.ldchip.m{border-color:rgba(251,191,36,.4);color:#fcd34d}
+.ldmore{font-size:11.5px;color:var(--tx2);margin-top:6px}
 .ckprov{display:flex;align-items:center;gap:8px;justify-content:center;margin:0 auto 10px;padding:8px 10px;max-width:320px;
   border-radius:10px;background:var(--glass2);border:1px solid var(--bd)}
 .ckpl{font-size:12px;font-weight:700;color:var(--tx2);flex:0 0 auto}
@@ -840,6 +860,15 @@ a.opc{text-decoration:none;display:block}
         <div class="stat"><div class="stat-ic">🗺️</div><div class="stat-n" data-num="42818">0</div><div class="stat-l">31 省资费合计（去重）</div></div>
         <div class="stat a"><div class="stat-ic">👤</div><div class="stat-n" id="stPersonal">0</div><div class="stat-l" id="stPersonalL">本省个人资费</div></div>
         <div class="stat b"><div class="stat-ic">🏢</div><div class="stat-n" id="stGq">0</div><div class="stat-l" id="stGqL">本省政企资费</div></div>
+      </div>
+
+      <div class="panel glass ldp" id="ldBox">
+        <div class="ph">
+          <h2 class="pt">最新检测</h2>
+          <button class="pick" id="ldProv" data-pick="ldprov"><span class="pk-t">湖南</span><span class="pk-s"></span><i class="pk-a">▾</i></button>
+          <span class="ps" id="ldDesc">等待检测</span>
+        </div>
+        <div class="ldbody" id="ldBody"><div class="ldempty">正在读取最近一次变化…</div></div>
       </div>
 
       <div class="panel glass">
@@ -2059,6 +2088,8 @@ function ckDelta(pname, u, tt){
     var d = (a || rm || md) ? ("<br>最新一轮：新增 " + a + "、下架 " + rm + "、修改 " + md) : "";
     if(st){ st.textContent = "「" + pname + "」有更新：在架 " + (CK.baseT || 0) + " → " + tt + " 条"; }
     if(mt){ mt.innerHTML = "数据更新于 <b>" + (u || "未知") + "</b>" + d; }
+    // 先把最新检测结果写进首页卡片，再刷新页面（刷新后卡片也保持最新）
+    ldRefresh(function(){ ldFlash(); });
     setTimeout(function(){ location.href = location.pathname + "?_=" + Date.now(); }, 1500);
   }).catch(function(){
     if(st){ st.textContent = "「" + pname + "」有更新，正在刷新页面…"; }
@@ -2130,6 +2161,101 @@ function ckCountdown(){
   var s = CK.left || 15;
   if(s <= 0){ el.textContent = "正在请求…"; return; }
   el.textContent = "距下次检测 " + s + " 秒（第 " + CK.n + " / " + CK.max + " 次）";
+}
+/* ---- 最新检测卡片：显示所选省份最近一次的变化，检测到更新即替换 ---- */
+var LD = { prov:"", ts:"", q:null };
+function ldKey(){ try{ return "ldProv__" + (typeof CK_WF !== "undefined" ? CK_WF : "site"); }catch(e){ return "ldProv__site"; } }
+function ldProvInit(){
+  var cur = "";
+  try{ cur = localStorage.getItem(ldKey()) || ""; }catch(e){}
+  if(!cur){ cur = (typeof CK !== "undefined" && CK.prov) ? CK.prov : "hunan"; }
+  LD.prov = cur;
+  var t = document.querySelector("#ldProv .pk-t");
+  if(t){ t.textContent = ckProvName(cur); }
+}
+function ldSetProv(k){
+  LD.prov = k;
+  try{ localStorage.setItem(ldKey(), k); }catch(e){}
+  if(typeof CK !== "undefined"){ CK.prov = k; try{ localStorage.setItem(ckProvKey(), k); }catch(e2){} }
+  var t = document.querySelector("#ldProv .pk-t");
+  if(t){ t.textContent = ckProvName(k); }
+  var sel = document.getElementById("ckProv"); if(sel){ sel.value = k; }
+  ldRefresh();
+}
+function ldEsc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function ldChips(names, cls, cap){
+  if(!names || !names.length){ return ""; }
+  var h = "", lim = Math.min(names.length, cap || 8);
+  for(var i=0;i<lim;i++){ h += '<span class="ldchip ' + cls + '">' + ldEsc(names[i]) + '</span>'; }
+  var more = names.length - lim;
+  if(more > 0){ h += '<span class="ldmore">…还有 ' + more + ' 个</span>'; }
+  return h;
+}
+function ldRender(v, ts){
+  var box = document.getElementById("ldBody");
+  var desc = document.getElementById("ldDesc");
+  if(!box){ return; }
+  var pname = ckProvName(LD.prov);
+  if(!v){
+    box.innerHTML = '<div class="ldempty">「' + ldEsc(pname) + '」暂无变化记录</div>';
+    if(desc){ desc.textContent = "暂无变化"; }
+    return;
+  }
+  var a = v.added || 0, d = v.removed || 0, m = v.modified || 0;
+  var tot = a + d + m;
+  var h = '<div class="ldts">检测范围 <b>' + ldEsc(pname) + '</b> ｜ 记录时间 <b>' + ldEsc(ts || v.ts || "未知") + '</b></div>';
+  if(tot === 0){
+    h += '<div class="ldrow">';
+    h += '<div class="ldc"><div class="n">0</div><div class="l">新增</div></div>';
+    h += '<div class="ldc"><div class="n">0</div><div class="l">下架</div></div>';
+    h += '<div class="ldc"><div class="n">0</div><div class="l">修改</div></div>';
+    h += '</div><div class="ldempty" style="padding:8px">该轮无变化</div>';
+    box.innerHTML = h;
+    if(desc){ desc.textContent = "该轮无变化"; }
+    return;
+  }
+  h += '<div class="ldrow">';
+  h += '<div class="ldc a"><div class="n">' + a + '</div><div class="l">新增</div></div>';
+  h += '<div class="ldc d"><div class="n">' + d + '</div><div class="l">下架</div></div>';
+  h += '<div class="ldc m"><div class="n">' + m + '</div><div class="l">修改</div></div>';
+  h += '</div>';
+  var an = v.added_names || [], dn = v.removed_names || [], mn = v.modified_names || [];
+  if(an.length){ h += '<div class="ldsec">新增</div><div class="ldchips">' + ldChips(an, "a") + '</div>'; }
+  if(dn.length){ h += '<div class="ldsec">下架</div><div class="ldchips">' + ldChips(dn, "d") + '</div>'; }
+  if(mn.length){ h += '<div class="ldsec">修改</div><div class="ldchips">' + ldChips(mn, "m") + '</div>'; }
+  box.innerHTML = h;
+  if(desc){ desc.textContent = "新增" + a + " · 下架" + d + " · 修改" + m; }
+}
+function ldFlash(){
+  var b = document.getElementById("ldBox");
+  if(!b){ return; }
+  b.classList.remove("flash");
+  void b.offsetWidth;
+  b.classList.add("flash");
+}
+function ldRefresh(cb){
+  if(LD.q){ LD.q.push(cb); return; }
+  LD.q = [cb];
+  fetch(DATA_BASE + "history.json?_=" + Date.now(), {cache:"no-store"}).then(function(r){
+    return r.ok ? r.json() : null;
+  }).then(function(h){
+    var v = null, ts = "";
+    if(h && h.length){
+      // 从最新往前找第一条该省有变化的记录
+      for(var i = h.length - 1; i >= 0; i--){
+        var e = h[i], pv = e[LD.prov];
+        if(pv && ((pv.added||0) + (pv.removed||0) + (pv.modified||0)) > 0){ v = pv; ts = e.ts || ""; break; }
+      }
+      if(!v){ var last = h[h.length - 1]; v = last[LD.prov] || null; ts = last.ts || ""; }
+    }
+    ldRender(v, ts);
+    var q = LD.q || []; LD.q = null;
+    q.forEach(function(f){ if(f) f(v); });
+  }).catch(function(){
+    ldRender(null, "");
+    var q = LD.q || []; LD.q = null;
+    q.forEach(function(f){ if(f) f(null); });
+  });
 }
 function ckLogAdd(log, hm, txt, bad){
   if(!log){ return; }
@@ -2973,6 +3099,8 @@ function psClose(){
   ckResume();   // 关掉配置后，之前在后台跑的检测恢复
 }
 psLoad();
+// 最新检测卡片：页面载入即渲染所选省份最近一次变化
+try{ ldProvInit(); ldRefresh(); }catch(e){}
 // 监听挂在弹窗容器上（而不是 document 捕获阶段）。
 // 之前页面任何一次点击都要跑 3 次 closest，等于给整站点击都加了税。
 var psBox = document.getElementById("psMask");
@@ -3175,6 +3303,14 @@ document.addEventListener("click", function(e){
   var pk = el.closest ? el.closest(".pick") : null;
   if(pk){
     var kind = pk.getAttribute("data-pick");
+    if(kind === "ldprov"){
+      // 只改「最新检测」卡片的检测范围，不影响页面主省份视图
+      openPicker({ title:"选择检测省份", value:LD.prov, options:provOptions(), groupBy:true, onPick:function(v){
+        ldSetProv(v);
+        toast("检测范围已切换为 " + ckProvName(v));
+      }});
+      return;
+    }
     if(kind === "prov"){
       var target = pk.getAttribute("data-target");
       openPicker({ title:"选择省份", value:state.prov, options:provOptions(), groupBy:true, onPick:function(v){
