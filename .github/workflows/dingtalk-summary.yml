@@ -470,6 +470,13 @@ jobs:
           MAIL_FROM_NAME:   ${{ github.event_name == 'workflow_dispatch' && '' || secrets.MAIL_FROM_NAME }}
           # 通用
           SINCE_HOURS:      ${{ github.event.inputs.hours || '24' }}
+          # 推送过滤（可选）：不设置 = 与历史行为完全一致（四家全推、只给总览）
+          # PUSH_OPS   只推哪些运营商：mobile,unicom,telecom,gb（例：mobile,unicom）
+          # PUSH_PROVS 只统计哪些省份（拼音）：例 quanguo,hunan,guangdong
+          #            设置后推送里会列出分省明细；不设置则不列明细
+          # 两个变量在 Settings → Secrets and variables → Actions → Variables 里填
+          PUSH_OPS:         ${{ vars.PUSH_OPS || '' }}
+          PUSH_PROVS:       ${{ vars.PUSH_PROVS || '' }}
           # 仓库未配置 vars 时这里会是空串，必须给默认值
           # （脚本里也做了显式回退，双保险）
           # 注意：FOCUS_SEC 已不再用于「筛选推送哪些省」——推送一律列全部
