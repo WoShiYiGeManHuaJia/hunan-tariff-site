@@ -613,6 +613,9 @@ body{
 [data-theme="light"] .pv.on{border-color:var(--ica)}
 /* ---- 站点一次性公告 ---- */
 .pk-sum-h{margin-top:6px;font-size:11px;color:var(--tx3);line-height:1.5}
+.ldnote{margin-top:8px;padding:8px 10px;border-radius:9px;background:var(--glass2);border:1px solid var(--bd);
+  font-size:11px;line-height:1.65;color:var(--tx2)}
+.ldnote b{color:var(--tx)}
 .ntbox{font-size:13px;line-height:1.75}
 .ntv{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:11px;
   font-weight:800;color:#fff;background:linear-gradient(135deg,var(--op1),var(--op2));margin-bottom:10px}
@@ -2312,6 +2315,29 @@ function ckCountdown(){
 var LD = { prov:"", ts:"", q:null, hist:null };
 // 取某省「最新一次」有变化的记录：返回 {tot, added, removed, modified, ts}
 // 注意：这里算的是变化次数，跟首页省份卡片的「在架条数」不是一回事，两者不要混用
+// 统计某省【连续多少轮无变化】+ 最后一次变化的记录（用于区分「没抓」和「抓了但没变」）
+function ldNoChangeStreak(prov){
+  var h = LD.hist;
+  if(!h || !h.length){ return { rounds:0, lastTs:"", lastAgo:"" }; }
+  var rounds = 0, lastTs = "";
+  for(var i = h.length - 1; i >= 0; i--){
+    var e = h[i], pv = e[prov];
+    var t = pv ? ((pv.added||0) + (pv.removed||0) + (pv.modified||0)) : 0;
+    if(t > 0){ lastTs = e.ts || ""; break; }
+    rounds++;
+  }
+  var ago = "";
+  if(lastTs){
+    try{
+      var d = new Date(String(lastTs).replace(" ", "T"));
+      if(!isNaN(d.getTime())){
+        var hrs = Math.floor((Date.now() - d.getTime()) / 3600000);
+        ago = hrs < 1 ? "不到 1 小时" : (hrs < 48 ? hrs + " 小时" : Math.floor(hrs/24) + " 天");
+      }
+    }catch(e){}
+  }
+  return { rounds:rounds, lastTs:lastTs, lastAgo:ago };
+}
 function ldLatestChange(prov){
   var h = LD.hist;
   if(!h || !h.length){ return null; }
@@ -2362,9 +2388,16 @@ function ldRender(v, ts){
   var h = '<div class="ldts">记录时间 <b>' + ldEsc(ts || v.ts || "未知") + '</b></div>';
   if(tot === 0){
     h += '<div class="ldsum"><b class="z">0</b> 新增 · <b class="z">0</b> 下架 · <b class="z">0</b> 修改</div>';
+    var sk = { rounds:0, lastTs:"", lastAgo:"" };
+    try{ sk = (typeof ldNoChangeStreak === "function") ? ldNoChangeStreak(LD.prov) : sk; }catch(e){}
     h += '<div class="ldempty" style="padding:6px">该轮无变化</div>';
+    // 关键提示：区分「程序没抓」和「抓了但源站没变」
+    h += '<div class="ldnote">' + (sk.lastTs
+        ? ('源站自 <b>' + ldEsc(sk.lastTs) + '</b> 起未再变动，距今 <b>' + ldEsc(sk.lastAgo || "—") + '</b>；'
+           + '已连续 <b>' + sk.rounds + '</b> 轮无变化。<br>抓取照常在跑，只是该省资费本身没有更新。')
+        : ('已连续 <b>' + sk.rounds + '</b> 轮无变化，且未找到该省历史变动记录。')) + '</div>';
     box.innerHTML = h;
-    ldSetDesc("该轮无变化");
+    ldSetDesc("连续 " + sk.rounds + " 轮无变化");
     return;
   }
   h += '<div class="ldsum"><b class="a">+' + a + '</b> 新增 · <b class="d">-' + d + '</b> 下架 · <b class="m">~' + m + '</b> 修改</div>';
