@@ -1,9 +1,5 @@
 name: Probe API
 
-# 一次性诊断：探测源站接口结构 / 多轮子集合一性 / 分页可行性。
-# Actions 日志接口对外 403，且 git push 常被并发工作流顶掉（non-fast-forward），
-# 故改用 contents API 直接把结果文件写回仓库，最稳。
-
 on:
   workflow_dispatch:
 
@@ -17,7 +13,7 @@ concurrency:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,29 +22,35 @@ jobs:
       - run: pip install pycryptodome
       - name: 探测源站接口
         run: python -u scripts/probe_api.py
-      - name: 用 contents API 写回结果
+      - name: 用 contents API 写回结果（唯一文件名，避免 sha 冲突）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           set -e
-          F=probe/result.txt
+          F="probe/result_${RUN_ID}.txt"
           if [ ! -f "$F" ]; then
-            printf 'PROBE_EMPTY: 结果文件不存在\n' > "$F"
+            printf 'PROBE_EMPTY\n' > "$F"
           fi
-          B64=$(base64 -w0 "$F")
-          # 已存在则带 sha 更新，否则新建
-          SHA=$(curl -s -H "Authorization: token $GH_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/$F" \
-            | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('sha',''))" 2>/dev/null || echo "")
-          if [ -n "$SHA" ]; then
-            PAYLOAD=$(python3 -c "import json,sys;print(json.dumps({'message':'probe: 更新探测结果 '+__import__('datetime').datetime.utcnow().isoformat()+'Z','content':sys.argv[1],'sha':sys.argv[2]}))" "$B64" "$SHA")
-          else
-            PAYLOAD=$(python3 -c "import json,sys;print(json.dumps({'message':'probe: 写入探测结果 '+__import__('datetime').datetime.utcnow().isoformat()+'Z','content':sys.argv[1]}))" "$B64")
-          fi
-          curl -s -X PUT \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/$F" \
-            -d "$PAYLOAD" | head -c 300
-          echo ""
-          echo "已写回 $F"
+          python3 - "$F" <<'PY'
+          import base64, json, os, sys, urllib.request
+          path = sys.argv[1]
+          tok = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          content = base64.b64encode(open(path, "rb").read()).decode()
+          data = json.dumps({
+              "message": "probe: 结果 %s" % path,
+              "content": content,
+          }).encode()
+          req = urllib.request.Request(
+              "https://api.github.com/repos/%s/contents/%s" % (repo, path),
+              data=data, method="PUT",
+              headers={"Authorization": "token " + tok,
+                       "Accept": "application/vnd.github+json",
+                       "User-Agent": "probe-bot"})
+          try:
+              r = urllib.request.urlopen(req, timeout=60)
+              print("写回成功 HTTP", r.status)
+          except Exception as e:
+              print("写回失败:", str(e)[:200])
+          PY
