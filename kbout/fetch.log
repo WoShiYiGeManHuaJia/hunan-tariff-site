@@ -1,0 +1,11 @@
+== 出口 IP 探测 ==
+  https://api.ipify.org -> 200 172.184.211.82
+  https://myip.ipip.net -> 200 当前 IP：172.184.211.82  来自于：美国 加利福尼亚州 圣何塞  microsoft.com 
+
+== 1. 根路径 ==
+  /              HTTP -1 | URLError: <urlopen error timed out>
+  /hnrjzyxyhd/   HTTP -1 | URLError: <urlopen error timed out>
+
+== 2. 登录 ==
+  HTTP -1 | URLError: <urlopen error timed out>
+  非JSON
