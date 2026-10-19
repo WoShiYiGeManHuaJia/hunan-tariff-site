@@ -1,0 +1,63 @@
+name: diag-all
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 探测
+        env:
+          CF_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p probe
+          TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          {
+          echo "# 联合诊断 $TS"
+          echo
+          echo "## 1. 课表 Worker"
+          for u in "https://kebiao.wispy-hill-817a.workers.dev/" "https://kebiao.wispy-hill-817a.workers.dev/?action=weeks"; do
+            echo "### $u"
+            curl -sS -m 40 -o /tmp/w.txt -w "HTTP=%{http_code} time=%{time_total}s size=%{size_download}\n" "$u" 2>&1 | tail -2
+            echo "--- body ---"; head -c 400 /tmp/w.txt 2>/dev/null; echo
+          done
+          echo
+          echo "## 2. 站点 hnvip.qd.je"
+          echo "--- headers ---"
+          curl -sS -m 40 -D - -o /tmp/h.txt "https://hnvip.qd.je/" 2>&1 | head -25
+          echo "--- BUILD_VER in body ---"
+          grep -o 'BUILD_VER = "[^"]*"' /tmp/h.txt | head -2
+          echo "--- cnField(r.k) 是否在新版 ---"
+          grep -c 'cnField(r.k)' /tmp/h.txt
+          echo
+          echo "## 3. GitHub Pages 官方域名"
+          curl -sS -m 40 -D - -o /tmp/g.txt "https://woshiyigemanhuajia.github.io/hunan-tariff-site/" 2>&1 | grep -iE "^(HTTP|cache-control|age|via|cf-cache|x-cache|last-modified)" | head -10
+          echo "--- BUILD_VER ---"
+          grep -o 'BUILD_VER = "[^"]*"' /tmp/g.txt | head -2
+          echo
+          echo "## 4. version.json 直取"
+          curl -sS -m 40 "https://hnvip.qd.je/version.json" 2>&1 | head -c 200; echo
+          echo
+          echo "## 5. Cloudflare API token 有效性"
+          if [ -n "$CF_TOKEN" ]; then
+            curl -sS -m 40 -o /tmp/cf.json -w "HTTP=%{http_code}\n" \
+              -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+              https://api.cloudflare.com/client/v4/user/tokens/verify 2>&1 | tail -1
+            head -c 250 /tmp/cf.json 2>/dev/null; echo
+            echo "--- zones ---"
+            curl -sS -m 40 -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/zones?per_page=10" 2>&1 | head -c 400; echo
+          else
+            echo "无 CF_TOKEN secret"
+          fi
+          } > probe/diag_all.txt 2>&1
+          cat probe/diag_all.txt
+      - name: 提交结果
+        run: |
+          git config user.name "diag-bot"
+          git config user.email "bot@example.com"
+          git add probe/diag_all.txt
+          git diff --cached --quiet || git commit -m "diag: 联合探测结果"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q && break || sleep 5; done
