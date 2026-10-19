@@ -130,6 +130,38 @@ def main():
             log("    %s -> 失败 %s" % (u.split("/")[-1], str(e)[:70]))
         time.sleep(3)
 
+
+    # 4. A/B 对比：不同请求头是否返回不同列表
+    log("")
+    log("[4] A/B 对比（带 Referer vs 不带）")
+    variants = [
+        ("无 Referer", {"User-Agent": UA}),
+        ("有 Referer", {"User-Agent": UA, "Referer": "https://www.10086.cn/"}),
+        ("手机 UA", {"User-Agent": ("Mozilla/5.0 (Linux; Android 13; SM-S9110) "
+                                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                   "Chrome/120.0 Mobile Safari/537.36")}),
+    ]
+    ctx = ssl.create_default_context()
+    try:
+        ctx.options |= ssl.OP_LEGACY_SERVER_CONNECT
+    except AttributeError:
+        pass
+    op = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ctx))
+    for name, hdrs in variants:
+        try:
+            req = urllib.request.Request(BASE + ".json", headers=hdrs)
+            t = op.open(req, timeout=45).read().decode("utf-8", "ignore")
+            lst = ((json.loads(t).get("cData") or {}).get("list") or [])
+            rows = sorted(lst, key=lambda r: str(r.get("publishTime") or ""),
+                          reverse=True)[:3]
+            log("    %s -> %d 条，最新: %s" % (
+                name, len(lst),
+                " / ".join("%s %s" % (r.get("publishTime"),
+                                      str(r.get("noticeTitle"))[:18]) for r in rows)))
+        except Exception as e:
+            log("    %s -> 失败 %s" % (name, str(e)[:70]))
+        time.sleep(3)
+
     log("")
     log("=" * 70)
     log("探测结束")
