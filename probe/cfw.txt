@@ -1,0 +1,36 @@
+## Account 9156c2cae565fdf42d208827b523e47e
+-- accounts --
+{"result":[{"id":"9156c2cae565fdf42d208827b523e47e","name":"Jiangzhongming2005@gmail.com's Account","type":"standard","settings":{"enforce_twofactor":false,"api_access_enabled":null,"access_approval_expiry":null,"abuse_contact_email":null,"oauth_app_access_enabled":true},"legacy_flags":{"enterprise_
+-- accounts/9156c2cae565fdf42d208827b523e47e/workers/scripts --
+HTTP=200
+{
+  "result": [
+    {
+      "created_on": "2026-09-14T08:10:03.537391Z",
+      "modified_on": "2026-09-14T09:55:38.493495Z",
+      "id": "md2017",
+      "tag": "d56486b8a7664adfb99e9f424c7ac003",
+      "tags": null,
+      "deployment_id": "",
+      "tail_consumers": null,
+      "logpush": false,
+      "has_assets": false,
+      "has_modules": true,
+      "etag": "b68dddf1c38bcce69732ddb7abbe0e5f9094c4b1f0b36cc27e153cd2e808d5f4",
+      "handlers": [
+        "fetch",
+        "scheduled"
+      ],
+      "last_deployed_from": "api",
+      "compatibility_date": "2024-09-01",
+      "usage_model": "st
+-- accounts/9156c2cae565fdf42d208827b523e47e/workers/subdomain --
+{
+  "result": {
+    "subdomain": "wispy-hill-817a"
+  },
+  "success": true,
+  "errors": [],
+  "messages": []
+}
+
