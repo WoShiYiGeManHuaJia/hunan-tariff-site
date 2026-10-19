@@ -5,7 +5,7 @@
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261019a";
+var BUILD_VER = "20261019b";
 (function(){
   function base(){
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
@@ -1241,10 +1241,22 @@ var DATA_BASE = "./data/";
 var CK_WF = "unicom-fetch.yml";
 var REAL_OK = false;
 function __j(u){
-  // 2026-10-19：仅 cache:"no-store" 挡不住 CDN——同一 URL 会被 CDN 直接回旧副本。
-  // 加时间戳让每次请求都是新 URL，强制回源。
+  // 2026-10-19 分级缓存（此前一刀切加时间戳，导致每次切省份都重下 2~5MB，页面卡顿）
+  //   小文件（latest/announce/version，几十 KB 内）→ _t=时间戳 + no-store，保证实时
+  //   大文件（省份快照、历史分片，1~5MB）        → _d=按天版本号 + 允许浏览器缓存，
+  //     当天内复用缓存（秒开），跨天自动取新，不再每次重下几 MB
+  var small = /latest\.json|announce\.json|version\.json/.test(u);
   var sep = (u.indexOf("?") >= 0) ? "&" : "?";
-  return fetch(u + sep + "_t=" + Date.now(), {cache:"no-store"}).then(function(r){
+  var q, opt;
+  if(small){
+    q = "_t=" + Date.now();
+    opt = {cache:"no-store"};
+  }else{
+    var d = new Date();
+    q = "_d=" + d.getFullYear() + (d.getMonth() + 1) + d.getDate();
+    opt = {};
+  }
+  return fetch(u + sep + q, opt).then(function(r){
     if(!r.ok){ throw new Error(u + " HTTP " + r.status); }
     return r.json();
   });
