@@ -1,13 +1,14 @@
 name: Probe API
 
 # 一次性诊断：探测源站接口结构 / 多轮子集合一性 / 分页可行性
-# 只在需要排查漏抓时手动触发，不占用定时任务
+# 只在排查漏抓时手动触发，不占用定时任务。
+# 结果写入 probe/result.txt 并提交回仓库（Actions 日志接口不可用时也能读）。
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: tariff-build
@@ -25,3 +26,12 @@ jobs:
       - run: pip install pycryptodome
       - name: 探测源站接口
         run: python -u scripts/probe_api.py
+      - name: 提交探测结果
+        run: |
+          set -e
+          git config user.name "probe-bot"
+          git config user.email "probe@local"
+          git add -f probe/result.txt || true
+          git diff --cached --quiet && echo "无变化" || \
+            git commit -m "probe: 源站接口探测结果 $(date -u +%FT%TZ)"
+          git push || echo "[warn] push 失败"
