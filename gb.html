@@ -1,6 +1,34 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" data-op="broadnet">
 <head>
+<script>
+/* ===== 老入口自升级（2026-10-19）=====
+   旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
+   请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
+var BUILD_VER = "20261019a";
+(function(){
+  function base(){
+    var m = location.pathname.match(/^(.*)\/[^\/]*$/);
+    return m ? (m[1] || "") : "";
+  }
+  function go(){
+    var u = base() + "/version.json?_t=" + Date.now();
+    fetch(u, {cache:"no-store"})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){
+        if(!j || !j.ver) return;
+        if(j.ver !== BUILD_VER){
+          var cur = location.href.split("#")[0].split("?")[0];
+          location.replace(cur + "?_v=" + j.ver + "&_t=" + Date.now());
+        }
+      })
+      .catch(function(){});
+  }
+  go();                       // 立即
+  setTimeout(go, 3000);       // 兜底
+  setInterval(go, 60000);     // 每分钟
+})();
+</script>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
