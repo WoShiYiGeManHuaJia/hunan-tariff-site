@@ -5,7 +5,7 @@
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261019c";
+var BUILD_VER = "20261019d";
 (function(){
   function base(){
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
@@ -1294,6 +1294,49 @@ function __codeTypeCn(c){
     out.push(P[seg[i]]);
   }
   return out.join("");
+}
+var FIELD_CN = {
+  "title":"业务名称","name":"业务名称","planName":"业务名称",
+  "fee":"资费标准","feesStandard":"资费标准","feeUnit":"资费单位",
+  "firstLevel":"归属","secondLevel":"资费类型","codeType":"资费类型",
+  "reportNo":"方案编号","planNo":"方案编号","planCode":"方案编号",
+  "useScope":"适用范围","saleChnl":"销售渠道","channel":"销售渠道",
+  "onDate":"上线日期","onlineDate":"上线日期","effectDate":"生效日期",
+  "offDate":"下线日期","offlineDate":"下线日期",
+  "validPeriod":"有效期限","inNetReq":"在网要求","onlinePeriod":"在网要求",
+  "unsubscribe":"退订方式","responsibility":"违约责任",
+  "extraFees":"超出资费说明","serviceContent":"其他服务内容",
+  "otherNotes":"其他说明","remark":"备注","desc":"说明","description":"说明",
+  "content":"内容","minute":"国内通话","voice":"国内通话",
+  "commonData":"国内通用流量","data":"国内通用流量","dataUnit":"流量单位",
+  "sms":"国内短信","orientTraffic":"定向流量","broadBand":"宽带","bandwidth":"宽带",
+  "iptv":"移动高清","province":"适用地区","region":"适用地区","area":"适用地区",
+  "status":"状态","packageType":"套餐类型","productType":"产品类型",
+  "regionTraffic":"区域流量","regionTrafficUnit":"流量单位",
+  "secondLevelType":"资费类型","firstLevelType":"资费类型"
+};
+function cnField(k){ return FIELD_CN[k] || k; }
+/* 把任意来源的字段对象统一成中文键名，并合并「值+单位」 */
+function cnFields(o){
+  if(!o || typeof o !== "object"){ return {}; }
+  var r = {}, fee = "", feeU = "", dt = "", dtU = "", rg = "", rgU = "";
+  Object.keys(o).forEach(function(k){
+    var v = o[k];
+    if(v === "" || v == null){ return; }
+    var ck = cnField(k);
+    if(k === "feeUnit"){ feeU = String(v); return; }
+    if(k === "dataUnit"){ dtU = String(v); return; }
+    if(k === "regionTrafficUnit"){ rgU = String(v); return; }
+    if(ck === "\u8d44\u8d39\u6807\u51c6"){ fee = String(v); return; }
+    if(ck === "\u56fd\u5185\u901a\u7528\u6d41\u91cf"){ dt = String(v); return; }
+    if(ck === "\u533a\u57df\u6d41\u91cf"){ rg = String(v); return; }
+    if(ck === "\u4e1a\u52a1\u540d\u79f0"){ return; }
+    if(!Object.prototype.hasOwnProperty.call(r, ck)){ r[ck] = String(v); }
+  });
+  if(fee !== ""){ r["\u8d44\u8d39\u6807\u51c6"] = (/[\u5143\u5206\u89d2]/.test(fee) || !feeU) ? fee : fee + feeU; }
+  if(dt  !== ""){ r["\u56fd\u5185\u901a\u7528\u6d41\u91cf"] = (/(GB|MB|TB|KB)/i.test(dt) || !dtU) ? dt : dt + dtU; }
+  if(rg  !== ""){ r["\u533a\u57df\u6d41\u91cf"] = (/(GB|MB|TB|KB)/i.test(rg) || !rgU) ? rg : rg + rgU; }
+  return r;
 }
 function __normItem(it){
   if(!it){ return null; }
@@ -2704,7 +2747,7 @@ function histDiffRows(rows, bf, af){
   return '<div class="dfnote"><span class="cmp-badge">共 ' + out.length + ' 处改动</span>已按字段逐条列出修改前后</div>' +
     out.map(function(r, i){
       return '<div class="dfrow" style="animation-delay:' + Math.min(i * 45, 270) + 'ms">' +
-        '<div class="df-f">' + esc(r.k) + '</div>' +
+        '<div class="df-f">' + esc((typeof cnField==="function") ? cnField(r.k) : r.k) + '</div>' +
         '<div class="df-v">' +
         '<div class="df-line"><span class="df-tag df-old">修改前</span><span class="df-txt df-oldv">' + esc(r.b) + '</span></div>' +
         '<div class="df-arrow">↓</div>' +
