@@ -134,7 +134,10 @@ FETCH_WORKERS = max(1, int(os.getenv("FETCH_WORKERS") or "3"))
 # 策略：每轮换一个独立 UA 指纹池抓取，结果取并集，直到【收敛】——
 #   连续 CONVERGE_IDLE 轮都没有带来新条目即停止，不再空转。
 # 这样既保证抓全（有新增就继续），又不会无谓拖长耗时（收敛就停）。
-FETCH_ROUNDS = max(1, int(os.getenv("FETCH_ROUNDS") or "2"))          # 常规轮数
+# 2026-10-19 探测结论：同一分类换 UA 连抓 4 次，条数完全一致（721/721/721/721），
+# 名称集合也完全相同 → 源站返回的是按 IP 固定的集合，多轮并集【无效】。
+# 故默认改回单轮（省一半抓取时间）；仅在确有证据时手动设 FETCH_ROUNDS>1。
+FETCH_ROUNDS = max(1, int(os.getenv("FETCH_ROUNDS") or "1"))          # 常规轮数
 FETCH_ROUNDS_MAX = max(FETCH_ROUNDS, int(os.getenv("FETCH_ROUNDS_MAX") or "4"))
 # 连续多少轮无新增判定为收敛
 CONVERGE_IDLE = max(1, int(os.getenv("CONVERGE_IDLE") or "1"))
