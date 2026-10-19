@@ -9,9 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 探测
+        continue-on-error: true
         env:
           CF_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
+          set +e
           mkdir -p probe
           TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           {
@@ -20,22 +22,22 @@ jobs:
           echo "## 1. 课表 Worker"
           for u in "https://kebiao.wispy-hill-817a.workers.dev/" "https://kebiao.wispy-hill-817a.workers.dev/?action=weeks"; do
             echo "### $u"
-            curl -sS -m 40 -o /tmp/w.txt -w "HTTP=%{http_code} time=%{time_total}s size=%{size_download}\n" "$u" 2>&1 | tail -2
+            curl -sS -m 40 -o /tmp/w.txt -w "HTTP=%{http_code} time=%{time_total}s size=%{size_download}\n" "$u" 2>&1 | tail -2 || true
             echo "--- body ---"; head -c 400 /tmp/w.txt 2>/dev/null; echo
           done
           echo
           echo "## 2. 站点 hnvip.qd.je"
           echo "--- headers ---"
-          curl -sS -m 40 -D - -o /tmp/h.txt "https://hnvip.qd.je/" 2>&1 | head -25
+          curl -sS -m 40 -D - -o /tmp/h.txt "https://hnvip.qd.je/" 2>&1 | head -25 || true
           echo "--- BUILD_VER in body ---"
-          grep -o 'BUILD_VER = "[^"]*"' /tmp/h.txt | head -2
+          grep -o 'BUILD_VER = "[^"]*"' /tmp/h.txt | head -2 || true
           echo "--- cnField(r.k) 是否在新版 ---"
           grep -c 'cnField(r.k)' /tmp/h.txt
           echo
           echo "## 3. GitHub Pages 官方域名"
           curl -sS -m 40 -D - -o /tmp/g.txt "https://woshiyigemanhuajia.github.io/hunan-tariff-site/" 2>&1 | grep -iE "^(HTTP|cache-control|age|via|cf-cache|x-cache|last-modified)" | head -10
           echo "--- BUILD_VER ---"
-          grep -o 'BUILD_VER = "[^"]*"' /tmp/g.txt | head -2
+          grep -o 'BUILD_VER = "[^"]*"' /tmp/g.txt | head -2 || true
           echo
           echo "## 4. version.json 直取"
           curl -sS -m 40 "https://hnvip.qd.je/version.json" 2>&1 | head -c 200; echo
