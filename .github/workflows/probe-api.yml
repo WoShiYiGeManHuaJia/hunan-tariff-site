@@ -1,8 +1,8 @@
 name: Probe API
 
 # 一次性诊断：探测源站接口结构 / 多轮子集合一性 / 分页可行性。
-# Actions 日志接口对外部不可用（403），故把结论写进【提交信息】，
-# 通过 commits API 即可读取。
+# Actions 日志接口对外 403，且 git push 常被并发工作流顶掉（non-fast-forward），
+# 故改用 contents API 直接把结果文件写回仓库，最稳。
 
 on:
   workflow_dispatch:
@@ -26,20 +26,29 @@ jobs:
       - run: pip install pycryptodome
       - name: 探测源站接口
         run: python -u scripts/probe_api.py
-      - name: 把结论写进提交信息
+      - name: 用 contents API 写回结果
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          git config user.name "probe-bot"
-          git config user.email "probe@local"
           F=probe/result.txt
           if [ ! -f "$F" ]; then
-            MSG="PROBE_EMPTY: 结果文件不存在"
-          else
-            # 提交信息里保留全部结论（去掉空行，控制长度）
-            BODY=$(grep -v '^\s*$' "$F" | head -60 | tr '\n' '|')
-            MSG="PROBE_RESULT::$BODY"
+            printf 'PROBE_EMPTY: 结果文件不存在\n' > "$F"
           fi
-          echo "$MSG" > /tmp/msg.txt
-          git add -f "$F" 2>/dev/null || true
-          git commit --allow-empty -F /tmp/msg.txt
-          git push
+          B64=$(base64 -w0 "$F")
+          # 已存在则带 sha 更新，否则新建
+          SHA=$(curl -s -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/$F" \
+            | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('sha',''))" 2>/dev/null || echo "")
+          if [ -n "$SHA" ]; then
+            PAYLOAD=$(python3 -c "import json,sys;print(json.dumps({'message':'probe: 更新探测结果 '+__import__('datetime').datetime.utcnow().isoformat()+'Z','content':sys.argv[1],'sha':sys.argv[2]}))" "$B64" "$SHA")
+          else
+            PAYLOAD=$(python3 -c "import json,sys;print(json.dumps({'message':'probe: 写入探测结果 '+__import__('datetime').datetime.utcnow().isoformat()+'Z','content':sys.argv[1]}))" "$B64")
+          fi
+          curl -s -X PUT \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/$F" \
+            -d "$PAYLOAD" | head -c 300
+          echo ""
+          echo "已写回 $F"
