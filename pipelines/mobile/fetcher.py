@@ -126,6 +126,14 @@ SECTION_INTERVAL = float(os.getenv("SECTION_INTERVAL") or "2.0")
 # 默认 3（保守，兼顾速度与安全）；实测抓取不全时可下调为 1（退化为串行）。
 # 设为 1 即完全等价于旧的串行行为，可随时回退。
 FETCH_WORKERS = max(1, int(os.getenv("FETCH_WORKERS") or "3"))
+# 每个分类重复抓取轮数（不同 UA 指纹，结果取并集）。
+# 背景：源站按「IP + UA 指纹」隔离限流配额，配额耗尽时返回**确定性子集**，
+# 表现为「某批业务从来抓不到」，既不触发条数降级告警，也不产生 diff，
+# 最终被误判成「该省长期无变化」。多轮换 UA 取并集可补全这些条目。
+# 设为 1 即退回旧的单轮行为。
+FETCH_ROUNDS = max(1, int(os.getenv("FETCH_ROUNDS") or "2"))
+# 多轮之间条数差异超过该比例时告警（证明源站确实在返回子集）
+ROUND_DIFF_WARN = float(os.getenv("ROUND_DIFF_WARN") or "0.05")
 
 
 def _s(v):
@@ -413,22 +421,43 @@ def _fetch_board(sec: str, attr: str, code: str, opener) -> tuple:
     lock = threading.Lock()
 
     def work(t1, t2):
-        ua = _pick_ua()  # 每个分类独立 UA 指纹池，避免同一池被打满降级
         key = f"{attr},{t1},{t2}"
-        try:
-            items = _fetch_cell(opener, attr, t1, t2, code, ua)
-            with lock:
+        round_sizes = []
+        cell_items = {}
+        last_err = None
+        # 多轮：每轮换一个独立 UA 指纹池，结果取并集
+        for r in range(FETCH_ROUNDS):
+            ua = _pick_ua()
+            try:
+                items = _fetch_cell(opener, attr, t1, t2, code, ua)
+                round_sizes.append(len(items))
                 for it in items:
                     # 板块内跨分类业务名不重复；重复时保留首个
-                    merged.setdefault(it["name"], it)
-                cell_counts[key] = len(items)
-        except Exception as e:
+                    cell_items.setdefault(it["name"], it)
+            except Exception as e:
+                last_err = e
+            if r + 1 < FETCH_ROUNDS:
+                time.sleep(FETCH_INTERVAL)
+        if not cell_items:
             with lock:
                 failed_keys.add(key)
-                err = f"[{TYPE1_CN.get(t1, t1)}/{TYPE2_CN.get(t2, t2)}] {e}"
+                err = (f"[{TYPE1_CN.get(t1, t1)}/{TYPE2_CN.get(t2, t2)}] "
+                       f"{last_err or '空结果'}")
                 if err not in errors:
                     errors.append(err)
-            print(f"[fetch] 板块 {sec} 分类({t1},{t2}) 抓取失败: {e}")
+            print(f"[fetch] 板块 {sec} 分类({t1},{t2}) 抓取失败: {last_err}")
+            return
+        with lock:
+            for it in cell_items.values():
+                merged.setdefault(it["name"], it)
+            cell_counts[key] = len(cell_items)
+        # 覆盖度自检：多轮条数不一致 => 源站在返回不同的子集
+        if len(round_sizes) > 1:
+            lo, hi = min(round_sizes), max(round_sizes)
+            if lo > 0 and (hi - lo) / hi > ROUND_DIFF_WARN:
+                print(f"[fetch][覆盖度] 板块 {sec} 分类({t1},{t2}) "
+                      f"各轮条数 {round_sizes} —— 源站返回不一致子集，"
+                      f"已取并集 {len(cell_items)} 条（单轮最多 {hi}）")
 
     workers = min(FETCH_WORKERS, len(TYPE_COMBOS))
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
