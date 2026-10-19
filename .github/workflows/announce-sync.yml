@@ -53,10 +53,13 @@ jobs:
 
           # ★ 必须写仓库根 data/：announce_fetch.py 的 root 解析为 pipelines/，
           #   传相对路径会写到 pipelines/site/data/ 下，该目录从不参与同步。
+          mkdir -p probe
           python3 pipelines/scripts/announce_fetch.py \
             --move-dir "$GITHUB_WORKSPACE/data" \
             --uni-dir  "$GITHUB_WORKSPACE/unicom/data" \
-            || echo "::warning::公告抓取失败，沿用现有数据"
+            2>&1 | tee probe/ann_fetch.log
+          # 诊断日志落盘（Actions 日志接口对外 403，只能提交回仓库读）
+          echo "[抓取时刻] $(date -u +%FT%TZ)" >> probe/ann_fetch.log
 
       - name: 对比是否有新增公告
         run: |
@@ -94,7 +97,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           git config user.name "announce-bot"
           git config user.email "announce@local"
-          git add -f data/announce.json unicom/data/announce.json 2>/dev/null || true
+          git add -f data/announce.json unicom/data/announce.json probe/ann_fetch.log 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "公告无变化，跳过提交"
           else
