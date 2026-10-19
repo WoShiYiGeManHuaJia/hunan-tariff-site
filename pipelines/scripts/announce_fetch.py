@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""公告抓取脚本：湖南移动公告 + 湖南联通公告 + 湖南电信公告，各只保留最新 15 条，输出 announce.json
+"""公告抓取脚本：湖南移动公告 + 联通公告，各只保留最新 15 条，输出 announce.json
 
 用法:
-    python3 scripts/announce_fetch.py --move-dir site/data --uni-dir unicom/data --tc-dir telecom/data
+    python3 scripts/announce_fetch.py --move-dir site/data --uni-dir unicom/data
 说明:
     - 移动(湖南)公告列表/详情均为静态 JSON，GET 直取；
       详情接口触发 TLS legacy renegotiation，需注入 openssl_legacy.cnf(见下)。
     - 联通公告列表/详情为 POST 接口，需带 XHR 特征头(否则中文被替换成 ?)。
-    - 电信(湖南)公告走 189.cn 推荐位接口，请求体 AES-CBC + RSA 加密；
-      省份由 provinceCode=600203(湖南) 在源站侧限定，只出湖南，不含其他省。
-      详情接口受瑞数 WAF 保护未开放，故只有标题+日期+官网链接。
-      抓到 0 条时【绝不落盘】，避免源站抖动把线上公告清成空。
     - 输出文件:
         <move-dir>/announce.json  移动站公告数据
         <uni-dir>/announce.json   联通站公告数据
-        <tc-dir>/announce.json    电信站公告数据
 """
 import os
 import re
@@ -29,7 +24,6 @@ _SSL_CNF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mobil
 if os.path.exists(_SSL_CNF):
     os.environ.setdefault("OPENSSL_CONF", _SSL_CNF)
 
-import ssl
 import urllib.request
 import urllib.parse
 
@@ -46,9 +40,7 @@ MOVE_SITE = "https://www.10086.cn"
 # ---------------- 联通 ----------------
 UNI_LIST_URL = "https://www.10010.com/mall/service/query/announcementquery"
 UNI_DETAIL_URL = "https://www.10010.com/mall/service/query/announcementquerydetail"
-UNI_PROVINCE = "074"  # 湖南（实测：011北京 013天津 017山东 018河北 030安徽 031上海
-                      #   034江苏 036浙江 038福建 050海南 051广东 059广西 071湖北
-                      #   074湖南 075江西 076河南 079西藏；原值 031 = 上海，抓错省了）
+UNI_PROVINCE = "031"  # 与 https://www.10010.com/wt_links/index.html#/announcementPage 一致
 UNI_DETAIL_PAGE = ("https://www.10010.com/wt_links/index.html#/announcementDetail?announcementId={id}"
                    "&pageSize=12&pageNo=1")
 UNI_IMG_HOST = "https://m1.img.10010.com"
@@ -63,68 +55,15 @@ UNI_HDRS = {
     "Accept-Language": "zh-CN,zh;q=0.9",
 }
 
-# ---------------- 电信(湖南 600203) ----------------
-# 公告走 189.cn 网厅「帮助中心/公告」推荐位接口：
-#   POST /wtBusiness/wtservice/nc/recPos/getRecPosInfo.do
-#   请求体 AES-CBC 加密 + RSA(内置公钥) 加密 key/iv，响应为明文 JSON。
-# 列表已含标题与时间；详情页正文经 getAnnouncementDetail.do 抓取（type+offerCode
-# +provinceCode+cityCode），与列表同一套 AES-CBC/RSA 加密，已实测可返回 content。
-TC_REC_URL = "https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
-TC_DETAIL_URL = "https://www.189.cn/wtBusiness/wtservice/nc/announcement/getAnnouncementDetail.do"
-TC_SITE = "https://www.189.cn"
-TC_PROVINCE = "600203"          # 湖南（与资费接口同一套 provCode；只抓湖南，不含其他省）
-TC_SHOP_ID = "20001"
-TC_TYPE = "wt_sy_bzzx"          # 首页-帮助中心/公告位
-TC_ORDER = 1                    # order=1 → 「公告」；order=2 → 「购物指南」（不要）
-TC_FCODE = "Y121043001"
-TC_NOTICE_PAGE = "https://www.189.cn/web/notice"
-TC_PUBKEY_B64 = (
-    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIv"
-    "CpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mi"
-    "f5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+i"
-    "p2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlb"
-    "KZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5K"
-    "LF/30wIDAQAB"
-)
-# 省份由 provinceCode(600203=湖南) 在源站侧就限定死了，本地不再按标题二次过滤：
-# 湖南电信官网把少量全国性/集团公告也挂在该省公告位下（如「规范互联网渠道售卡管理」），
-# 这些同样是湖南站发布的内容，按标题过滤反而会漏掉张家界/株洲等只带市名的湖南公告。
-TC_MUST = ()
-TC_CITY_HINT = ("长沙", "株洲", "湘潭", "衡阳", "岳阳", "常德", "郴州", "益阳", "娄底",
-                "邵阳", "湘西", "张家界", "怀化", "永州")
-
 # 富文本中需要保留的基础标签
 KEEP_TAGS = {"p", "br", "div", "span", "a", "img", "strong", "b", "em", "i", "u",
              "ul", "ol", "li", "table", "tr", "td", "th", "tbody", "thead", "h1",
              "h2", "h3", "h4", "blockquote"}
 
 
-def _ssl_ctx():
-    """源站 10086.cn 的 TLS 已降级到「不安全旧版重协商」，新版 OpenSSL 默认拒绝，
-    表现为 curl: (35) unsafe legacy renegotiation disabled / urllib SSLError。
-    这里显式开启 OP_LEGACY_SERVER_CONNECT，保证公告抓取不被 TLS 握手挡住。"""
-    try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        try:
-            ctx.options |= ssl.OP_LEGACY_SERVER_CONNECT
-        except Exception:
-            pass
-        return ctx
-    except Exception:
-        return None
-
-
-_SSL_CTX = _ssl_ctx()
-
-
 def _http_get(url, headers=None, timeout=30):
     req = urllib.request.Request(url, headers=headers or {"User-Agent": UA})
-    try:
-        return urllib.request.urlopen(req, timeout=timeout, context=_SSL_CTX).read().decode("utf-8", "ignore")
-    except TypeError:
-        return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "ignore")
+    return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "ignore")
 
 
 def _http_post(url, form, headers=None, timeout=30):
@@ -269,6 +208,13 @@ def fetch_move():
     items.sort(key=lambda x: x["date"], reverse=True)
     items = items[:MAX_KEEP]
     print(f"[移动] 列表 {len(lst)} 条，取最新 {len(items)} 条")
+    # 诊断：把排序后前 20 条打印出来，便于核对「源站有但没同步」
+    print("[移动][诊断] 排序后前 20 条：")
+    _sorted_all = sorted(items, key=lambda x: x["date"], reverse=True)
+    for _i, _it in enumerate(_sorted_all[:20]):
+        print("[移动][诊断]  %2d %s | %s" % (_i, _it.get("date"), str(_it.get("title"))[:44]))
+    print("[移动][诊断] 原始列表日期集合: %s" % sorted(
+        {str(r.get("publishTime")) for r in lst}, reverse=True)[:12])
     for it in items:
         try:
             dj = json.loads(_http_get(MOVE_DETAIL_PREFIX + it["id"] + ".json"))
@@ -289,28 +235,10 @@ def fetch_move():
 # ---------------- 联通抓取 ----------------
 def fetch_uni():
     print("[联通] 拉取公告列表 ...")
-    # 源站返回顺序 ≠ 时间顺序，且 pageSize 过小时「取最新 N 条」会漏掉真正最新的公告。
-    # 改为一次多拉(100条)、按发布日期降序后再截断，确保拿到的是时间上最新的 MAX_KEEP 条。
-    # 源站 totalCount 可能大于单页上限，只拉第 1 页会漏掉落在后面的新公告
-    # （实测 totalCount=117，pageSize=100 时第 2 页还有 17 条）。改为翻页取全量。
-    lst, total = [], None
-    for _pg in range(1, 6):
-        try:
-            _raw = _http_post(UNI_LIST_URL, {"pageNo": str(_pg), "pageSize": "100",
-                                             "province": UNI_PROVINCE, "condition": "0",
-                                             "title": ""}, UNI_HDRS)
-            _j = json.loads(_raw)
-        except Exception as e:
-            print(f"[联通] 第 {_pg} 页失败: {e}")
-            break
-        _one = _j.get("result") or []
-        if total is None:
-            total = _j.get("totalCount")
-        lst += _one
-        if not _one or (total and len(lst) >= int(total)):
-            break
-        time.sleep(0.4)
-    print(f"[联通] 翻页取全量 {len(lst)} 条（totalCount={total}）")
+    raw = _http_post(UNI_LIST_URL, {"pageNo": "1", "pageSize": str(MAX_KEEP + 5),
+                                    "province": UNI_PROVINCE, "condition": "0", "title": ""}, UNI_HDRS)
+    j = json.loads(raw)
+    lst = j.get("result") or []
     items = []
     for row in lst:
         items.append({
@@ -319,10 +247,8 @@ def fetch_uni():
             "date": (row.get("publishTime") or "")[:10],
             "page_url": UNI_DETAIL_PAGE.format(id=row.get("id") or ""),
         })
-    items = [x for x in items if x["id"]]
-    items.sort(key=lambda x: x["date"], reverse=True)
-    items = items[:MAX_KEEP]
-    print(f"[联通] 列表 {len(lst)} 条，按日期降序取最新 {len(items)} 条")
+    items = [x for x in items if x["id"]][:MAX_KEEP]
+    print(f"[联通] 列表 {len(lst)} 条，取最新 {len(items)} 条")
     for it in items:
         try:
             dj = json.loads(_http_post(UNI_DETAIL_URL, {
@@ -345,232 +271,11 @@ def fetch_uni():
     return items
 
 
-# ---------------- 电信抓取（湖南 600203） ----------------
-def _tc_post(obj):
-    """电信网厅接口：AES-CBC 加密 body + RSA 加密 key/iv，响应明文 JSON"""
-    from Crypto.Cipher import AES, PKCS1_v1_5
-    from Crypto.PublicKey import RSA
-    from Crypto.Util.Padding import pad
-    import base64, gzip, random
-
-    pub = RSA.import_key(base64.b64decode(TC_PUBKEY_B64))
-    key = os.urandom(16)
-    iv = os.urandom(16)
-    ct = AES.new(key, AES.MODE_CBC, iv).encrypt(pad(json.dumps(obj, ensure_ascii=False).encode(), 16))
-    inner = json.dumps({"key": base64.b64encode(key).decode(),
-                        "iv": base64.b64encode(iv).decode()}, separators=(",", ":"))
-    payload = {"param": base64.b64encode(ct).decode(),
-               "key": base64.b64encode(PKCS1_v1_5.new(pub).encrypt(inner.encode())).decode()}
-    tid = "".join("%x" % random.randint(0, 15) for _ in range(32))
-    req = urllib.request.Request(
-        TC_REC_URL, data=json.dumps(payload, separators=(",", ":")).encode(), method="POST",
-        headers={"User-Agent": UA, "Content-Type": "application/json;charset=UTF-8",
-                 "Accept": "application/json, text/plain, */*", "Origin": "https://www.189.cn",
-                 "Referer": "https://www.189.cn/web/notice/index.html",
-                 "Fcode": TC_FCODE, "TransactionId": tid, "Accept-Language": "zh-CN,zh;q=0.9"})
-    last = None
-    for a in range(4):
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                raw = r.read()
-                if r.headers.get("Content-Encoding") == "gzip":
-                    raw = gzip.decompress(raw)
-                return json.loads(raw.decode("utf-8", "replace"))
-        except Exception as e:
-            last = e
-            time.sleep(2 * (a + 1))
-    raise last
-
-
-def _tc_post2(obj, url=None):
-    """与 _tc_post 同加密，但可调任意 189.cn 接口（默认详情接口）"""
-    from Crypto.Cipher import AES, PKCS1_v1_5
-    from Crypto.PublicKey import RSA
-    from Crypto.Util.Padding import pad
-    import base64, gzip, random
-
-    target = url or TC_DETAIL_URL
-    pub = RSA.import_key(base64.b64decode(TC_PUBKEY_B64))
-    key = os.urandom(16)
-    iv = os.urandom(16)
-    ct = AES.new(key, AES.MODE_CBC, iv).encrypt(pad(json.dumps(obj, ensure_ascii=False).encode(), 16))
-    inner = json.dumps({"key": base64.b64encode(key).decode(),
-                        "iv": base64.b64encode(iv).decode()}, separators=(",", ":"))
-    payload = {"param": base64.b64encode(ct).decode(),
-               "key": base64.b64encode(PKCS1_v1_5.new(pub).encrypt(inner.encode())).decode()}
-    tid = "".join("%x" % random.randint(0, 15) for _ in range(32))
-    req = urllib.request.Request(
-        target, data=json.dumps(payload, separators=(",", ":")).encode(), method="POST",
-        headers={"User-Agent": UA, "Content-Type": "application/json;charset=UTF-8",
-                 "Accept": "application/json, text/plain, */*", "Origin": "https://www.189.cn",
-                 "Referer": "https://www.189.cn/web/notice/index.html",
-                 "Fcode": TC_FCODE, "TransactionId": tid, "Accept-Language": "zh-CN,zh;q=0.9"})
-    # 必须和列表请求走同一套发送通道：实测「列表 urlopen + 详情 opener」混用会
-    # 被瑞数判成会话不一致，详情全部返回 412 Precondition Failed；两处都用
-    # urlopen 直连（cookie 由 urllib 默认处理器托管）时 15/15 全部拿到正文。
-    last = None
-    for a in range(2):
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                raw = r.read()
-                if r.headers.get("Content-Encoding") == "gzip":
-                    raw = gzip.decompress(raw)
-                return json.loads(raw.decode("utf-8", "replace"))
-        except Exception as e:
-            last = e
-            time.sleep(3 * (a + 1))
-    raise last
-
-
-def _tc_date(s):
-    """20260918145157 / 2026-09-18 12:00 → 2026-09-18"""
-    t = str(s or "").strip()
-    if len(t) >= 8 and t[:8].isdigit():
-        return "%s-%s-%s" % (t[:4], t[4:6], t[6:8])
-    return t[:10]
-
-
-def fetch_telecom():
-    print("[电信] 拉取湖南公告列表 (provinceCode=%s) ..." % TC_PROVINCE)
-    r = _tc_post({"shopId": TC_SHOP_ID, "type": TC_TYPE, "order": TC_ORDER,
-                  "provinceCode": TC_PROVINCE, "cityCode": ""})
-    if r.get("code") not in (None, "S_COMMON_0000", "0"):
-        print("[电信] 接口返回异常: code=%s msg=%s" % (r.get("code"), r.get("message")))
-    data = r.get("data") or []
-    raw = []
-    for d in data:
-        for x in (d.get("floorItems") or []):
-            raw.append(x)
-    print("[电信] 列表 %d 条" % len(raw))
-    if not raw:
-        print("[电信] !! 未取到公告，保持线上数据不变")
-        return None
-    items = []
-    for x in raw:
-        title = (x.get("title") or "").strip()
-        if not title:
-            continue
-        dt = _tc_date(x.get("liveStartTime") or x.get("publishTime") or x.get("createTime") or "")
-        eid = x.get("externalOfferCode") or x.get("offerCode") or x.get("id") or ""
-        items.append({
-            "id": str(eid),
-            "title": title,
-            "date": dt,
-            # 详情接口必须用该条目自身的 type：公告位( wt_sy_bzzx )之外还挂着
-            # 集团公告位( wt_sy_jtgg )等，写死 TC_TYPE 会对少数条目取不到正文。
-            "_type": (x.get("type") or TC_TYPE),
-            # 详情接口受瑞数 WAF 保护、未开放，统一跳官网公告页
-            "page_url": TC_NOTICE_PAGE,
-            "summary": "",
-            "content": "",
-            "attachments": [],
-        })
-    # 源站返回并非时间序，先按日期降序再截断，确保是「最新 15 条」
-    items.sort(key=lambda x: (x["date"], x["id"]), reverse=True)
-    items = items[:MAX_KEEP]
-    print("[电信] 按日期降序取最新 %d 条" % len(items))
-    # ── 逐条抓正文 ──
-    # 详情接口与列表共用同一套加密；单条失败只清空该条正文，不影响其余公告，
-    # 也不影响列表本身（标题+日期始终保留）。
-    ok = 0
-    for it in items:
-        try:
-            d = _tc_post2({"type": it.get("_type") or TC_TYPE, "offerCode": it["id"],
-                           "provinceCode": TC_PROVINCE, "cityCode": ""})
-            node = (d.get("data") or {}) if isinstance(d, dict) else {}
-            raw_html = (node.get("content") or "").strip()
-            if not raw_html:
-                print("[电信] 详情空: %s" % it["title"][:24])
-                continue
-            # 相对路径先补成电信域名，避免被 clean_html 拼到移动站点上
-            raw_html = re.sub(r'(<img[^>]*?src=)["\'](?!https?://|data:)([^"\']*)["\']',
-                              lambda m: m.group(1) + '"' + TC_SITE + m.group(2) + '"',
-                              raw_html, flags=re.I)
-            raw_html = re.sub(r'(<a[^>]*?href=)["\'](?!https?://|#|mailto:)([^"\']*)["\']',
-                              lambda m: m.group(1) + '"' + TC_SITE + m.group(2) + '"',
-                              raw_html, flags=re.I)
-            content = clean_html(raw_html)
-            if node.get("title"):
-                it["title"] = node["title"].strip()
-            it["summary"] = html_to_text(content)[:120]
-            it["content"] = content
-            # 正文里的图片也当附件列出，方便直接点开看原图
-            atts = find_attachments(content, TC_SITE)
-            for m in re.finditer(r'<img[^>]*?src=["\']([^"\']+)["\']', content, flags=re.I):
-                u = m.group(1)
-                if u.startswith("http") and u not in [a["url"] for a in atts]:
-                    atts.append({"name": os.path.basename(u.split("?")[0]) or "图片", "url": u})
-            it["attachments"] = atts
-            ok += 1
-        except Exception as e:
-            # 详情接口受瑞数 WAF 保护，境外机房一律 412。此时绝不把已抓到的正文清空，
-            # 由 merge_keep 继承上一次成功的内容，避免「抓到过又变回暂无正文」。
-            print("[电信] 详情 %s 失败: %s（保留既有正文）" % (it["id"], str(e)[:80]))
-            time.sleep(2.5)
-        time.sleep(1.2)
-    for it in items:
-        it.pop("_type", None)
-    print("[电信] 正文抓取成功 %d/%d 条" % (ok, len(items)))
-    for it in items[:3]:
-        print("   * %s | %s | 正文%d字" % (it["date"], it["title"][:32], len(it.get("content") or "")))
-    return items
-
-
-def merge_keep(items, path):
-    """与已有公告合并，按 id 去重、按 date 降序取 MAX_KEEP 条。
-
-    源站列表页偶发只返回少量条目（分页/缓存异常），若直接覆盖写盘，
-    先前已抓到的较新公告会被丢掉，表现为「最新公告日期倒退」
-    （实测 09-23 被冲掉，线上最新退回 09-17）。
-    合并后只增不减：已在库里的公告即便本轮没抓到也保留。
-    """
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            old = json.load(f)
-        old_items = old.get("items") or []
-    except Exception:
-        old_items = []
-    old_by_id = {}
-    for it in old_items:
-        k = str(it.get("id") or "")
-        if k:
-            old_by_id[k] = it
-    by_id = {}
-    for it in (items or []):
-        k = str(it.get("id") or "")
-        if not k:
-            continue
-        # 本轮若没抓到正文（接口被 WAF 挡），沿用上次成功的正文，绝不回退成空
-        if not (it.get("content") or "").strip():
-            o = old_by_id.get(k) or {}
-            if (o.get("content") or "").strip():
-                it["content"] = o.get("content", "")
-                it["summary"] = o.get("summary", "") or it.get("summary", "")
-                it["attachments"] = o.get("attachments", []) or it.get("attachments", [])
-                it["page_url"] = o.get("page_url", "") or it.get("page_url", "")
-        by_id[k] = it
-    n_new = len(by_id)
-    for it in old_items:
-        k = str(it.get("id") or "")
-        if k and k not in by_id:
-            by_id[k] = it
-    merged = list(by_id.values())
-    # 内容更完整的优先（新抓取的带 content/summary，覆盖旧的同 id 空壳）
-    merged.sort(key=lambda x: (x.get("date") or ""), reverse=True)
-    merged = merged[:MAX_KEEP]
-    if len(merged) != n_new:
-        print(f"[合并] 本轮抓到 {n_new} 条，合并已有记录后保留 {len(merged)} 条")
-    return merged
-
-
 def write_json(items, path):
-    items = merge_keep(items, path)
     data = {"updated": now_str(), "count": len(items), "items": items}
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
-    os.replace(tmp, path)
     print(f"已写入 {path} ({len(items)} 条)")
 
 
@@ -579,31 +284,19 @@ def _resolve(root, p):
 
 
 def main():
-    # __file__ = <repo>/pipelines/scripts/announce_fetch.py，需上三级才是仓库根。
-    # 旧代码只上两级 -> root=<repo>/pipelines，导致相对目录 unicom/data 被写到
-    # <repo>/pipelines/unicom/data/announce.json，该路径从不参与同步，线上公告永远不更新。
-    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     args = sys.argv[1:]
-    move_dir = uni_dir = tc_dir = None
+    move_dir = uni_dir = None
     for i, a in enumerate(args):
         if a == "--move-dir" and i + 1 < len(args):
             move_dir = _resolve(root, args[i + 1])
         if a == "--uni-dir" and i + 1 < len(args):
             uni_dir = _resolve(root, args[i + 1])
-        if a == "--tc-dir" and i + 1 < len(args):
-            tc_dir = _resolve(root, args[i + 1])
     if move_dir:
         write_json(fetch_move(), os.path.join(move_dir, "announce.json"))
     if uni_dir:
         write_json(fetch_uni(), os.path.join(uni_dir, "announce.json"))
-    if tc_dir:
-        its = fetch_telecom()
-        if its is None:
-            # 抓空绝不落盘：避免源站抖动/WAF 拦截把线上公告清成 0 条
-            print("[电信] 跳过写入（未取到数据，保持线上公告不变）")
-        else:
-            write_json(its, os.path.join(tc_dir, "announce.json"))
-    if not move_dir and not uni_dir and not tc_dir:
+    if not move_dir and not uni_dir:
         print(__doc__)
 
 
