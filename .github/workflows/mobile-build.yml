@@ -86,7 +86,7 @@ jobs:
           fi
           echo "=== 抓取开始 $(date -u +%FT%TZ) ==="
           set +e
-          python3 -u main.py --once 2>&1 | tail -80
+          python3 -u main.py --once 2>&1 | tail -300
           EC=${PIPESTATUS[0]}
           set -e
           echo "抓取 exit=$EC"
@@ -185,6 +185,14 @@ jobs:
           #   而不是等用户打开页面才发现。检出一级问题即让本次运行失败。
           #   注意：必须在 snapshots 仍在（上面尚未 rm）时跑，才能比对快照时间。
           python3 scripts/selfcheck.py --max-age-hours 36 || echo "::warning::自检发现异常，详见上方 error"
+
+          # ★ 漏抓自检：源站按「IP+UA 指纹」限流时返回的是【确定性子集】，
+          #   表现为「某批业务从来抓不到」——条数只略少（躲过降级告警），
+          #   且从未抓到过所以不产生 diff，最终被误判成「该省长期无变化」。
+          #   方案编号是连续分配的，出现「两头都有、中间整段缺失」即证明漏抓。
+          #   这一步让漏抓在 CI 日志里直接暴露，而不是等用户发现。
+          python3 scripts/check_gaps.py --min-gap 3 \
+            || echo "::warning::发现方案编号缺口，疑似漏抓，详见上方列表"
 
           rm -rf _site _prev snapshots   # 中间产物不入库
           echo "data 文件数: $(ls data | wc -l)"
