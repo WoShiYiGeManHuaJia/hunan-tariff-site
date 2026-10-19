@@ -5,7 +5,7 @@
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261019c";
+var BUILD_VER = "20261019d";
 (function(){
   function base(){
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
@@ -2746,7 +2746,7 @@ function histDiffRows(rows, bf, af){
   return '<div class="dfnote"><span class="cmp-badge">共 ' + out.length + ' 处改动</span>已按字段逐条列出修改前后</div>' +
     out.map(function(r, i){
       return '<div class="dfrow" style="animation-delay:' + Math.min(i * 45, 270) + 'ms">' +
-        '<div class="df-f">' + esc(r.k) + '</div>' +
+        '<div class="df-f">' + esc((typeof cnField==="function") ? cnField(r.k) : r.k) + '</div>' +
         '<div class="df-v">' +
         '<div class="df-line"><span class="df-tag df-old">修改前</span><span class="df-txt df-oldv">' + esc(r.b) + '</span></div>' +
         '<div class="df-arrow">↓</div>' +
