@@ -61,9 +61,20 @@ KEEP_TAGS = {"p", "br", "div", "span", "a", "img", "strong", "b", "em", "i", "u"
              "h2", "h3", "h4", "blockquote"}
 
 
-def _http_get(url, headers=None, timeout=30):
-    req = urllib.request.Request(url, headers=headers or {"User-Agent": UA})
-    return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "ignore")
+def _http_get(url, headers=None, timeout=30, retries=5):
+    """源站(移动网关) TLS 握手偶发 UNSAFE_LEGACY_RENEGOTIATION_DISABLED，
+    单次失败很常见。原先没有重试 → fetch_move() 直接抛异常 → 上层 || true
+    吞掉 → 公告长期停在旧日期而无任何报错。这里必须重试。"""
+    last = None
+    for i in range(retries):
+        try:
+            req = urllib.request.Request(url, headers=headers or {"User-Agent": UA})
+            return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "ignore")
+        except Exception as e:
+            last = e
+            print("    [重试 %d/%d] %s" % (i + 1, retries, str(e)[:60]))
+            time.sleep(3)
+    raise last
 
 
 def _http_post(url, form, headers=None, timeout=30):
