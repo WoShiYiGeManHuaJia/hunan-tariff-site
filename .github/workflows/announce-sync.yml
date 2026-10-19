@@ -58,8 +58,40 @@ jobs:
             --move-dir "$GITHUB_WORKSPACE/data" \
             --uni-dir  "$GITHUB_WORKSPACE/unicom/data" \
             2>&1 | tee probe/ann_fetch.log
-          # 诊断日志落盘（Actions 日志接口对外 403，只能提交回仓库读）
           echo "[抓取时刻] $(date -u +%FT%TZ)" >> probe/ann_fetch.log
+          echo "[文件状态] $(ls -l data/announce.json 2>&1)" >> probe/ann_fetch.log
+          echo "[git 状态] $(git status --porcelain 2>&1 | head -10)" >> probe/ann_fetch.log
+
+      - name: 日志回传（用 contents API，绕开 git 静默跳过）
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          F="probe/ann_fetch.log"
+          [ -f "$F" ] || printf 'LOG_MISSING\n' > "$F"
+          python3 - "$F" <<'PY'
+          import base64, json, os, sys, urllib.request
+          path = sys.argv[1]
+          tok = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          rid = os.environ.get("RUN_ID", "x")
+          target = "probe/ann_fetch_%s.log" % rid
+          content = base64.b64encode(open(path, "rb").read()).decode()
+          data = json.dumps({"message": "ann log %s" % target,
+                             "content": content}).encode()
+          req = urllib.request.Request(
+              "https://api.github.com/repos/%s/contents/%s" % (repo, target),
+              data=data, method="PUT",
+              headers={"Authorization": "token " + tok,
+                       "Accept": "application/vnd.github+json",
+                       "User-Agent": "ann-bot"})
+          try:
+              print("日志回传 HTTP", urllib.request.urlopen(req, timeout=60).status)
+          except Exception as e:
+              print("回传失败:", str(e)[:200])
+          PY
 
       - name: 对比是否有新增公告
         run: |
