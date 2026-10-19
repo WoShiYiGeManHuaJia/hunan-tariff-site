@@ -1,0 +1,11 @@
+======================================================================
+移动公告探测
+======================================================================
+
+[1] 列表接口 5004505_873_2361.json
+      (第1次失败 <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+      (第2次失败 <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+      (第3次失败 <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+      (第4次失败 <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+      (第5次失败 <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+    失败: <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe legacy renegotiation disabled (_ssl.c:1016)>
