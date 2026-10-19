@@ -5,20 +5,37 @@
 
 沙盒访问 10086.cn 被 403，故走 Actions 抓取并落盘。
 
-查四件事：
-  1. 列表接口返回多少条、最新一条的日期和标题
-  2. 列表 JSON 是否带分页字段（pageNo/total/recordCount）
-  3. 翻页（pageNo=2 之类）是否还有更新的公告
-  4. 逐条打印前 20 条的 publishTime，看排序与截断
+源站(移动网关)要求 unsafe legacy renegotiation，必须在 import ssl 之前
+注入 OPENSSL_CONF（与 pipelines/scripts/announce_fetch.py 同款处理），
+否则握手直接失败。
 """
+# —— 必须在 import ssl / urllib 之前 ——
 import io
-import json
 import os
-import re
-import ssl
 import sys
-import time
-import urllib.request
+import tempfile
+
+_CNF = """openssl_conf = openssl_init
+
+[openssl_init]
+ssl_conf = ssl_sect
+
+[ssl_sect]
+system_default = system_default_sect
+
+[system_default_sect]
+Options = UnsafeLegacyRenegotiation
+"""
+_cnf_path = os.path.join(tempfile.gettempdir(), "openssl_legacy.cnf")
+with io.open(_cnf_path, "w", encoding="utf-8") as _f:
+    _f.write(_CNF)
+os.environ["OPENSSL_CONF"] = _cnf_path
+
+import json          # noqa: E402
+import re            # noqa: E402
+import ssl           # noqa: E402
+import time          # noqa: E402
+import urllib.request  # noqa: E402
 
 OUT = []
 
