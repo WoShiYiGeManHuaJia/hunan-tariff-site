@@ -123,22 +123,48 @@ jobs:
               open("/tmp/ann_msg.md", "w").write("\n".join(lines))
           PY
 
-      - name: 提交
+      - name: 提交（用 contents API，避免 git rebase 冲突导致静默丢失）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -e
           cd "$GITHUB_WORKSPACE"
-          git config user.name "announce-bot"
-          git config user.email "announce@local"
-          git add -f data/announce.json unicom/data/announce.json probe/ann_fetch.log 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo "公告无变化，跳过提交"
-          else
-            for i in 1 2 3; do
-              git pull --rebase -X theirs origin main || true
-              if git push; then echo "push 成功"; break; fi
-              echo "[warn] push 失败，重试 $i"; sleep 8
-            done
-          fi
+          python3 - <<'PY'
+          import base64, json, os, urllib.request
+          tok = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          HDR = {"Authorization": "token " + tok,
+                 "Accept": "application/vnd.github+json",
+                 "User-Agent": "ann-bot"}
+
+          def api_put(path, content_bytes, msg):
+              url = "https://api.github.com/repos/%s/contents/%s" % (repo, path)
+              sha = None
+              try:
+                  d = json.load(urllib.request.urlopen(
+                      urllib.request.Request(url, headers=HDR), timeout=60))
+                  sha = d.get("sha")
+              except Exception:
+                  pass
+              payload = {"message": msg,
+                         "content": base64.b64encode(content_bytes).decode()}
+              if sha:
+                  payload["sha"] = sha
+              req = urllib.request.Request(
+                  url, data=json.dumps(payload).encode(), method="PUT",
+                  headers=dict(HDR, **{"Content-Type": "application/json"}))
+              return urllib.request.urlopen(req, timeout=90).status
+
+          for path in ("data/announce.json", "unicom/data/announce.json"):
+              if not os.path.exists(path):
+                  print("跳过（不存在）", path)
+                  continue
+              raw = open(path, "rb").read()
+              try:
+                  st = api_put(path, raw, "announce: 同步公告数据")
+                  print("已写入 %s (HTTP %s, %d 字节)" % (path, st, len(raw)))
+              except Exception as e:
+                  print("写入失败 %s: %s" % (path, str(e)[:200]))
+          PY
 
       - name: 有新公告则推送钉钉
         if: always()
