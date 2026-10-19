@@ -126,6 +126,8 @@ jobs:
               open("/tmp/ann_msg.md", "w").write("\n".join(lines))
           PY
 
+      # 2026-10-19 用户要求：公告不再推送钉钉，只在页面公告栏内呈现，
+      # 由页面上的「刷新」按钮自助拉取最新公告。
       - name: 提交（用 contents API，避免 git rebase 冲突导致静默丢失）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -167,38 +169,4 @@ jobs:
                   print("已写入 %s (HTTP %s, %d 字节)" % (path, st, len(raw)))
               except Exception as e:
                   print("写入失败 %s: %s" % (path, str(e)[:200]))
-          PY
-
-      - name: 有新公告则推送钉钉
-        if: always()
-        env:
-          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
-          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          if [ ! -f /tmp/ann_msg.md ]; then echo "无新增公告，不推送"; exit 0; fi
-          if [ -z "$DINGTALK_WEBHOOK" ]; then echo "未配置 DINGTALK_WEBHOOK，跳过"; exit 0; fi
-          python3 - <<'PY'
-          import base64, hashlib, hmac, json, os, time, urllib.parse, urllib.request
-          hook = os.environ.get("DINGTALK_WEBHOOK", "")
-          secret = os.environ.get("DINGTALK_SECRET", "")
-          text = open("/tmp/ann_msg.md").read()
-          url = hook
-          if secret:
-              ts = str(round(time.time() * 1000))
-              sign = urllib.parse.quote_plus(base64.b64encode(hmac.new(
-                  secret.encode(), ("%s\n%s" % (ts, secret)).encode(),
-                  hashlib.sha256).digest()).decode())
-              url = "%s&timestamp=%s&sign=%s" % (hook, ts, sign)
-          body = json.dumps({"msgtype": "markdown",
-                             "markdown": {"title": "资费公告更新", "text": text}},
-                            ensure_ascii=False).encode()
-          req = urllib.request.Request(
-              url, data=body, method="POST",
-              headers={"Content-Type": "application/json; charset=utf-8"})
-          try:
-              r = urllib.request.urlopen(req, timeout=30)
-              print("推送结果:", r.read().decode()[:200])
-          except Exception as e:
-              print("推送失败:", str(e)[:200])
           PY
