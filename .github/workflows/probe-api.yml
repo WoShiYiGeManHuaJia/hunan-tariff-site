@@ -1,8 +1,8 @@
 name: Probe API
 
-# 一次性诊断：探测源站接口结构 / 多轮子集合一性 / 分页可行性
-# 只在排查漏抓时手动触发，不占用定时任务。
-# 结果写入 probe/result.txt 并提交回仓库（Actions 日志接口不可用时也能读）。
+# 一次性诊断：探测源站接口结构 / 多轮子集合一性 / 分页可行性。
+# Actions 日志接口对外部不可用（403），故把结论写进【提交信息】，
+# 通过 commits API 即可读取。
 
 on:
   workflow_dispatch:
@@ -26,12 +26,20 @@ jobs:
       - run: pip install pycryptodome
       - name: 探测源站接口
         run: python -u scripts/probe_api.py
-      - name: 提交探测结果
+      - name: 把结论写进提交信息
         run: |
           set -e
           git config user.name "probe-bot"
           git config user.email "probe@local"
-          git add -f probe/result.txt || true
-          git diff --cached --quiet && echo "无变化" || \
-            git commit -m "probe: 源站接口探测结果 $(date -u +%FT%TZ)"
-          git push || echo "[warn] push 失败"
+          F=probe/result.txt
+          if [ ! -f "$F" ]; then
+            MSG="PROBE_EMPTY: 结果文件不存在"
+          else
+            # 提交信息里保留全部结论（去掉空行，控制长度）
+            BODY=$(grep -v '^\s*$' "$F" | head -60 | tr '\n' '|')
+            MSG="PROBE_RESULT::$BODY"
+          fi
+          echo "$MSG" > /tmp/msg.txt
+          git add -f "$F" 2>/dev/null || true
+          git commit --allow-empty -F /tmp/msg.txt
+          git push
