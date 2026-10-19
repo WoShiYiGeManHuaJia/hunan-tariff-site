@@ -1,11 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" data-op="mobile">
 <head>
+<!-- SW-KILL: 注销旧 Service Worker 并清空本地缓存（旧 SW 缓存优先会把旧页面锁死） -->
+<script>
+(function(){
+  try{
+    if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        (rs||[]).forEach(function(r){ try{ r.unregister(); }catch(e){} });
+      }).catch(function(){});
+    }
+    if(window.caches && caches.keys){
+      caches.keys().then(function(ks){
+        (ks||[]).forEach(function(k){ try{ caches.delete(k); }catch(e){} });
+      }).catch(function(){});
+    }
+  }catch(e){}
+})();
+</script>
 <script>
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261019d";
+var BUILD_VER = "20261019e";
 (function(){
   function base(){
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
