@@ -1,0 +1,44 @@
+## digitalplat 域名 API
+### https://dash.domain.digitalplat.org/api/v1/domain/list
+HTTP=403
+<!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=Edge"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="content-security-policy" content="default-src &#39;none&#39;; script-src &#39
+### https://api.digitalplat.org/api/v1/domain/list
+curl: (6) Could not resolve host: api.digitalplat.org
+HTTP=000
+<!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=Edge"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="content-security-policy" content="default-src &#39;none&#39;; script-src &#39
+### https://dash.digitalplat.org/api/v1/domain/list
+curl: (6) Could not resolve host: dash.digitalplat.org
+HTTP=000
+<!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=Edge"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="content-security-policy" content="default-src &#39;none&#39;; script-src &#39
+
+## DNS 解析 hnvip.qd.je
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":5}],"Authority":[{"name":"hnvip.qd.je.","type":6,"TTL":300,"data":"dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092408 10800 3600 604800 300"}],"Comment":"Response from dns1.digitalplat.org.(150.230.46.101)."}
+{"Status":0,"TC":false,"RD":true,"RA":true,"AD":false,"CD":false,"Question":[{"name":"hnvip.qd.je.","type":1}],"Answer":[{"name":"hnvip.qd.je.","type":1,"TTL":300,"data":"185.199.111.153"},{"name":"hnvip.qd.je.","type":1,"TTL":300,"data":"185.199.110.153"},{"name":"hnvip.qd.je.","type":1,"TTL":300,"data":"185.199.108.153"},{"name":"hnvip.qd.je.","type":1,"TTL":300,"data":"185.199.109.153"}],"Comment":"Response from 150.230.46.101."}
+
+## hnvip.qd.je 证书（忽略校验）
+HTTP=200
+--- headers ---
+HTTP/2 200 
+server: GitHub.com
+content-type: text/html; charset=utf-8
+last-modified: Mon, 19 Oct 2026 12:23:09 GMT
+access-control-allow-origin: *
+etag: "6ad60bad-32b75"
+expires: Mon, 19 Oct 2026 12:37:20 GMT
+cache-control: max-age=600
+x-proxy-cache: MISS
+x-github-request-id: 37A8:13D8D:9069:AEFF:6AD60CA8
+x-github-edge-region: westus3
+accept-ranges: bytes
+age: 0
+date: Mon, 19 Oct 2026 12:27:20 GMT
+via: 1.1 varnish
+x-served-by: cache-sjc10045-SJC
+x-cache: MISS
+x-cache-hits: 0
+x-timer: S1792412841.613580,VS0,VE93
+vary: Accept-Encoding
+--- BUILD_VER ---
+BUILD_VER = "20261019d"
+--- server/SW ---
+0
