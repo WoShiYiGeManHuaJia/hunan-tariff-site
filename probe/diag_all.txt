@@ -1,0 +1,46 @@
+# 联合诊断 2026-10-19T12:22:12Z
+
+## 1. 课表 Worker
+### https://kebiao.wispy-hill-817a.workers.dev/
+HTTP=404 time=0.093749s size=17
+--- body ---
+error code: 1042
+
+### https://kebiao.wispy-hill-817a.workers.dev/?action=weeks
+HTTP=404 time=0.082367s size=17
+--- body ---
+error code: 1042
+
+
+## 2. 站点 hnvip.qd.je
+--- headers ---
+curl: (60) SSL: no alternative certificate subject name matches target host name 'hnvip.qd.je'
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+--- BUILD_VER in body ---
+grep: /tmp/h.txt: No such file or directory
+--- cnField(r.k) 是否在新版 ---
+grep: /tmp/h.txt: No such file or directory
+
+## 3. GitHub Pages 官方域名
+HTTP/2 301 
+age: 0
+via: 1.1 varnish
+x-cache: MISS
+x-cache-hits: 0
+--- BUILD_VER ---
+
+## 4. version.json 直取
+curl: (60) SSL: no alternative certificate subject name matches target host name 'hnvip.qd.je'
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server
+
+## 5. Cloudflare API token 有效性
+HTTP=200
+{"result":{"id":"a04d27a3db7245d205abd17d67ad8eb7","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
+--- zones ---
+{"result":[],"result_info":{"page":1,"per_page":10,"total_pages":0,"count":0,"total_count":0},"success":true,"errors":[],"messages":[]}
