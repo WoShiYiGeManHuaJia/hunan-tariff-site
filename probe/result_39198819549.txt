@@ -1,0 +1,41 @@
+====================================================================
+源站接口探测
+====================================================================
+
+[1] 响应结构
+    (第1次失败: <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+    (第2次失败: <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+    (第3次失败: <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+    响应顶层 keys : ['returnCode', 'returnMessage', 'data', 'ok']
+    data 顶层 keys: ['beans', 'page']
+    beans 数量    : 193
+    bean[0] keys  : ['id', 'tariffSeqno', 'tariffName', 'nonModuleList', 'moduleList', 'isFold', 'moduleListTotal', 'nonModuleListTotal']
+    条目字段数    : 53
+    >>> 疑似总数/分页字段: ['page']
+    本分类条目数  : 721
+
+[2] 换 UA 连抓 4 次（判断是否确定性子集）
+    UA#0 -> 721 条
+    UA#1 -> 721 条
+    UA#2 -> 721 条
+    UA#3 -> 721 条
+    >>> 条数完全一致：固定集合，多轮并集【无效】
+    >>> 名称集合完全相同：换 UA 未带来任何新条目
+
+[3] 分页试探（limit 改小 / 翻页）
+    limit=100   page=1 -> 216 条
+    limit=100   page=2 -> 505 条
+    (第1次失败: <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+    (第2次失败: <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe lega)
+    limit=500   page=1 -> 721 条
+    limit=2000  page=1 -> 721 条
+    limit=10000 page=2 -> 0 条
+
+[4] 参数敏感性
+    isPublic=0 -> 0 条（基准 721）
+    linkScn=0 -> 721 条（基准 721）
+    tariffAttr=1 -> 1548 条（基准 721）
+
+====================================================================
+探测结束
+====================================================================
