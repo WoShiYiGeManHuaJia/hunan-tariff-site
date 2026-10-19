@@ -1,0 +1,27 @@
+name: Probe API
+
+# 一次性诊断：探测源站接口结构 / 多轮子集合一性 / 分页可行性
+# 只在需要排查漏抓时手动触发，不占用定时任务
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tariff-build
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pycryptodome
+      - name: 探测源站接口
+        run: python -u scripts/probe_api.py
