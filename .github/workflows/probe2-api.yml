@@ -1,0 +1,50 @@
+name: Probe API 2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tariff-build
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pycryptodome
+      - name: 探测（第二轮）
+        run: python -u scripts/probe_api2.py
+      - name: 写回结果
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -e
+          F="probe/probe2_${RUN_ID}.txt"
+          [ -f "$F" ] || printf 'EMPTY\n' > "$F"
+          python3 - "$F" <<'PY'
+          import base64, json, os, sys, urllib.request
+          path = sys.argv[1]
+          tok = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          content = base64.b64encode(open(path, "rb").read()).decode()
+          data = json.dumps({"message": "probe2: %s" % path, "content": content}).encode()
+          req = urllib.request.Request(
+              "https://api.github.com/repos/%s/contents/%s" % (repo, path),
+              data=data, method="PUT",
+              headers={"Authorization": "token " + tok,
+                       "Accept": "application/vnd.github+json",
+                       "User-Agent": "probe-bot"})
+          try:
+              print("写回 HTTP", urllib.request.urlopen(req, timeout=60).status)
+          except Exception as e:
+              print("写回失败:", str(e)[:200])
+          PY
