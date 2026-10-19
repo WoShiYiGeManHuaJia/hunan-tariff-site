@@ -5,7 +5,7 @@
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261019b";
+var BUILD_VER = "20261019c";
 (function(){
   function base(){
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
@@ -1276,6 +1276,26 @@ function __nz(v){
   var s = String(v);
   return (s === "无" || s === "null" || s === "undefined") ? "" : s;
 }
+function __codeTypeCn(c){
+  // 广电 codeType 形如 GZ_TC_5G / GZ_YXHD_CX / GZ_JZB_LLB，是内部英文代码。
+  // 无中文分类时用它翻译；翻译不了则返回空（宁可不显示，也不显示英文代码）。
+  var s = __nz(c);
+  if(!s){ return ""; }
+  var M = {
+    "GZ_TC_5G":"5G套餐", "GZ_TC_KD":"宽带", "GZ_TC_4G":"4G套餐",
+    "GZ_YXHD_CX":"促销活动", "GZ_JZB_LLB":"流量包", "GZ_JZB_YYB":"语音包",
+    "GZ_JZB_DXB":"短信包", "GZ_TSQTTC_5G":"特殊群体套餐", "GZ_TSQTTC_KD":"特殊群体宽带"
+  };
+  if(M[s]){ return M[s]; }
+  var seg = s.split("_"), out = [];
+  var P = {"TC":"套餐","JZB":"加装包","YXHD":"营销活动","TSQTTC":"特殊群体套餐","KD":"宽带","LLB":"流量包","YYB":"语音包","CX":"促销","5G":"5G"};
+  for(var i=0;i<seg.length;i++){
+    if(seg[i] === "GZ"){ continue; }
+    if(!P[seg[i]]){ return ""; }   // 有认不出的片段就整段隐藏，绝不显示英文
+    out.push(P[seg[i]]);
+  }
+  return out.join("");
+}
 function __normItem(it){
   if(!it){ return null; }
   if(__isMove(it)){ return it; }          // 移动：已是目标结构，原样返回
@@ -1286,8 +1306,10 @@ function __normItem(it){
   if(fee){ f["资费标准"] = fee + (__nz(d.feeUnit) || "元/月"); }
   set("方案编号", d.reportNo);
   // 注意：firstLevelType/secondLevelType 是数字代码(1/2)，不可直接当文字用
-  set("资费类型", d.codeType || it.secondLevel || it.firstLevel);
-  set("归属", it.firstLevel || d.codeType);
+  // 2026-10-19：codeType 是英文内部代码（GZ_TC_5G / GZ_YXHD_CX …），
+  // 直接展示会变成乱码英文，必须优先用中文字段，取不到再翻译代码。
+  set("资费类型", it.secondLevel || d.secondLevelType || it.firstLevel || __codeTypeCn(d.codeType));
+  set("归属", it.firstLevel || d.firstLevelType1 || __codeTypeCn(d.codeType));
   set("适用范围", d.useScope);
   set("销售渠道", d.saleChnl);
   set("上线日期", d.onDate);
