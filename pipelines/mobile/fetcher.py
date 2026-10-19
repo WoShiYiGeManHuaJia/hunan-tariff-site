@@ -126,12 +126,20 @@ SECTION_INTERVAL = float(os.getenv("SECTION_INTERVAL") or "2.0")
 # 默认 3（保守，兼顾速度与安全）；实测抓取不全时可下调为 1（退化为串行）。
 # 设为 1 即完全等价于旧的串行行为，可随时回退。
 FETCH_WORKERS = max(1, int(os.getenv("FETCH_WORKERS") or "3"))
-# 每个分类重复抓取轮数（不同 UA 指纹，结果取并集）。
+# ---- 收敛式多轮抓取（根治漏抓的核心）----
 # 背景：源站按「IP + UA 指纹」隔离限流配额，配额耗尽时返回**确定性子集**，
-# 表现为「某批业务从来抓不到」，既不触发条数降级告警，也不产生 diff，
-# 最终被误判成「该省长期无变化」。多轮换 UA 取并集可补全这些条目。
-# 设为 1 即退回旧的单轮行为。
-FETCH_ROUNDS = max(1, int(os.getenv("FETCH_ROUNDS") or "2"))
+# 表现为「某批业务从来抓不到」：条数只是略少（躲过降级告警），且从未抓到过
+# 所以不产生 diff，最终被误判成「该省长期无变化」。
+#
+# 策略：每轮换一个独立 UA 指纹池抓取，结果取并集，直到【收敛】——
+#   连续 CONVERGE_IDLE 轮都没有带来新条目即停止，不再空转。
+# 这样既保证抓全（有新增就继续），又不会无谓拖长耗时（收敛就停）。
+FETCH_ROUNDS = max(1, int(os.getenv("FETCH_ROUNDS") or "2"))          # 常规轮数
+FETCH_ROUNDS_MAX = max(FETCH_ROUNDS, int(os.getenv("FETCH_ROUNDS_MAX") or "4"))
+# 连续多少轮无新增判定为收敛
+CONVERGE_IDLE = max(1, int(os.getenv("CONVERGE_IDLE") or "1"))
+# 条数低于历史峰值该比例时，判定为「疑似缺量」，把轮数放宽到 FETCH_ROUNDS_MAX
+SHORT_RATIO = float(os.getenv("SHORT_RATIO") or "0.95")
 # 多轮之间条数差异超过该比例时告警（证明源站确实在返回子集）
 ROUND_DIFF_WARN = float(os.getenv("ROUND_DIFF_WARN") or "0.05")
 
@@ -419,24 +427,48 @@ def _fetch_board(sec: str, attr: str, code: str, opener) -> tuple:
     cell_counts = {}
     failed_keys = set()
     lock = threading.Lock()
+    # 本板块历史峰值（按板块隔离），用于判断「疑似缺量」并放宽抓取轮数
+    try:
+        peaks_sec = (_load_peaks().get(sec) or {})
+    except Exception:
+        peaks_sec = {}
 
     def work(t1, t2):
         key = f"{attr},{t1},{t2}"
         round_sizes = []
         cell_items = {}
         last_err = None
-        # 多轮：每轮换一个独立 UA 指纹池，结果取并集
-        for r in range(FETCH_ROUNDS):
+        # 目标轮数：常规 FETCH_ROUNDS；若历史峰值提示「疑似缺量」则放宽到 MAX
+        peak = (peaks_sec or {}).get(key, 0)
+        max_rounds = FETCH_ROUNDS
+        idle = 0
+        r = 0
+        while r < max_rounds:
             ua = _pick_ua()
+            before = len(cell_items)
             try:
                 items = _fetch_cell(opener, attr, t1, t2, code, ua)
                 round_sizes.append(len(items))
                 for it in items:
                     # 板块内跨分类业务名不重复；重复时保留首个
                     cell_items.setdefault(it["name"], it)
+                last_err = None
             except Exception as e:
                 last_err = e
-            if r + 1 < FETCH_ROUNDS:
+                round_sizes.append(-1)
+            gained = len(cell_items) - before
+            # 收敛判定：本轮没带来新条目就计数，连续 CONVERGE_IDLE 次即停
+            if gained > 0:
+                idle = 0
+            else:
+                idle += 1
+                if idle >= CONVERGE_IDLE and r + 1 >= FETCH_ROUNDS:
+                    break
+            r += 1
+            # 疑似缺量（低于历史峰值）时放宽轮数，尽可能补全
+            if r == FETCH_ROUNDS and peak and len(cell_items) < peak * SHORT_RATIO:
+                max_rounds = FETCH_ROUNDS_MAX
+            if r < max_rounds:
                 time.sleep(FETCH_INTERVAL)
         if not cell_items:
             with lock:
