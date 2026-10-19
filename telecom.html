@@ -2,6 +2,9 @@
 <html lang="zh-CN" data-theme="light" data-op="telecom">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>中国电信资费监控 · 数据一览</title>
 <style>
@@ -887,6 +890,16 @@ a.opc{text-decoration:none;display:block}
 .cktips a{color:var(--op3);text-decoration:none;font-weight:600}
 .cktips a:active{opacity:.6}
 @media(max-width:420px){.pspill{font-size:11.5px;padding:4px 9px}}
+
+.an-refresh{margin-left:auto;flex:0 0 auto;padding:4px 12px;border:1px solid var(--bd,#d5dce6);
+  border-radius:999px;background:var(--bg2,#f4f7fb);color:var(--tx,#1f2937);
+  font-size:12px;line-height:20px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.an-refresh:active{opacity:.6}
+.an-refresh.loading{opacity:.5;pointer-events:none}
+#newTip{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));
+  z-index:260;display:none;padding:10px 14px;border-radius:12px;background:#0b7a3f;color:#fff;
+  font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer}
+#newTip.on{display:block}
 </style>
 </head>
 <body>
@@ -1012,7 +1025,7 @@ a.opc{text-decoration:none;display:block}
 
     <section class="view" id="v-announce">
       <div class="panel glass">
-        <div class="ph"><h2 class="pt" id="anTitle">湖南移动公告</h2><span class="ps" id="anDesc">来源：官网公告</span></div>
+        <div class="ph"><h2 class="pt" id="anTitle">湖南移动公告</h2><span class="ps" id="anDesc">来源：官网公告</span><button class="an-refresh" id="anRefresh" type="button" title="重新拉取最新公告">刷新</button></div>
         <div class="an" id="anBox"></div>
       </div>
     </section>
@@ -1201,7 +1214,10 @@ var DATA_BASE = "./data/";
 var CK_WF = "telecom-gb-fetch.yml";
 var REAL_OK = false;
 function __j(u){
-  return fetch(u, {cache:"no-store"}).then(function(r){
+  // 2026-10-19：仅 cache:"no-store" 挡不住 CDN——同一 URL 会被 CDN 直接回旧副本。
+  // 加时间戳让每次请求都是新 URL，强制回源。
+  var sep = (u.indexOf("?") >= 0) ? "&" : "?";
+  return fetch(u + sep + "_t=" + Date.now(), {cache:"no-store"}).then(function(r){
     if(!r.ok){ throw new Error(u + " HTTP " + r.status); }
     return r.json();
   });
@@ -3767,6 +3783,81 @@ if(document.readyState === "loading"){
 } else {
   __bootReal();
 }
+
+/* ============ 2026-10-19 缓存根治 ============ */
+/* ① 检测到线上有更新的数据 → 底部提示条，点一下强制重载（带时间戳，不走缓存） */
+(function(){
+  var KEY = "__lastUpdated__" + location.pathname;
+  function nowStamp(){
+    var u = (window.DATA_BASE || "./data/") + "latest.json";
+    return fetch(u + "?_t=" + Date.now(), {cache:"no-store"})
+      .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+  }
+  function showTip(txt){
+    var t = document.getElementById("newTip");
+    if(!t) return;
+    t.textContent = txt;
+    t.className = "on";
+  }
+  function hardReload(){
+    // 给 HTML 自身也加时间戳，绕开浏览器与 CDN 的 HTML 副本
+    var u = location.href.split("#")[0];
+    u += (u.indexOf("?") >= 0 ? "&" : "?") + "_r=" + Date.now();
+    location.replace(u);
+  }
+  window.__hardReload = hardReload;
+  function check(){
+    nowStamp().then(function(j){
+      if(!j || !j.updated) return;
+      var cur = j.updated;
+      var old = "";
+      try { old = localStorage.getItem(KEY) || ""; } catch(e){}
+      if(old && old !== cur){
+        showTip("已有新数据（" + cur + "），点此立即刷新");
+        var t = document.getElementById("newTip");
+        if(t) t.onclick = hardReload;
+      }
+      try { localStorage.setItem(KEY, cur); } catch(e){}
+    });
+  }
+  setTimeout(check, 1500);
+  setInterval(check, 120000);   // 每 2 分钟静默比对一次
+})();
+
+/* ② 公告刷新按钮：直接重拉 announce.json 并重渲染，不必整页刷新 */
+(function(){
+  function bind(){
+    var btn = document.getElementById("anRefresh");
+    if(!btn || btn.__bound) return;
+    btn.__bound = 1;
+    btn.addEventListener("click", function(){
+      var old = btn.textContent;
+      btn.classList.add("loading");
+      btn.textContent = "拉取中";
+      var u = (window.DATA_BASE || "./data/") + "announce.json";
+      fetch(u + "?_t=" + Date.now(), {cache:"no-store"})
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
+        .then(function(j){
+          if(!D) return;
+          D.announce = (j && j.items) ? j : {updated:"",count:0,items:[]};
+          if(typeof renderAnnounce === "function") renderAnnounce();
+          btn.textContent = "已更新";
+          setTimeout(function(){ btn.classList.remove("loading"); btn.textContent = old; }, 1200);
+        })
+        .catch(function(e){
+          btn.classList.remove("loading");
+          btn.textContent = "失败";
+          setTimeout(function(){ btn.textContent = old; }, 1800);
+        });
+    });
+  }
+  if(document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+  setTimeout(bind, 800);
+})();
+
 </script>
+<div id="newTip"></div>
 </body>
 </html>
