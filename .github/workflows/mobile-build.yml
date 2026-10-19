@@ -98,6 +98,17 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           python clean_fake_added.py || echo "[警告] 清洗脚本未执行成功，继续构建"
 
+      # ★ 变化暴涨熔断：漏抓的条目补回来时会被判成「新增」，
+      #   曾一次虚报 3177 条；源站返回确定性子集时还会造成
+      #   「新增→下架→新增」震荡。这里在写入 history 前拦截异常量级，
+      #   把该板块本轮变化作废（原值留档 suppressed_*），
+      #   数据仍入库，只是不计入历史与推送，下轮稳定后自动补记。
+      - name: 变化暴涨熔断（构建后）
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          python3 scripts/guard_surge.py \
+            || echo "::warning::本轮有板块变化量异常已熔断，详见上方列表"
+
       - name: 构建站点数据
         run: |
           set -e
