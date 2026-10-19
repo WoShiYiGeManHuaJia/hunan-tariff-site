@@ -3,27 +3,26 @@
 """
 源站接口探测 —— 诊断「漏抓」根因（一次性脚本，手动触发）。
 
-结果同时打印到日志并写入 probe/result.txt（由 workflow 提交回仓库），
-这样即使 Actions 日志接口不可用也能读到结论。
+复用 pipelines/mobile/fetcher.py 里已验证可用的 SSL/请求实现，
+避免自己造轮子导致握手失败（曾因 SSL legacy renegotiation 直接失败）。
 
 探测项：
-  1. 响应结构：data 顶层有没有总数（total/count）字段？
-     → 有总数 = 可精确判定「抓全了没」
-  2. 多轮子集合一性：同一分类换 UA 连抓 N 次，条数是否一致？
-     → 不一致 = 确定性子集，多轮并集有效
-     → 一致但偏少 = 固定配额上限，多轮无效，需换手段
-  3. 分页可行性：limit 改小、翻 page，条数是否变化？
-     → 有效 = 可用分页绕开单次配额上限
-  4. isPublic / linkScn 等参数是否影响返回条数
+  1. 响应结构：有没有总数（total/count）字段 → 能否精确判定抓全
+  2. 多轮子集合一性：换 UA 连抓 N 次条数是否一致 → 并集策略是否有效
+  3. 分页可行性：limit 改小 / 翻 page → 能否用分页绕开配额
+  4. 参数敏感性：isPublic / linkScn 是否影响返回条数
+
+结果写入 probe/result.txt，由 workflow 用 contents API 写回仓库。
 """
 import io
 import json
 import os
-import ssl
 import sys
 import time
-import urllib.request
-import uuid
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(ROOT, "pipelines", "mobile"))
 
 OUT = []
 
@@ -34,152 +33,115 @@ def log(s=""):
 
 
 try:
-    from Crypto.Cipher import AES
+    import fetcher as F
 except Exception as e:
     log("IMPORT_FAIL: %s" % e)
-    AES = None
-
-AES_KEY = b"1234123412ABCDEF"
-AES_IV = b"ABCDEF1234123412"
-API_URL = ("https://h.app.coc.10086.cn/website/nrapigate/nrtariff/new/"
-           "Tariff/getTariffListInfo")
-REFERER = ("https://h.app.coc.10086.cn/cmcc-app/pc-pages/tariffZonePers.html"
-           "?pageId=834148205904408576&prov=731&channelId=P00000010677")
-
-UA_POOL = [
-    "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 13; ELE-AL00) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/116.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 12; V2141A) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/115.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 13; PGT-AN00) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/113.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile Safari/604.1",
-]
-
-
-def _enc(p):
-    b = json.dumps(p, separators=(",", ":"), ensure_ascii=False).encode()
-    b = b + bytes([16 - len(b) % 16]) * (16 - len(b) % 16)
-    return AES.new(AES_KEY, AES.MODE_CBC, AES_IV).encrypt(b).hex().upper()
-
-
-def _dec(h):
-    r = AES.new(AES_KEY, AES.MODE_CBC, AES_IV).decrypt(bytes.fromhex(h))
-    return r[:-r[-1]].decode("utf-8")
-
-
-def _opener():
-    ctx = ssl.create_default_context()
-    try:
-        ctx.options |= ssl.OP_LEGACY_SERVER_CONNECT
-    except AttributeError:
-        pass
-    return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(),
-                                       urllib.request.HTTPSHandler(context=ctx))
-
-
-def call(opener, ui, **over):
-    params = {"cellNum": "99999999999", "province": "731", "isPublic": "1",
-              "linkScn": "1", "tariffAttr": "2", "type1": "1", "type2": "2",
-              "page": 1, "limit": 10000, "xk": str(uuid.uuid4())}
-    params.update(over)
-    ua = UA_POOL[ui % len(UA_POOL)]
-    req = urllib.request.Request(
-        API_URL, data=_enc(params).encode(),
-        headers={"Content-Type": "application/json", "User-Agent": ua,
-                 "Referer": REFERER, "Origin": "https://h.app.coc.10086.cn",
-                 "Accept": "application/json"})
-    raw = opener.open(req, timeout=60).read().decode()
-    return json.loads(_dec(json.loads(raw)["body"]))
-
-
-def count_names(d):
-    n = 0
-    for b in ((d.get("data") or {}).get("beans") or []):
-        n += len(b.get("nonModuleList") or [])
-    return n
+    F = None
 
 
 def main():
     log("=" * 68)
     log("源站接口探测")
     log("=" * 68)
-    if AES is None:
-        log("Crypto 不可用，终止")
+    if F is None:
         return 1
 
-    op = _opener()
+    op = F._build_opener()
 
     # ---- 1. 响应结构 ----
     log("")
     log("[1] 响应结构")
     try:
-        d = call(op, 0)
-        data = d.get("data") or {}
-        log("    响应顶层 keys : %s" % list(d.keys()))
-        log("    data 顶层 keys: %s" % list(data.keys()))
-        beans = data.get("beans") or []
+        raw = F._post(op, F._encrypt({
+            "cellNum": "99999999999", "province": "731", "isPublic": "1",
+            "linkScn": "1", "tariffAttr": "2", "type1": "1", "type2": "2",
+            "page": 1, "limit": 10000, "xk": "probe-1",
+        }))
+        data = json.loads(raw)
+        d = data.get("data") or {}
+        log("    响应顶层 keys : %s" % list(data.keys()))
+        log("    data 顶层 keys: %s" % list(d.keys()))
+        beans = d.get("beans") or []
         log("    beans 数量    : %d" % len(beans))
         if beans:
             log("    bean[0] keys  : %s" % list(beans[0].keys()))
             nm = beans[0].get("nonModuleList") or []
             if nm:
-                log("    条目字段      : %s" % list(nm[0].keys())[:20])
-        guess = [k for k in data.keys()
-                 if any(w in k.lower() for w in
-                        ("total", "count", "size", "num", "sum", "rows"))]
-        log("    >>> 疑似总数字段: %s" % (guess or "无"))
-        log("    本轮条目数    : %d" % count_names(d))
+                log("    条目字段数    : %d" % len(nm[0]))
+        guess = [k for k in list(d.keys()) + list(data.keys())
+                 if any(w in str(k).lower() for w in
+                        ("total", "count", "size", "num", "sum", "rows", "page"))]
+        log("    >>> 疑似总数/分页字段: %s" % (guess or "无"))
+        n0 = F._fetch_cell(op, "2", "1", "2", "731")
+        log("    本分类条目数  : %d" % len(n0))
     except Exception as e:
         log("    失败: %s" % str(e)[:200])
         return 1
 
     # ---- 2. 多轮子集合一性 ----
     log("")
-    log("[2] 同分类换 UA 连抓 4 次（判断是否确定性子集）")
-    sizes = []
+    log("[2] 换 UA 连抓 4 次（判断是否确定性子集）")
+    sizes, sets = [], []
     for i in range(4):
         try:
-            n = count_names(call(op, i))
-            sizes.append(n)
-            log("    UA#%d -> %d 条" % (i, n))
+            items = F._fetch_cell(op, "2", "1", "2", "731",
+                                  ua=F.UA_POOL[i % len(F.UA_POOL)])
+            sizes.append(len(items))
+            sets.append(set(x["name"] for x in items))
+            log("    UA#%d -> %d 条" % (i, len(items)))
         except Exception as e:
             sizes.append(-1)
             log("    UA#%d -> 失败 %s" % (i, str(e)[:100]))
-        time.sleep(8)
+        time.sleep(6)
     ok = [s for s in sizes if s > 0]
     if len(set(ok)) == 1:
-        log("    >>> 完全一致：源站返回固定集合，多轮并集【无效】")
+        log("    >>> 条数完全一致：固定集合，多轮并集【无效】")
     else:
-        log("    >>> 不一致 %s：确定性子集，多轮并集【有效】" % sizes)
+        log("    >>> 条数不一致 %s：确定性子集，并集【有效】" % sizes)
+    if len(sets) >= 2 and sets[0]:
+        if sets[0] == sets[1]:
+            log("    >>> 名称集合完全相同：换 UA 没带来任何新条目")
+        else:
+            log("    >>> 名称集合有差异：UA#0 独有 %d，UA#1 独有 %d"
+                % (len(sets[0] - sets[1]), len(sets[1] - sets[0])))
 
     # ---- 3. 分页可行性 ----
     log("")
     log("[3] 分页试探（limit 改小 / 翻页）")
-    base = ok[0] if ok else 0
-    for lim, pg in ((100, 1), (100, 2), (500, 1), (2000, 1)):
+    for lim, pg in ((100, 1), (100, 2), (500, 1), (2000, 1), (10000, 2)):
         try:
-            n = count_names(call(op, 0, limit=lim, page=pg))
+            raw = F._post(op, F._encrypt({
+                "cellNum": "99999999999", "province": "731", "isPublic": "1",
+                "linkScn": "1", "tariffAttr": "2", "type1": "1", "type2": "2",
+                "page": pg, "limit": lim, "xk": "probe-%d-%d" % (lim, pg),
+            }))
+            d2 = json.loads(raw).get("data") or {}
+            n = sum(len(b.get("nonModuleList") or [])
+                    for b in (d2.get("beans") or []))
             log("    limit=%-5d page=%d -> %d 条" % (lim, pg, n))
         except Exception as e:
             log("    limit=%-5d page=%d -> 失败 %s" % (lim, pg, str(e)[:100]))
-        time.sleep(6)
+        time.sleep(5)
 
     # ---- 4. 参数敏感性 ----
     log("")
-    log("[4] 参数敏感性（isPublic / linkScn）")
-    for key, val in (("isPublic", "0"), ("linkScn", "0")):
+    log("[4] 参数敏感性（isPublic / linkScn / tariffAttr）")
+    base = ok[0] if ok else 0
+    for key, val in (("isPublic", "0"), ("linkScn", "0"), ("tariffAttr", "1")):
         try:
-            n = count_names(call(op, 0, **{key: val}))
+            raw = F._post(op, F._encrypt({
+                "cellNum": "99999999999", "province": "731", "isPublic": "1",
+                "linkScn": "1", "tariffAttr": "2", "type1": "1", "type2": "2",
+                "page": 1, "limit": 10000, "xk": "probe-%s-%s" % (key, val),
+                key: val,
+            }))
+            d3 = json.loads(raw).get("data") or {}
+            n = sum(len(b.get("nonModuleList") or [])
+                    for b in (d3.get("beans") or []))
             log("    %s=%s -> %d 条（基准 %d）" % (key, val, n, base))
         except Exception as e:
             log("    %s=%s -> 失败 %s" % (key, val, str(e)[:100]))
-        time.sleep(6)
+        time.sleep(5)
 
     log("")
     log("=" * 68)
@@ -195,14 +157,12 @@ if __name__ == "__main__":
     except Exception as e:
         log("FATAL: %s" % str(e)[:300])
         rc = 2
-    # 结果落盘，供 workflow 提交回仓库（日志接口不可用时也能读到）
     try:
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        pdir = os.path.join(root, "probe")
+        pdir = os.path.join(ROOT, "probe")
         os.makedirs(pdir, exist_ok=True)
         with io.open(os.path.join(pdir, "result.txt"), "w",
                      encoding="utf-8") as f:
             f.write("\n".join(OUT))
     except Exception as e:
         print("写文件失败", e)
-    sys.exit(0)   # 永远成功，保证 workflow 走到提交步骤
+    sys.exit(0)
