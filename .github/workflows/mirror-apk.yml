@@ -1,0 +1,56 @@
+name: mirror-apk
+on:
+  workflow_dispatch:
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 从 jsDelivr 取 APK 并放一份到本站
+        run: |
+          set +e
+          python3 - <<'PY' > mlog_out.txt 2>&1
+          import urllib.request, json, base64, urllib.parse, time, os
+          TOK=os.environ["GH_TOKEN"]
+          H={"Authorization":"token "+TOK,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          R=os.environ["REPO"]
+          SRC="https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/NexioSchedule@master/app-release.apk"
+          print("=== 下载源 ===")
+          try:
+              req=urllib.request.Request(SRC,headers={"User-Agent":"Mozilla/5.0"})
+              data=urllib.request.urlopen(req,timeout=240).read()
+              print("  %.2f MB"%(len(data)/1048576))
+          except Exception as e:
+              print("  失败",repr(e)[:150]); raise SystemExit(1)
+          print("\n=== 写入 app-release.apk / nexio.apk ===")
+          for P in ["app-release.apk","nexio.apk"]:
+              q=urllib.parse.quote(P,safe='')
+              sha=None
+              try:
+                  d=json.load(urllib.request.urlopen(urllib.request.Request(
+                      'https://api.github.com/repos/%s/contents/%s?ref=main'%(R,q),headers=H),timeout=120))
+                  sha=d.get('sha')
+              except Exception: pass
+              pl={"message":"mirror: 放置课表 APK 供国内下载",
+                  "content":base64.b64encode(data).decode(),"branch":"main"}
+              if sha: pl["sha"]=sha
+              r=urllib.request.Request('https://api.github.com/repos/%s/contents/%s'%(R,q),
+                  data=json.dumps(pl).encode(),method="PUT",headers=H)
+              print("  %-18s -> %s"%(P,json.load(urllib.request.urlopen(r,timeout=300))["commit"]["sha"][:8]))
+              time.sleep(5)
+          print("\n完成")
+          PY
+          cat mlog_out.txt
+          echo done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: WoShiYiGeManHuaJia/hunan-tariff-site
+      - name: 保存
+        run: |
+          mkdir -p mlog && cp mlog_out.txt mlog/out.txt
+          git config user.name bot; git config user.email b@e.com
+          git add mlog/ || true
+          git diff --cached --quiet || git commit -m "mlog"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q && break || sleep 5; done
