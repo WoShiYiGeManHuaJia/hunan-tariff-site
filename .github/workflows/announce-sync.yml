@@ -1,0 +1,140 @@
+name: Announce Sync
+
+# 公告单独同步 —— 与重量级 mobile-build 解耦。
+# 背景：公告挂在 mobile-build 里，随 32 板块全量抓取走（约 40 分钟），
+# 一天只有两轮，源站上午发的公告经常要等到晚上才同步。
+# 本流程只抓公告（60 条列表 + 15 条详情），1~2 分钟跑完，可高频执行。
+
+on:
+  schedule:
+    # 每 2 小时一次，17 分触发避开整点拥挤
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 独立并发组：不被 mobile-build 的大抓取堵住
+concurrency:
+  group: announce-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 抓取公告（移动 + 联通）
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          # 记录抓取前的 id 集合，用于判断是否有新增
+          python3 - <<'PY'
+          import json, os
+          old = []
+          for p in ("data/announce.json", "unicom/data/announce.json"):
+              try:
+                  d = json.load(open(p, encoding="utf-8"))
+                  old += [x.get("id") for x in (d.get("items") or [])]
+              except Exception:
+                  pass
+          json.dump(sorted(set(str(x) for x in old if x)),
+                    open("/tmp/ann_old.json", "w"))
+          print("抓取前已有公告 id 数:", len(set(old)))
+          PY
+
+          # ★ 必须写仓库根 data/：announce_fetch.py 的 root 解析为 pipelines/，
+          #   传相对路径会写到 pipelines/site/data/ 下，该目录从不参与同步。
+          python3 pipelines/scripts/announce_fetch.py \
+            --move-dir "$GITHUB_WORKSPACE/data" \
+            --uni-dir  "$GITHUB_WORKSPACE/unicom/data" \
+            || echo "::warning::公告抓取失败，沿用现有数据"
+
+      - name: 对比是否有新增公告
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          python3 - <<'PY'
+          import json, os
+          old = set(json.load(open("/tmp/ann_old.json")))
+          news = []
+          for prov, p in (("移动", "data/announce.json"),
+                          ("联通", "unicom/data/announce.json")):
+              try:
+                  d = json.load(open(p, encoding="utf-8"))
+              except Exception:
+                  continue
+              print("[%s] updated=%s count=%s" % (prov, d.get("updated"), d.get("count")))
+              for x in (d.get("items") or []):
+                  if str(x.get("id")) not in old:
+                      news.append("%s | %s | %s" % (
+                          prov, x.get("date"), str(x.get("title"))[:50]))
+          print("\n[新增公告] %d 条" % len(news))
+          for n in news[:12]:
+              print("  +", n)
+          if news:
+              lines = ["### 资费公告更新（%d 条）" % len(news), ""]
+              lines += ["- " + n for n in news[:12]]
+              if len(news) > 12:
+                  lines.append("- ...等共 %d 条" % len(news))
+              open("/tmp/ann_msg.md", "w").write("\n".join(lines))
+          PY
+
+      - name: 提交
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "announce-bot"
+          git config user.email "announce@local"
+          git add -f data/announce.json unicom/data/announce.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "公告无变化，跳过提交"
+          else
+            for i in 1 2 3; do
+              git pull --rebase -X theirs origin main || true
+              if git push; then echo "push 成功"; break; fi
+              echo "[warn] push 失败，重试 $i"; sleep 8
+            done
+          fi
+
+      - name: 有新公告则推送钉钉
+        if: always()
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          if [ ! -f /tmp/ann_msg.md ]; then echo "无新增公告，不推送"; exit 0; fi
+          if [ -z "$DINGTALK_WEBHOOK" ]; then echo "未配置 DINGTALK_WEBHOOK，跳过"; exit 0; fi
+          python3 - <<'PY'
+          import base64, hashlib, hmac, json, os, time, urllib.parse, urllib.request
+          hook = os.environ.get("DINGTALK_WEBHOOK", "")
+          secret = os.environ.get("DINGTALK_SECRET", "")
+          text = open("/tmp/ann_msg.md").read()
+          url = hook
+          if secret:
+              ts = str(round(time.time() * 1000))
+              sign = urllib.parse.quote_plus(base64.b64encode(hmac.new(
+                  secret.encode(), ("%s\n%s" % (ts, secret)).encode(),
+                  hashlib.sha256).digest()).decode())
+              url = "%s&timestamp=%s&sign=%s" % (hook, ts, sign)
+          body = json.dumps({"msgtype": "markdown",
+                             "markdown": {"title": "资费公告更新", "text": text}},
+                            ensure_ascii=False).encode()
+          req = urllib.request.Request(
+              url, data=body, method="POST",
+              headers={"Content-Type": "application/json; charset=utf-8"})
+          try:
+              r = urllib.request.urlopen(req, timeout=30)
+              print("推送结果:", r.read().decode()[:200])
+          except Exception as e:
+              print("推送失败:", str(e)[:200])
+          PY
