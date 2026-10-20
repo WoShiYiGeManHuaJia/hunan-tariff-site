@@ -1,20 +1,20 @@
 === DNS hnvip.qd.je ===
-('hnvip.qd.je', [], ['185.199.111.153', '185.199.110.153', '185.199.109.153', '185.199.108.153'])
+('hnvip.qd.je', [], ['185.199.109.153', '185.199.108.153', '185.199.111.153', '185.199.110.153'])
 
 === https://hnvip.qd.je/nexio.apk ===
 HTTP 200 bytes 3334090
-md5 ca014bab1126974eeb29964725cfbff0
-构建号=['20261020-6']  中文标记={'非本周': True, '无需校园网': True, '请连校园网': False, '节假日': True}
+md5 51902e64359a1b492c4b9dfe2432056a
+构建号=['20261020-7']  中文标记={'非本周': True, '无需校园网': True, '请连校园网': False, '节假日': True}
 
 === http://hnvip.qd.je/nexio.apk ===
 HTTP 200 bytes 3334090
-md5 ca014bab1126974eeb29964725cfbff0
-构建号=['20261020-6']  中文标记={'非本周': True, '无需校园网': True, '请连校园网': False, '节假日': True}
+md5 51902e64359a1b492c4b9dfe2432056a
+构建号=['20261020-7']  中文标记={'非本周': True, '无需校园网': True, '请连校园网': False, '节假日': True}
 
 === https://woshiyigemanhuajia.github.io/hunan-tariff-site/nexio.apk ===
 HTTP 200 bytes 3334090
-md5 ca014bab1126974eeb29964725cfbff0
-构建号=['20261020-6']  中文标记={'非本周': True, '无需校园网': True, '请连校园网': False, '节假日': True}
+md5 51902e64359a1b492c4b9dfe2432056a
+构建号=['20261020-7']  中文标记={'非本周': True, '无需校园网': True, '请连校园网': False, '节假日': True}
 
 === https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/NexioSchedule@master/app-release.apk ===
 HTTP 200 bytes 3317850
