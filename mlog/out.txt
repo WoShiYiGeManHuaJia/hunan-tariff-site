@@ -3,7 +3,7 @@
   md5 885dff5ca09533fa0184ac2c4d5441ae
 
 === 写入 app-release.apk / nexio.apk ===
-  app-release.apk    -> ccc106b3
-  nexio.apk          -> 5a5c2559
+  app-release.apk    -> 997354d3
+  nexio.apk          -> a76868fd
 
 完成
