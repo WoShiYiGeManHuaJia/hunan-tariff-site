@@ -1,0 +1,44 @@
+name: verify-apk
+on:
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 从用户实际访问的网址下载并解包校验
+        run: |
+          mkdir -p vlog
+          {
+          echo "=== UTC 时间 ==="
+          date -u
+          for U in "https://hnvip.qd.je/nexio.apk" "https://woshiyigemanhuajia.github.io/hunan-tariff-site/nexio.apk" "https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/NexioSchedule@master/app-release.apk"; do
+            echo ""
+            echo "=== URL: $U ==="
+            rm -f /tmp/v.apk /tmp/v.dex
+            curl -sSL -m 240 -o /tmp/v.apk -w "http_code=%{http_code} bytes=%{size_download}\n" "$U" 2>&1 || echo "curl 失败"
+            if [ -s /tmp/v.apk ]; then
+              echo "md5: $(md5sum /tmp/v.apk | cut -d' ' -f1)"
+              unzip -p /tmp/v.apk classes.dex > /tmp/v.dex 2>/dev/null || echo "解包失败"
+              echo -n "dex 内构建号: "
+              strings /tmp/v.dex 2>/dev/null | grep -oE "2026[0-9]{4}-[0-9]" | sort -u | tr '\n' ' '
+              echo ""
+              echo -n "含「非本周」字符串: "
+              strings /tmp/v.dex 2>/dev/null | grep -c "非本周" || echo "0"
+              echo -n "含「无需校园网」字符串: "
+              strings /tmp/v.dex 2>/dev/null | grep -c "无需校园网" || echo "0"
+            fi
+          done
+          echo ""
+          echo "=== 仓库内 nexio.apk md5（对照） ==="
+          md5sum nexio.apk 2>/dev/null || echo "无"
+          } > vlog/verify.txt 2>&1
+          cat vlog/verify.txt
+      - name: 保存
+        run: |
+          git config user.name bot; git config user.email b@e.com
+          git add vlog/ || true
+          git diff --cached --quiet || git commit -m "vlog"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q && break || sleep 5; done
