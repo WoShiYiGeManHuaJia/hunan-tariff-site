@@ -2,7 +2,7 @@
   3.16 MB
 
 === 写入 app-release.apk / nexio.apk ===
-  app-release.apk    -> 8f402505
-  nexio.apk          -> ef914e63
+  app-release.apk    -> 2d1cda06
+  nexio.apk          -> 47eb9f73
 
 完成
