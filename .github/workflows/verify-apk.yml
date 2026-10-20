@@ -11,43 +11,12 @@ jobs:
       - name: 从用户实际访问的网址下载并解包校验
         run: |
           mkdir -p vlog
-          {
-          echo "=== UTC 时间 ==="
-          date -u
-          echo "=== DNS 解析 hnvip.qd.je ==="
-          getent hosts hnvip.qd.je || echo "解析失败"
-          echo ""
-          echo "=== 不带证书校验试 hnvip.qd.je ==="
-          curl -sSLk -m 120 -o /tmp/k.apk -w "http_code=%{http_code} bytes=%{size_download}\n" "https://hnvip.qd.je/nexio.apk" 2>&1 | tail -3
-          [ -s /tmp/k.apk ] && echo "md5: $(md5sum /tmp/k.apk | cut -d' ' -f1)"
-          echo ""
-          for U in "https://woshiyigemanhuajia.github.io/hunan-tariff-site/nexio.apk" "https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/NexioSchedule@master/app-release.apk"; do
-            echo ""
-            echo "=== URL: $U ==="
-            rm -f /tmp/v.apk /tmp/v.dex
-            curl -sSL -m 240 -o /tmp/v.apk -w "http_code=%{http_code} bytes=%{size_download}\n" "$U" 2>&1 || echo "curl 失败"
-            if [ -s /tmp/v.apk ]; then
-              echo "md5: $(md5sum /tmp/v.apk | cut -d' ' -f1)"
-              unzip -p /tmp/v.apk classes.dex > /tmp/v.dex 2>/dev/null || echo "解包失败"
-              echo -n "dex 内构建号: "
-              strings /tmp/v.dex 2>/dev/null | grep -oE "2026[0-9]{4}-[0-9]" | sort -u | tr '\n' ' '
-              echo ""
-              python3 -c "
-import sys
-d=open('/tmp/v.dex','rb').read()
-for kw in ['非本周','无需校园网','请连校园网','节假日']:
-    print('  含 %s: %s' % (kw, kw.encode('utf-8') in d))
-"
-            fi
-          done
-          echo ""
-          echo "=== 仓库内 nexio.apk md5（对照） ==="
-          md5sum nexio.apk 2>/dev/null || echo "无"
-          } > vlog/verify.txt 2>&1
+          python3 check.py > vlog/verify.txt 2>&1
           cat vlog/verify.txt
       - name: 保存
         run: |
-          git config user.name bot; git config user.email b@e.com
+          git config user.name bot
+          git config user.email b@e.com
           git add vlog/ || true
           git diff --cached --quiet || git commit -m "vlog"
           for i in 1 2 3; do git pull --rebase -q origin main && git push -q && break || sleep 5; done
