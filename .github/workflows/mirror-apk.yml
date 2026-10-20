@@ -16,12 +16,16 @@ jobs:
           TOK=os.environ["GH_TOKEN"]
           H={"Authorization":"token "+TOK,"User-Agent":"x","Accept":"application/vnd.github+json"}
           R=os.environ["REPO"]
-          SRC="https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/NexioSchedule@master/app-release.apk"
+          # 从 GitHub release 资产直接取：仓库内的 app-release.apk 由 CI 的 git push 提交，
+          # 那一步一直被拒（非快进），导致仓库里的副本是旧的，jsDelivr 也就一直分发旧包。
+          SRC="https://github.com/WoShiYiGeManHuaJia/NexioSchedule/releases/download/builtin-latest/app-release.apk"
           print("=== 下载源 ===")
           try:
               req=urllib.request.Request(SRC,headers={"User-Agent":"Mozilla/5.0"})
               data=urllib.request.urlopen(req,timeout=240).read()
               print("  %.2f MB"%(len(data)/1048576))
+              import hashlib
+              print("  md5",hashlib.md5(data).hexdigest())
           except Exception as e:
               print("  失败",repr(e)[:150]); raise SystemExit(1)
           print("\n=== 写入 app-release.apk / nexio.apk ===")
