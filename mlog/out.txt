@@ -1,9 +1,9 @@
 === 下载源 ===
   3.18 MB
-  md5 51902e64359a1b492c4b9dfe2432056a
+  md5 cb6cb7ba4758cab274e19c74ccd1ab15
 
 === 写入 app-release.apk / nexio.apk ===
-  app-release.apk    -> faf43194
-  nexio.apk          -> 0d8e6171
+  app-release.apk    -> 5a58cfad
+  nexio.apk          -> 35082969
 
 完成
