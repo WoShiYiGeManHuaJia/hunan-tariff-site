@@ -12,3 +12,8 @@
 
 /
   Cache-Control: no-cache
+
+# 2026-10-20 补：APK 之前没匹配任何规则，Pages 按默认 10 分钟缓存静态资源，
+# 导致仓库里已是新包、用户下载的却是旧包。这里让 APK 每次都向源站验证。
+/*.apk
+  Cache-Control: no-cache, must-revalidate, max-age=0
