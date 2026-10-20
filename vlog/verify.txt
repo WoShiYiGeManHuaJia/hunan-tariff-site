@@ -1,0 +1,33 @@
+=== UTC 时间 ===
+Tue Oct 20 04:21:18 UTC 2026
+
+=== URL: https://hnvip.qd.je/nexio.apk ===
+curl: (60) SSL: no alternative certificate subject name matches target host name 'hnvip.qd.je'
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+http_code=000 bytes=0
+curl 失败
+
+=== URL: https://woshiyigemanhuajia.github.io/hunan-tariff-site/nexio.apk ===
+http_code=200 bytes=3334090
+md5: ca014bab1126974eeb29964725cfbff0
+dex 内构建号: 20261020-6 
+含「非本周」字符串: 0
+0
+含「无需校园网」字符串: 0
+0
+
+=== URL: https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/NexioSchedule@master/app-release.apk ===
+http_code=200 bytes=3317850
+md5: 885dff5ca09533fa0184ac2c4d5441ae
+dex 内构建号: 20261020-2 
+含「非本周」字符串: 0
+0
+含「无需校园网」字符串: 0
+0
+
+=== 仓库内 nexio.apk md5（对照） ===
+ca014bab1126974eeb29964725cfbff0  nexio.apk
