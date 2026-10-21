@@ -79,17 +79,73 @@ summary{font-size:13px;color:var(--pri);cursor:pointer;font-weight:600}
 </div>
 
 <div class="card">
-  <div style="font-size:13px;color:var(--sub)">配置（密钥只存你本机浏览器）</div>
+  <div style="font-size:13px;color:var(--sub)">密钥保险箱（加密存本机，不明文落盘）</div>
   <div class="cfg">
-    <input id="cfg_token" type="password" placeholder="GitHub Token (ghp_...)">
+    <div id="cfg_state" style="padding:9px 12px;border-radius:8px;background:#f0f9f1;color:#18a058;font-size:12.5px;margin-bottom:9px;display:none"></div>
+    <input id="cfg_pin" type="password" inputmode="numeric" maxlength="12" placeholder="解锁口令（自设 4-12 位）">
+    <div id="wrap_token" style="display:none">
+      <input id="cfg_token" type="password" placeholder="GitHub Token (ghp_...)" autocomplete="off">
+    </div>
     <input id="cfg_repo" type="text" placeholder="仓库 owner/name">
-    <button id="btn_savecfg" class="ghost" style="width:100%">保存配置</button>
+    <button id="btn_savecfg" class="ghost" style="width:100%">解锁 / 保存</button>
+    <button id="btn_wipe" class="ghost" style="width:100%;margin-top:8px;color:#e54545">清除本机密钥</button>
+    <div style="font-size:11.5px;color:#8a9099;margin-top:9px;line-height:1.65">
+      密钥用你的口令经 PBKDF2-25万次派生后 AES-GCM 加密存储，<b>不存明文、不进网址</b>。<br>
+      刷新页面后需重新输入口令解锁。
+    </div>
   </div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const LS = { token:"yun139_lg_token", repo:"yun139_lg_repo" };
+const LS = { token:"yun139_lg_vault", repo:"yun139_lg_repo", salt:"yun139_lg_salt", chk:"yun139_lg_chk" };
+
+// ===== 密钥保险箱：PIN -> PBKDF2(250k) -> AES-GCM，不明文落盘 =====
+async function deriveKey(pin, salt){
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name:"PBKDF2", salt, iterations:250000, hash:"SHA-256" },
+    km, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]
+  );
+}
+async function vaultSave(pin, token){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const k = await deriveKey(pin, salt);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, k, new TextEncoder().encode(token));
+  const merged = new Uint8Array(iv.length + ct.byteLength);
+  merged.set(iv, 0); merged.set(new Uint8Array(ct), iv.length);
+  const b64 = btoa(String.fromCharCode(...merged));
+  localStorage.setItem(LS.token, b64);
+  localStorage.setItem(LS.salt, btoa(String.fromCharCode(...salt)));
+  // 校验串：只用于判断 PIN 对不对，不含密钥本身
+  const chk = await crypto.subtle.encrypt({ name:"AES-GCM", iv:new Uint8Array(12) }, k, new TextEncoder().encode("ok"));
+  localStorage.setItem(LS.chk, btoa(String.fromCharCode(...new Uint8Array(chk))));
+}
+async function vaultLoad(pin){
+  const b64 = localStorage.getItem(LS.token), sb = localStorage.getItem(LS.salt);
+  if (!b64 || !sb) return null;
+  const salt = new Uint8Array(atob(sb).split("").map(c=>c.charCodeAt(0)));
+  const k = await deriveKey(pin, salt);
+  const raw = new Uint8Array(atob(b64).split("").map(c=>c.charCodeAt(0)));
+  try {
+    const dec = await crypto.subtle.decrypt({ name:"AES-GCM", iv:raw.slice(0,12) }, k, raw.slice(12));
+    return new TextDecoder().decode(dec);
+  } catch(e) { return null; }   // PIN 错误
+}
+function vaultReady(){ return !!localStorage.getItem(LS.token); }
+async function vaultCheck(pin){
+  const cb = localStorage.getItem(LS.chk), sb = localStorage.getItem(LS.salt);
+  if (!cb || !sb) return false;
+  const salt = new Uint8Array(atob(sb).split("").map(c=>c.charCodeAt(0)));
+  const k = await deriveKey(pin, salt);
+  const raw = new Uint8Array(atob(cb).split("").map(c=>c.charCodeAt(0)));
+  try { await crypto.subtle.decrypt({ name:"AES-GCM", iv:raw.slice(0,12) }, k, raw.slice(12)); return true; }
+  catch(e){ return false; }
+}
+// 会话内缓存：解锁后暂存内存，刷新即失效
+let TOKEN_MEM = null;
+function tokenMem(){ return TOKEN_MEM; }
 const DEF_REPO = "WoShiYiGeManHuaJia/yun139-ghpanel";
 
 // 书签：在 mail.10086.cn 域下读会话 cookie
@@ -122,9 +178,56 @@ function stat(msg, bad){
   e.className = "stat" + (bad ? " bad" : "");
 }
 function loadCfg(){
-  $("cfg_token").value = localStorage.getItem(LS.token) || "";
-  $("cfg_repo").value  = localStorage.getItem(LS.repo) || DEF_REPO;
+  $("cfg_repo").value = localStorage.getItem(LS.repo) || DEF_REPO;
+  $("cfg_token").value = "";                 // 永不回填明文
+  if (vaultReady()){
+    $("wrap_token").style.display = "none";  // 已存过，只解锁
+    setState("已在本机保存加密密钥，输入口令解锁", false);
+  } else {
+    $("wrap_token").style.display = "block"; // 首次：口令 + token 一起设
+    setState("首次使用：设口令并填入 GitHub Token", false);
+  }
 }
+function setState(msg, bad){
+  const e = $("cfg_state");
+  e.textContent = msg; e.style.display = "block";
+  e.style.background = bad ? "#fdf0f0" : "#f0f9f1";
+  e.style.color = bad ? "#e54545" : "#18a058";
+}
+$("btn_savecfg").onclick = async () => {
+  const pin = $("cfg_pin").value.trim();
+  const repo = $("cfg_repo").value.trim() || DEF_REPO;
+  if (pin.length < 4) { setState("口令至少 4 位", true); return; }
+  localStorage.setItem(LS.repo, repo);
+  try {
+    if (vaultReady()){
+      if (await vaultCheck(pin)){
+        TOKEN_MEM = await vaultLoad(pin);
+        setState("已解锁 ✓（密钥仅在内存中，刷新后需重输）", false);
+        log("密钥已解锁", "ok");
+      } else { setState("口令错误", true); return; }
+    } else {
+      const tk = $("cfg_token").value.trim();
+      if (!tk) { setState("首次使用需填入 GitHub Token", true); return; }
+      await vaultSave(pin, tk);
+      TOKEN_MEM = tk;
+      $("cfg_token").value = "";
+      $("wrap_token").style.display = "none";
+      setState("已加密保存 ✓（网址里不会出现密钥）", false);
+      log("密钥已加密保存到本机", "ok");
+    }
+    $("cfg_pin").value = "";
+  } catch(e){ setState("保存失败：" + e.message, true); }
+};
+$("btn_wipe").onclick = () => {
+  if (!confirm("清除本机保存的加密密钥？")) return;
+  [LS.token, LS.salt, LS.chk].forEach(k => localStorage.removeItem(k));
+  TOKEN_MEM = null;
+  $("cfg_token").value = ""; $("cfg_pin").value = "";
+  $("wrap_token").style.display = "block";
+  setState("已清除，可重新设置", false);
+  log("本机密钥已清除", "warn");
+};
 function owner(){ return ($("cfg_repo").value || DEF_REPO).split("/")[0].trim(); }
 function repo(){  return ($("cfg_repo").value || DEF_REPO).split("/")[1].trim(); }
 $("btn_savecfg").onclick = () => {
@@ -132,18 +235,13 @@ $("btn_savecfg").onclick = () => {
   localStorage.setItem(LS.repo,  $("cfg_repo").value.trim());
   log("配置已保存到本机", "ok");
 };
-(function(){
-  const q = new URLSearchParams(location.hash.replace(/^#/, ""));
-  const t = q.get("token"), r = q.get("repo");
-  let ch = false;
-  if (t) { localStorage.setItem(LS.token, t); ch = true; }
-  if (r) { localStorage.setItem(LS.repo, r); ch = true; }
-  if (ch) history.replaceState(null, "", location.pathname);
-})();
+// 安全：不再从 URL 读取密钥。URL 会进浏览历史、可被转发、截图会泄露。
+// 密钥只在本页加密存储，永不出现在地址栏。
+if (location.hash) history.replaceState(null, "", location.pathname + location.search);
 
 async function github(path, opts){
-  const tok = localStorage.getItem(LS.token) || "";
-  if (!tok) throw new Error("未配置 GitHub Token，请在下方配置区填写");
+  const tok = tokenMem();
+  if (!tok) throw new Error("密钥未解锁，请在下方输入口令");
   const r = await fetch("https://api.github.com" + path, Object.assign({
     headers: { "Authorization": "token " + tok, "Accept": "application/vnd.github+json",
                "Content-Type": "application/json", "User-Agent": "yun139-login-panel" }
@@ -170,7 +268,7 @@ async function readResult(){
   for (const u of urls) {
     try {
       const r = await fetch(u, u.includes("api.github")
-        ? { headers: { "Authorization": "token " + (localStorage.getItem(LS.token)||""), "Accept":"application/vnd.github+json" } }
+        ? { headers: { "Authorization": "token " + (tokenMem()||""), "Accept":"application/vnd.github+json" } }
         : {});
       if (!r.ok) continue;
       if (u.includes("api.github")) {
@@ -266,7 +364,7 @@ $("btn_sess").onclick = async () => {
 };
 
 loadCfg();
-log("已修复：会话改从 mail.10086.cn 首页建立（原实现在 Login.ashx 上取，永远取不到）。", "ok");
+log("就绪。若未配置密钥，请在下方保险箱中设置。", "ok");
 </script>
 </body>
 </html>
