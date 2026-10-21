@@ -1,0 +1,12 @@
+http://hnvip.qd.je/yun.html -> HTTP 200 , 33124 bytes
+   title: <title>移动云盘签到面板</title>
+   hasPanel: 2
+   hasChart: 2
+https://woshiyigemanhuajia.github.io/hunan-tariff-site/yun.html -> HTTP 200 , 33124 bytes
+   title: <title>移动云盘签到面板</title>
+   hasPanel: 2
+   hasChart: 2
+https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/yun.html -> HTTP 200 , 33124 bytes
+   title: <title>移动云盘签到面板</title>
+   hasPanel: 2
+   hasChart: 2
