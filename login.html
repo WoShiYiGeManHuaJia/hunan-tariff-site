@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>云盘账号登录 · 短信验证码</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--pri:#3181f9;--ok:#18a058;--err:#e54545;--txt:#1f2329;--sub:#8a9099;--bd:#e6e8eb}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:14px;max-width:560px;margin:0 auto}
+h1{font-size:18px;margin:6px 0 2px}
+.sub{color:var(--sub);font-size:12.5px;margin-bottom:14px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+label{display:block;font-size:13px;color:var(--sub);margin:12px 0 6px}
+label:first-child{margin-top:0}
+input{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:10px;font-size:17px;background:#fff;outline:none}
+input:focus{border-color:var(--pri)}
+.row{display:flex;gap:9px}
+.row input{flex:1}
+button{border:0;border-radius:10px;padding:13px 16px;font-size:15px;font-weight:600;background:var(--pri);color:#fff;cursor:pointer;white-space:nowrap}
+button:disabled{opacity:.5}
+button.ghost{background:#eef2f7;color:var(--txt)}
+.big{width:100%;margin-top:14px;padding:15px;font-size:16px}
+#log{margin-top:14px;background:#1f2329;color:#d8dee6;border-radius:10px;padding:12px;font-size:12.5px;line-height:1.75;max-height:280px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Menlo,Consolas,monospace}
+#log .ok{color:#7ee787}#log .err{color:#ff9b9b}#log .warn{color:#ffd479}
+.tip{background:#eef4ff;border-radius:10px;padding:11px 13px;font-size:12.5px;color:#2c5aa0;margin-bottom:12px;line-height:1.7}
+.cfg{margin-top:10px;border-top:1px dashed var(--bd);padding-top:12px;font-size:12px;color:var(--sub)}
+.cfg input{font-size:14px;padding:10px 12px;margin-bottom:8px}
+.stat{padding:11px 13px;border-radius:10px;background:#f0f9f1;color:#18a058;font-size:13.5px;margin-top:12px;display:none}
+.stat.bad{background:#fdf0f0;color:var(--err)}
+</style>
+</head>
+<body>
+<h1>云盘账号登录</h1>
+<div class="sub">输入手机号 → 收短信验证码 → 自动抓取令牌并保存</div>
+
+<div class="tip">
+① 填手机号，点「获取验证码」<br>
+② 把收到的短信验证码填进去<br>
+③ 点「登录并抓取令牌」，成功后自动存进每日签到
+</div>
+
+<div class="card">
+  <label>手机号</label>
+  <div class="row">
+    <input id="inp_phone" type="tel" inputmode="numeric" maxlength="11" placeholder="11 位手机号">
+    <button id="btn_send" class="ghost">获取验证码</button>
+  </div>
+
+  <label>短信验证码</label>
+  <input id="inp_code" type="text" inputmode="numeric" maxlength="8" placeholder="短信里的数字">
+
+  <button id="btn_login" class="big">登录并抓取令牌</button>
+  <div id="stat" class="stat"></div>
+</div>
+
+<div class="card">
+  <div style="font-size:13px;color:var(--sub);margin-bottom:8px">执行日志</div>
+  <div id="log">等待操作…</div>
+</div>
+
+<div class="card">
+  <div style="font-size:13px;color:var(--sub)">配置（密钥只存你本机浏览器，不上传）</div>
+  <div class="cfg">
+    <input id="cfg_token" type="password" placeholder="GitHub Token (ghp_...)">
+    <input id="cfg_repo" type="text" placeholder="仓库 owner/name">
+    <button id="btn_savecfg" class="ghost" style="width:100%">保存配置</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const LS = { token:"yun139_lg_token", repo:"yun139_lg_repo" };
+const DEF_REPO = "WoShiYiGeManHuaJia/yun139-ghpanel";
+const DEF_TOKEN = "";
+
+function log(s, cls){
+  const d = document.createElement("div");
+  if (cls) d.className = cls;
+  d.textContent = s;
+  $("log").appendChild(d);
+  $("log").scrollTop = 1e9;
+}
+function stat(msg, bad){
+  const e = $("stat");
+  e.textContent = msg; e.style.display = "block";
+  e.className = "stat" + (bad ? " bad" : "");
+}
+
+// ---- 配置 ----
+function loadCfg(){
+  $("cfg_token").value = localStorage.getItem(LS.token) || "";
+  $("cfg_repo").value  = localStorage.getItem(LS.repo) || DEF_REPO;
+}
+function owner(){ return ($("cfg_repo").value || DEF_REPO).split("/")[0].trim(); }
+function repo(){  return ($("cfg_repo").value || DEF_REPO).split("/")[1].trim(); }
+$("btn_savecfg").onclick = () => {
+  localStorage.setItem(LS.token, $("cfg_token").value.trim());
+  localStorage.setItem(LS.repo,  $("cfg_repo").value.trim());
+  log("配置已保存到本机", "ok");
+};
+// 支持链接自动配置：#token=ghp_xxx&repo=owner/name
+(function(){
+  const q = new URLSearchParams(location.hash.replace(/^#/, ""));
+  const t = q.get("token"), r = q.get("repo");
+  let ch = false;
+  if (t) { localStorage.setItem(LS.token, t); ch = true; }
+  if (r) { localStorage.setItem(LS.repo, r); ch = true; }
+  if (ch) { history.replaceState(null, "", location.pathname); }
+})();
+
+async function github(path, opts){
+  const tok = localStorage.getItem(LS.token) || "";
+  if (!tok) throw new Error("未配置 GitHub Token，请在下方配置区填写");
+  const r = await fetch("https://api.github.com" + path, Object.assign({
+    headers: { "Authorization": "token " + tok, "Accept": "application/vnd.github+json",
+               "Content-Type": "application/json", "User-Agent": "yun139-login-panel" }
+  }, opts));
+  if (!r.ok) {
+    let m = "HTTP " + r.status;
+    try { const j = await r.json(); if (j.message) m += " " + j.message; } catch(e){}
+    throw new Error(m);
+  }
+  return r;
+}
+async function dispatch(type, payload){
+  await github(`/repos/${owner()}/${repo()}/dispatches`, {
+    method: "POST",
+    body: JSON.stringify({ event_type: type, client_payload: payload || {} })
+  });
+}
+// result.json 用 jsDelivr 优先（国内快），api 兜底
+async function readResult(){
+  const R = `${owner()}/${repo()}`;
+  const urls = [
+    `https://cdn.jsdelivr.net/gh/${R}@main/data/result.json?t=${Date.now()}`,
+    `https://fastly.jsdelivr.net/gh/${R}@main/data/result.json?t=${Date.now()}`,
+    `https://api.github.com/repos/${R}/contents/data/result.json?ref=main`
+  ];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, u.includes("api.github")
+        ? { headers: { "Authorization": "token " + (localStorage.getItem(LS.token)||""), "Accept":"application/vnd.github+json" } }
+        : {});
+      if (!r.ok) continue;
+      if (u.includes("api.github")) {
+        const j = await r.json();
+        if (!j.content) continue;
+        return JSON.parse(atob(j.content.replace(/\n/g,"")));
+      }
+      return await r.json();
+    } catch(e) { /* 换下一个源 */ }
+  }
+  return null;
+}
+
+// ---- 轮询等待结果 ----
+let lastTs = "";
+function waitResult(type, timeoutMs){
+  return new Promise((resolve) => {
+    const t0 = Date.now();
+    const timer = setInterval(async () => {
+      try {
+        const j = await readResult();
+        if (j && j.type === type && j.ts && j.ts !== lastTs) {
+          lastTs = j.ts; clearInterval(timer); resolve(j); return;
+        }
+      } catch(e) { /* 继续轮询 */ }
+      if (Date.now() - t0 > timeoutMs) {
+        clearInterval(timer);
+        resolve({ ok:false, msg:"等待超时（GitHub Actions 可能还在排队，请稍后看日志）" });
+      }
+    }, 4000);
+  });
+}
+
+function busy(on){ $("btn_send").disabled = on; $("btn_login").disabled = on; }
+
+// ---- 获取验证码 ----
+let cd = 0, cdTimer = null;
+function countdown(){
+  const b = $("btn_send");
+  if (cd > 0) { b.textContent = cd + " 秒"; b.disabled = true; cd--; cdTimer = setTimeout(countdown, 1000); }
+  else { b.textContent = "获取验证码"; b.disabled = false; }
+}
+$("btn_send").onclick = async () => {
+  const phone = $("inp_phone").value.trim();
+  if (!/^1\d{10}$/.test(phone)) { log("请输入正确的 11 位手机号", "err"); return; }
+  busy(true);
+  try {
+    await dispatch("send_code", { phone });
+    log("已请求发送验证码，等待短信…", "warn");
+    const j = await waitResult("send_code", 120000);
+    if (j.ok) { log("验证码已发送到 " + phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2"), "ok"); stat("验证码已发送，查收短信"); cd = 60; countdown(); }
+    else { log("发送失败：" + (j.msg || "未知"), "err"); stat("发送失败：" + (j.msg||""), true); }
+  } catch(e) { log("发送失败：" + e.message, "err"); stat("发送失败：" + e.message, true); }
+  finally { busy(false); }
+};
+
+// ---- 登录 ----
+$("btn_login").onclick = async () => {
+  const phone = $("inp_phone").value.trim();
+  const code  = $("inp_code").value.trim();
+  if (!/^1\d{10}$/.test(phone)) { log("请输入正确的手机号", "err"); return; }
+  if (!/^\d{4,8}$/.test(code))  { log("请输入 4-8 位数字验证码", "err"); return; }
+  busy(true);
+  try {
+    await dispatch("do_login", { phone, code });
+    log("登录中，正在抓取令牌…", "warn");
+    const j = await waitResult("do_login", 180000);
+    if (j.ok) {
+      log("登录成功：" + (j.phone ? j.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2") : phone), "ok");
+      log("令牌已保存，明早的定时签到会自动带上这个号", "ok");
+      stat("登录成功，令牌已保存");
+      $("inp_code").value = "";
+    } else {
+      log("登录失败：" + (j.msg || "未知"), "err");
+      stat("登录失败：" + (j.msg||""), true);
+      if (/风控|ec=/.test(String(j.msg||""))) log("提示：可能是风控拦截，换个时间或切换网络再试", "warn");
+    }
+  } catch(e) { log("登录失败：" + e.message, "err"); stat("登录失败：" + e.message, true); }
+  finally { busy(false); }
+};
+
+loadCfg();
+log("准备就绪。配置已通过链接自动写入，直接填手机号即可。", "ok");
+</script>
+</body>
+</html>
