@@ -1,0 +1,25 @@
+name: purge
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: purge jsDelivr
+        run: |
+          for p in "y.html" "云盘签到面板.html"; do
+            echo "--- $p ---"
+            curl -s -X POST "https://purge.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/$p" -H "User-Agent: Mozilla/5.0" -w "\nHTTP %{http_code}\n" || echo ERR
+          done
+      - name: 复查
+        run: |
+          sleep 20
+          curl -s -L "https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/yun.html" -o /tmp/y.html -H "User-Agent: Mozilla/5.0"
+          sz=$(stat -c%s /tmp/y.html 2>/dev/null || echo 0)
+          echo "size=$sz"
+          python3 -c "
+          t=open('/tmp/y.html',encoding='utf-8',errors='ignore').read()
+          print('realPhone:', sum(t.count(x) for x in ['13787464642','17289519953','18289484895','13717306553']))
+          print('hasAccMgr:', t.count('号码与 Cookie'))
+          "
