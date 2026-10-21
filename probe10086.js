@@ -71,6 +71,6 @@ async function probe(t) {
     if (r.error) console.log("  ERROR: " + r.error);
     console.log("");
   }
-  fs.writeFileSync("data/probe10086.json", JSON.stringify(out, null, 1));
-  console.log("写盘 data/probe10086.json");
+  fs.writeFileSync("probe10086.txt", JSON.stringify(out, null, 1));
+  console.log("写盘 probe10086.txt");
 })();
