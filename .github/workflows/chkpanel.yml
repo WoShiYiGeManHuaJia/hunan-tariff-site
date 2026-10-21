@@ -1,0 +1,19 @@
+name: chkpanel
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检查三个地址
+        run: |
+          for u in "http://hnvip.qd.je/yun.html" "https://woshiyigemanhuajia.github.io/hunan-tariff-site/yun.html" "https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/yun.html"; do
+            code=$(curl -s -o /tmp/y.html -w "%{http_code}" -L --max-time 40 "$u" || echo "ERR")
+            sz=$(stat -c%s /tmp/y.html 2>/dev/null || echo 0)
+            echo "$u -> HTTP $code, ${sz} bytes"
+            if [ "$sz" -gt 5000 ]; then
+              echo "  标题: $(grep -o '<title>[^<]*</title>' /tmp/y.html | head -1)"
+              echo "  含签到面板标记: $(grep -c '移动云盘签到面板' /tmp/y.html)"
+            fi
+          done
