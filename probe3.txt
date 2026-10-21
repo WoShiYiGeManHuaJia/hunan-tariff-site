@@ -1,0 +1,20 @@
+[
+ {
+  "name": "商城个人中心",
+  "url": "https://shop.10086.cn/i/",
+  "text": "登录\n短信随机码登录\n客服密码登录\n获取短信随机码\n请阅读《个人信息保护政策》\n请阅读《中国移动网站服务协议》\n记住账号\n互联网用户登录\n登录 丨  帮助\n回到顶部\n\n触屏版 电脑版 客户端\n\n中国移动 | 京ICP备05002571",
+  "phone": [],
+  "hasLogout": false,
+  "loginBtn": true,
+  "cookiesNow": "inx,inx2,ssologinprovince,c,cmccssotoken,CmLocation,CmProvid,defaultloginuser_p,is_login,chargeresource,jsessionid-cmcc,lgToken,cvToken,sendflag"
+ },
+ {
+  "name": "移动官网",
+  "url": "https://www.10086.cn/",
+  "text": "长沙\n要闻\n更多\n渤海海域通信感知网正式开通运行\n2026-10-16\n2026中国移动光电产业链生态大会在苏州举行\n2026-10-15\n智链新生态 供赢新时代 中国移动精彩亮相2026供应链创新与应用展\n3/3\n中国移动以数智之力绘就秋日好“丰”景\n1/3\n中国移动以数智力量支撑“中国智造”\n2/3\n智链新生态 供赢新时代 中国移动精彩亮相2026供应链创新与应用展\n3/3\n中国移动以数智之力绘就秋日好“丰”景\n1/3\n公告\n更多\n关于中国移动通信集团有限公司及所属各单位离职人员企业年金委托管理的公告\n2026-10-21\n中国移动门户网站10月10日23：00至10月21日7：00系统紧急升级公告\n2026-10-10\n服务专区\n账单查询\n详单查询\n余量查询\n余额查询\n充话费\n号码归属地查询\n电子发票\n业务专区\n5G套餐优惠\n\n移动套餐|极速体验\n\n号卡专区\n\n邮寄到家\n\n5G专区\n\n大流量，多权益\n\n特惠流量专区\n\n低至1元/GB\n\n随心看会员版\n\n14.9元/月\n\n国际/中国港澳台业务\n\n出境流量月包随心选\n\n中国移动品牌\n全球通——我能\n\n“全球通”是中国移动的旗舰客户品牌。自创立以来，全球通始终坚持用高质量服务、高标准品质赢得客户信赖。伴随移动业务发展，全球通持续践行“我能”的品牌理念，不仅以尊享服务继承延续着优质可靠的品牌形象，更积极开展公益、健康、文化等主题活动，丰富“创新、进取、品位”的品牌新内涵。\n\n动感地带——我的地盘，听我的\n\n“动感地带”是中国移动面向年轻人打造的“通信潮牌”。焕新以来，围绕“智潮感”，动感地带布局元宇宙，推出“数智代言人橙络络”，结合5G打造萌卡、潮玩卡等产品，持续开展音乐、街舞等圈层活动，建立“社交媒体矩阵”快速深入年轻群体。\n\n神州行——我看行\n\n“神州行”是中国移动面向特定垂类市场的客户品牌。全新升级后，面向银发族和快递外卖员，推出欢孝卡和骑士卡，彰显“回馈、关怀、自豪”的品牌内涵，聚焦客户需求，提升客户获得感。神州行还将面向更多垂类用户，推出更加丰富的卡品和服务。\n\n京ICP备05002571号  证照信息\nCopyright©1999-2026  中国移动  版权所有    \n本网站支持IPv6访问",
+  "phone": [],
+  "hasLogout": false,
+  "loginBtn": false,
+  "cookiesNow": "SESSION,SESSION,inx,inx2,ssologinprovince,c,cmccssotoken,CmLocation,CmProvid,defaultloginuser_p,chargeresource,jsessionid-cmcc,lgToken,cvToken,sendflag,ariawapForceOldFixed"
+ }
+]
