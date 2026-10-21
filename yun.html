@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2b7fff">
+<title>移动云盘签到面板</title>
+<style>
+:root{
+  --brand:#2b7fff; --brand-d:#1a6ae0; --brand-l:#e8f2ff;
+  --bg:#f4f6fa; --card:#fff; --line:#e8ecf3;
+  --t1:#1a1d24; --t2:#5a6270; --t3:#9aa3b2;
+  --ok:#00b96b; --ok-bg:#e6f9f0;
+  --warn:#faad14; --warn-bg:#fff8e6;
+  --err:#ff4d4f; --err-bg:#ffefef;
+  --r:14px; --sh:0 2px 12px rgba(20,30,60,.07);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--t1);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 12px 40px}
+
+/* ---------- 顶栏 ---------- */
+.top{
+  background:linear-gradient(135deg,#2b7fff,#1a5fd8);
+  color:#fff;padding:18px 16px 20px;padding-top:calc(18px + env(safe-area-inset-top));
+  margin:0 -12px 14px;
+}
+.top h1{margin:0;font-size:19px;font-weight:600;letter-spacing:.5px}
+.top .sub{opacity:.85;font-size:12.5px;margin-top:5px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.dot{width:6px;height:6px;border-radius:50%;background:#7dffa8;display:inline-block;margin-right:5px}
+.dot.off{background:#ffb4b4}
+
+/* ---------- 概览 ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.st{background:var(--card);border-radius:var(--r);padding:13px 12px;box-shadow:var(--sh);text-align:center}
+.st .n{font-size:22px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.st .l{font-size:11.5px;color:var(--t3);margin-top:3px}
+.st.up .n{color:var(--ok)} .st.blue .n{color:var(--brand)}
+.st.warn .n{color:var(--warn)} .st.err .n{color:var(--err)}
+
+/* ---------- 卡片通用 ---------- */
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden}
+.card>h2{
+  margin:0;padding:13px 15px;font-size:14.5px;font-weight:600;
+  border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px
+}
+.card>h2 .tag{font-size:11px;font-weight:400;color:var(--t3)}
+.body{padding:14px 15px}
+
+/* ---------- 账号卡 ---------- */
+.accs{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:12px}
+.acc{
+  background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+  padding:14px;position:relative;border-left:4px solid var(--ok);transition:.18s
+}
+.acc.bad{border-left-color:var(--err)} .acc.part{border-left-color:var(--warn)}
+.acc .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.acc .ph{font-size:15.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+.acc .nm{font-size:11.5px;color:var(--t3);font-weight:400;margin-top:1px}
+.badge{font-size:11px;padding:2.5px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+.b-ok{background:var(--ok-bg);color:var(--ok)} .b-err{background:var(--err-bg);color:var(--err)}
+.b-part{background:var(--warn-bg);color:var(--warn)} .b-idle{background:#f0f2f6;color:var(--t3)}
+
+.beans{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+.beans .v{font-size:29px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.beans .u{font-size:12px;color:var(--t3)}
+.beans .g{font-size:13px;font-weight:600;margin-left:auto}
+.beans .g.up{color:var(--ok)} .beans .g.zero{color:var(--t3);font-weight:400}
+
+.mrow{display:flex;gap:8px;margin-bottom:10px}
+.m{flex:1;background:#f7f9fc;border-radius:9px;padding:7px 8px;text-align:center}
+.m .mn{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.m .ml{font-size:10.5px;color:var(--t3);margin-top:1px}
+
+.bar{height:5px;background:#eef1f6;border-radius:5px;overflow:hidden;margin-bottom:9px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#2b7fff,#5aa0ff);border-radius:5px;transition:width .5s}
+
+.tog{width:100%;border:1px solid var(--line);background:#fafbfd;color:var(--t2);
+  border-radius:9px;padding:7px;font-size:12.5px;cursor:pointer;font-family:inherit;transition:.15s}
+.tog:active{background:#f0f3f8}
+.tasks{display:none;margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+.tasks.on{display:block}
+.tk{display:flex;align-items:flex-start;gap:7px;padding:4.5px 0;font-size:12.5px}
+.tk .ic{width:15px;height:15px;flex:0 0 15px;border-radius:50%;margin-top:2px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700}
+.tk.y .ic{background:var(--ok)} .tk.n .ic{background:var(--err)}
+.tk .tn{flex:1;color:var(--t2);word-break:break-all}
+.tk .tp{font-size:11px;color:var(--t3);margin-top:1px}
+.tk.n .tn{color:var(--t1)}
+
+/* ---------- 图表 ---------- */
+.chartbox{position:relative}
+canvas{width:100%;height:230px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;justify-content:center}
+.lg{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer;user-select:none;transition:.15s}
+.lg.off{opacity:.35}
+.lg i{width:16px;height:3px;border-radius:3px;display:block}
+#tip{
+  position:absolute;pointer-events:none;background:rgba(20,26,38,.94);color:#fff;
+  padding:7px 10px;border-radius:8px;font-size:12px;line-height:1.6;white-space:nowrap;
+  opacity:0;transition:opacity .12s;z-index:9;box-shadow:0 4px 14px rgba(0,0,0,.2)
+}
+#tip .r{display:flex;align-items:center;gap:6px}
+#tip .r i{width:7px;height:7px;border-radius:50%;display:block}
+#tip .r b{margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* ---------- 按钮 ---------- */
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn{
+  border:none;border-radius:9px;padding:9px 15px;font-size:13.5px;font-weight:500;
+  cursor:pointer;font-family:inherit;background:var(--brand);color:#fff;transition:.15s
+}
+.btn:active{transform:scale(.97);background:var(--brand-d)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.gh{background:#fff;color:var(--t2);border:1px solid var(--line)}
+.btn.gh:active{background:#f0f3f8}
+.btn.ok{background:var(--ok)} .btn.sm{padding:6px 11px;font-size:12.5px}
+
+/* ---------- 设置 ---------- */
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12.5px;color:var(--t2);margin-bottom:5px;font-weight:500}
+.fld input,.fld select{
+  width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+  font-size:14px;font-family:inherit;background:#fafbfd;color:var(--t1)
+}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--brand);background:#fff}
+.fld .hint{font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.5}
+.sec{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+
+/* ---------- 运行记录 ---------- */
+.log{max-height:300px;overflow:auto}
+.lg2{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid #f2f4f8;font-size:13px}
+.lg2:last-child{border:none}
+.lg2 .lt{color:var(--t3);font-size:12px;white-space:nowrap;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.lg2 .lm{flex:1;color:var(--t2);word-break:break-all}
+
+/* ---------- 提示 ---------- */
+#toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+  background:rgba(20,26,38,.95);color:#fff;padding:11px 18px;border-radius:22px;
+  font-size:13.5px;opacity:0;transition:.25s;z-index:99;pointer-events:none;max-width:88vw;text-align:center
+}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--ok)} #toast.err{background:var(--err)}
+
+.empty{text-align:center;padding:32px 16px;color:var(--t3);font-size:13.5px}
+.empty .big{font-size:34px;margin-bottom:8px;opacity:.5}
+.note{background:var(--brand-l);border-radius:10px;padding:11px 13px;font-size:12.5px;color:#1a5fd8;line-height:1.65;margin-bottom:14px}
+.note b{font-weight:600}
+
+@media(max-width:600px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .accs{grid-template-columns:1fr}
+  .top h1{font-size:17.5px}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>☁️ 移动云盘签到面板</h1>
+  <div class="sub">
+    <span><i class="dot" id="sDot"></i><span id="sTxt">未配置</span></span>
+    <span id="sTime">—</span>
+    <span id="sAuto"></span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div id="cfgNote" class="note">
+    <b>首次使用：</b>点右下「⚙️ 设置」填入 GitHub 仓库与 Token，即可读取真实数据并远程触发签到。
+    未配置时展示的是<b>演示数据</b>（结构与真实一致），可先浏览功能。
+  </div>
+
+  <!-- 概览 -->
+  <div class="stats" id="stats"></div>
+
+  <!-- 账号 -->
+  <div class="card">
+    <h2>账号明细 <span class="tag" id="accTag">—</span></h2>
+    <div class="body"><div class="accs" id="accs"></div></div>
+  </div>
+
+  <!-- 趋势 -->
+  <div class="card">
+    <h2>云豆趋势 <span class="tag" id="chTag">—</span></h2>
+    <div class="body">
+      <div class="chartbox">
+        <canvas id="cv"></canvas>
+        <div id="tip"></div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <!-- 操作 -->
+  <div class="card">
+    <h2>手动执行 <span class="tag">触发 GitHub Actions</span></h2>
+    <div class="body">
+      <div class="btns">
+        <button class="btn" data-ev="daily">▶ 一键全跑</button>
+        <button class="btn gh" data-ev="sign">📅 签到</button>
+        <button class="btn gh" data-ev="task">📋 做任务</button>
+        <button class="btn gh" data-ev="receive">🎈 领气泡</button>
+        <button class="btn gh" data-ev="refresh">🔑 令牌续期</button>
+        <button class="btn gh" data-ev="status">📊 查状态</button>
+      </div>
+      <div style="margin-top:12px" class="btns">
+        <button class="btn gh sm" id="btnRefresh">🔄 刷新数据</button>
+        <button class="btn gh sm" id="btnAuto">⏱ 自动刷新：关</button>
+        <button class="btn gh sm" id="btnCfg">⚙️ 设置</button>
+      </div>
+      <div id="runMsg" style="margin-top:11px;font-size:12.5px;color:var(--t2)"></div>
+    </div>
+  </div>
+
+  <!-- 运行记录 -->
+  <div class="card">
+    <h2>最近运行 <span class="tag">最近 12 条</span></h2>
+    <div class="body"><div class="log" id="log"></div></div>
+  </div>
+
+  <!-- 设置 -->
+  <div class="card" id="cfgCard">
+    <h2>⚙️ 设置 <span class="tag">仅保存在本机浏览器</span></h2>
+    <div class="body">
+      <div class="fld">
+        <label>GitHub 用户名 / 组织</label>
+        <input id="cOwner" placeholder="例如 WoShiYiGeManHuaJia" autocomplete="off">
+      </div>
+      <div class="fld">
+        <label>仓库名</label>
+        <input id="cRepo" placeholder="例如 yun139-ghpanel" autocomplete="off">
+      </div>
+      <div class="fld">
+        <label>分支</label>
+        <input id="cBranch" value="main" autocomplete="off">
+      </div>
+      <div class="fld">
+        <label>Personal Access Token（可选，用于手动执行）</label>
+        <input id="cTok" type="password" placeholder="ghp_xxxx... 需 repo 权限" autocomplete="off">
+        <div class="hint">只需 <b>repo</b> 权限。仅存本机 localStorage，不会上传到任何服务器。留空则只能看数据、不能远程触发。</div>
+      </div>
+      <div class="fld">
+        <label>数据文件（result.json）</label>
+        <input id="cRes" value="data/result.json" autocomplete="off">
+      </div>
+      <div class="fld">
+        <label>历史文件（totals.json）</label>
+        <input id="cTot" value="data/totals.json" autocomplete="off">
+      </div>
+      <div class="btns">
+        <button class="btn ok" id="btnSave">💾 保存并加载</button>
+        <button class="btn gh" id="btnTest">🔌 测试连通</button>
+        <button class="btn gh" id="btnClear">🗑 清空配置</button>
+      </div>
+      <div id="cfgMsg" style="margin-top:11px;font-size:12.5px;color:var(--t2)"></div>
+
+      <div class="sec">
+        <div class="fld">
+          <label>账号备注（每行一个：号码=备注）</label>
+          <textarea id="cNames" rows="3" placeholder="172****9953=主力号&#10;137****6553=备用" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13.5px;font-family:inherit;background:#fafbfd;color:var(--t1)"></textarea>
+          <div class="hint">只影响本页显示，方便区分账号。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============ 演示数据（结构与真实 result.json 一致） ============ */
+const DEMO = {
+  ts:"2026-10-21 07:43:18", requestId:"daily-1790096718055-9agfj2if", type:"daily", ok:true,
+  msg:"共 4 个账号，成功 4 个",
+  perAccount:[
+    {phone:"13787464642",masked:"137****4642",refresh:"成功，剩余 30 天",sign:"签到成功",
+     tasks:12,taskOk:11,taskFail:1,receive:"+5（588→593）",bubbleGot:5,total:593,base:588,gain:5,gainText:"+5（588→593）",ok:true,
+     taskDetail:[{name:"每日签到",ok:true},{name:"从固定入口访问云朵中心",ok:true},{name:"使用PC客户端",ok:true},
+       {name:"浏览云盘文件",ok:true},{name:"备份有礼",ok:true},{name:"体验AI相机",ok:true},
+       {name:"开启APP通知领好礼",ok:true},{name:"云盘安全体验",ok:true},{name:"上传文件满100M",ok:true},
+       {name:"体验云笔记",ok:true},{name:"分享文件领好礼0/7",ok:false,progress:"0/7",done:false,note:"进行中 0/7（点击已推进，条件未达标）"}]},
+    {phone:"13717306553",masked:"137****6553",refresh:"成功，剩余 30 天",sign:"签到成功",
+     tasks:12,taskOk:11,taskFail:1,receive:"+0（801→801）",bubbleGot:0,total:801,base:801,gain:0,gainText:"+0（801→801）",ok:true,
+     taskDetail:[{name:"每日签到",ok:true},{name:"从固定入口访问云朵中心",ok:true},{name:"使用PC客户端",ok:true},
+       {name:"浏览云盘文件",ok:true},{name:"备份有礼",ok:true},{name:"体验AI相机",ok:true},
+       {name:"开启APP通知领好礼",ok:true},{name:"云盘安全体验",ok:true},{name:"上传文件满1G",ok:true},
+       {name:"体验云笔记",ok:true},{name:"分享文件领好礼0/7",ok:false,progress:"0/7",done:false,note:"进行中 0/7（点击已推进，条件未达标）"}]},
+    {phone:"17289519953",masked:"172****9953",refresh:"成功，剩余 30 天",sign:"签到成功",
+     tasks:10,taskOk:9,taskFail:1,receive:"+12（1998→2010）",bubbleGot:12,total:2010,base:1998,gain:12,gainText:"+12（1998→2010）",ok:true,
+     taskDetail:[{name:"每日签到",ok:true},{name:"从固定入口访问云朵中心",ok:true},{name:"使用PC客户端",ok:true},
+       {name:"浏览云盘文件",ok:true},{name:"备份有礼",ok:true},{name:"体验AI相机",ok:true},
+       {name:"云盘安全体验",ok:true},{name:"上传文件满1G",ok:true},
+       {name:"分享文件领好礼0/7",ok:false,progress:"0/7",done:false,note:"进行中 0/7（点击已推进，条件未达标）"}]},
+    {phone:"18289484895",masked:"182****4895",refresh:"成功，剩余 30 天",sign:"签到成功",
+     tasks:12,taskOk:11,taskFail:1,receive:"+5（296→301）",bubbleGot:5,total:301,base:296,gain:5,gainText:"+5（296→301）",ok:true,
+     taskDetail:[{name:"每日签到",ok:true},{name:"从固定入口访问云朵中心",ok:true},{name:"使用PC客户端",ok:true},
+       {name:"浏览云盘文件",ok:true},{name:"备份有礼",ok:true},{name:"体验AI相机",ok:true},
+       {name:"开启APP通知领好礼",ok:true},{name:"云盘安全体验",ok:true},{name:"上传文件满100M",ok:true},
+       {name:"体验云笔记",ok:true},{name:"分享文件领好礼0/7",ok:false,progress:"0/7",done:false,note:"进行中 0/7（点击已推进，条件未达标）"}]}
+  ],
+  todayGain:22, recheck:[], allClean:true,
+  results:[
+    {phone:"13787464642",masked:"137****4642",ok:true,
+     message:"续期成功，剩余 30 天；签到成功；云豆+5（588→593）；气泡+5；任务12个"},
+    {phone:"13717306553",masked:"137****6553",ok:true,
+     message:"续期成功，剩余 30 天；签到成功；云豆+0（801→801）；气泡无可领；任务12个"},
+    {phone:"17289519953",masked:"172****9953",ok:true,
+     message:"续期成功，剩余 30 天；签到成功；云豆+12（1998→2010）；气泡+12；任务10个"},
+    {phone:"18289484895",masked:"182****4895",ok:true,
+     message:"续期成功，剩余 30 天；签到成功；云豆+5（296→301）；气泡+5；任务12个"}
+  ]
+};
+const DEMO_TOTALS = (()=>{
+  const phones=["137****4642","137****6553","172****9953","182****4895"];
+  const cur={"137****4642":593,"137****6553":801,"172****9953":2010,"182****4895":301};
+  const h={}; const d=new Date("2026-10-21");
+  for(let i=27;i>=0;i--){
+    const dd=new Date(d); dd.setDate(dd.getDate()-i);
+    const day=dd.toISOString().slice(0,10); h[day]={};
+    let g=0;
+    for(const p of phones){
+      const grow=(27-i)*2.4; const jitter=Math.sin(i*1.7+p.length)*3;
+      h[day][p]=Math.max(0,Math.round(cur[p]-grow+jitter));
+    }
+    const gg=[3,5,0,9,3,15,0,5,3,0,7,3,5,0,3,15,0,3,5,9,3,0,5,3,0,7,3,22];
+    h[day]._gain=gg[27-i]!==undefined?gg[27-i]:3;
+  }
+  return h;
+})();
+
+/* ============ 配置 ============ */
+const CK="yun139_panel_cfg";
+let CFG=JSON.parse(localStorage.getItem(CK)||'{"owner":"","repo":"","branch":"main","tok":"","res":"data/result.json","tot":"data/totals.json","names":""}');
+let DATA=DEMO, TOTALS=DEMO_TOTALS, IS_DEMO=true, AUTO=null, AUTO_ON=false;
+let NAME_MAP={};
+function loadNames(){
+  NAME_MAP={};
+  (CFG.names||"").split(/\n+/).forEach(l=>{
+    const m=l.match(/^\s*([\d*xX*]{4,})\s*=\s*(.+?)\s*$/);
+    if(m) NAME_MAP[m[1]]=m[2];
+  });
+}
+function saveCfg(){
+  CFG={owner:val("cOwner"),repo:val("cRepo"),branch:val("cBranch")||"main",
+       tok:val("cTok"),res:val("cRes")||"data/result.json",tot:val("cTot")||"data/totals.json",
+       names:val("cNames")};
+  localStorage.setItem(CK,JSON.stringify(CFG)); loadNames();
+}
+function fillCfg(){
+  set("cOwner",CFG.owner);set("cRepo",CFG.repo);set("cBranch",CFG.branch||"main");
+  set("cTok",CFG.tok);set("cRes",CFG.res||"data/result.json");set("cTot",CFG.tot||"data/totals.json");
+  set("cNames",CFG.names||"");
+}
+const val=id=>document.getElementById(id).value.trim();
+const set=(id,v)=>document.getElementById(id).value=v||"";
+
+/* ============ 工具 ============ */
+function toast(msg,type){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className="on"+(type?" "+type:"");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.className="",2600);
+}
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ready=()=>!!(CFG.owner&&CFG.repo);
+
+/* 双源抓取：jsDelivr 优先（国内可访问），失败回退 raw */
+async function fetchFile(path){
+  const b=CFG.branch||"main";
+  const urls=["https://cdn.jsdelivr.net/gh/"+CFG.owner+"/"+CFG.repo+"@"+b+"/"+path,
+              "https://fastly.jsdelivr.net/gh/"+CFG.owner+"/"+CFG.repo+"@"+b+"/"+path,
+              "https://raw.githubusercontent.com/"+CFG.owner+"/"+CFG.repo+"/"+b+"/"+path];
+  let lastErr="";
+  for(const u of urls){
+    try{
+      const r=await fetch(u+"?t="+Date.now(),{cache:"no-store"});
+      if(r.ok) return await r.json();
+      lastErr="HTTP "+r.status;
+    }catch(e){ lastErr=e.message||"网络失败"; }
+  }
+  throw new Error(lastErr);
+}
+
+/* ============ 渲染 ============ */
+function render(){
+  renderHead(); renderStats(); renderAccs(); renderChart(); renderLog();
+}
+
+function renderHead(){
+  const d=document.getElementById("sDot"),t=document.getElementById("sTxt");
+  d.className="dot"+(IS_DEMO?" off":"");
+  t.textContent=IS_DEMO?"演示数据":(DATA.ok?"运行正常":"有异常");
+  document.getElementById("sTime").textContent=DATA.ts?("更新 "+DATA.ts):"—";
+  document.getElementById("cfgNote").style.display=IS_DEMO?"":"none";
+}
+
+function renderStats(){
+  const list=DATA.perAccount||[];
+  const totalBeans=list.reduce((s,x)=>s+(x.total||0),0);
+  const gain=(DATA.todayGain!=null)?DATA.todayGain:list.reduce((s,x)=>s+(x.gain||0),0);
+  const okN=list.filter(x=>x.ok).length;
+  const bubble=list.reduce((s,x)=>s+(x.bubbleGot||0),0);
+  const failN=list.reduce((s,x)=>s+(x.taskFail||0),0);
+  const html=[
+    ["账号",list.length,"blue"],
+    ["今日收益",(gain>0?"+":"")+gain,gain>0?"up":""],
+    ["云豆总计",totalBeans.toLocaleString(),""],
+    ["失败任务",failN,failN>0?"warn":""]
+  ].map(([l,n,c])=>'<div class="st '+c+'"><div class="n">'+esc(n)+'</div><div class="l">'+esc(l)+'</div></div>').join("");
+  document.getElementById("stats").innerHTML=html;
+  document.getElementById("accTag").textContent=list.length?
+    ("成功 "+okN+"/"+list.length+(bubble?(" · 气泡 +"+bubble):"")):"无数据";
+}
+
+function renderAccs(){
+  const list=DATA.perAccount||[];
+  const box=document.getElementById("accs");
+  if(!list.length){ box.innerHTML='<div class="empty"><div class="big">📭</div>暂无账号数据</div>'; return; }
+  box.innerHTML=list.map((a,i)=>{
+    const cls=a.ok?(a.taskFail?"part":""):"bad";
+    const bd=a.ok?(a.taskFail?"part":"ok"):"err";
+    const bt=a.ok?(a.taskFail?"部分失败":"正常"):"失败";
+    const g=a.gain||0;
+    const pct=a.tasks?Math.round(a.taskOk/a.tasks*100):0;
+    const tks=(a.taskDetail||[]).map(t=>
+      '<div class="tk '+(t.ok?"y":"n")+'"><span class="ic">'+(t.ok?"✓":"!")+'</span>'+
+      '<div><div class="tn">'+esc(t.name)+'</div>'+
+      (t.note?'<div class="tp">'+esc(t.note)+'</div>':'')+
+      (t.progress&&!t.ok?'<div class="tp">进度 '+esc(t.progress)+'</div>':'')+'</div></div>').join("");
+    return '<div class="acc '+cls+'">'+
+      '<div class="hd"><div><div class="ph">'+esc(a.masked)+'</div>'+
+        (NAME_MAP[a.masked]?'<div class="nm">'+esc(NAME_MAP[a.masked])+'</div>':'')+'</div>'+
+        '<span class="badge b-'+bd+'">'+bt+'</span></div>'+
+      '<div class="beans"><span class="v">'+(a.total!=null?a.total.toLocaleString():"—")+'</span>'+
+        '<span class="u">云豆</span>'+
+        '<span class="g '+(g>0?"up":"zero")+'">'+(g>0?"+"+g:"今日无新增")+'</span></div>'+
+      '<div class="mrow">'+
+        '<div class="m"><div class="mn">'+esc(a.taskOk||0)+'/'+esc(a.tasks||0)+'</div><div class="ml">任务</div></div>'+
+        '<div class="m"><div class="mn">'+(a.bubbleGot||0)+'</div><div class="ml">气泡</div></div>'+
+        '<div class="m"><div class="mn">'+esc((a.refresh||"").replace(/[^\d]/g,"")||"—")+'</div><div class="ml">令牌(天)</div></div>'+
+      '</div>'+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+      '<button class="tog" onclick="this.nextElementSibling.classList.toggle(\'on\');this.textContent=this.nextElementSibling.classList.contains(\'on\')?\'▾ 收起任务明细\':\'▸ 展开任务明细 ('+esc(a.taskOk||0)+'/'+esc(a.tasks||0)+')\'">▸ 展开任务明细 ('+esc(a.taskOk||0)+'/'+esc(a.tasks||0)+')</button>'+
+      '<div class="tasks">'+(tks||'<div style="color:var(--t3);font-size:12.5px">无明细</div>')+'</div>'+
+    '</div>';
+  }).join("");
+}
+
+/* ---------- 趋势图（纯 canvas，无外部依赖） ---------- */
+const COLORS=["#2b7fff","#00b96b","#faad14","#ff4d4f","#8b5cf6","#06b6d4","#f97316"];
+let hidden=new Set(), chartCache=null;
+function renderChart(){
+  const days=Object.keys(TOTALS||{}).sort();
+  const box=document.getElementById("legend");
+  if(!days.length){
+    document.getElementById("cv").getContext("2d").clearRect(0,0,9999,9999);
+    box.innerHTML=""; document.getElementById("chTag").textContent="无历史"; return;
+  }
+  const phones=[...new Set(days.flatMap(d=>Object.keys(TOTALS[d])))].filter(p=>p!=="_gain");
+  hidden.forEach(h=>{if(!phones.includes(h))hidden.delete(h)});
+  document.getElementById("chTag").textContent=days.length+" 天 · "+phones.length+" 个账号";
+  box.innerHTML=phones.map((p,i)=>
+    '<span class="lg'+(hidden.has(p)?" off":"")+'" onclick="toggleLine(\''+p.replace(/'/g,"")+'\')">'+
+    '<i style="background:'+COLORS[i%COLORS.length]+'"></i>'+esc(NAME_MAP[p]||p)+'</span>').join("");
+  draw(days,phones);
+}
+function toggleLine(p){
+  hidden.has(p)?hidden.delete(p):hidden.add(p);
+  const days=Object.keys(TOTALS||{}).sort();
+  const phones=[...new Set(days.flatMap(d=>Object.keys(TOTALS[d])))].filter(x=>x!=="_gain");
+  draw(days,phones);
+  document.querySelectorAll("#legend .lg").forEach(el=>{
+    const nm=el.textContent.trim(); const key=Object.keys(NAME_MAP).find(k=>NAME_MAP[k]===nm)||nm;
+    el.classList.toggle("off",hidden.has(key));
+  });
+}
+function draw(days,phones){
+  const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth, H=cv.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  const show=phones.filter(p=>!hidden.has(p));
+  const pad={l:44,r:12,t:14,b:26};
+  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  let mn=Infinity,mx=-Infinity;
+  days.forEach(d=>show.forEach(p=>{const v=TOTALS[d][p]; if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v)}}));
+  if(!isFinite(mn)){mn=0;mx=1}
+  if(mx===mn){mx=mn+10;mn=Math.max(0,mn-10)}
+  const pad2=(mx-mn)*0.12; mn-=pad2; mx+=pad2;
+  const X=i=>pad.l+(days.length<2?cw/2:cw*i/(days.length-1));
+  const Y=v=>pad.t+ch-(v-mn)/(mx-mn)*ch;
+  // 网格 + Y 轴
+  ctx.font="11px -apple-system,sans-serif"; ctx.textBaseline="middle";
+  for(let i=0;i<=4;i++){
+    const v=mn+(mx-mn)*i/4, y=Y(v);
+    ctx.strokeStyle="#eef1f6"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    ctx.fillStyle="#9aa3b2"; ctx.textAlign="right";
+    ctx.fillText(Math.round(v),pad.l-7,y);
+  }
+  // X 轴标签（稀疏）
+  const step=Math.max(1,Math.ceil(days.length/6));
+  ctx.textAlign="center"; ctx.fillStyle="#9aa3b2";
+  days.forEach((d,i)=>{
+    if(i%step===0||i===days.length-1){
+      ctx.fillText(d.slice(5),X(i),H-pad.b+13);
+    }
+  });
+  // 折线
+  const pts={};
+  show.forEach((p,pi)=>{
+    const arr=days.map((d,i)=>({x:X(i),y:Y(TOTALS[d][p]),v:TOTALS[d][p],d}));
+    pts[p]=arr;
+    const c=COLORS[phones.indexOf(p)%COLORS.length];
+    // 渐变填充
+    const gr=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+    gr.addColorStop(0,c+"22"); gr.addColorStop(1,c+"00");
+    ctx.beginPath();
+    arr.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));
+    ctx.lineTo(arr[arr.length-1].x,pad.t+ch); ctx.lineTo(arr[0].x,pad.t+ch); ctx.closePath();
+    ctx.fillStyle=gr; ctx.fill();
+    // 线
+    ctx.beginPath(); arr.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));
+    ctx.strokeStyle=c; ctx.lineWidth=2; ctx.lineJoin="round"; ctx.stroke();
+    // 末点
+    const last=arr[arr.length-1];
+    ctx.beginPath(); ctx.arc(last.x,last.y,3.5,0,7); ctx.fillStyle=c; ctx.fill();
+    ctx.strokeStyle="#fff"; ctx.lineWidth=1.6; ctx.stroke();
+  });
+  chartCache={days,phones,X,Y,pts,show};
+}
+// tooltip
+(function(){
+  const cv=document.getElementById("cv"), tip=document.getElementById("tip");
+  function move(e){
+    if(!chartCache)return;
+    const r=cv.getBoundingClientRect();
+    const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+    const {days,show,pts}=chartCache;
+    if(!days.length)return;
+    const pad={l:44,r:12}, cw=r.width-pad.l-pad.r;
+    let idx=Math.round((cx-pad.l)/(days.length<2?1:cw/(days.length-1)));
+    idx=Math.max(0,Math.min(days.length-1,idx));
+    let h='<div style="margin-bottom:3px;opacity:.8">'+days[idx]+'</div>';
+    show.forEach(p=>{
+      const q=pts[p][idx]; if(!q||q.v==null)return;
+      const c=COLORS[chartCache.phones.indexOf(p)%COLORS.length];
+      h+='<div class="r"><i style="background:'+c+'"></i>'+esc(NAME_MAP[p]||p)+' <b>'+q.v+'</b></div>';
+    });
+    const g=TOTALS[days[idx]]._gain;
+    if(g!=null) h+='<div style="margin-top:3px;opacity:.75">当日合计 +'+g+'</div>';
+    tip.innerHTML=h; tip.style.opacity=1;
+    const tw=tip.offsetWidth;
+    let left=(chartCache.X(idx))-tw/2;
+    left=Math.max(4,Math.min(r.width-tw-4,left));
+    tip.style.left=left+"px"; tip.style.top="8px";
+  }
+  cv.addEventListener("mousemove",move);
+  cv.addEventListener("touchstart",move,{passive:true});
+  cv.addEventListener("touchmove",move,{passive:true});
+  cv.addEventListener("mouseleave",()=>tip.style.opacity=0);
+  cv.addEventListener("touchend",()=>setTimeout(()=>tip.style.opacity=0,1800));
+})();
+
+function renderLog(){
+  const rs=DATA.results||[];
+  const box=document.getElementById("log");
+  if(!rs.length){
+    box.innerHTML='<div class="empty" style="padding:18px"><div class="big">📋</div>暂无运行记录<br><span style="font-size:12px">执行一次后会显示每个账号的结果</span></div>';
+    return;
+  }
+  box.innerHTML=rs.slice(0,12).map((r,i)=>
+    '<div class="lg2"><span class="lt">'+esc((DATA.ts||"").slice(11)||"—")+'</span>'+
+    '<span class="lm"><b>'+esc(r.masked)+'</b> '+(r.ok?'<span style="color:var(--ok)">✓</span>':'<span style="color:var(--err)">✗</span>')+' '+esc(r.message||"")+'</span></div>'
+  ).join("");
+}
+
+/* ============ 加载 ============ */
+async function load(){
+  if(!ready()){ DATA=DEMO; TOTALS=DEMO_TOTALS; IS_DEMO=true; render(); return; }
+  const m=document.getElementById("runMsg");
+  m.textContent="正在拉取…";
+  try{
+    DATA=await fetchFile(CFG.res); IS_DEMO=false;
+  }catch(e){
+    m.textContent="读取 result.json 失败："+e.message+"（回退演示数据）";
+    DATA=DEMO; IS_DEMO=true; render(); return;
+  }
+  try{ TOTALS=await fetchFile(CFG.tot); }
+  catch(e){ TOTALS={}; }
+  m.textContent="已加载 · "+(DATA.ts||"—");
+  render();
+}
+
+/* ============ 远程触发 ============ */
+async function trigger(ev){
+  if(!ready()){ toast("请先配置仓库","err"); openCfg(); return; }
+  if(!CFG.tok){ toast("需要填 Token 才能远程执行","err"); openCfg(); return; }
+  const m=document.getElementById("runMsg");
+  m.textContent="正在触发 "+ev+" …";
+  try{
+    const r=await fetch("https://api.github.com/repos/"+CFG.owner+"/"+CFG.repo+"/dispatches",{
+      method:"POST",
+      headers:{Authorization:"token "+CFG.tok,Accept:"application/vnd.github+json",
+               "Content-Type":"application/json","User-Agent":"yun139-panel"},
+      body:JSON.stringify({event_type:ev,client_payload:{source:"panel",ts:Date.now()}})
+    });
+    if(r.status===204){
+      m.textContent="已触发 "+ev+" · 约 1-3 分钟后点「刷新数据」查看结果";
+      toast("已触发 "+ev,"ok");
+      setTimeout(()=>load(),75000);
+    }else{
+      const t=await r.text();
+      m.textContent="触发失败 HTTP "+r.status+" "+t.slice(0,120);
+      toast("触发失败","err");
+    }
+  }catch(e){ m.textContent="触发异常："+e.message; toast("网络失败","err"); }
+}
+
+/* ============ 事件 ============ */
+document.querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>trigger(b.dataset.ev));
+document.getElementById("btnRefresh").onclick=()=>{load();toast("已刷新")};
+document.getElementById("btnCfg").onclick=openCfg;
+document.getElementById("btnAuto").onclick=function(){
+  AUTO_ON=!AUTO_ON;
+  this.textContent="⏱ 自动刷新："+(AUTO_ON?"开(5分钟)":"关");
+  document.getElementById("sAuto").textContent=AUTO_ON?"· 自动刷新中":"";
+  clearInterval(AUTO);
+  if(AUTO_ON){ AUTO=setInterval(()=>{if(ready())load()},300000); toast("已开启自动刷新"); }
+  else toast("已关闭");
+};
+document.getElementById("btnSave").onclick=()=>{
+  saveCfg();
+  document.getElementById("cfgMsg").textContent="已保存"+(ready()?"，正在加载…":"（信息不完整，仍显示演示数据）");
+  if(ready()) load(); else {IS_DEMO=true;render();}
+};
+document.getElementById("btnTest").onclick=async()=>{
+  saveCfg();
+  if(!ready()){ document.getElementById("cfgMsg").textContent="请先填用户名和仓库名"; return; }
+  document.getElementById("cfgMsg").textContent="测试中…";
+  try{
+    const d=await fetchFile(CFG.res);
+    document.getElementById("cfgMsg").textContent="✓ 连通成功，最后更新："+(d.ts||"—");
+    toast("连通成功","ok");
+  }catch(e){
+    document.getElementById("cfgMsg").textContent="✗ 失败："+e.message;
+    toast("连通失败","err");
+  }
+};
+document.getElementById("btnClear").onclick=()=>{
+  if(!confirm("确定清空本机配置？"))return;
+  localStorage.removeItem(CK);
+  CFG={owner:"",repo:"",branch:"main",tok:"",res:"data/result.json",tot:"data/totals.json",names:""};
+  fillCfg(); loadNames(); IS_DEMO=true; DATA=DEMO; TOTALS=DEMO_TOTALS; render();
+  document.getElementById("cfgMsg").textContent="已清空";
+  toast("配置已清空");
+};
+function openCfg(){
+  const c=document.getElementById("cfgCard");
+  c.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* ============ 启动 ============ */
+fillCfg(); loadNames();
+if(ready()) load(); else render();
+window.addEventListener("resize",()=>{if(TOTALS&&Object.keys(TOTALS).length){
+  const days=Object.keys(TOTALS).sort();
+  const phones=[...new Set(days.flatMap(d=>Object.keys(TOTALS[d])))].filter(p=>p!=="_gain");
+  draw(days,phones);
+}});
+</script>
+</body>
+</html>
