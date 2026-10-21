@@ -1,6 +1,8 @@
 name: chkpanel
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -8,12 +10,27 @@ jobs:
     steps:
       - name: 检查三个地址
         run: |
+          OUT=""
           for u in "http://hnvip.qd.je/yun.html" "https://woshiyigemanhuajia.github.io/hunan-tariff-site/yun.html" "https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/yun.html"; do
-            code=$(curl -s -o /tmp/y.html -w "%{http_code}" -L --max-time 40 "$u" || echo "ERR")
+            code=$(curl -s -o /tmp/y.html -w "%{http_code}" -L --max-time 40 "$u" || echo ERR)
             sz=$(stat -c%s /tmp/y.html 2>/dev/null || echo 0)
-            echo "$u -> HTTP $code, ${sz} bytes"
+            OUT="$OUT$u -> HTTP $code , ${sz} bytes\n"
             if [ "$sz" -gt 5000 ]; then
-              echo "  标题: $(grep -o '<title>[^<]*</title>' /tmp/y.html | head -1)"
-              echo "  含签到面板标记: $(grep -c '移动云盘签到面板' /tmp/y.html)"
+              OUT="$OUT   title: $(grep -o '<title>[^<]*</title>' /tmp/y.html | head -1)\n"
+              OUT="$OUT   hasPanel: $(grep -c '移动云盘签到面板' /tmp/y.html)\n"
+              OUT="$OUT   hasChart: $(grep -c 'renderChart' /tmp/y.html)\n"
             fi
           done
+          printf "$OUT" > chkpanel.txt
+          cat chkpanel.txt
+      - name: 回写
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          B64=$(base64 -w0 chkpanel.txt)
+          SHA=$(curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/contents/chkpanel.txt?ref=main" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('sha',''))" 2>/dev/null || echo "")
+          if [ -n "$SHA" ]; then
+            curl -s -X PUT -H "Authorization: token $GH_TOKEN" -d "{\"message\":\"chk\",\"content\":\"$B64\",\"branch\":\"main\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chkpanel.txt" > /dev/null
+          else
+            curl -s -X PUT -H "Authorization: token $GH_TOKEN" -d "{\"message\":\"chk\",\"content\":\"$B64\",\"branch\":\"main\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chkpanel.txt" > /dev/null
+          fi
