@@ -1,0 +1,45 @@
+name: chk5
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: 复查
+        run: |
+          python3 - <<'PYEOF'
+          import urllib.request,re,ssl
+          ctx=ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE
+          out=[]
+          for u in ["https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/yun-panel.html",
+                    "https://fastly.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/yun-panel.html",
+                    "http://hnvip.qd.je/yun-panel.html"]:
+              try:
+                  r=urllib.request.urlopen(urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0'}),timeout=40,context=ctx)
+                  t=r.read().decode('utf-8','ignore')
+                  out.append("%s\n  HTTP %s , %d bytes , realPhone=%d , accMgr=%d , demo=%s"%(
+                     u.split('/')[2], r.status, len(t),
+                     sum(t.count(x) for x in ['13787464642','17289519953','18289484895','13717306553','137****4642','172****9953']),
+                     t.count('号码与 Cookie'), sorted(set(re.findall(r'138\*{4}000\d',t)))))
+              except Exception as e: out.append("%s ERR %s"%(u.split('/')[2],str(e)[:60]))
+          open('chk5.txt','w').write("\n".join(out)); print("\n".join(out))
+          PYEOF
+      - name: 回写
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PYEOF'
+          import base64,json,urllib.request,os
+          tok=os.environ['GH_TOKEN']; repo="${{ github.repository }}"
+          H={'Authorization':'token '+tok,'User-Agent':'x','Accept':'application/vnd.github+json'}
+          b=base64.b64encode(open('chk5.txt','rb').read()).decode(); sha=None
+          try:
+              d=json.load(urllib.request.urlopen(urllib.request.Request('https://api.github.com/repos/%s/contents/chk5.txt?ref=main'%repo,headers=H),timeout=60)); sha=d.get('sha')
+          except Exception: pass
+          pl={'message':'c','content':b,'branch':'main'}
+          if sha: pl['sha']=sha
+          urllib.request.urlopen(urllib.request.Request('https://api.github.com/repos/%s/contents/chk5.txt'%repo,data=json.dumps(pl).encode(),method='PUT',headers=H),timeout=120)
+          PYEOF
