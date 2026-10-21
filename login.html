@@ -238,6 +238,13 @@ $("btn_savecfg").onclick = () => {
 // 安全：不再从 URL 读取密钥。URL 会进浏览历史、可被转发、截图会泄露。
 // 密钥只在本页加密存储，永不出现在地址栏。
 if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+// 清理历史遗留：旧版本曾把密钥明文存过 localStorage，首次加载即擦除
+(function(){
+  const legacy = ["yun139_lg_token","gh_token","github_token","yun139_token"];
+  let hit = 0;
+  for (const k of legacy) { if (localStorage.getItem(k)) { localStorage.removeItem(k); hit++; } }
+  if (hit) console.log("已清除 " + hit + " 项历史明文密钥");
+})();
 
 async function github(path, opts){
   const tok = tokenMem();
