@@ -67,6 +67,14 @@ async function vaultSave(pin,token){
 }
 
 (async function init(){
+  // 浏览器只在 HTTPS（或 localhost）下开放加密接口，HTTP 页面会直接禁用
+  if (!window.crypto || !crypto.subtle) {
+    msg("当前是 http:// 页面，浏览器禁用了加密功能，无法注入。请改用 https:// 开头的地址打开本页。", true);
+    log("crypto.subtle 不可用（非安全上下文）", "err");
+    log("当前协议：" + location.protocol, "err");
+    $("go").disabled = true;
+    return;
+  }
   const K = new URLSearchParams(location.hash.replace(/^#/,"")).get("k") || "";
   if (location.hash) history.replaceState(null,"",location.pathname);
   if (!K) { msg("链接缺少注入参数，请重新获取一次", true); $("go").disabled=true; return; }
