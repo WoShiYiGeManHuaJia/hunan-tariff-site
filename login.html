@@ -178,6 +178,7 @@ function stat(msg, bad){
   e.className = "stat" + (bad ? " bad" : "");
 }
 function loadCfg(){
+  if (!window.crypto || !crypto.subtle) { setState("当前是 http:// 页面，加密功能被浏览器禁用，请用 https:// 地址打开本页。", true); }
   $("cfg_repo").value = localStorage.getItem(LS.repo) || DEF_REPO;
   $("cfg_token").value = "";                 // 永不回填明文
   if (vaultReady()){
@@ -195,6 +196,10 @@ function setState(msg, bad){
   e.style.color = bad ? "#e54545" : "#18a058";
 }
 $("btn_savecfg").onclick = async () => {
+  if (!window.crypto || !crypto.subtle) {
+    setState("当前是 http:// 页面，浏览器禁用了加密功能。请用 https:// 地址打开本页。", true);
+    return;
+  }
   const pin = $("cfg_pin").value.trim();
   const repo = $("cfg_repo").value.trim() || DEF_REPO;
   if (pin.length < 4) { setState("口令至少 4 位", true); return; }
