@@ -174,16 +174,65 @@ canvas{width:100%;height:230px;display:block}
 <div class="wrap">
 
   <div id="cfgNote" class="note">
-    <b>首次使用：</b>点右下「⚙️ 设置」填入 GitHub 仓库与 Token，即可读取真实数据并远程触发签到。
-    未配置时展示的是<b>演示数据</b>（结构与真实一致），可先浏览功能。
+    <b>首次使用：</b>点「⚙️ 设置」填入 GitHub 仓库与 Token，即可读取真实数据并远程触发签到。<br>
+    未配置时显示的是<b>虚构示例数据</b>（号码如 138****0001 均为占位，非真实账号），仅用于预览布局。
   </div>
 
   <!-- 概览 -->
   <div class="stats" id="stats"></div>
 
+  <!-- 号码与 Cookie 管理 -->
+  <div class="card">
+    <h2>📱 号码与 Cookie <span class="tag">仅存本机浏览器</span></h2>
+    <div class="body">
+      <div class="btns" style="margin-bottom:12px">
+        <button class="btn" id="btnAddAcc">＋ 添加号码</button>
+        <button class="btn gh" onclick="toggleGrab()">🍪 抓取 Cookie</button>
+        <button class="btn gh" id="btnExport">📤 导出备份</button>
+        <button class="btn gh" id="btnImport">📥 导入</button>
+      </div>
+      <div id="accList"></div>
+
+      <!-- 抓取区 -->
+      <div id="grabBox" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+        <div class="note" style="margin-bottom:12px">
+          <b>两种抓法，选一个：</b><br>
+          ① <b>书签小工具</b>：把下面这行存成书签，在移动官网 / 云盘网页登录后点它，Cookie 自动复制到剪贴板，回这里粘贴。<br>
+          ② <b>手动粘贴</b>：从浏览器「编辑此 Cookie」插件导出 JSON，或复制 <code>a=1; b=2</code> 这种字符串，粘进下面框里解析。
+        </div>
+        <div class="fld">
+          <label>① 书签小工具（长按复制链接 / 拖到书签栏）</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <a id="bmk" class="btn" style="text-decoration:none;display:inline-block">🍪 抓取本页 Cookie</a>
+            <button class="btn gh sm" onclick="copyBmk()">复制链接</button>
+          </div>
+          <div class="hint" id="bmkCode" style="margin-top:6px;word-break:break-all;font-family:monospace;font-size:11px"></div>
+        </div>
+        <div class="fld">
+          <label>② 粘贴 Cookie / Token</label>
+          <textarea id="grabTxt" rows="5" placeholder='支持三种格式：&#10;· 插件导出的 JSON 数组（含 name/value/domain）&#10;· a=1; b=2; c=3 这种字符串&#10;· {"token":"xxx","phone":"138xxxx"} 这种 JSON'
+            style="width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13px;font-family:inherit;background:#fafbfd;color:var(--t1)"></textarea>
+          <div style="margin-top:8px" class="btns">
+            <button class="btn" onclick="doParse()">🔍 解析</button>
+            <button class="btn gh sm" onclick="document.getElementById('grabTxt').value=''">清空</button>
+          </div>
+        </div>
+        <div id="grabMsg"></div>
+        <div id="grabResult" style="display:none;margin-top:12px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px" id="grTitle">解析结果</div>
+          <div id="grBody" style="font-size:12.5px;color:var(--t2)"></div>
+          <div style="margin-top:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="grTarget" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:#fafbfd"></select>
+            <button class="btn ok" onclick="saveParsed()">💾 存入该账号</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 账号 -->
   <div class="card">
-    <h2>账号明细 <span class="tag" id="accTag">—</span></h2>
+    <h2>账号明细 <span class="tag" id="accTag">来自仓库数据</span></h2>
     <div class="body"><div class="accs" id="accs"></div></div>
   </div>
 
@@ -265,7 +314,7 @@ canvas{width:100%;height:230px;display:block}
       <div class="sec">
         <div class="fld">
           <label>账号备注（每行一个：号码=备注）</label>
-          <textarea id="cNames" rows="3" placeholder="172****9953=主力号&#10;137****6553=备用" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13.5px;font-family:inherit;background:#fafbfd;color:var(--t1)"></textarea>
+          <textarea id="cNames" rows="3" placeholder="138****0001=主号&#10;138****0002=备用" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13.5px;font-family:inherit;background:#fafbfd;color:var(--t1)"></textarea>
           <div class="hint">只影响本页显示，方便区分账号。</div>
         </div>
       </div>
@@ -277,51 +326,53 @@ canvas{width:100%;height:230px;display:block}
 <div id="toast"></div>
 
 <script>
-/* ============ 演示数据（结构与真实 result.json 一致） ============ */
+/* ============ 演示数据 ============
+   以下号码与余额全部为虚构示例，仅用于展示布局；
+   配置真实仓库后将被真实数据完全覆盖。 ============ */
 const DEMO = {
   ts:"2026-10-21 07:43:18", requestId:"daily-1790096718055-9agfj2if", type:"daily", ok:true,
   msg:"共 4 个账号，成功 4 个",
   perAccount:[
-    {phone:"13787464642",masked:"137****4642",refresh:"成功，剩余 30 天",sign:"签到成功",
-     tasks:12,taskOk:11,taskFail:1,receive:"+5（588→593）",bubbleGot:5,total:593,base:588,gain:5,gainText:"+5（588→593）",ok:true,
+    {phone:"13800000001",masked:"138****0001",refresh:"成功，剩余 30 天",sign:"签到成功",
+     tasks:12,taskOk:11,taskFail:1,receive:"+5（417→420）",bubbleGot:3,total:420,base:417,gain:5,gainText:"+5（417→420）",ok:true,
      taskDetail:[{name:"每日签到",ok:true},{name:"从固定入口访问云朵中心",ok:true},{name:"使用PC客户端",ok:true},
        {name:"浏览云盘文件",ok:true},{name:"备份有礼",ok:true},{name:"体验AI相机",ok:true},
        {name:"开启APP通知领好礼",ok:true},{name:"云盘安全体验",ok:true},{name:"上传文件满100M",ok:true},
        {name:"体验云笔记",ok:true},{name:"分享文件领好礼0/7",ok:false,progress:"0/7",done:false,note:"进行中 0/7（点击已推进，条件未达标）"}]},
-    {phone:"13717306553",masked:"137****6553",refresh:"成功，剩余 30 天",sign:"签到成功",
-     tasks:12,taskOk:11,taskFail:1,receive:"+0（801→801）",bubbleGot:0,total:801,base:801,gain:0,gainText:"+0（801→801）",ok:true,
+    {phone:"13800000002",masked:"138****0002",refresh:"成功，剩余 30 天",sign:"签到成功",
+     tasks:12,taskOk:11,taskFail:1,receive:"+0（680→680）",bubbleGot:0,total:680,base:680,gain:0,gainText:"+0（680→680）",ok:true,
      taskDetail:[{name:"每日签到",ok:true},{name:"从固定入口访问云朵中心",ok:true},{name:"使用PC客户端",ok:true},
        {name:"浏览云盘文件",ok:true},{name:"备份有礼",ok:true},{name:"体验AI相机",ok:true},
        {name:"开启APP通知领好礼",ok:true},{name:"云盘安全体验",ok:true},{name:"上传文件满1G",ok:true},
        {name:"体验云笔记",ok:true},{name:"分享文件领好礼0/7",ok:false,progress:"0/7",done:false,note:"进行中 0/7（点击已推进，条件未达标）"}]},
-    {phone:"17289519953",masked:"172****9953",refresh:"成功，剩余 30 天",sign:"签到成功",
-     tasks:10,taskOk:9,taskFail:1,receive:"+12（1998→2010）",bubbleGot:12,total:2010,base:1998,gain:12,gainText:"+12（1998→2010）",ok:true,
+    {phone:"13800000003",masked:"138****0003",refresh:"成功，剩余 30 天",sign:"签到成功",
+     tasks:10,taskOk:9,taskFail:1,receive:"+12（1544→1550）",bubbleGot:6,total:1550,base:1544,gain:12,gainText:"+12（1544→1550）",ok:true,
      taskDetail:[{name:"每日签到",ok:true},{name:"从固定入口访问云朵中心",ok:true},{name:"使用PC客户端",ok:true},
        {name:"浏览云盘文件",ok:true},{name:"备份有礼",ok:true},{name:"体验AI相机",ok:true},
        {name:"云盘安全体验",ok:true},{name:"上传文件满1G",ok:true},
        {name:"分享文件领好礼0/7",ok:false,progress:"0/7",done:false,note:"进行中 0/7（点击已推进，条件未达标）"}]},
-    {phone:"18289484895",masked:"182****4895",refresh:"成功，剩余 30 天",sign:"签到成功",
-     tasks:12,taskOk:11,taskFail:1,receive:"+5（296→301）",bubbleGot:5,total:301,base:296,gain:5,gainText:"+5（296→301）",ok:true,
+    {phone:"13800000004",masked:"138****0004",refresh:"成功，剩余 30 天",sign:"签到成功",
+     tasks:12,taskOk:11,taskFail:1,receive:"+5（257→260）",bubbleGot:3,total:260,base:257,gain:5,gainText:"+5（257→260）",ok:true,
      taskDetail:[{name:"每日签到",ok:true},{name:"从固定入口访问云朵中心",ok:true},{name:"使用PC客户端",ok:true},
        {name:"浏览云盘文件",ok:true},{name:"备份有礼",ok:true},{name:"体验AI相机",ok:true},
        {name:"开启APP通知领好礼",ok:true},{name:"云盘安全体验",ok:true},{name:"上传文件满100M",ok:true},
        {name:"体验云笔记",ok:true},{name:"分享文件领好礼0/7",ok:false,progress:"0/7",done:false,note:"进行中 0/7（点击已推进，条件未达标）"}]}
   ],
-  todayGain:22, recheck:[], allClean:true,
+  todayGain:12, recheck:[], allClean:true,
   results:[
-    {phone:"13787464642",masked:"137****4642",ok:true,
-     message:"续期成功，剩余 30 天；签到成功；云豆+5（588→593）；气泡+5；任务12个"},
-    {phone:"13717306553",masked:"137****6553",ok:true,
-     message:"续期成功，剩余 30 天；签到成功；云豆+0（801→801）；气泡无可领；任务12个"},
-    {phone:"17289519953",masked:"172****9953",ok:true,
-     message:"续期成功，剩余 30 天；签到成功；云豆+12（1998→2010）；气泡+12；任务10个"},
-    {phone:"18289484895",masked:"182****4895",ok:true,
-     message:"续期成功，剩余 30 天；签到成功；云豆+5（296→301）；气泡+5；任务12个"}
+    {phone:"13800000001",masked:"138****0001",ok:true,
+     message:"续期成功，剩余 30 天；签到成功；云豆+5（417→420）；气泡+5；任务12个"},
+    {phone:"13800000002",masked:"138****0002",ok:true,
+     message:"续期成功，剩余 30 天；签到成功；云豆+0（680→680）；气泡无可领；任务12个"},
+    {phone:"13800000003",masked:"138****0003",ok:true,
+     message:"续期成功，剩余 30 天；签到成功；云豆+12（1544→1550）；气泡+12；任务10个"},
+    {phone:"13800000004",masked:"138****0004",ok:true,
+     message:"续期成功，剩余 30 天；签到成功；云豆+5（257→260）；气泡+5；任务12个"}
   ]
 };
 const DEMO_TOTALS = (()=>{
-  const phones=["137****4642","137****6553","172****9953","182****4895"];
-  const cur={"137****4642":593,"137****6553":801,"172****9953":2010,"182****4895":301};
+  const phones=["138****0001","138****0002","138****0003","138****0004"];
+  const cur={"138****0001":420,"138****0002":680,"138****0003":1550,"138****0004":260};
   const h={}; const d=new Date("2026-10-21");
   for(let i=27;i>=0;i--){
     const dd=new Date(d); dd.setDate(dd.getDate()-i);
@@ -626,6 +677,206 @@ async function trigger(ev){
   }catch(e){ m.textContent="触发异常："+e.message; toast("网络失败","err"); }
 }
 
+/* ============ 号码与 Cookie 管理 ============ */
+const AK="yun139_panel_accounts";
+let ACCS=JSON.parse(localStorage.getItem(AK)||"[]");
+let PARSED=null;
+const saveAccs=()=>localStorage.setItem(AK,JSON.stringify(ACCS));
+const maskPhone=p=>{const s=String(p||"").replace(/\D/g,"");return s.length>=11?("——  ".slice(0,0)+s.slice(0,3)+"****"+s.slice(7)):(p||"未填号码");};
+
+/* Cookie 解析：支持 JSON 数组 / JSON 对象 / a=1; b=2 */
+function parseCookie(text){
+  const t=(text||"").trim(); if(!t) return null;
+  // ① JSON 数组（EditThisCookie / Cookie-Editor 导出）
+  if(t[0]==="["||t[0]==="{"){
+    try{
+      const o=JSON.parse(t);
+      if(Array.isArray(o)&&o.length&&(o[0].name!==undefined)){
+        return o.map(x=>({name:x.name,value:String(x.value==null?"":x.value),
+          domain:x.domain||"",path:x.path||"/",
+          exp:Number(x.expirationDate||x.expires||0)||0}));
+      }
+      if(o&&typeof o==="object"){
+        // 单条 {"name":..,"value":..}
+        if(o.name&&o.value!==undefined) return [{name:o.name,value:String(o.value),domain:o.domain||"",path:o.path||"/",exp:Number(o.expirationDate||o.expires||0)||0}];
+        // 扁平对象 {"token":"xx","phone":"xx"}
+        return Object.keys(o).map(k=>({name:k,value:String(o[k]),domain:"",path:"/",exp:0}));
+      }
+    }catch(e){ /* 继续按字符串处理 */ }
+  }
+  // ② a=1; b=2
+  return t.split(/[;\n]+/).map(s=>s.trim()).filter(Boolean).map(s=>{
+    const i=s.indexOf("=");
+    return i<0?{name:s,value:"",domain:"",path:"/",exp:0}
+              :{name:s.slice(0,i).trim(),value:s.slice(i+1).trim(),domain:"",path:"/",exp:0};
+  });
+}
+
+/* 关键字段识别 */
+const KEY_FIELDS={
+  "10086":["cmccssotoken","c","is_login","jsessionid-cmcc","lgToken","cvToken","defaultloginuser_p"],
+  "云盘/139":["token","jwt","authorization","aasToken","refreshToken","account","phone"],
+  "教务":["JSESSIONID","SERVERID"]
+};
+function healthOf(list){
+  const names=list.map(x=>x.name);
+  const now=Date.now()/1000;
+  const persist=list.filter(x=>x.exp>0);
+  const session=list.filter(x=>!x.exp);
+  const expired=persist.filter(x=>x.exp<now);
+  let soon=null;
+  persist.filter(x=>x.exp>now).forEach(x=>{ if(soon===null||x.exp<soon) soon=x.exp; });
+  // 判断归属
+  let site="未知";
+  const d=(list.find(x=>x.domain)||{}).domain||"";
+  if(/10086/.test(d)) site="中国移动 10086";
+  else if(/139|caiyun|feixin/.test(d)) site="移动云盘 / 139";
+  else if(names.some(n=>/cmccssotoken|is_login|jsessionid-cmcc/i.test(n))) site="中国移动 10086";
+  else if(names.some(n=>/^(token|jwt|aasToken|refreshToken)$/i.test(n))) site="移动云盘 / 139";
+  else if(names.includes("JSESSIONID")) site="教务系统";
+  const keys=(KEY_FIELDS["10086"].some(k=>names.includes(k))?"10086":
+              KEY_FIELDS["云盘/139"].some(k=>names.some(n=>n.toLowerCase()===k.toLowerCase()))?"云盘/139":
+              KEY_FIELDS["教务"].some(k=>names.includes(k))?"教务":"");
+  const miss=keys?KEY_FIELDS[keys].filter(k=>!names.some(n=>n.toLowerCase()===k.toLowerCase())):[];
+  return {site,keys,miss,persist:persist.length,session:session.length,expired:expired.length,soon,
+          days:soon?Math.floor((soon-now)/86400):null};
+}
+
+function renderAccMgr(){
+  const box=document.getElementById("accList");
+  if(!ACCS.length){
+    box.innerHTML='<div class="empty" style="padding:20px"><div class="big">📇</div>还没添加账号<br>'+
+      '<span style="font-size:12px">点「＋ 添加号码」，或「🍪 抓取 Cookie」直接解析导入</span></div>';
+    return;
+  }
+  box.innerHTML=ACCS.map(a=>{
+    const h=a.health||{};
+    const st=a.expiredNow?"exp":(h.session&&!h.persist)?"sess":"ok";
+    const stTxt={exp:"已过期",sess:"会话型",ok:"有长期凭据"}[st];
+    const stCls={exp:"b-err",sess:"b-part",ok:"b-ok"}[st];
+    const expTxt=h.days!=null?("最早 "+h.days+" 天后过期"):(h.persist?"":"无法长期保活");
+    return '<div style="border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:10px">'+
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+        '<div style="flex:1;min-width:120px"><div style="font-size:14.5px;font-weight:600">'+esc(maskPhone(a.phone))+'</div>'+
+        '<div style="font-size:11.5px;color:var(--t3);margin-top:1px">'+esc(a.note||"无备注")+(h.site?(" · "+esc(h.site)):"")+'</div></div>'+
+        '<span class="badge '+stCls+'">'+stTxt+'</span></div>'+
+      '<div style="font-size:12px;color:var(--t2);margin-top:7px">Cookie '+esc(a.count||0)+' 项 · '+esc(expTxt)+
+        (h.miss&&h.miss.length?(' · 缺 '+esc(h.miss.slice(0,3).join("/"))):'')+
+        (a.at?(' · 更新 '+esc(a.at.slice(5,16))):'')+'</div>'+
+      '<div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap">'+
+        '<button class="btn gh sm" onclick="editAcc(\''+a.id+'\')">✏️ 编辑</button>'+
+        '<button class="btn gh sm" onclick="copyAcc(\''+a.id+'\')">📋 复制</button>'+
+        '<button class="btn gh sm" onclick="delAcc(\''+a.id+'\')" style="color:var(--err)">🗑 删除</button>'+
+      '</div></div>';
+  }).join("");
+}
+
+function toggleGrab(){
+  const b=document.getElementById("grabBox");
+  b.style.display=b.style.display==="none"?"":"none";
+  if(b.style.display!=="none") refreshTargets();
+}
+function refreshTargets(){
+  const sel=document.getElementById("grTarget");
+  sel.innerHTML=ACCS.map(a=>'<option value="'+a.id+'">'+esc(maskPhone(a.phone))+(a.note?("（"+esc(a.note)+")"):"")+'</option>').join("")+
+    '<option value="__new">＋ 新建账号</option>';
+}
+function doParse(){
+  const list=parseCookie(document.getElementById("grabTxt").value);
+  const m=document.getElementById("grabMsg"), rb=document.getElementById("grabResult");
+  if(!list||!list.length){ m.textContent="没解析到内容，检查一下格式"; rb.style.display="none"; return; }
+  const h=healthOf(list);
+  PARSED={list,h,at:new Date().toISOString().slice(0,16).replace("T"," ")};
+  m.textContent="解析到 "+list.length+" 项";
+  document.getElementById("grTitle").textContent="解析结果 · "+h.site;
+  const now=Date.now()/1000;
+  document.getElementById("grBody").innerHTML=
+    '<div style="margin-bottom:6px">长期凭据 '+h.persist+' 项 · 会话型 '+h.session+' 项'+
+      (h.expired?(' · <span style="color:var(--err)">已过期 '+h.expired+' 项</span>'):'')+
+      (h.days!=null?(' · 最早 '+h.days+' 天后过期'):'')+'</div>'+
+    (h.miss&&h.miss.length?('<div style="color:var(--warn);margin-bottom:6px">缺失关键字段：'+esc(h.miss.join("、"))+'</div>'):'')+
+    '<div style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:monospace;font-size:11px;line-height:1.7">'+
+      list.slice(0,20).map(x=>esc(x.name)+' = '+esc(x.value.length>26?x.value.slice(0,26)+"…":x.value)+
+        (x.exp?(x.exp<now?' <span style="color:var(--err)">过期</span>':' <span style="color:var(--ok)">'+Math.floor((x.exp-now)/86400)+'天</span>'):' <span style="color:var(--t3)">会话</span>')).join("<br>")+
+      (list.length>20?('<div style="color:var(--t3)">…还有 '+(list.length-20)+' 项</div>'):'')+'</div>';
+  rb.style.display="";
+  refreshTargets();
+}
+function saveParsed(){
+  if(!PARSED){ toast("先解析","err"); return; }
+  const tid=document.getElementById("grTarget").value;
+  const now=Date.now()/1000;
+  const expiredNow=PARSED.h.expired>0&&PARSED.h.persist===PARSED.h.expired;
+  let acc;
+  if(tid==="__new"){
+    const ph=(PARSED.list.find(x=>/phone|account|mobile/i.test(x.name))||{}).value||"";
+    acc={id:"a"+Date.now(),phone:ph,note:"",cookies:PARSED.list,count:PARSED.list.length,
+         health:PARSED.h,at:PARSED.at,expiredNow};
+    ACCS.push(acc);
+  }else{
+    acc=ACCS.find(a=>a.id===tid);
+    if(!acc){ toast("账号不存在","err"); return; }
+    Object.assign(acc,{cookies:PARSED.list,count:PARSED.list.length,health:PARSED.h,at:PARSED.at,expiredNow});
+  }
+  saveAccs(); renderAccMgr(); refreshTargets();
+  document.getElementById("grabResult").style.display="none";
+  document.getElementById("grabTxt").value="";
+  document.getElementById("grabMsg").textContent="";
+  toast("已存入 "+ACCS.length+" 个账号","ok");
+}
+function editAcc(id){
+  const a=ACCS.find(x=>x.id===id); if(!a) return;
+  const ph=prompt("手机号（留空则只存 Cookie）",a.phone||"");
+  if(ph===null) return;
+  const nt=prompt("备注（如：主号 / 备用）",a.note||"");
+  if(nt===null) return;
+  a.phone=ph.trim(); a.note=nt.trim(); saveAccs(); renderAccMgr(); refreshTargets(); toast("已保存");
+}
+function delAcc(id){
+  const a=ACCS.find(x=>x.id===id); if(!a) return;
+  if(!confirm("删除 "+maskPhone(a.phone)+" 及其 Cookie？")) return;
+  ACCS=ACCS.filter(x=>x.id!==id); saveAccs(); renderAccMgr(); refreshTargets(); toast("已删除");
+}
+function copyAcc(id){
+  const a=ACCS.find(x=>x.id===id); if(!a) return;
+  const s=(a.cookies||[]).map(x=>x.name+"="+x.value).join("; ");
+  try{ navigator.clipboard.writeText(s); toast("Cookie 已复制","ok"); }
+  catch(e){ prompt("手动复制",s); }
+}
+document.getElementById("btnAddAcc").onclick=()=>{
+  const ph=prompt("手机号（11 位，可留空）",""); if(ph===null) return;
+  const nt=prompt("备注",""); if(nt===null) return;
+  ACCS.push({id:"a"+Date.now(),phone:ph.trim(),note:nt.trim(),cookies:[],count:0,health:{},at:""});
+  saveAccs(); renderAccMgr(); refreshTargets(); toast("已添加");
+};
+document.getElementById("btnExport").onclick=()=>{
+  if(!ACCS.length){ toast("没有账号可导出","err"); return; }
+  const s=JSON.stringify(ACCS,null,1);
+  try{ navigator.clipboard.writeText(s); toast("已复制到剪贴板","ok"); }
+  catch(e){ prompt("手动复制",s); }
+};
+document.getElementById("btnImport").onclick=()=>{
+  const s=prompt("粘贴之前导出的 JSON"); if(!s) return;
+  try{
+    const arr=JSON.parse(s);
+    if(!Array.isArray(arr)) throw new Error("不是数组");
+    if(!confirm("导入 "+arr.length+" 个账号？会覆盖当前列表")) return;
+    ACCS=arr; saveAccs(); renderAccMgr(); toast("已导入 "+arr.length+" 个","ok");
+  }catch(e){ toast("格式错误："+e.message,"err"); }
+};
+/* 书签小工具 */
+const BMK="javascript:(function(){var c=document.cookie||'';var ls={};try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/token|auth|user|phone|account|jwt/i.test(k))ls[k]=localStorage.getItem(k);}}catch(e){}var s=JSON.stringify({url:location.href,cookie:c,storage:ls});try{navigator.clipboard.writeText(s);alert('已复制到剪贴板，去面板粘贴解析');}catch(e){prompt('复制这段到面板',s);}})()";
+function copyBmk(){
+  try{ navigator.clipboard.writeText(BMK); toast("已复制，粘到浏览器书签栏","ok"); }
+  catch(e){ prompt("复制这段，存为书签",BMK); }
+}
+(function(){
+  const a=document.getElementById("bmk");
+  if(a){ a.href=BMK; a.onclick=e=>{e.preventDefault();copyBmk()}; }
+  const c=document.getElementById("bmkCode");
+  if(c) c.textContent=BMK.slice(0,110)+"…";
+})();
+
 /* ============ 事件 ============ */
 document.querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>trigger(b.dataset.ev));
 document.getElementById("btnRefresh").onclick=()=>{load();toast("已刷新")};
@@ -670,7 +921,7 @@ function openCfg(){
 }
 
 /* ============ 启动 ============ */
-fillCfg(); loadNames();
+fillCfg(); loadNames(); renderAccMgr();
 if(ready()) load(); else render();
 window.addEventListener("resize",()=>{if(TOTALS&&Object.keys(TOTALS).length){
   const days=Object.keys(TOTALS).sort();
