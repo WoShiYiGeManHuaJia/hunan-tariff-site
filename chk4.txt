@@ -1,0 +1,4 @@
+cdn.jsdelivr.net
+  30678 bytes realPhone=8 accMgr=0
+gcore.jsdelivr.net
+  43739 bytes realPhone=0 accMgr=3
