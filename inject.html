@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>密钥注入</title>
+<style>
+:root{--pri:#3181f9;--ok:#18a058;--err:#e54545;--sub:#8a9099;--bd:#e6e8eb}
+*{box-sizing:border-box}
+body{margin:0;background:#f5f7fa;color:#1f2329;font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:16px;max-width:460px;margin:0 auto}
+.card{background:#fff;border-radius:14px;padding:18px;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:17px;margin:0 0 4px}
+.tip{background:#eef4ff;border-radius:10px;padding:12px 14px;font-size:13px;color:#2c5aa0;line-height:1.7;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--sub);margin:14px 0 6px}
+input{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:10px;font-size:17px;outline:none}
+input:focus{border-color:var(--pri)}
+button{width:100%;border:0;border-radius:10px;padding:15px;font-size:16px;font-weight:600;background:var(--pri);color:#fff;margin-top:14px}
+button:disabled{opacity:.5}
+#msg{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:13.5px;display:none;background:#f0f9f1;color:#18a058}
+#msg.bad{background:#fdf0f0;color:var(--err)}
+#log{margin-top:12px;background:#1f2329;color:#d8dee6;border-radius:10px;padding:12px;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Menlo,monospace;max-height:220px;overflow:auto;display:none}
+.ok{color:#7ee787}.err{color:#ff9b9b}.warn{color:#ffd479}
+</style>
+</head>
+<body>
+<h1>密钥注入</h1>
+<div class="tip">
+只需两步：<br>
+① 设置一个你记得住的解锁口令<br>
+② 点「注入并保存」<br>
+之后打开登录页，用这个口令解锁即可，不用再填 Token。
+</div>
+
+<div class="card">
+  <label>设置解锁口令（4-12 位，自己记牢）</label>
+  <input id="pin" type="password" inputmode="text" maxlength="12" placeholder="例如 1234 或 abc123" autocomplete="new-password">
+  <button id="go">注入并保存</button>
+  <div id="msg"></div>
+  <div id="log"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const LS = { token:"yun139_lg_vault", repo:"yun139_lg_repo", salt:"yun139_lg_salt", chk:"yun139_lg_chk" };
+const VAULT_SALT = new TextEncoder().encode("yun139vault2026!!").slice(0,16);
+
+function log(s,cls){ const d=document.createElement("div"); if(cls)d.className=cls; d.textContent=s; $("log").appendChild(d); $("log").style.display="block"; }
+function msg(t,bad){ const e=$("msg"); e.textContent=t; e.style.display="block"; e.className="msg"+(bad?" bad":""); }
+
+async function derive(pin,salt){
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:250000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+const b64ToU8 = s => new Uint8Array(atob(s).split("").map(c=>c.charCodeAt(0)));
+const u8ToB64 = u => btoa(String.fromCharCode.apply(null, u));
+const merge2 = (a,b) => { const m = new Uint8Array(a.length + b.length); m.set(a,0); m.set(b,a.length); return m; };
+
+async function vaultSave(pin,token){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const k=await derive(pin,salt);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(token));
+  localStorage.setItem(LS.token,u8ToB64(merge2(iv,new Uint8Array(ct))));
+  localStorage.setItem(LS.salt,u8ToB64(salt));
+  const chk=await crypto.subtle.encrypt({name:"AES-GCM",iv:new Uint8Array(12)},k,new TextEncoder().encode("ok"));
+  localStorage.setItem(LS.chk,u8ToB64(new Uint8Array(chk)));
+}
+
+(async function init(){
+  const K = new URLSearchParams(location.hash.replace(/^#/,"")).get("k") || "";
+  if (location.hash) history.replaceState(null,"",location.pathname);
+  if (!K) { msg("链接缺少注入参数，请重新获取一次", true); $("go").disabled=true; return; }
+  log("注入参数已读取", "ok");
+
+  $("go").onclick = async () => {
+    const pin = $("pin").value.trim();
+    if (pin.length < 4) { msg("口令至少 4 位", true); return; }
+    $("go").disabled = true;
+    try {
+      log("下载密钥包…");
+      const txt = (await (await fetch("https://raw.githubusercontent.com/WoShiYiGeManHuaJia/hunan-tariff-site/main/_vault_k.txt?t="+Date.now())).text()).trim();
+      log("解密中…");
+      const k = await derive(K, VAULT_SALT);
+      const raw = b64ToU8(txt);
+      const dec = await crypto.subtle.decrypt({name:"AES-GCM",iv:raw.slice(0,12)}, k, raw.slice(12));
+      const token = new TextDecoder().decode(dec);
+      if (!/^gh[pousr]_[A-Za-z0-9]{20,}$/.test(token)) throw new Error("解出的内容不是合法 Token");
+      log("Token 解出成功（已隐藏）","ok");
+      await vaultSave(pin, token);
+      localStorage.setItem(LS.repo,"WoShiYiGeManHuaJia/yun139-ghpanel");
+      msg("✅ 已加密保存到本机，正在跳转登录页…");
+      $("pin").value = "";
+      setTimeout(()=>{ location.href = "login.html"; }, 1200);
+    } catch(e) {
+      msg("注入失败：" + e.message, true);
+      log("失败：" + e.message, "err");
+      $("go").disabled = false;
+    }
+  };
+})();
+</script>
+</body>
+</html>
