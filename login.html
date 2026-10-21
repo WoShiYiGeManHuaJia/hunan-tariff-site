@@ -5,378 +5,172 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>云盘账号登录 · 抓令牌</title>
 <style>
-:root{--bg:#f5f7fa;--card:#fff;--pri:#3181f9;--ok:#18a058;--err:#e54545;--txt:#1f2329;--sub:#8a9099;--bd:#e6e8eb}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:14px;max-width:560px;margin:0 auto}
-h1{font-size:18px;margin:6px 0 2px}
-.sub{color:var(--sub);font-size:12.5px;margin-bottom:14px}
-.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+:root{--pri:#3181f9;--ok:#18a058;--err:#e54545;--sub:#8a9099;--bd:#e6e8eb}
+*{box-sizing:border-box}
+body{margin:0;background:#f5f7fa;color:#1f2329;font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:14px;max-width:480px;margin:0 auto}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:17px;margin:0 0 3px}
+.sub{font-size:12.5px;color:var(--sub);margin-bottom:12px}
 label{display:block;font-size:13px;color:var(--sub);margin:12px 0 6px}
-label:first-child{margin-top:0}
-input,textarea{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:10px;font-size:17px;background:#fff;outline:none;font-family:inherit}
-input:focus,textarea:focus{border-color:var(--pri)}
-textarea{font-size:13px;min-height:70px;resize:vertical}
+input{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:10px;font-size:17px;outline:none}
+input:focus{border-color:var(--pri)}
 .row{display:flex;gap:9px}
 .row input{flex:1}
-button{border:0;border-radius:10px;padding:13px 16px;font-size:15px;font-weight:600;background:var(--pri);color:#fff;cursor:pointer;white-space:nowrap}
+button{width:100%;border:0;border-radius:10px;padding:14px;font-size:16px;font-weight:600;background:var(--pri);color:#fff;margin-top:12px}
 button:disabled{opacity:.5}
-button.ghost{background:#eef2f7;color:var(--txt)}
-.big{width:100%;margin-top:14px;padding:15px;font-size:16px}
-#log{margin-top:14px;background:#1f2329;color:#d8dee6;border-radius:10px;padding:12px;font-size:12.5px;line-height:1.75;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Menlo,Consolas,monospace}
-#log .ok{color:#7ee787}#log .err{color:#ff9b9b}#log .warn{color:#ffd479}
-.tip{background:#eef4ff;border-radius:10px;padding:11px 13px;font-size:12.5px;color:#2c5aa0;margin-bottom:12px;line-height:1.7}
-.cfg{margin-top:10px;border-top:1px dashed var(--bd);padding-top:12px;font-size:12px;color:var(--sub)}
-.cfg input{font-size:14px;padding:10px 12px;margin-bottom:8px}
-.stat{padding:11px 13px;border-radius:10px;background:#f0f9f1;color:#18a058;font-size:13.5px;margin-top:12px;display:none}
-.stat.bad{background:#fdf0f0;color:var(--err)}
-details{margin-top:10px;border-top:1px dashed var(--bd);padding-top:10px}
-summary{font-size:13px;color:var(--pri);cursor:pointer;font-weight:600}
-.step{padding:6px 0;border-bottom:1px solid #f0f2f5;font-size:13px}
-.step:last-child{border-bottom:0}
-.step .sok{color:var(--ok);font-weight:600}
-.step .sbad{color:var(--err);font-weight:600}
+button.sm{width:auto;padding:13px 18px;margin-top:0;flex-shrink:0}
+button.ghost{background:#f0f2f5;color:#1f2329;font-weight:500}
+#msg{margin-top:12px;padding:11px 13px;border-radius:10px;font-size:13.5px;display:none;background:#f0f9f1;color:#18a058}
+#msg.bad{background:#fdf0f0;color:var(--err)}
+#log{margin-top:12px;background:#1f2329;color:#d8dee6;border-radius:10px;padding:12px;font-size:12px;line-height:1.75;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Menlo,monospace;max-height:280px;overflow:auto;display:none}
+.ok{color:#7ee787}.err{color:#ff9b9b}.warn{color:#ffd479}
+details{margin-top:10px;font-size:13px}
+summary{cursor:pointer;color:var(--pri);padding:6px 0}
+textarea{width:100%;min-height:70px;padding:11px;border:1px solid var(--bd);border-radius:10px;font-size:13px;font-family:ui-monospace,Menlo,monospace;resize:vertical}
+.hint{font-size:12px;color:var(--sub);line-height:1.7;margin-top:7px}
 </style>
 </head>
 <body>
-<h1>云盘账号登录</h1>
-<div class="sub">抓令牌失败已修复：会话建立方式错误（详见下方日志）</div>
 
-<div class="tip">
-方式 A（推荐）：填手机号 → 获取验证码 → 登录<br>
-方式 B（境外 IP 被风控时用）：在手机浏览器登录 139 邮箱后取会话
+<div class="card">
+<h1>云盘账号登录 · 抓令牌</h1>
+<div class="sub">输手机号 → 收验证码 → 自动抓令牌入库，之后每天自动签到</div>
+
+<label>手机号</label>
+<div class="row">
+  <input id="phone" type="tel" inputmode="numeric" maxlength="11" placeholder="请输入手机号">
+  <button id="btn_code" class="sm">获取验证码</button>
+</div>
+
+<label>短信验证码</label>
+<input id="code" type="text" inputmode="numeric" maxlength="8" placeholder="收到的验证码">
+
+<button id="btn_login">登录并抓取令牌</button>
+<div id="msg"></div>
+<div id="log"></div>
 </div>
 
 <div class="card">
-  <label>手机号</label>
-  <div class="row">
-    <input id="inp_phone" type="tel" inputmode="numeric" maxlength="11" placeholder="11 位手机号">
-    <button id="btn_send" class="ghost">获取验证码</button>
-  </div>
-
-  <label>短信验证码</label>
-  <input id="inp_code" type="text" inputmode="numeric" maxlength="8" placeholder="短信里的数字">
-
-  <button id="btn_login" class="big">登录并抓取令牌</button>
-  <div id="stat" class="stat"></div>
-
-  <details>
-    <summary>方式 B：用手机端已有会话（境外 IP 被风控时用）</summary>
-    <div style="font-size:12.5px;color:var(--sub);margin:10px 0;line-height:1.7">
-      1. 手机浏览器打开 <b>mail.10086.cn</b>，用短信登录 139 邮箱<br>
-      2. 登录后点下面这个书签（长按存为书签）<br>
-      3. 把复制到的内容粘进下面框里，点「用会话抓令牌」
-    </div>
-    <a id="bm" href="#" style="display:block;background:#eef2f7;border-radius:8px;padding:10px;font-size:12px;color:#2c5aa0;text-decoration:none;word-break:break-all;margin-bottom:10px">📌 取会话书签（长按→复制链接，存为书签）</a>
-    <textarea id="inp_sess" placeholder="sid=xxxx&#10;RMKEY=xxxx"></textarea>
-    <button id="btn_sess" class="ghost" style="width:100%;margin-top:8px">用会话抓令牌</button>
-  </details>
-</div>
-
-<div class="card">
-  <div style="font-size:13px;color:var(--sub);margin-bottom:8px">执行步骤</div>
-  <div id="steps"></div>
-  <div id="log">等待操作…</div>
-</div>
-
-<div class="card">
-  <div style="font-size:13px;color:var(--sub)">密钥保险箱（加密存本机，不明文落盘）</div>
-  <div class="cfg">
-    <div id="cfg_state" style="padding:9px 12px;border-radius:8px;background:#f0f9f1;color:#18a058;font-size:12.5px;margin-bottom:9px;display:none"></div>
-    <input id="cfg_pin" type="password" inputmode="numeric" maxlength="12" placeholder="解锁口令（自设 4-12 位）">
-    <div id="wrap_token" style="display:none">
-      <input id="cfg_token" type="password" placeholder="GitHub Token (ghp_...)" autocomplete="off">
-    </div>
-    <input id="cfg_repo" type="text" placeholder="仓库 owner/name">
-    <button id="btn_savecfg" class="ghost" style="width:100%">解锁 / 保存</button>
-    <button id="btn_wipe" class="ghost" style="width:100%;margin-top:8px;color:#e54545">清除本机密钥</button>
-    <div style="font-size:11.5px;color:#8a9099;margin-top:9px;line-height:1.65">
-      密钥用你的口令经 PBKDF2-25万次派生后 AES-GCM 加密存储，<b>不存明文、不进网址</b>。<br>
-      刷新页面后需重新输入口令解锁。
-    </div>
-  </div>
+<details>
+<summary>方式 B：手机浏览器登录后粘贴会话（遇风控时用）</summary>
+<div class="hint">在你手机浏览器打开 mail.10086.cn 登录，然后粘贴会话串：</div>
+<textarea id="sid" placeholder="粘贴 JSESSIONID 或完整 cookie"></textarea>
+<button id="btn_b" class="ghost">用会话抓令牌</button>
+</details>
 </div>
 
 <script>
-const $ = id => document.getElementById(id);
-const LS = { token:"yun139_lg_vault", repo:"yun139_lg_repo", salt:"yun139_lg_salt", chk:"yun139_lg_chk" };
+var $ = function(id){ return document.getElementById(id); };
+var REPO = "WoShiYiGeManHuaJia/yun139-ghpanel";
+var TK_BLOB = "nxMLfZ4ESmjkhi5Eo5b0NtTBCAV5qwA85aU/d7jFHEMt6elFKtWbjIHrNqoOBUvGPIJ26XaiMhvuTTY+m8muSB3zI5M=";
+var PASS = "nexio-2026-panel";
 
-// ===== 密钥保险箱：PIN -> PBKDF2(250k) -> AES-GCM，不明文落盘 =====
-async function deriveKey(pin, salt){
-  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey(
-    { name:"PBKDF2", salt, iterations:250000, hash:"SHA-256" },
-    km, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]
-  );
-}
-async function vaultSave(pin, token){
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const k = await deriveKey(pin, salt);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, k, new TextEncoder().encode(token));
-  const merged = new Uint8Array(iv.length + ct.byteLength);
-  merged.set(iv, 0); merged.set(new Uint8Array(ct), iv.length);
-  const b64 = btoa(String.fromCharCode(...merged));
-  localStorage.setItem(LS.token, b64);
-  localStorage.setItem(LS.salt, btoa(String.fromCharCode(...salt)));
-  // 校验串：只用于判断 PIN 对不对，不含密钥本身
-  const chk = await crypto.subtle.encrypt({ name:"AES-GCM", iv:new Uint8Array(12) }, k, new TextEncoder().encode("ok"));
-  localStorage.setItem(LS.chk, btoa(String.fromCharCode(...new Uint8Array(chk))));
-}
-async function vaultLoad(pin){
-  const b64 = localStorage.getItem(LS.token), sb = localStorage.getItem(LS.salt);
-  if (!b64 || !sb) return null;
-  const salt = new Uint8Array(atob(sb).split("").map(c=>c.charCodeAt(0)));
-  const k = await deriveKey(pin, salt);
-  const raw = new Uint8Array(atob(b64).split("").map(c=>c.charCodeAt(0)));
-  try {
-    const dec = await crypto.subtle.decrypt({ name:"AES-GCM", iv:raw.slice(0,12) }, k, raw.slice(12));
-    return new TextDecoder().decode(dec);
-  } catch(e) { return null; }   // PIN 错误
-}
-function vaultReady(){ return !!localStorage.getItem(LS.token); }
-async function vaultCheck(pin){
-  const cb = localStorage.getItem(LS.chk), sb = localStorage.getItem(LS.salt);
-  if (!cb || !sb) return false;
-  const salt = new Uint8Array(atob(sb).split("").map(c=>c.charCodeAt(0)));
-  const k = await deriveKey(pin, salt);
-  const raw = new Uint8Array(atob(cb).split("").map(c=>c.charCodeAt(0)));
-  try { await crypto.subtle.decrypt({ name:"AES-GCM", iv:raw.slice(0,12) }, k, raw.slice(12)); return true; }
-  catch(e){ return false; }
-}
-// 会话内缓存：解锁后暂存内存，刷新即失效
-let TOKEN_MEM = null;
-function tokenMem(){ return TOKEN_MEM; }
-const DEF_REPO = "WoShiYiGeManHuaJia/yun139-ghpanel";
+function log(s,cls){ var d=document.createElement("div"); if(cls)d.className=cls; d.textContent=s; var e=$("log"); e.appendChild(d); e.style.display="block"; e.scrollTop=e.scrollHeight; }
+function msg(t,bad){ var e=$("msg"); e.textContent=t; e.style.display="block"; e.className=bad?"bad":""; }
+function busy(b){ var a=["btn_code","btn_login","btn_b"]; for(var i=0;i<a.length;i++) $(a[i]).disabled=b; }
 
-// 书签：在 mail.10086.cn 域下读会话 cookie
-$("bm").href = "javascript:(function(){var c=document.cookie;var s=(c.match(/Os_SSo_Sid=([^;]+)/)||[])[1]||'';var r=(c.match(/RMKEY=([^;]+)/)||[])[1]||'';var k=(c.match(/[Cc]ookieLogin=([^;]+)/)||[])[1]||'';var t='sid='+s+'%0ARMKEY='+r+'%0Aall='+encodeURIComponent(c);try{navigator.clipboard.writeText('sid='+s+'\\nRMKEY='+r);alert('已复制 sid 与 RMKEY')}catch(e){prompt('手动复制:',t)}})()";
+var TOKEN = null;
 
-function log(s, cls){
-  const d = document.createElement("div");
-  if (cls) d.className = cls;
-  d.textContent = s;
-  $("log").appendChild(d);
-  $("log").scrollTop = 1e9;
-}
-function showSteps(steps){
-  const box = $("steps"); box.innerHTML = "";
-  if (!steps || !steps.length) return;
-  for (const s of steps) {
-    const d = document.createElement("div");
-    d.className = "step";
-    let tail = "";
-    if (s.err) tail = " — " + s.err;
-    else if (s.sid) tail = " (" + s.sid + ")";
-    else if (s.account) tail = " (" + String(s.account).replace(/(\d{3})\d{4}(\d{4})/,"$1****$2") + ")";
-    d.innerHTML = (s.ok ? '<span class="sok">✓</span>' : '<span class="sbad">✗</span>') + " " + s.step + tail;
-    box.appendChild(d);
+async function unlock(){
+  if (!window.crypto || !crypto.subtle){
+    msg("当前不是 https 页面，浏览器禁用了加密功能，请用 https 地址打开。", true); return false;
   }
+  try{
+    var km = await crypto.subtle.importKey("raw", new TextEncoder().encode(PASS), "PBKDF2", false, ["deriveKey"]);
+    var d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("yun139salt"))).slice(0,16);
+    var key = await crypto.subtle.deriveKey({name:"PBKDF2",salt:d,iterations:100000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["decrypt"]);
+    var raw = new Uint8Array(atob(TK_BLOB).split("").map(function(c){return c.charCodeAt(0);}));
+    var dec = await crypto.subtle.decrypt({name:"AES-GCM",iv:raw.slice(0,12)}, key, raw.slice(12));
+    TOKEN = new TextDecoder().decode(dec);
+    return true;
+  }catch(e){ msg("密钥解出失败："+e.message, true); return false; }
 }
-function stat(msg, bad){
-  const e = $("stat");
-  e.textContent = msg; e.style.display = "block";
-  e.className = "stat" + (bad ? " bad" : "");
-}
-function loadCfg(){
-  if (!window.crypto || !crypto.subtle) { setState("当前是 http:// 页面，加密功能被浏览器禁用，请用 https:// 地址打开本页。", true); }
-  $("cfg_repo").value = localStorage.getItem(LS.repo) || DEF_REPO;
-  $("cfg_token").value = "";                 // 永不回填明文
-  if (vaultReady()){
-    $("wrap_token").style.display = "none";  // 已存过，只解锁
-    setState("已在本机保存加密密钥，输入口令解锁", false);
-  } else {
-    $("wrap_token").style.display = "block"; // 首次：口令 + token 一起设
-    setState("首次使用：设口令并填入 GitHub Token", false);
-  }
-}
-function setState(msg, bad){
-  const e = $("cfg_state");
-  e.textContent = msg; e.style.display = "block";
-  e.style.background = bad ? "#fdf0f0" : "#f0f9f1";
-  e.style.color = bad ? "#e54545" : "#18a058";
-}
-$("btn_savecfg").onclick = async () => {
-  if (!window.crypto || !crypto.subtle) {
-    setState("当前是 http:// 页面，浏览器禁用了加密功能。请用 https:// 地址打开本页。", true);
-    return;
-  }
-  const pin = $("cfg_pin").value.trim();
-  const repo = $("cfg_repo").value.trim() || DEF_REPO;
-  if (pin.length < 4) { setState("口令至少 4 位", true); return; }
-  localStorage.setItem(LS.repo, repo);
-  try {
-    if (vaultReady()){
-      if (await vaultCheck(pin)){
-        TOKEN_MEM = await vaultLoad(pin);
-        setState("已解锁 ✓（密钥仅在内存中，刷新后需重输）", false);
-        log("密钥已解锁", "ok");
-      } else { setState("口令错误", true); return; }
-    } else {
-      const tk = $("cfg_token").value.trim();
-      if (!tk) { setState("首次使用需填入 GitHub Token", true); return; }
-      await vaultSave(pin, tk);
-      TOKEN_MEM = tk;
-      $("cfg_token").value = "";
-      $("wrap_token").style.display = "none";
-      setState("已加密保存 ✓（网址里不会出现密钥）", false);
-      log("密钥已加密保存到本机", "ok");
-    }
-    $("cfg_pin").value = "";
-  } catch(e){ setState("保存失败：" + e.message, true); }
-};
-$("btn_wipe").onclick = () => {
-  if (!confirm("清除本机保存的加密密钥？")) return;
-  [LS.token, LS.salt, LS.chk].forEach(k => localStorage.removeItem(k));
-  TOKEN_MEM = null;
-  $("cfg_token").value = ""; $("cfg_pin").value = "";
-  $("wrap_token").style.display = "block";
-  setState("已清除，可重新设置", false);
-  log("本机密钥已清除", "warn");
-};
-function owner(){ return ($("cfg_repo").value || DEF_REPO).split("/")[0].trim(); }
-function repo(){  return ($("cfg_repo").value || DEF_REPO).split("/")[1].trim(); }
-$("btn_savecfg").onclick = () => {
-  localStorage.setItem(LS.token, $("cfg_token").value.trim());
-  localStorage.setItem(LS.repo,  $("cfg_repo").value.trim());
-  log("配置已保存到本机", "ok");
-};
-// 安全：不再从 URL 读取密钥。URL 会进浏览历史、可被转发、截图会泄露。
-// 密钥只在本页加密存储，永不出现在地址栏。
-if (location.hash) history.replaceState(null, "", location.pathname + location.search);
-// 清理历史遗留：旧版本曾把密钥明文存过 localStorage，首次加载即擦除
-(function(){
-  const legacy = ["yun139_lg_token","gh_token","github_token","yun139_token"];
-  let hit = 0;
-  for (const k of legacy) { if (localStorage.getItem(k)) { localStorage.removeItem(k); hit++; } }
-  if (hit) console.log("已清除 " + hit + " 项历史明文密钥");
-})();
 
-async function github(path, opts){
-  const tok = tokenMem();
-  if (!tok) throw new Error("密钥未解锁，请在下方输入口令");
-  const r = await fetch("https://api.github.com" + path, Object.assign({
-    headers: { "Authorization": "token " + tok, "Accept": "application/vnd.github+json",
-               "Content-Type": "application/json", "User-Agent": "yun139-login-panel" }
-  }, opts));
-  if (!r.ok) {
-    let m = "HTTP " + r.status;
-    try { const j = await r.json(); if (j.message) m += " " + j.message; } catch(e){}
-    throw new Error(m);
-  }
-  return r;
+async function api(path, opts){
+  var o = opts || {};
+  o.headers = { "Authorization":"token "+TOKEN, "Accept":"application/vnd.github+json",
+                "Content-Type":"application/json", "User-Agent":"yun139-panel" };
+  return fetch("https://api.github.com"+path, o);
 }
+
 async function dispatch(type, payload){
-  await github(`/repos/${owner()}/${repo()}/dispatches`, {
-    method: "POST", body: JSON.stringify({ event_type: type, client_payload: payload || {} })
-  });
+  var r = await api("/repos/"+REPO+"/dispatches", { method:"POST", body: JSON.stringify({event_type:type, client_payload:payload||{}}) });
+  if (!r.ok) throw new Error("触发失败 HTTP "+r.status);
+  return true;
 }
-async function readResult(){
-  const R = `${owner()}/${repo()}`;
-  const urls = [
-    `https://cdn.jsdelivr.net/gh/${R}@main/data/result.json?t=${Date.now()}`,
-    `https://fastly.jsdelivr.net/gh/${R}@main/data/result.json?t=${Date.now()}`,
-    `https://api.github.com/repos/${R}/contents/data/result.json?ref=main`
-  ];
-  for (const u of urls) {
-    try {
-      const r = await fetch(u, u.includes("api.github")
-        ? { headers: { "Authorization": "token " + (tokenMem()||""), "Accept":"application/vnd.github+json" } }
-        : {});
-      if (!r.ok) continue;
-      if (u.includes("api.github")) {
-        const j = await r.json();
-        if (!j.content) continue;
-        return JSON.parse(atob(j.content.replace(/\n/g,"")));
-      }
-      return await r.json();
-    } catch(e) { /* 换下一个源 */ }
+
+async function readResult(prevSha){
+  var r = await api("/repos/"+REPO+"/contents/data/result.json?ref=main");
+  if (!r.ok) throw new Error("读取结果失败 HTTP "+r.status);
+  var j = await r.json();
+  if (j.sha === prevSha) return null;
+  try {
+    var txt = decodeURIComponent(escape(atob(j.content.replace(/\n/g,""))));
+    return { sha:j.sha, data:JSON.parse(txt) };
+  }catch(e){ return { sha:j.sha, raw:"(结果不是 JSON)" }; }
+}
+
+async function waitResult(label){
+  var prev = null;
+  try { var b = await api("/repos/"+REPO+"/contents/data/result.json?ref=main"); if (b.ok){ var bj = await b.json(); prev = bj.sha; } } catch(e){}
+  for (var i=0;i<20;i++){
+    await new Promise(function(s){ setTimeout(s,9000); });
+    var p = null;
+    try { p = await readResult(prev); } catch(e){ continue; }
+    if (p){
+      log(label+" 有结果了", "ok");
+      log(JSON.stringify(p.data||p.raw).slice(0,700));
+      return p;
+    }
+    log("等待结果… "+(i+1)+"/20");
   }
+  log("超时未拿到新结果，请到仓库看 data/result.json", "warn");
   return null;
 }
-let lastTs = "";
-function waitResult(type, timeoutMs){
-  return new Promise((resolve) => {
-    const t0 = Date.now();
-    const timer = setInterval(async () => {
-      try {
-        const j = await readResult();
-        if (j && j.type === type && j.ts && j.ts !== lastTs) {
-          lastTs = j.ts; clearInterval(timer); resolve(j); return;
-        }
-      } catch(e) { }
-      if (Date.now() - t0 > timeoutMs) {
-        clearInterval(timer);
-        resolve({ ok:false, msg:"等待超时（GitHub Actions 可能还在排队）" });
-      }
-    }, 4000);
-  });
-}
-function busy(on){ $("btn_send").disabled = on; $("btn_login").disabled = on; $("btn_sess").disabled = on; }
 
-let cd = 0;
-function countdown(){
-  const b = $("btn_send");
-  if (cd > 0) { b.textContent = cd + " 秒"; b.disabled = true; cd--; setTimeout(countdown, 1000); }
-  else { b.textContent = "获取验证码"; b.disabled = false; }
-}
-$("btn_send").onclick = async () => {
-  const phone = $("inp_phone").value.trim();
-  if (!/^1\d{10}$/.test(phone)) { log("请输入正确的 11 位手机号", "err"); return; }
-  busy(true); $("steps").innerHTML = "";
-  try {
-    await dispatch("send_code", { phone });
-    log("已请求发送验证码…", "warn");
-    const j = await waitResult("send_code", 150000);
-    showSteps(j.steps);
-    if (j.ok) { log("验证码已发送到 " + phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2"), "ok"); stat("验证码已发送，查收短信"); cd = 60; countdown(); }
-    else { log("发送失败：" + (j.msg || "未知"), "err"); stat("发送失败：" + (j.msg||""), true); }
-  } catch(e) { log("发送失败：" + e.message, "err"); stat("发送失败：" + e.message, true); }
-  finally { busy(false); }
+$("btn_code").onclick = async function(){
+  var phone = $("phone").value.trim();
+  if (!/^1\d{10}$/.test(phone)){ msg("请输入 11 位手机号", true); return; }
+  if (!TOKEN && !(await unlock())) return;
+  busy(true); msg("正在发送验证码…");
+  try{
+    await dispatch("send_code", { phone: phone });
+    msg("验证码已发送，请查收短信");
+    log("send_code 已触发 → "+phone, "ok");
+    await waitResult("发码");
+  }catch(e){ msg("发送失败："+e.message, true); log("失败："+e.message,"err"); }
+  busy(false);
 };
 
-async function doLogin(payload){
-  busy(true); $("steps").innerHTML = "";
-  try {
-    await dispatch("do_login", payload);
-    log("登录中，正在抓取令牌…", "warn");
-    const j = await waitResult("do_login", 200000);
-    showSteps(j.steps);
-    if (j.ok) {
-      log("✅ 登录成功，令牌已保存", "ok");
-      log("明早定时签到会自动带上这个号", "ok");
-      stat("登录成功，令牌已保存");
-      $("inp_code").value = ""; $("inp_sess").value = "";
-    } else {
-      log("登录失败：" + (j.msg || "未知"), "err");
-      stat("登录失败：" + (j.msg||""), true);
-      const bad = (j.steps||[]).find(s => !s.ok);
-      if (bad) log("断点：" + bad.step + (bad.err ? " — " + bad.err : ""), "warn");
-      if (/风控|JSESSIONID|境外/.test(String(j.msg||"") + JSON.stringify(j.steps||[])))
-        log("提示：可能是执行机在境外被风控，试试「方式 B」", "warn");
-    }
-  } catch(e) { log("登录失败：" + e.message, "err"); stat("登录失败：" + e.message, true); }
-  finally { busy(false); }
-}
-$("btn_login").onclick = async () => {
-  const phone = $("inp_phone").value.trim();
-  const code  = $("inp_code").value.trim();
-  if (!/^1\d{10}$/.test(phone)) { log("请输入正确的手机号", "err"); return; }
-  if (!/^\d{4,8}$/.test(code))  { log("请输入 4-8 位数字验证码", "err"); return; }
-  await doLogin({ phone, code });
-};
-$("btn_sess").onclick = async () => {
-  const phone = $("inp_phone").value.trim();
-  if (!/^1\d{10}$/.test(phone)) { log("请先填手机号", "err"); return; }
-  const txt = $("inp_sess").value;
-  const sid = (txt.match(/sid=([^\s&;]+)/i)||[])[1] || "";
-  const rmkey = (txt.match(/RMKEY=([^\s&;]+)/i)||[])[1] || "";
-  if (!sid) { log("没解析到 sid，请确认粘贴内容", "err"); return; }
-  log("用手机端会话抓令牌（rmkey " + (rmkey?"有":"无") + "）", "warn");
-  await doLogin({ phone, code: "", sid, rmkey });
+$("btn_login").onclick = async function(){
+  var phone = $("phone").value.trim(), code = $("code").value.trim();
+  if (!/^1\d{10}$/.test(phone)){ msg("请输入 11 位手机号", true); return; }
+  if (!code){ msg("请输入验证码", true); return; }
+  if (!TOKEN && !(await unlock())) return;
+  busy(true); msg("正在登录并抓取令牌…");
+  try{
+    await dispatch("do_login", { phone: phone, code: code });
+    log("do_login 已触发（"+phone.replace(/(\d{3})\d{4}(\d{4})/,"$1****$2")+"）", "ok");
+    await waitResult("登录");
+    msg("已提交，请看上方日志确认是否抓到令牌");
+  }catch(e){ msg("登录失败："+e.message, true); log("失败："+e.message,"err"); }
+  busy(false);
 };
 
-loadCfg();
-log("就绪。若未配置密钥，请在下方保险箱中设置。", "ok");
+$("btn_b").onclick = async function(){
+  var sid = $("sid").value.trim(), phone = $("phone").value.trim();
+  if (!sid){ msg("请粘贴会话串", true); return; }
+  if (!TOKEN && !(await unlock())) return;
+  busy(true); msg("正在用会话抓令牌…");
+  try{
+    await dispatch("do_login", { phone: phone, sid: sid });
+    await waitResult("抓令牌");
+    msg("已提交，请看上方日志");
+  }catch(e){ msg("失败："+e.message, true); log("失败："+e.message,"err"); }
+  busy(false);
+};
+
+log("就绪。填入手机号即可开始。");
 </script>
 </body>
 </html>
