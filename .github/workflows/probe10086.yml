@@ -19,6 +19,6 @@ jobs:
           git config user.name "probe-bot"
           git config user.email "probe-bot@users.noreply.github.com"
           mkdir -p data
-          git add -f data/probe10086.json 2>/dev/null || true
+          git add -f probe10086.txt 2>/dev/null || true
           git commit -m "probe10086 result" 2>/dev/null || true
           git push 2>/dev/null || echo "无变更"
