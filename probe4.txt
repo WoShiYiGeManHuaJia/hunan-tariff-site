@@ -1,0 +1,108 @@
+[
+ {
+  "name": "套餐余量(带)",
+  "url": "https://shop.10086.cn/i/?f=packremainqry",
+  "withCk": true,
+  "status": 200,
+  "finalUrl": "https://shop.10086.cn/i/?f=packremainqry",
+  "len": 20846,
+  "title": "套餐余量查询-中国移动网上商城-个人中心",
+  "authHit": [
+   "套餐余量",
+   "我的移动"
+  ],
+  "guestHit": [],
+  "phone": [],
+  "verdict": "有效(已登录)",
+  "setCookie": null
+ },
+ {
+  "name": "套餐余量(不带)",
+  "url": "https://shop.10086.cn/i/?f=packremainqry",
+  "withCk": false,
+  "status": 200,
+  "finalUrl": "https://shop.10086.cn/i/?f=packremainqry",
+  "len": 20846,
+  "title": "套餐余量查询-中国移动网上商城-个人中心",
+  "authHit": [
+   "套餐余量",
+   "我的移动"
+  ],
+  "guestHit": [],
+  "phone": [],
+  "verdict": "有效(已登录)",
+  "setCookie": null
+ },
+ {
+  "name": "个人中心(带)",
+  "url": "https://shop.10086.cn/i/",
+  "withCk": true,
+  "status": 200,
+  "finalUrl": "https://shop.10086.cn/i/",
+  "len": 20874,
+  "title": "中国移动网上商城--个人中心",
+  "authHit": [
+   "我的移动"
+  ],
+  "guestHit": [],
+  "phone": [],
+  "verdict": "有效(已登录)",
+  "setCookie": null
+ },
+ {
+  "name": "个人中心(不带)",
+  "url": "https://shop.10086.cn/i/",
+  "withCk": false,
+  "status": 200,
+  "finalUrl": "https://shop.10086.cn/i/",
+  "len": 20874,
+  "title": "中国移动网上商城--个人中心",
+  "authHit": [
+   "我的移动"
+  ],
+  "guestHit": [],
+  "phone": [],
+  "verdict": "有效(已登录)",
+  "setCookie": null
+ },
+ {
+  "name": "商城首页(带)",
+  "url": "https://shop.10086.cn/",
+  "withCk": true,
+  "status": 200,
+  "finalUrl": "https://shop.10086.cn/",
+  "len": 24673,
+  "title": null,
+  "authHit": [],
+  "guestHit": [],
+  "phone": [],
+  "verdict": "无标志(静态壳)",
+  "setCookie": null
+ },
+ {
+  "browser": true,
+  "name": "商城个人中心",
+  "url": "https://shop.10086.cn/i/",
+  "text": "登录\n短信随机码登录\n客服密码登录\n获取短信随机码\n请阅读《个人信息保护政策》\n请阅读《中国移动网站服务协议》\n记住账号\n互联网用户登录\n登录 丨  帮助\n回到顶部\n\n触屏版 电脑版 客户端\n\n中国移动 | 京ICP备05002571",
+  "phone": [],
+  "authHit": [],
+  "guestHit": [
+   "短信随机码",
+   "随机码登录"
+  ],
+  "verdict": "失效(跳登录页)"
+ },
+ {
+  "browser": true,
+  "name": "套餐余量查询",
+  "url": "https://shop.10086.cn/i/?f=packremainqry",
+  "text": "登录\n短信随机码登录\n客服密码登录\n获取短信随机码\n请阅读《个人信息保护政策》\n请阅读《中国移动网站服务协议》\n记住账号\n互联网用户登录\n登录 丨  帮助\n回到顶部\n\n触屏版 电脑版 客户端\n\n中国移动 | 京ICP备05002571",
+  "phone": [],
+  "authHit": [],
+  "guestHit": [
+   "短信随机码",
+   "随机码登录"
+  ],
+  "verdict": "失效(跳登录页)"
+ }
+]
