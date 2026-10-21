@@ -1,0 +1,38 @@
+name: chk2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检查
+        run: |
+          OUT=""
+          for u in "http://hnvip.qd.je/yun.html" "https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/yun.html"; do
+            code=$(curl -s -o /tmp/y.html -w "%{http_code}" -L --max-time 40 "$u" || echo ERR)
+            sz=$(stat -c%s /tmp/y.html 2>/dev/null || echo 0)
+            OUT="$OUT$u -> HTTP $code , ${sz} bytes\n"
+            if [ "$sz" -gt 5000 ]; then
+              OUT="$OUT  hasAccMgr: $(grep -c '号码与 Cookie' /tmp/y.html)\n"
+              OUT="$OUT  hasParse: $(grep -c 'parseCookie' /tmp/y.html)\n"
+              OUT="$OUT  hasBmk: $(grep -c 'document.cookie' /tmp/y.html)\n"
+              OUT="$OUT  realPhone: $(grep -c '13787464642\|17289519953\|18289484895\|13717306553' /tmp/y.html)\n"
+              OUT="$OUT  demoPhone: $(grep -o '138\*\*\*\*000[0-9]' /tmp/y.html | sort -u | tr '\n' ' ')\n"
+            fi
+          done
+          printf "$OUT" > chk2.txt
+          cat chk2.txt
+      - name: 回写
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          B64=$(base64 -w0 chk2.txt)
+          SHA=$(curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/contents/chk2.txt?ref=main" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('sha',''))" 2>/dev/null || echo "")
+          if [ -n "$SHA" ]; then
+            curl -s -X PUT -H "Authorization: token $GH_TOKEN" -d "{\"message\":\"c\",\"content\":\"$B64\",\"branch\":\"main\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk2.txt" > /dev/null
+          else
+            curl -s -X PUT -H "Authorization: token $GH_TOKEN" -d "{\"message\":\"c\",\"content\":\"$B64\",\"branch\":\"main\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk2.txt" > /dev/null
+          fi
