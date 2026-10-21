@@ -13,12 +13,22 @@ jobs:
         with:
           node-version: "20"
       - name: 探测登录态
-        run: node probe10086.js
-      - name: 回写结果
+        run: node probe10086.js 2>&1 | tee probe.log
+      - name: 用API回写结果
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "probe-bot"
-          git config user.email "probe-bot@users.noreply.github.com"
-          mkdir -p data
-          git add -f probe10086.txt 2>/dev/null || true
-          git commit -m "probe10086 result" 2>/dev/null || true
-          git push 2>/dev/null || echo "无变更"
+          B64=$(base64 -w0 probe10086.txt)
+          SHA=$(curl -s -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/probe10086.txt?ref=main" \
+            | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('sha',''))" 2>/dev/null || echo "")
+          if [ -n "$SHA" ]; then
+            curl -s -X PUT -H "Authorization: token $GH_TOKEN" \
+              -d "{\"message\":\"probe result\",\"content\":\"$B64\",\"branch\":\"main\",\"sha\":\"$SHA\"}" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/probe10086.txt" > /dev/null
+          else
+            curl -s -X PUT -H "Authorization: token $GH_TOKEN" \
+              -d "{\"message\":\"probe result\",\"content\":\"$B64\",\"branch\":\"main\"}" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/probe10086.txt" > /dev/null
+          fi
+          echo "done"
