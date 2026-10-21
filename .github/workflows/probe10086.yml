@@ -1,0 +1,24 @@
+name: probe10086
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: 探测登录态
+        run: node probe10086.js
+      - name: 回写结果
+        run: |
+          git config user.name "probe-bot"
+          git config user.email "probe-bot@users.noreply.github.com"
+          mkdir -p data
+          git add -f data/probe10086.json 2>/dev/null || true
+          git commit -m "probe10086 result" 2>/dev/null || true
+          git push 2>/dev/null || echo "无变更"
