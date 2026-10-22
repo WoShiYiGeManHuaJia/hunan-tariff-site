@@ -1,122 +1,29 @@
-[
- {
-  "u": "https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js",
-  "err": null,
-  "has": true,
-  "dns": 3,
-  "tcp": 10,
-  "ttfb": 23,
-  "dur": 25,
-  "transfer": 54847
- },
- {
-  "u": "https://cdn.jsdelivr.net/npm/typescript@5.4.5/lib/typescript.js",
-  "err": null,
-  "has": true,
-  "dns": 0,
-  "tcp": 0,
-  "ttfb": 9,
-  "dur": 79,
-  "transfer": 1447897
- },
- {
-  "u": "https://1.1.1.1/cdn-cgi/trace",
-  "err": null,
-  "has": true,
-  "dns": 0,
-  "tcp": 0,
-  "ttfb": null,
-  "dur": 19,
-  "transfer": 0
- },
- {
-  "u": "https://cloudflare.com/cdn-cgi/trace",
-  "err": null,
-  "has": true,
-  "dns": 0,
-  "tcp": 0,
-  "ttfb": null,
-  "dur": 18,
-  "transfer": 0
- },
- {
-  "u": "https://www.google.com/generate_204",
-  "err": null,
-  "has": true,
-  "dns": 0,
-  "tcp": 0,
-  "ttfb": null,
-  "dur": 15,
-  "transfer": 0
- },
- {
-  "u": "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js",
-  "err": null,
-  "has": true,
-  "dns": 3,
-  "tcp": 7,
-  "ttfb": 16,
-  "dur": 18,
-  "transfer": 30762
- },
- {
-  "u": "https://unpkg.com/vue@3.4.0/dist/vue.global.prod.js",
-  "err": null,
-  "has": true,
-  "dns": 0,
-  "tcp": 0,
-  "ttfb": null,
-  "dur": 88,
-  "transfer": 0
- },
- {
-  "u": "https://registry.npmmirror.com/vue/latest",
-  "err": null,
-  "has": true,
-  "dns": 0,
-  "tcp": 0,
-  "ttfb": null,
-  "dur": 453,
-  "transfer": 0
- },
- {
-  "u": "https://www.baidu.com/favicon.ico",
-  "err": null,
-  "has": true,
-  "dns": 0,
-  "tcp": 0,
-  "ttfb": null,
-  "dur": 1142,
-  "transfer": 0
- },
- {
-  "u": "https://static.cloudflareinsights.com/beacon.min.js",
-  "err": null,
-  "has": true,
-  "dns": 0,
-  "tcp": 0,
-  "ttfb": null,
-  "dur": 27,
-  "transfer": 0
- },
- {
-  "u": "https://fastly.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js",
-  "err": null,
-  "has": true,
-  "dns": 3,
-  "tcp": 6,
-  "ttfb": 1060,
-  "dur": 1062,
-  "transfer": 47859
- },
- {
-  "u": "https://img.alicdn.com/tfs/TB1.gif",
-  "err": null,
-  "has": true,
-  "dns": 417,
-  "tcp": 7,
-  "ttfb": 687,
-  "dur": 688,
-  "transfer": 349
- }
-]
+{
+ "bufSize": "api-ok",
+ "entriesBefore": 1,
+ "anchor": null,
+ "manualEntries": [
+  {
+   "n": "https://fastly.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.",
+   "dns": 0,
+   "tcp": 0,
+   "rs": 2285,
+   "dur": 12
+  },
+  {
+   "n": "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.",
+   "dns": 3,
+   "tcp": 18,
+   "rs": 2325,
+   "dur": 43
+  },
+  {
+   "n": "https://img.alicdn.com/tfs/TB1.gif?x=1792654000986",
+   "dns": 0,
+   "tcp": 0,
+   "rs": 2667,
+   "dur": 339
+  }
+ ],
+ "logText": "· 就绪 · 点顶部「开始诊断」扫描全部站点"
+}
