@@ -230,13 +230,14 @@ var DEFAULT_SITES = [
   {id:"wiki",   n:"维基百科", u:"https://zh.wikipedia.org",   c:"国际/代理"},
   {id:"cf",     n:"Cloudflare",u:"https://1.1.1.1",           c:"国际/代理"}
 ];
-/* 分段锚点：这些地址开放了 Timing-Allow-Origin，
-   浏览器才肯吐出 DNS / TCP / 首包 等分段数据 */
+/* 分段锚点：浏览器只在「同源」或「对方开放 Timing-Allow-Origin」时，
+   才肯吐出 DNS / TCP / 首包 等分段数据。
+   同源探针(./probe.txt)一定拿得到，放第一个优先用。 */
 var ANCHORS = [
-  {n:"Cloudflare", u:"https://1.1.1.1/cdn-cgi/trace"},
+  {n:"本机探针",   same:true},
   {n:"jsDelivr",   u:"https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js"},
-  {n:"Google",     u:"https://www.google.com/generate_204"},
-  {n:"Cloudflare2",u:"https://cloudflare.com/cdn-cgi/trace"}
+  {n:"GitHub资源", u:"https://github.githubassets.com/favicons/favicon.png"},
+  {n:"Cloudflare", u:"https://1.1.1.1/cdn-cgi/trace"}
 ];
 var LS_KEY = "netscope_sites_v1", LS_THEME = "netscope_theme";
 
@@ -390,7 +391,11 @@ async function probeSite(site, timeout, deep, times){
 async function probeAnchor(){
   for(var i=0;i<ANCHORS.length;i++){
     var a=ANCHORS[i];
-    var r=await probeOnce({id:"anchor",n:a.n,u:a.u,c:""},5000,false);
+    var url=a.u;
+    if(a.same){
+      try{ url = new URL("probe.txt", location.href).href; }catch(e){ continue; }
+    }
+    var r=await probeOnce({id:"anchor",n:a.n,u:url,c:""},6000,false);
     if(r.ok && r.dns!=null && r.tcp!=null){
       r.anchorName=a.n; return r;
     }
