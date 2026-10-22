@@ -396,7 +396,10 @@ async function probeAnchor(){
       try{ url = new URL("probe.txt", location.href).href; }catch(e){ continue; }
     }
     var r=await probeOnce({id:"anchor",n:a.n,u:url,c:""},6000,false);
-    if(r.ok && r.dns!=null && r.tcp!=null){
+    /* 只要拿得到任意一项分段就算成功。
+       DNS/TCP 为 0 是正常的：页面加载时已解析过、连接也可能复用，
+       0 表示"走了缓存"，本身就是真实信息，不能因此判失败。 */
+    if(r.ok && (r.dns!=null || r.tcp!=null || r.ttfb!=null || r.trans!=null)){
       r.anchorName=a.n; return r;
     }
   }
@@ -451,6 +454,9 @@ function renderDeep(r){
 
   if(r.dns!=null||r.tcp!=null||r.wait!=null||r.trans!=null){
     h.push('<div style="margin-top:12px">'+segBar(r.dns,r.tcp,r.wait,r.trans)+'</div>');
+    if(r.dns===0||r.tcp===0){
+      h.push('<div class="hint">DNS/TCP 为 0 表示本次复用了已有解析或连接，属正常现象。</div>');
+    }
   }else{
     h.push('<div class="bar" style="margin-top:12px"><div class="seg" style="width:100%;background:'+g.c+'">总耗时 '+ms(r.total)+'</div></div>');
     h.push('<div class="hint">该站点未开放 Timing-Allow-Origin，浏览器屏蔽了分段数据。下面用「链路参考」补上。</div>');
