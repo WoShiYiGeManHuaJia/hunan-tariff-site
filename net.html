@@ -436,6 +436,7 @@ async function probeSite(site, timeout, deep, times){
 /* 找一个能吐出分段数据的锚点，用来反映本机链路质量 */
 async function probeAnchor(){
   try{ performance.clearResourceTimings(); }catch(e){}
+  var fallback=null;
   for(var i=0;i<ANCHORS.length;i++){
     var a=ANCHORS[i];
     try{ performance.clearResourceTimings(); }catch(e){}
@@ -443,6 +444,7 @@ async function probeAnchor(){
     if(r.ok && r.dns!=null && r.tcp!=null){
       r.anchorName=a.n; return r;
     }
+    if(r.ok && r.ttfb!=null && !fallback){ r.anchorName=a.n; r.reused=true; fallback=r; }
   }
   return null;
 }
@@ -519,7 +521,7 @@ function renderDeep(r){
   if(ANCHOR){
     h.push('<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--bd)">'+
       '<div style="font-size:13px;font-weight:600;margin-bottom:6px">🔗 链路参考 · '+esc(ANCHOR.anchorName)+'</div>'+
-      '<div class="hint" style="margin-bottom:8px">这个地址开放了分段数据，用它反映你当前网络的链路质量</div>'+
+      '<div class="hint" style="margin-bottom:8px">这个地址开放了分段数据，用它反映你当前网络的链路质量'+(ANCHOR.reused?'（本机已缓存 DNS／复用连接，DNS、TCP 会显示为 0）':'')+'</div>'+
       segBar(ANCHOR.dns,ANCHOR.tcp,ANCHOR.wait,ANCHOR.trans)+
       '<table class="kv">'+
       '<tr><td>DNS 解析</td><td>'+ms(ANCHOR.dns)+'</td></tr>'+
