@@ -169,10 +169,7 @@ label.lb{display:block;font-size:12.5px;color:var(--sub);margin:11px 0 5px}
       <h3>🚀 下载带宽</h3>
       <div class="hint" style="margin-bottom:10px">从 CDN 真实下载一段数据算速率（最多约 5 秒 / 5 MB，走流量的注意下）</div>
       <div class="row">
-        <select id="sp_src">
-          <option value="https://cdn.jsdelivr.net/npm/typescript@5.4.5/lib/typescript.js">jsDelivr · TypeScript(~9MB)</option>
-          <option value="https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js">jsDelivr · Vue(~0.4MB)</option>
-        </select>
+        <select id="sp_src"></select>
         <button class="btn" id="btn_speed">开始测速</button>
       </div>
       <div id="spout" style="margin-top:10px"></div>
@@ -280,10 +277,10 @@ var DEFAULT_SITES = [
 /* 分段锚点：这些地址开放了 Timing-Allow-Origin，
    浏览器才肯吐出 DNS / TCP / 首包 等分段数据 */
 var ANCHORS = [
-  {n:"Cloudflare", u:"https://1.1.1.1/cdn-cgi/trace"},
+  {n:"阿里 CDN",   u:"https://img.alicdn.com/tfs/TB1.gif"},
   {n:"jsDelivr",   u:"https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js"},
-  {n:"Google",     u:"https://www.google.com/generate_204"},
-  {n:"Cloudflare2",u:"https://cloudflare.com/cdn-cgi/trace"}
+  {n:"fastly",     u:"https://fastly.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js"},
+  {n:"Google CDN", u:"https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"}
 ];
 var LS_KEY = "netscope_sites_v1", LS_THEME = "netscope_theme";
 
@@ -486,7 +483,8 @@ function renderDeep(r){
   }
 
   if(r.runs && r.runs.length>1){
-    h.push('<div class="hint" style="margin-top:8px">'+r.runs.length+' 次探测：'+
+    var okN=r.runs.filter(function(x){ return x!=null; }).length;
+    h.push('<div class="hint" style="margin-top:8px">'+r.runs.length+' 次探测（成功 '+okN+'）：'+
       r.runs.map(function(x){ return x==null?"✗":msShort(x); }).join(" / ")+
       (r.jitter!=null?('　抖动 '+ms(r.jitter)):"")+'</div>');
   }
@@ -736,7 +734,7 @@ function dohParse(t){
     var j=JSON.parse(t), a=j.Answer||[];
     var rec=a.filter(function(x){ return x.type===1; });
     if(!rec.length) return null;
-    return {ip:rec.slice(0,2).map(function(x){ return x.data; }).join(" / "), ttl:rec[0].TTL};
+    return {ip:rec.slice(0,2).map(function(x){ return x.data; }).sort().join(" / "), ttl:rec[0].TTL};
   }catch(e){ return null; }
 }
 async function runDNS(){
@@ -762,7 +760,8 @@ async function runDNS(){
       item.ip=d?d.ip:(/\d+\.\d+\.\d+\.\d+/.test(txt)?"非标准响应":"无结果");
     }catch(e){
       item.ok=false; item.ms=Math.round(performance.now()-t0);
-      item.err=(e&&e.name==="AbortError")?"超时":String((e&&e.message)||"失败");
+      var m=String((e&&e.message)||"失败");
+      item.err=(e&&e.name==="AbortError")?"超时":(m==="Failed to fetch"?"被拦截":m.slice(0,18));
     }
     res.push(item);
     $("dnsout").innerHTML=renderDNS(res);
@@ -793,16 +792,18 @@ function renderDNS(res){
 }
 
 /* ============ 带宽测速 ============ */
-async function runSpeed(){
-  var url=$("sp_src").value+"?_ns="+Date.now();
-  $("btn_speed").disabled=true;
-  $("spout").innerHTML='<div class="hint">测速中…（最多 5 秒）</div>';
-  log("开始下载测速…");
+var SP_SRC=[
+  {n:"TypeScript ~1.4MB", u:"https://cdn.jsdelivr.net/npm/typescript@5.4.5/lib/typescript.js"},
+  {n:"Monaco ~3MB",       u:"https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.js"},
+  {n:"Vue ~0.05MB",       u:"https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js"}
+];
+async function spOnce(u){
   var ac=new AbortController();
   var t0=performance.now(), got=0, last=t0, done=false;
-  var tid=setTimeout(function(){ ac.abort(); },9000);
+  var tid=setTimeout(function(){ try{ac.abort();}catch(e){} },9000);
   try{
-    var r=await fetch(url,{cache:"no-store",signal:ac.signal,mode:"cors"});
+    var r=await fetch(u+"?_ns="+Date.now(),{cache:"no-store",signal:ac.signal,mode:"cors"});
+    if(!r.ok&&r.status) throw new Error("HTTP "+r.status);
     var rd=r.body.getReader();
     for(;;){
       var d=await rd.read();
@@ -816,27 +817,46 @@ async function runSpeed(){
     }
     clearTimeout(tid);
     var sec=(last-t0)/1000;
-    if(sec<=0.05){ throw new Error("太快，样本不足"); }
-    var mbps=got*8/sec/1000000;
-    var kbs=got/1024/sec;
-    var col = mbps>20?"var(--g)":mbps>5?"var(--gl)":mbps>1?"var(--y)":"var(--o)";
-    $("spout").innerHTML=
-      '<div class="big"><span class="bignum" style="color:'+col+'">'+
-      (mbps>=1?mbps.toFixed(1):(kbs).toFixed(0))+'</span>'+
-      '<span class="bigunit">'+(mbps>=1?"Mbps":"KB/s")+'</span></div>'+
-      '<table class="kv" style="margin-top:8px">'+
-      '<tr><td>已下载</td><td>'+kb(got)+'</td></tr>'+
-      '<tr><td>用时</td><td>'+sec.toFixed(2)+' s</td></tr>'+
-      '<tr><td>平均速率</td><td>'+(got/1024/sec).toFixed(0)+' KB/s</td></tr>'+
-      '<tr><td>是否跑完</td><td>'+(done?"完整下载":"到达上限后中断")+'</td></tr>'+
-      '</table>';
-    log("测速完成 "+(got/1024/sec).toFixed(0)+" KB/s","ok");
+    return {got:got, sec:sec, done:done};
   }catch(e){
     clearTimeout(tid);
-    $("spout").innerHTML='<div class="hint" style="color:var(--r)">测速失败：'+
-      esc((e&&e.message)||"网络错误")+'</div>';
-    log("测速失败","er");
+    return {got:got, sec:(performance.now()-t0)/1000, err:String((e&&e.message)||"失败")};
   }
+}
+async function runSpeed(){
+  var idx=parseInt($("sp_src").value,10)||0;
+  var order=[idx,0,1,2].filter(function(v,i,a){ return a.indexOf(v)===i; });
+  $("btn_speed").disabled=true;
+  $("spout").innerHTML='<div class="hint">测速中…（最多 5 秒）</div>';
+  log("开始下载测速…");
+  var best=null, used=null;
+  for(var k=0;k<order.length;k++){
+    var src=SP_SRC[order[k]];
+    var r=await spOnce(src.u);
+    log(src.n+" → "+kb(r.got)+(r.err?(" 失败:"+r.err):""), r.err?"wn":"ok");
+    if(!r.err && (!best || r.got>best.got)){ best=r; used=src; }
+    if(best && best.got>=200*1024) break;
+  }
+  if(!best || best.got<1024){
+    $("spout").innerHTML='<div class="hint" style="color:var(--r)">测速失败：所有数据源都没拿到数据，可能被网络或浏览器策略拦了。</div>';
+    log("测速失败","er"); $("btn_speed").disabled=false; return;
+  }
+  var sec=Math.max(best.sec,0.01);
+  var kbs=best.got/1024/sec, mbps=kbs*8/1000;
+  var col = mbps>20?"var(--g)":mbps>5?"var(--gl)":mbps>1?"var(--y)":"var(--o)";
+  $("spout").innerHTML=
+    '<div class="big"><span class="bignum" style="color:'+col+'">'+
+    (mbps>=1?mbps.toFixed(1):kbs.toFixed(0))+'</span>'+
+    '<span class="bigunit">'+(mbps>=1?"Mbps":"KB/s")+'</span></div>'+
+    '<table class="kv" style="margin-top:8px">'+
+    '<tr><td>数据源</td><td>'+esc(used.n)+'</td></tr>'+
+    '<tr><td>已下载</td><td>'+kb(best.got)+'</td></tr>'+
+    '<tr><td>用时</td><td>'+sec.toFixed(2)+' s</td></tr>'+
+    '<tr><td>平均速率</td><td>'+kbs.toFixed(0)+' KB/s</td></tr>'+
+    '<tr><td>是否跑完</td><td>'+(best.done?"完整下载":"到达上限后中断")+'</td></tr>'+
+    '</table>'+
+    (best.got<200*1024?'<div class="hint" style="margin-top:6px;color:var(--y)">样本偏小，结果仅供参考。</div>':'');
+  log("测速完成 "+kbs.toFixed(0)+" KB/s","ok");
   $("btn_speed").disabled=false;
 }
 
@@ -897,6 +917,7 @@ $("btn_theme").onclick=function(){
 try{ if(localStorage.getItem(LS_THEME)==="dark")
        document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
 syncTarget(); renderGrid(); renderMine(); renderDeep(null); getIP();
+$("sp_src").innerHTML=SP_SRC.map(function(x,i){ return '<option value="'+i+'">'+esc(x.n)+'</option>'; }).join("");
 $("s_net").textContent=netType(); renderStats();
 try{ (navigator.connection||{}).addEventListener&&
   navigator.connection.addEventListener("change",function(){ $("s_net").textContent=netType(); }); }catch(e){}
