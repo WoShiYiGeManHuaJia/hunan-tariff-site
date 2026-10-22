@@ -399,6 +399,7 @@ async function probeOnce(site, timeout, deep){
     out.ok=true; out.via="root";
     out.status=r1.opaque?null:r1.status; out.probeUrl=url;
   }
+  await new Promise(function(s2){ setTimeout(s2,220); });
   var tm=pickTiming(og,t0-50);
   if(tm){
     out.dns=tm.dns; out.tcp=tm.tcp; out.wait=tm.wait; out.trans=tm.trans;
