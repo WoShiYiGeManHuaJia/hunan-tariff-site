@@ -17,3 +17,8 @@
 # 导致仓库里已是新包、用户下载的却是旧包。这里让 APK 每次都向源站验证。
 /*.apk
   Cache-Control: no-cache, must-revalidate, max-age=0
+
+# 2026-10-22 补：网络诊断探针必须每次真实走网络，否则命中缓存就拿不到
+# DNS / TCP / 首包 这些分段耗时了。
+/probe.txt
+  Cache-Control: no-store, must-revalidate, max-age=0
