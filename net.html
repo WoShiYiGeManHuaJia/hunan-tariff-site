@@ -399,6 +399,7 @@ async function probeOnce(site, timeout, deep){
     out.ok=true; out.via="root";
     out.status=r1.opaque?null:r1.status; out.probeUrl=url;
   }
+  if(r1 && r1.res && !r1.opaque){ try{ await r1.res.arrayBuffer(); }catch(e){} }
   await new Promise(function(s2){ setTimeout(s2,220); });
   var tm=pickTiming(og,t0-50);
   if(tm){
@@ -438,7 +439,7 @@ async function probeAnchor(){
   for(var i=0;i<ANCHORS.length;i++){
     var a=ANCHORS[i];
     try{ performance.clearResourceTimings(); }catch(e){}
-    var r=await probeOnce({id:"anchor",n:a.n,u:a.u,c:""},5000,false);
+    var r=await probeOnce({id:"anchor",n:a.n,u:a.u,c:""},5000,true);
     if(r.ok && r.dns!=null && r.tcp!=null){
       r.anchorName=a.n; return r;
     }
