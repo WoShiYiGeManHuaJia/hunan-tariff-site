@@ -1,95 +1,96 @@
 === 顶部统计 ===
-在线: — | 平均: — | 网络: 4G ~9.2M | IP: 20.55.223.178
+在线: — | 平均: — | 网络: 4G ~10M | IP: 4.155.111.98
 
-=== 扫描耗时 4 s ===
+=== 扫描耗时 6 s ===
 
 === 站点网格 ===
 国内常用
 百度
-2.0s
-很慢
-腾讯QQ
-781
+881
 较慢
+腾讯QQ
+543
+一般
 阿里
-240
-良好
+389
+一般
 微信
-1.0s
+611
 较慢
 哔哩哔哩
-697
+762
 较慢
 抖音
-788
-较慢
+3.2s
+很慢
 京东
-740
+1.1s
 较慢
 知乎
-693
-较慢
+1.3s
+很慢
 微博
-2.1s
+1.9s
 很慢
 网易
-595
-一般
+796
+较慢
 我的服务
 移动云盘
-2.3s
-很慢
+1.2s
+较慢
 中国移动
-1.5s
-很慢
+1.0s
+较慢
 jsDelivr
-110
-良好
+82
+优秀
 国际/代理
 GitHub
-206
+223
 良好
 Google
-92
-优秀
+117
+良好
 YouTube
-96
-优秀
+165
+良好
 ChatGPT
 —
 不通
 Netflix
-425
+395
 一般
 X(推特)
-43
+29
 优秀
 Telegram
-330
+479
 一般
 维基百科
-207
-良好
+364
+一般
 Cloudflare
-67
+76
 优秀
 
 === 网络评估 ===
 共测 22 个站点，通 21 个，不通 1 个。
-平均延迟 714 ms，整体 较慢
-最快：X(推特) 43 ms　最慢：移动云盘 2.28 s
-国内平均 966 ms　国际平均 183 ms
+平均延迟 740 ms，整体 较慢
+最快：X(推特) 29 ms　最慢：抖音 3.19 s
+国内平均 1.14 s　国际平均 231 ms
 国内站点反而更慢，检查下 DNS 或本地网络。
 
 === 深度诊断（百度）===
-1.3s
-很慢
+894
+ms
+较慢
 百度 · https://www.baidu.com
-3 次探测（成功 3）：1.3s / 1.3s / 1.3s　抖动 31 ms
-总耗时 1.26 s
+3 次探测（成功 3）：966 / 941 / 894　抖动 72 ms
+总耗时 894 ms
 该站点未开放 Timing-Allow-Origin，浏览器屏蔽了分段数据。下面用「链路参考」补上。
 状态码	跨域不可读
-总耗时	1.26 s
+总耗时	894 ms
 首包时间(TTFB)	—
 DNS 解析	—
 TCP 建连	—
@@ -98,18 +99,30 @@ TCP 建连	—
 传输大小	—
 页面大小	—
 探测方式	根地址直接请求
-分段色块: ["总耗时 1.26 s"]
+🔗 链路参考 · 阿里 CDN
+这个地址开放了分段数据，用它反映你当前网络的链路质量
+TCP
+等待
+DNS 50 ms
+TCP 123 ms
+等待 335 ms
+传输 2 ms
+DNS 解析	50 ms
+TCP 建连	123 ms
+首包时间	508 ms
+内容传输	2 ms
+分段色块: ["总耗时 894 ms","","TCP","等待",""]
 
 === DNS 对比 ===
 阿里 DNS
-427 ms
+508 ms
 103.235.46.96 / 103.235.47.188
 腾讯 DNS
 被拦截
 360 DNS
 被拦截
 Cloudflare
-42 ms
+30 ms
 103.235.46.96 / 103.235.47.188
 Google DNS
 1.03 s
@@ -117,13 +130,12 @@ Google DNS
 各家解析一致：103.235.46.96 / 103.235.47.188
 
 === 带宽测速 ===
-1425.4
+77.8
 Mbps
 数据源	TypeScript ~1.4MB
 已下载	8.72 MB
-用时	0.05 s
-平均速率	178180 KB/s
+用时	0.92 s
+平均速率	9721 KB/s
 是否跑完	完整下载
-下载太快、采样时间不足 0.3 秒，数值仅供参考。
 
-=== JS 错误 === ["CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin","CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin","CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin","CONSOLE Failed to load resource: the server responded with a status of 400 ()","CONSOLE Access to fetch at 'https://www.baidu.com/?_ns=1792653833615_27' from origin 'http://hnvip.qd.je' has been blocked by CORS policy: No 'Access-Control-Allow-Orig","CONSOLE Failed to load resource: net::ERR_FAILED","CONSOLE Access to fetch at 'https://www.baidu.com/?_ns=1792653835242_28' from origin 'http://hnvip.qd.je' has been blocked by CORS policy: No 'Access-Control-Allow-Orig","CONSOLE Failed to load resource: net::ERR_FAILED"]
+=== JS 错误 === ["CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin","CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin","CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin","CONSOLE Failed to load resource: the server responded with a status of 400 ()","CONSOLE Access to fetch at 'https://www.baidu.com/?_ns=1792654292358_24' from origin 'http://hnvip.qd.je' has been blocked by CORS policy: No 'Access-Control-Allow-Orig","CONSOLE Failed to load resource: net::ERR_FAILED","CONSOLE Access to fetch at 'https://www.baidu.com/?_ns=1792654293895_25' from origin 'http://hnvip.qd.je' has been blocked by CORS policy: No 'Access-Control-Allow-Orig","CONSOLE Failed to load resource: net::ERR_FAILED"]
