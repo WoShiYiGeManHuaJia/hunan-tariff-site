@@ -1,29 +1,53 @@
 {
- "bufSize": "api-ok",
- "entriesBefore": 1,
- "anchor": null,
- "manualEntries": [
+ "steps": [
   {
-   "n": "https://fastly.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.",
-   "dns": 0,
-   "tcp": 0,
-   "rs": 2285,
-   "dur": 12
+   "n": "阿里 CDN",
+   "ok": true,
+   "via": "root",
+   "dns": 628.6999999999971,
+   "tcp": 62.20000000001164,
+   "ttfb": 994.7000000000116,
+   "err": null,
+   "ents": [
+    "https://img.alicdn.com/tfs/TB1.gif?_ns=1792654 dns629 tcp62"
+   ]
   },
   {
-   "n": "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.",
-   "dns": 3,
-   "tcp": 18,
-   "rs": 2325,
-   "dur": 43
+   "n": "jsDelivr",
+   "ok": true,
+   "via": "root",
+   "dns": 7.19999999999709,
+   "tcp": 39.30000000000291,
+   "ttfb": 61.60000000000582,
+   "err": null,
+   "ents": [
+    "https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vu dns7 tcp39"
+   ]
   },
   {
-   "n": "https://img.alicdn.com/tfs/TB1.gif?x=1792654000986",
-   "dns": 0,
-   "tcp": 0,
-   "rs": 2667,
-   "dur": 339
+   "n": "fastly",
+   "ok": true,
+   "via": "root",
+   "dns": null,
+   "tcp": null,
+   "ttfb": 312.8000000000029,
+   "err": null,
+   "ents": [
+    "https://fastly.jsdelivr.net/npm/vue@3.4.0/dist dns0 tcp0"
+   ]
+  },
+  {
+   "n": "Google CDN",
+   "ok": true,
+   "via": "root",
+   "dns": 12.80000000000291,
+   "tcp": 57.19999999999709,
+   "ttfb": 98.89999999999418,
+   "err": null,
+   "ents": [
+    "https://ajax.googleapis.com/ajax/libs/jquery/3 dns13 tcp57"
+   ]
   }
  ],
- "logText": "· 就绪 · 点顶部「开始诊断」扫描全部站点"
+ "anchor": null
 }
