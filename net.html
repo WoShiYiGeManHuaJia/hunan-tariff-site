@@ -43,6 +43,19 @@ body{margin:0;background:var(--bg);color:var(--txt);
 .hint{font-size:12px;color:var(--sub);line-height:1.7}
 .pane{display:none}.pane.on{display:block}
 
+/* 概览统计条 */
+.stats{display:flex;gap:8px;margin-top:11px}
+.stats>div{flex:1;background:rgba(255,255,255,.16);border-radius:10px;
+  padding:7px 4px;text-align:center;overflow:hidden}
+.stats b{display:block;font-size:15px;font-weight:700;line-height:1.25;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats span{display:block;font-size:10.5px;opacity:.85;margin-top:1px}
+.rowline{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 0;
+  border-bottom:1px solid var(--bd)}
+.rowline:last-child{border-bottom:0}
+.rowline .rn{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rowline .rv{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+
 /* 深度诊断 */
 .big{display:flex;align-items:baseline;gap:8px;margin:6px 0 2px}
 .bignum{font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px}
@@ -117,6 +130,11 @@ label.lb{display:block;font-size:12.5px;color:var(--sub);margin:11px 0 5px}
     <button class="btn ghost" id="btn_theme">🌓</button>
     <button class="btn ghost" id="btn_run">开始诊断</button>
   </div>
+  <div class="stats">
+    <div><b id="s_online">—</b><span>在线 / 总数</span></div>
+    <div><b id="s_avg">—</b><span>平均延迟</span></div>
+    <div><b id="s_net">—</b><span>网络类型</span></div>
+  </div>
 </div>
 
 <div class="tabs">
@@ -139,6 +157,27 @@ label.lb{display:block;font-size:12.5px;color:var(--sub);margin:11px 0 5px}
       <div id="deep"></div>
     </div>
     <div class="card">
+      <h3>🧭 DNS 服务器对比</h3>
+      <div class="hint" style="margin-bottom:10px">用 DNS-over-HTTPS 直接问各家公共 DNS，看谁解析快、结果是否一致</div>
+      <div class="row">
+        <input type="text" id="dns_host" value="www.baidu.com" style="flex:2">
+        <button class="btn" id="btn_dns">测 DNS</button>
+      </div>
+      <div id="dnsout" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h3>🚀 下载带宽</h3>
+      <div class="hint" style="margin-bottom:10px">从 CDN 真实下载一段数据算速率（最多约 5 秒 / 5 MB，走流量的注意下）</div>
+      <div class="row">
+        <select id="sp_src">
+          <option value="https://cdn.jsdelivr.net/npm/typescript@5.4.5/lib/typescript.js">jsDelivr · TypeScript(~9MB)</option>
+          <option value="https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js">jsDelivr · Vue(~0.4MB)</option>
+        </select>
+        <button class="btn" id="btn_speed">开始测速</button>
+      </div>
+      <div id="spout" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
       <h3>📖 指标怎么看</h3>
       <div class="hint">
         <b>DNS 解析</b>：域名 → IP，慢说明 DNS 服务器差<br>
@@ -155,6 +194,14 @@ label.lb{display:block;font-size:12.5px;color:var(--sub);margin:11px 0 5px}
     <div class="card">
       <h3>🎯 站点热力图</h3>
       <div class="hint" style="margin-bottom:10px">点任意格子可把它设为深度诊断目标</div>
+      <div class="row" style="margin-bottom:10px">
+        <select id="auto_refresh">
+          <option value="0">自动刷新：关</option>
+          <option value="30">每 30 秒</option>
+          <option value="60">每 60 秒</option>
+          <option value="300">每 5 分钟</option>
+        </select>
+      </div>
       <div id="grid"></div>
       <div class="legend" style="margin-top:12px">
         <span><i style="background:var(--g)"></i>&lt;100ms</span>
@@ -230,14 +277,13 @@ var DEFAULT_SITES = [
   {id:"wiki",   n:"维基百科", u:"https://zh.wikipedia.org",   c:"国际/代理"},
   {id:"cf",     n:"Cloudflare",u:"https://1.1.1.1",           c:"国际/代理"}
 ];
-/* 分段锚点：浏览器只在「同源」或「对方开放 Timing-Allow-Origin」时，
-   才肯吐出 DNS / TCP / 首包 等分段数据。
-   同源探针(./probe.txt)一定拿得到，放第一个优先用。 */
+/* 分段锚点：这些地址开放了 Timing-Allow-Origin，
+   浏览器才肯吐出 DNS / TCP / 首包 等分段数据 */
 var ANCHORS = [
-  {n:"本机探针",   same:true},
+  {n:"Cloudflare", u:"https://1.1.1.1/cdn-cgi/trace"},
   {n:"jsDelivr",   u:"https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js"},
-  {n:"GitHub资源", u:"https://github.githubassets.com/favicons/favicon.png"},
-  {n:"Cloudflare", u:"https://1.1.1.1/cdn-cgi/trace"}
+  {n:"Google",     u:"https://www.google.com/generate_204"},
+  {n:"Cloudflare2",u:"https://cloudflare.com/cdn-cgi/trace"}
 ];
 var LS_KEY = "netscope_sites_v1", LS_THEME = "netscope_theme";
 
@@ -391,15 +437,8 @@ async function probeSite(site, timeout, deep, times){
 async function probeAnchor(){
   for(var i=0;i<ANCHORS.length;i++){
     var a=ANCHORS[i];
-    var url=a.u;
-    if(a.same){
-      try{ url = new URL("probe.txt", location.href).href; }catch(e){ continue; }
-    }
-    var r=await probeOnce({id:"anchor",n:a.n,u:url,c:""},6000,false);
-    /* 只要拿得到任意一项分段就算成功。
-       DNS/TCP 为 0 是正常的：页面加载时已解析过、连接也可能复用，
-       0 表示"走了缓存"，本身就是真实信息，不能因此判失败。 */
-    if(r.ok && (r.dns!=null || r.tcp!=null || r.ttfb!=null || r.trans!=null)){
+    var r=await probeOnce({id:"anchor",n:a.n,u:a.u,c:""},5000,false);
+    if(r.ok && r.dns!=null && r.tcp!=null){
       r.anchorName=a.n; return r;
     }
   }
@@ -454,9 +493,6 @@ function renderDeep(r){
 
   if(r.dns!=null||r.tcp!=null||r.wait!=null||r.trans!=null){
     h.push('<div style="margin-top:12px">'+segBar(r.dns,r.tcp,r.wait,r.trans)+'</div>');
-    if(r.dns===0||r.tcp===0){
-      h.push('<div class="hint">DNS/TCP 为 0 表示本次复用了已有解析或连接，属正常现象。</div>');
-    }
   }else{
     h.push('<div class="bar" style="margin-top:12px"><div class="seg" style="width:100%;background:'+g.c+'">总耗时 '+ms(r.total)+'</div></div>');
     h.push('<div class="hint">该站点未开放 Timing-Allow-Origin，浏览器屏蔽了分段数据。下面用「链路参考」补上。</div>');
@@ -615,7 +651,7 @@ async function runDeep(site){
   }
   var r=await probeSite(site,8000,true,3);
   RESULTS[site.id]=r;
-  renderDeep(r); renderGrid(); renderRank();
+  renderDeep(r); renderGrid(); renderRank(); renderStats();
   log(site.n+" "+ms(r.total)+" · "+grade(r.total).t+(r.jitter!=null?(" 抖动"+ms(r.jitter)):""),
       r.ok?"ok":"er");
   $("btn_deep").disabled=false;
@@ -625,14 +661,14 @@ async function runAll(){
   if(running){ log("正在跑，请稍候","wn"); return; }
   running=true; RESULTS={};
   $("btn_run").disabled=true; $("btn_run").textContent="诊断中…";
-  $("log").innerHTML=""; renderGrid(); renderRank();
+  $("log").innerHTML=""; renderGrid(); renderRank(); renderStats();
   log("开始扫描 "+SITES.length+" 个站点…");
   var queue=SITES.slice(), idx=0, CONC=5;
   async function worker(){
     while(idx<queue.length){
       var s=queue[idx++];
       RESULTS[s.id]=await probeSite(s,6000,false,1);
-      renderGrid(); renderRank();
+      renderGrid(); renderRank(); renderStats();
     }
   }
   var ws=[]; for(var i=0;i<CONC;i++) ws.push(worker());
@@ -666,11 +702,159 @@ async function getIP(){
   $("myip").textContent="获取失败";
 }
 
+/* ============ 概览统计 ============ */
+function renderStats(){
+  var arr=[]; SITES.forEach(function(s){ if(RESULTS[s.id]) arr.push(RESULTS[s.id]); });
+  var ok=arr.filter(function(r){ return r.ok; });
+  $("s_online").textContent = arr.length ? (ok.length+" / "+arr.length) : "—";
+  if(ok.length){
+    var a=Math.round(ok.reduce(function(x,y){ return x+y.total; },0)/ok.length);
+    var g=grade(a);
+    $("s_avg").textContent=ms(a); $("s_avg").style.color="#fff";
+  }else{ $("s_avg").textContent="—"; }
+}
+function netType(){
+  var c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  if(c&&c.effectiveType) return String(c.effectiveType).toUpperCase()+(c.downlink?(" ~"+c.downlink+"M"):"");
+  return navigator.onLine?"在线":"离线";
+}
+
+/* ============ DNS 服务器对比 ============ */
+var DNS_SRV=[
+  {n:"阿里 DNS",   u:"https://dns.alidns.com/resolve?name=__D__&type=1"},
+  {n:"腾讯 DNS",   u:"https://doh.pub/dns-query?name=__D__&type=A",
+                   h:{"Accept":"application/dns-json"}},
+  {n:"360 DNS",    u:"https://doh.360.cn/dns-query?name=__D__&type=A",
+                   h:{"Accept":"application/dns-json"}},
+  {n:"Cloudflare", u:"https://cloudflare-dns.com/dns-query?name=__D__&type=A",
+                   h:{"Accept":"application/dns-json"}},
+  {n:"Google DNS", u:"https://dns.google/dns-query?name=__D__&type=A",
+                   h:{"Accept":"application/dns-json"}}
+];
+function dohParse(t){
+  try{
+    var j=JSON.parse(t), a=j.Answer||[];
+    var rec=a.filter(function(x){ return x.type===1; });
+    if(!rec.length) return null;
+    return {ip:rec.slice(0,2).map(function(x){ return x.data; }).join(" / "), ttl:rec[0].TTL};
+  }catch(e){ return null; }
+}
+async function runDNS(){
+  var host=($("dns_host").value||"").trim()||"www.baidu.com";
+  $("btn_dns").disabled=true;
+  $("dnsout").innerHTML='<div class="hint">解析中…</div>';
+  log("DNS 对比 "+host+" …");
+  var res=[];
+  for(var i=0;i<DNS_SRV.length;i++){
+    var srv=DNS_SRV[i];
+    var url=srv.u.replace("__D__",encodeURIComponent(host))+"&_ns="+Date.now();
+    var t0=performance.now(), item={n:srv.n};
+    try{
+      var ac=new AbortController();
+      var tid=setTimeout(function(){ ac.abort(); },5000);
+      var opt={cache:"no-store",signal:ac.signal};
+      if(srv.h){ opt.headers=srv.h; }
+      var r=await fetch(url,opt);
+      var txt=await r.text();
+      clearTimeout(tid);
+      item.ms=Math.round(performance.now()-t0); item.ok=true;
+      var d=dohParse(txt);
+      item.ip=d?d.ip:(/\d+\.\d+\.\d+\.\d+/.test(txt)?"非标准响应":"无结果");
+    }catch(e){
+      item.ok=false; item.ms=Math.round(performance.now()-t0);
+      item.err=(e&&e.name==="AbortError")?"超时":String((e&&e.message)||"失败");
+    }
+    res.push(item);
+    $("dnsout").innerHTML=renderDNS(res);
+  }
+  var good=res.filter(function(x){ return x.ok; });
+  if(good.length){
+    good.sort(function(a,b){ return a.ms-b.ms; });
+    log("DNS 最快："+good[0].n+" "+good[0].ms+"ms","ok");
+  }else log("所有 DNS 都不可用","er");
+  $("btn_dns").disabled=false;
+}
+function renderDNS(res){
+  var h=[],ips={};
+  res.forEach(function(x){ if(x.ok&&x.ip) ips[x.ip]=(ips[x.ip]||0)+1; });
+  res.forEach(function(x){
+    var g=x.ok?grade(x.ms):grade(null);
+    h.push('<div class="rowline"><div class="rn">'+esc(x.n)+'</div>'+
+      '<div class="rv" style="color:'+g.c+'">'+(x.ok?ms(x.ms):(x.err||"失败"))+'</div></div>');
+    if(x.ok) h.push('<div class="hint" style="padding:0 0 6px">'+esc(x.ip||"—")+'</div>');
+  });
+  var ks=Object.keys(ips);
+  if(ks.length>1){
+    h.push('<div class="hint" style="margin-top:6px;color:var(--y)">⚠ 各家解析结果不一致，可能有 DNS 污染或调度差异</div>');
+  }else if(ks.length===1){
+    h.push('<div class="hint" style="margin-top:6px">各家解析一致：<b class="mono">'+esc(ks[0])+'</b></div>');
+  }
+  return h.join("");
+}
+
+/* ============ 带宽测速 ============ */
+async function runSpeed(){
+  var url=$("sp_src").value+"?_ns="+Date.now();
+  $("btn_speed").disabled=true;
+  $("spout").innerHTML='<div class="hint">测速中…（最多 5 秒）</div>';
+  log("开始下载测速…");
+  var ac=new AbortController();
+  var t0=performance.now(), got=0, last=t0, done=false;
+  var tid=setTimeout(function(){ ac.abort(); },9000);
+  try{
+    var r=await fetch(url,{cache:"no-store",signal:ac.signal,mode:"cors"});
+    var rd=r.body.getReader();
+    for(;;){
+      var d=await rd.read();
+      if(d.done){ done=true; break; }
+      got+=d.value.length; last=performance.now();
+      if(last-t0>5000 || got>5*1024*1024){
+        try{ await rd.cancel(); }catch(e){}
+        try{ ac.abort(); }catch(e){}
+        break;
+      }
+    }
+    clearTimeout(tid);
+    var sec=(last-t0)/1000;
+    if(sec<=0.05){ throw new Error("太快，样本不足"); }
+    var mbps=got*8/sec/1000000;
+    var kbs=got/1024/sec;
+    var col = mbps>20?"var(--g)":mbps>5?"var(--gl)":mbps>1?"var(--y)":"var(--o)";
+    $("spout").innerHTML=
+      '<div class="big"><span class="bignum" style="color:'+col+'">'+
+      (mbps>=1?mbps.toFixed(1):(kbs).toFixed(0))+'</span>'+
+      '<span class="bigunit">'+(mbps>=1?"Mbps":"KB/s")+'</span></div>'+
+      '<table class="kv" style="margin-top:8px">'+
+      '<tr><td>已下载</td><td>'+kb(got)+'</td></tr>'+
+      '<tr><td>用时</td><td>'+sec.toFixed(2)+' s</td></tr>'+
+      '<tr><td>平均速率</td><td>'+(got/1024/sec).toFixed(0)+' KB/s</td></tr>'+
+      '<tr><td>是否跑完</td><td>'+(done?"完整下载":"到达上限后中断")+'</td></tr>'+
+      '</table>';
+    log("测速完成 "+(got/1024/sec).toFixed(0)+" KB/s","ok");
+  }catch(e){
+    clearTimeout(tid);
+    $("spout").innerHTML='<div class="hint" style="color:var(--r)">测速失败：'+
+      esc((e&&e.message)||"网络错误")+'</div>';
+    log("测速失败","er");
+  }
+  $("btn_speed").disabled=false;
+}
+
 /* ============ 事件 ============ */
 Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){
   t.onclick=function(){ switchPane(t.getAttribute("data-p")); };
 });
 $("btn_run").onclick=runAll;
+$("btn_dns").onclick=runDNS;
+$("btn_speed").onclick=runSpeed;
+var _autoT=null;
+$("auto_refresh").onchange=function(){
+  var v=parseInt(this.value,10)||0;
+  if(_autoT){ clearInterval(_autoT); _autoT=null; }
+  if(v>0){ _autoT=setInterval(function(){ if(!running) runAll(); },v*1000);
+           log("自动刷新已开启：每 "+v+" 秒","ok"); }
+  else log("自动刷新已关闭");
+};
 $("btn_deep").onclick=function(){
   var id=$("target").value;
   var s=SITES.filter(function(x){ return x.id===id; })[0];
@@ -713,6 +897,10 @@ $("btn_theme").onclick=function(){
 try{ if(localStorage.getItem(LS_THEME)==="dark")
        document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
 syncTarget(); renderGrid(); renderMine(); renderDeep(null); getIP();
+$("s_net").textContent=netType(); renderStats();
+try{ (navigator.connection||{}).addEventListener&&
+  navigator.connection.addEventListener("change",function(){ $("s_net").textContent=netType(); }); }catch(e){}
+setInterval(function(){ $("s_net").textContent=netType(); },10000);
 log("就绪 · 点顶部「开始诊断」扫描全部站点");
 </script>
 </body>
