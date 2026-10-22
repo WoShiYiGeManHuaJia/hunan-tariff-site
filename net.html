@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>网络诊断 · NetScope</title>
+<meta name="theme-color" content="#0f766e">
+<style>
+:root{
+  --bg:#f2f7f6; --card:#fff; --pri:#0f766e; --pri2:#14b8a6;
+  --txt:#12211f; --sub:#6b7f7c; --bd:#e2ecea;
+  --g:#16a34a; --gl:#4ade80; --y:#eab308; --o:#f97316; --r:#dc2626; --gray:#94a3b8;
+  --shadow:0 1px 3px rgba(15,118,110,.08);
+}
+[data-theme="dark"]{
+  --bg:#0d1514; --card:#162221; --txt:#e6f2f0; --sub:#8ba5a1; --bd:#223331;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  padding:0 0 30px;max-width:520px;margin:0 auto}
+.top{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;padding:16px 16px 20px;
+  border-radius:0 0 20px 20px;position:relative}
+.top h1{margin:0;font-size:18px;font-weight:700;display:flex;align-items:center;gap:7px}
+.top .sub{font-size:12px;opacity:.85;margin-top:3px}
+.iprow{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:12.5px;
+  background:rgba(255,255,255,.16);border-radius:10px;padding:8px 11px}
+.iprow b{font-weight:600;letter-spacing:.3px}
+.sp{flex:1}
+.btn{border:0;border-radius:10px;padding:12px 16px;font-size:15px;font-weight:600;
+  background:var(--pri);color:#fff;cursor:pointer}
+.btn:disabled{opacity:.55}
+.btn.full{width:100%}
+.btn.ghost{background:rgba(255,255,255,.2);color:#fff;font-weight:500;padding:8px 13px;font-size:13px}
+.tabs{display:flex;gap:6px;padding:12px 12px 0;position:sticky;top:0;z-index:20;background:var(--bg)}
+.tab{flex:1;text-align:center;padding:9px 4px;font-size:13px;border-radius:10px;
+  background:var(--card);color:var(--sub);border:1px solid var(--bd);cursor:pointer}
+.tab.on{background:var(--pri);color:#fff;border-color:var(--pri);font-weight:600}
+.wrap{padding:12px}
+.card{background:var(--card);border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:6px}
+.hint{font-size:12px;color:var(--sub);line-height:1.7}
+.pane{display:none}.pane.on{display:block}
+
+/* 深度诊断 */
+.big{display:flex;align-items:baseline;gap:8px;margin:6px 0 2px}
+.bignum{font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px}
+.bigunit{font-size:14px;color:var(--sub)}
+.badge{font-size:12px;padding:3px 9px;border-radius:20px;color:#fff;font-weight:600}
+.bar{display:flex;height:26px;border-radius:7px;overflow:hidden;background:var(--bd);margin:12px 0 6px}
+.seg{height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:#fff;font-weight:600;overflow:hidden;white-space:nowrap;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:9px;font-size:11.5px;color:var(--sub);margin-bottom:4px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+table.kv{width:100%;border-collapse:collapse;font-size:13.5px}
+table.kv td{padding:7px 0;border-bottom:1px solid var(--bd)}
+table.kv td:first-child{color:var(--sub);width:44%}
+table.kv td:last-child{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+table.kv tr:last-child td{border-bottom:0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* 网格 */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gcell{border-radius:11px;padding:9px 6px;text-align:center;border:1.5px solid var(--bd);
+  background:var(--card);cursor:pointer;position:relative;overflow:hidden}
+.gcell .nm{font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;margin-bottom:3px}
+.gcell .ms{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.gcell .st{font-size:10px;margin-top:2px;opacity:.9}
+.gcell.fail{opacity:.75}
+.gcell.running{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.gcat{font-size:12px;color:var(--sub);margin:14px 2px 7px;font-weight:600}
+
+/* 排行 */
+.rank{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.rank .rn{font-size:12.5px;width:78px;flex-shrink:0;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rank .rb{flex:1;height:19px;background:var(--bd);border-radius:5px;overflow:hidden}
+.rank .rf{height:100%;border-radius:5px;transition:width .35s}
+.rank .rv{font-size:12px;width:58px;text-align:right;flex-shrink:0;
+  font-variant-numeric:tabular-nums;font-weight:600}
+
+select,input[type=text],input[type=url]{width:100%;padding:11px 12px;border:1px solid var(--bd);
+  border-radius:10px;font-size:15px;background:var(--card);color:var(--txt);outline:none}
+select:focus,input:focus{border-color:var(--pri)}
+label.lb{display:block;font-size:12.5px;color:var(--sub);margin:11px 0 5px}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+.row input{flex:2}
+.mini{font-size:12px;padding:9px 12px;border-radius:9px;border:1px solid var(--bd);
+  background:var(--card);color:var(--txt);cursor:pointer}
+.mini.del{color:var(--r);border-color:#f5c6c6}
+.sitelist{margin-top:8px}
+.si{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.si:last-child{border-bottom:0}
+.si .sn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.si .su{font-size:11px;color:var(--sub);font-family:ui-monospace,monospace}
+#log{background:#0f1a19;color:#cfe6e2;border-radius:10px;padding:11px;font-size:11.5px;
+  line-height:1.8;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto;
+  font-family:ui-monospace,Menlo,monospace;display:none;margin-top:10px}
+#log.on{display:block}
+.ok{color:#7ee787}.er{color:#ff9b9b}.wn{color:#ffd479}
+.foot{text-align:center;font-size:11.5px;color:var(--sub);padding:6px 0 0}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🩺 网络诊断 <span style="font-size:11px;opacity:.7;font-weight:400">NetScope</span></h1>
+  <div class="sub">分段耗时 · 站点热力 · 延迟排行</div>
+  <div class="iprow">
+    <span>客户端 IP</span>
+    <b id="myip" class="mono">检测中…</b>
+    <span class="sp"></span>
+    <button class="btn ghost" id="btn_theme">🌓</button>
+    <button class="btn ghost" id="btn_run">开始诊断</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" data-p="p1">深度诊断</div>
+  <div class="tab" data-p="p2">站点网格</div>
+  <div class="tab" data-p="p3">延迟排行</div>
+  <div class="tab" data-p="p4">自定义</div>
+</div>
+
+<div class="wrap">
+  <!-- 深度诊断 -->
+  <div class="pane on" id="p1">
+    <div class="card">
+      <label class="lb" style="margin-top:0">诊断目标</label>
+      <select id="target"></select>
+      <div style="margin-top:12px" class="row">
+        <button class="btn" id="btn_deep">诊断这个站点</button>
+        <button class="mini" id="btn_copy">复制报告</button>
+      </div>
+      <div id="deep"></div>
+    </div>
+    <div class="card">
+      <h3>📖 指标怎么看</h3>
+      <div class="hint">
+        <b>DNS 解析</b>：域名 → IP，慢说明 DNS 服务器差<br>
+        <b>TCP 建连</b>：三次握手，反映链路质量<br>
+        <b>首包时间</b>：发出到收到第一个字节（含 TLS）<br>
+        <b>内容传输</b>：下载正文耗时，反映带宽<br>
+        <span style="color:var(--sub)">※ 跨域站点若未开放 Timing-Allow-Origin，分段数据会被浏览器屏蔽，此时只显示总耗时。</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 站点网格 -->
+  <div class="pane" id="p2">
+    <div class="card">
+      <h3>🎯 站点热力图</h3>
+      <div class="hint" style="margin-bottom:10px">点任意格子可把它设为深度诊断目标</div>
+      <div id="grid"></div>
+      <div class="legend" style="margin-top:12px">
+        <span><i style="background:var(--g)"></i>&lt;100ms</span>
+        <span><i style="background:var(--gl)"></i>&lt;300ms</span>
+        <span><i style="background:var(--y)"></i>&lt;600ms</span>
+        <span><i style="background:var(--o)"></i>&lt;1200ms</span>
+        <span><i style="background:var(--r)"></i>更慢</span>
+        <span><i style="background:var(--gray)"></i>不通</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 延迟排行 -->
+  <div class="pane" id="p3">
+    <div class="card">
+      <h3>📊 延迟对比</h3>
+      <div class="hint" style="margin-bottom:12px">从快到慢排序，条越长越慢</div>
+      <div id="rank"></div>
+    </div>
+    <div class="card">
+      <h3>💡 网络评估</h3>
+      <div id="verdict" class="hint">诊断后给出结论</div>
+    </div>
+  </div>
+
+  <!-- 自定义 -->
+  <div class="pane" id="p4">
+    <div class="card">
+      <h3>➕ 添加站点</h3>
+      <label class="lb">名称</label>
+      <input type="text" id="ns_name" placeholder="例如：学校教务">
+      <label class="lb">地址</label>
+      <input type="url" id="ns_url" placeholder="https://example.com">
+      <button class="btn full" id="btn_add" style="margin-top:12px">添加</button>
+      <div class="hint" style="margin-top:8px">
+        ⚠ 本页面是 HTTPS，浏览器会拦截 HTTP 请求（混合内容），自定义站点请填 https。
+      </div>
+    </div>
+    <div class="card">
+      <h3>📋 我的站点</h3>
+      <div class="sitelist" id="mine"></div>
+      <button class="mini" id="btn_reset" style="margin-top:10px;width:100%">恢复默认站点</button>
+    </div>
+  </div>
+
+  <div id="log"></div>
+  <div class="foot">数据来自你的手机当前网络 · 每次结果都会不同</div>
+</div>
+
+<script>
+/* ============ 配置 ============ */
+var DEFAULT_SITES = [
+  {id:"baidu",  n:"百度",     u:"https://www.baidu.com",      c:"国内常用"},
+  {id:"qq",     n:"腾讯QQ",   u:"https://www.qq.com",         c:"国内常用"},
+  {id:"ali",    n:"阿里",     u:"https://www.taobao.com",     c:"国内常用"},
+  {id:"weixin", n:"微信",     u:"https://weixin.qq.com",      c:"国内常用"},
+  {id:"bili",   n:"哔哩哔哩", u:"https://www.bilibili.com",   c:"国内常用"},
+  {id:"douyin", n:"抖音",     u:"https://www.douyin.com",     c:"国内常用"},
+  {id:"jd",     n:"京东",     u:"https://www.jd.com",         c:"国内常用"},
+  {id:"zhihu",  n:"知乎",     u:"https://www.zhihu.com",      c:"国内常用"},
+  {id:"weibo",  n:"微博",     u:"https://weibo.com",          c:"国内常用"},
+  {id:"163",    n:"网易",     u:"https://www.163.com",        c:"国内常用"},
+  {id:"yun139", n:"移动云盘", u:"https://yun.139.com",        c:"我的服务"},
+  {id:"cmcc",   n:"中国移动", u:"https://www.10086.cn",       c:"我的服务"},
+  {id:"jsd",    n:"jsDelivr", u:"https://cdn.jsdelivr.net",   c:"我的服务"},
+  {id:"gh",     n:"GitHub",   u:"https://github.com",         c:"国际/代理"},
+  {id:"google", n:"Google",   u:"https://www.google.com",     c:"国际/代理"},
+  {id:"yt",     n:"YouTube",  u:"https://www.youtube.com",    c:"国际/代理"},
+  {id:"gpt",    n:"ChatGPT",  u:"https://chatgpt.com",        c:"国际/代理"},
+  {id:"nf",     n:"Netflix",  u:"https://www.netflix.com",    c:"国际/代理"},
+  {id:"x",      n:"X(推特)",  u:"https://twitter.com",        c:"国际/代理"},
+  {id:"tg",     n:"Telegram", u:"https://web.telegram.org",   c:"国际/代理"},
+  {id:"wiki",   n:"维基百科", u:"https://zh.wikipedia.org",   c:"国际/代理"},
+  {id:"cf",     n:"Cloudflare",u:"https://1.1.1.1",           c:"国际/代理"}
+];
+var LS_KEY = "netscope_sites_v1";
+var LS_THEME = "netscope_theme";
+
+function loadSites(){
+  try{
+    var s = JSON.parse(localStorage.getItem(LS_KEY));
+    if (Array.isArray(s) && s.length) return s;
+  }catch(e){}
+  return DEFAULT_SITES.slice();
+}
+function saveSites(a){ try{ localStorage.setItem(LS_KEY, JSON.stringify(a)); }catch(e){} }
+var SITES = loadSites();
+
+/* ============ 工具 ============ */
+var $ = function(i){ return document.getElementById(i); };
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function log(s,c){
+  var d=document.createElement("div"); if(c) d.className=c;
+  d.textContent = (c==="ok"?"✓ ":c==="er"?"✗ ":c==="wn"?"! ":"· ")+s;
+  var e=$("log"); e.appendChild(d); e.className="on"; e.scrollTop=e.scrollHeight;
+}
+function ms(v){ return v==null ? "—" : (v<1000 ? Math.round(v)+" ms" : (v/1000).toFixed(2)+" s"); }
+function kb(b){
+  if (b==null) return "—";
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b/1024).toFixed(2) + " KB";
+  return (b/1048576).toFixed(2) + " MB";
+}
+function grade(v){
+  if (v==null) return {c:"var(--gray)", t:"不通"};
+  if (v<100)  return {c:"var(--g)",   t:"优秀"};
+  if (v<300)  return {c:"var(--gl)",  t:"良好"};
+  if (v<600)  return {c:"var(--y)",   t:"一般"};
+  if (v<1200) return {c:"var(--o)",   t:"较慢"};
+  return {c:"var(--r)", t:"很慢"};
+}
+function origin(u){ try{ return new URL(u).origin; }catch(e){ return u; } }
+
+/* ============ 探测核心 ============ */
+// 单次请求：no-cors 探测通断与耗时；deep=true 时先尝试 cors 拿真实状态码
+async function doFetch(url, timeout, cors){
+  var ac = new AbortController();
+  var tid = setTimeout(function(){ ac.abort(); }, timeout);
+  var opt = { method:"GET", cache:"no-store", credentials:"omit",
+              referrerPolicy:"no-referrer", signal:ac.signal };
+  opt.mode = cors ? "cors" : "no-cors";
+  try{
+    var r = await fetch(url, opt);
+    clearTimeout(tid);
+    return { ok:true, res:r, status:r.status, opaque:(r.type==="opaque") };
+  }catch(e){
+    clearTimeout(tid);
+    return { ok:false, err:(e && e.name==="AbortError") ? "timeout" : String((e&&e.message)||"error") };
+  }
+}
+
+// 尽力取 ResourceTiming 分段
+function pickTiming(url){
+  try{
+    var list = performance.getEntriesByName(url, "resource");
+    if (!list || !list.length) return null;
+    var e = list[list.length-1];
+    var d = {};
+    var dns  = e.domainLookupEnd - e.domainLookupStart;
+    var tcp  = e.connectEnd - e.connectStart;
+    var ttfb = e.responseStart - e.startTime;
+    var wt   = (e.responseStart>0 && e.requestStart>0) ? (e.responseStart - e.requestStart) : null;
+    var tr   = (e.responseEnd>0 && e.responseStart>0) ? (e.responseEnd - e.responseStart) : null;
+    // 全为 0 说明被跨域策略屏蔽
+    var usable = (e.responseStart>0) || (e.connectEnd>0) || (e.domainLookupEnd>0);
+    if (!usable) return null;
+    d.dns   = dns>0   ? dns   : null;
+    d.tcp   = tcp>0   ? tcp   : null;
+    d.wait  = (wt!=null && wt>0) ? wt : null;
+    d.trans = (tr!=null && tr>0) ? tr : null;
+    d.ttfb  = ttfb>0  ? ttfb  : null;
+    d.total = e.duration>0 ? e.duration : null;
+    d.transfer = e.transferSize>0 ? e.transferSize : null;
+    d.body     = e.decodedBodySize>0 ? e.decodedBodySize : (e.encodedBodySize>0?e.encodedBodySize:null);
+    d.limited  = (dns===0 && tcp===0 && e.responseStart===0);
+    return d;
+  }catch(err){ return null; }
+}
+
+var _seq = 0;
+async function probeSite(site, timeout, deep){
+  timeout = timeout || 6000;
+  var base = site.u.replace(/[?#].*$/, "");
+  var url = base + (base.indexOf("?")>=0 ? "&" : "?") + "_ns=" + Date.now() + "_" + (++_seq);
+  var out = { id:site.id, n:site.n, u:site.u, c:site.c, ts:Date.now() };
+  var t0 = performance.now();
+
+  try{ performance.clearResourceTimings && performance.clearResourceTimings(); }catch(e){}
+
+  var r1 = null, mode1 = "no-cors";
+  if (deep){
+    // 深度诊断：先试 cors 拿真实状态码
+    var rc = await doFetch(url, timeout, true);
+    if (rc.ok && !rc.opaque){ r1 = rc; mode1 = "cors"; }
+  }
+  if (!r1) r1 = await doFetch(url, timeout, false);
+  var t1 = performance.now();
+  out.total = Math.round(t1 - t0);
+  out.mode = mode1;
+
+  if (!r1.ok){
+    // 兜底：favicon
+    var fv = origin(site.u) + "/favicon.ico?_ns=" + Date.now();
+    var t2 = performance.now();
+    var r2 = await doFetch(fv, Math.min(timeout,3500), false);
+    if (r2.ok){
+      out.total = Math.round(performance.now() - t2);
+      out.ok = true; out.via = "favicon"; out.status = r2.opaque ? null : r2.status;
+    }else{
+      out.ok = false;
+      out.err = (r1.err==="timeout" && r2.err==="timeout") ? "timeout" : (r1.err||r2.err||"error");
+    }
+  }else{
+    out.ok = true;
+    out.via = "root";
+    out.status = r1.opaque ? null : r1.status;
+  }
+
+  var tm = pickTiming(url);
+  if (!tm && out.via === "favicon") tm = pickTiming(fv);
+  if (tm){
+    out.dns=tm.dns; out.tcp=tm.tcp; out.wait=tm.wait; out.trans=tm.trans;
+    out.ttfb=tm.ttfb; out.transfer=tm.transfer; out.body=tm.body;
+    out.limited = tm.limited;
+    if (tm.total) out.rtTotal = Math.round(tm.total);
+  }
+  return out;
+}
+
+/* ============ 状态 ============ */
+var RESULTS = {};   // id -> result
+var running = false;
+
+/* ============ 渲染：深度诊断 ============ */
+function renderDeep(r){
+  var box = $("deep");
+  if (!r){
+    box.innerHTML = '<div class="hint" style="margin-top:14px">选一个站点，点上面的按钮开始诊断。</div>';
+    return;
+  }
+  var g = grade(r.ok ? r.total : null);
+  var h = [];
+  h.push('<div class="big"><span class="bignum" style="color:'+g.c+'">' +
+         (r.ok ? (r.total<1000?Math.round(r.total):(r.total/1000).toFixed(2)) : "—") +
+         '</span><span class="bigunit">' + (r.ok ? (r.total<1000?"ms":"s") : "") + '</span>' +
+         '<span class="badge" style="background:'+g.c+'">'+(r.ok?g.t:"失败")+'</span></div>');
+  h.push('<div class="hint" style="margin-top:2px">'+esc(r.n)+' · '+esc(origin(r.u))+'</div>');
+
+  if (!r.ok){
+    h.push('<div style="margin-top:12px;padding:11px;border-radius:10px;background:#fdf0f0;color:#c0392b;font-size:13px">' +
+      (r.err==="timeout" ? "连接超时" : "连接失败") + '：' + esc(r.err||"") +
+      '<br><span style="font-size:12px;opacity:.8">若地址是 http://，HTTPS 页面会被浏览器按混合内容拦截。</span></div>');
+    box.innerHTML = h.join(""); return;
+  }
+
+  // 分段条
+  var segs = [];
+  var dns = r.dns, tcp = r.tcp, wait = r.wait, trans = r.trans;
+  if (dns || tcp || wait || trans){
+    var parts = [
+      {k:"DNS",   v:dns||0,   c:"#0ea5e9"},
+      {k:"TCP",   v:tcp||0,   c:"#8b5cf6"},
+      {k:"等待",  v:wait||0,  c:"#f59e0b"},
+      {k:"传输",  v:trans||0, c:"#10b981"}
+    ];
+    var sum = parts.reduce(function(a,b){ return a+b.v; },0) || 1;
+    h.push('<div class="bar">');
+    parts.forEach(function(p){
+      if (p.v<=0) return;
+      var w = Math.max(p.v/sum*100, 6);
+      h.push('<div class="seg" style="width:'+w+'%;background:'+p.c+'" title="'+p.k+'">'+
+             (w>11 ? p.k : "")+'</div>');
+    });
+    h.push('</div>');
+    h.push('<div class="legend">');
+    parts.forEach(function(p){
+      h.push('<span><i style="background:'+p.c+'"></i>'+p.k+' '+ms(p.v>0?p.v:null)+'</span>');
+    });
+    h.push('</div>');
+  }else{
+    h.push('<div class="bar"><div class="seg" style="width:100%;background:'+g.c+'">'+
+           '总耗时 '+ms(r.total)+'</div></div>');
+    h.push('<div class="hint">该站点未提供 Timing-Allow-Origin，浏览器屏蔽了分段数据（仅显示总耗时）。</div>');
+  }
+
+  h.push('<table class="kv">');
+  function row(k,v){ h.push('<tr><td>'+k+'</td><td>'+v+'</td></tr>'); }
+  row("状态码", r.status ? ('<span style="color:var(--g)">'+r.status+'</span>') :
+      '<span style="color:var(--sub);font-weight:400">跨域不可读</span>');
+  row("总耗时", ms(r.total));
+  row("首包时间(TTFB)", ms(r.ttfb));
+  row("DNS 解析", ms(r.dns));
+  row("TCP 建连", ms(r.tcp));
+  row("服务器等待", ms(r.wait));
+  row("内容传输", ms(r.trans));
+  row("传输大小", kb(r.transfer));
+  row("页面大小", kb(r.body));
+  row("探测方式", (r.via==="favicon"?"favicon 兜底":"根地址直接请求"));
+  h.push('</table>');
+  box.innerHTML = h.join("");
+}
+
+/* ============ 渲染：网格 ============ */
+function renderGrid(){
+  var box = $("grid"), h = [];
+  var cats = [];
+  SITES.forEach(function(s){ if (cats.indexOf(s.c)<0) cats.push(s.c); });
+  cats.forEach(function(c){
+    h.push('<div class="gcat">'+esc(c)+'</div><div class="grid">');
+    SITES.filter(function(s){ return s.c===c; }).forEach(function(s){
+      var r = RESULTS[s.id];
+      var g = r ? grade(r.ok?r.total:null) : grade(null);
+      var cls = "gcell" + (r ? (r.ok?"":" fail") : "");
+      h.push('<div class="'+cls+'" data-id="'+esc(s.id)+'" style="border-color:'+g.c+'">'+
+        '<div class="nm">'+esc(s.n)+'</div>'+
+        '<div class="ms" style="color:'+g.c+'">'+(r&&r.ok?(r.total<1000?Math.round(r.total):Math.round(r.total/1000)+"s"):"—")+'</div>'+
+        '<div class="st" style="color:'+g.c+'">'+(r?(r.ok?g.t:(r.err==="timeout"?"超时":"不通")):"未测")+'</div>'+
+        '</div>');
+    });
+    h.push('</div>');
+  });
+  box.innerHTML = h.join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".gcell"), function(el){
+    el.onclick = function(){
+      $("target").value = el.getAttribute("data-id");
+      switchPane("p1");
+      var s = SITES.filter(function(x){ return x.id===el.getAttribute("data-id"); })[0];
+      if (s) runDeep(s);
+    };
+  });
+}
+
+/* ============ 渲染：排行 ============ */
+function renderRank(){
+  var box = $("rank"), h = [];
+  var arr = [];
+  SITES.forEach(function(s){ var r=RESULTS[s.id]; if (r) arr.push(r); });
+  arr = arr.filter(function(r){ return r.ok; })
+           .sort(function(a,b){ return a.total-b.total; });
+  if (!arr.length){
+    box.innerHTML = '<div class="hint">还没有数据，点顶部「开始诊断」。</div>';
+    $("verdict").textContent = "诊断后给出结论";
+    return;
+  }
+  var max = Math.max.apply(null, arr.map(function(r){ return r.total; })) || 1;
+  arr.forEach(function(r){
+    var g = grade(r.total);
+    h.push('<div class="rank"><div class="rn">'+esc(r.n)+'</div>'+
+      '<div class="rb"><div class="rf" style="width:'+Math.max(r.total/max*100,3)+'%;background:'+g.c+'"></div></div>'+
+      '<div class="rv" style="color:'+g.c+'">'+ms(r.total)+'</div></div>');
+  });
+  box.innerHTML = h.join("");
+
+  var okN = arr.length;
+  var failN = SITES.filter(function(s){ var r=RESULTS[s.id]; return r && !r.ok; }).length;
+  var fast = arr[0], slow = arr[arr.length-1];
+  var avg = Math.round(arr.reduce(function(a,b){ return a+b.total; },0)/arr.length);
+  var local = arr.filter(function(r){ return r.c==="国内常用"; });
+  var intl  = arr.filter(function(r){ return r.c==="国际/代理"; });
+  var lavg = local.length ? Math.round(local.reduce(function(a,b){return a+b.total;},0)/local.length) : null;
+  var iavg = intl.length ? Math.round(intl.reduce(function(a,b){return a+b.total;},0)/intl.length) : null;
+  var vg = grade(avg);
+  var txt = "本次共测 " + okN + " 个站点，成功 " + okN + " 个" + (failN?("，失败 "+failN+" 个"):"") + "。<br>";
+  txt += "平均延迟 <b style='color:"+vg.c+"'>"+ms(avg)+"</b>，整体 <b style='color:"+vg.c+"'>"+vg.t+"</b>。<br>";
+  txt += "最快：" + esc(fast.n) + " " + ms(fast.total) + "　最慢：" + esc(slow.n) + " " + ms(slow.total) + "<br>";
+  if (lavg!=null) txt += "国内平均 " + ms(lavg) + "　";
+  if (iavg!=null) txt += "国际平均 " + ms(iavg);
+  if (lavg!=null && iavg!=null){
+    txt += "<br>" + (iavg > lavg*3 ? "国际站点明显更慢，多半没有走代理或代理节点不佳。"
+                                   : "国内外差距在合理范围。");
+  }
+  $("verdict").innerHTML = txt;
+}
+
+/* ============ 渲染：自定义 ============ */
+function renderMine(){
+  var box = $("mine"), h = [];
+  var custom = SITES.filter(function(s){ return s.c==="自定义"; });
+  if (!custom.length){ box.innerHTML = '<div class="hint">还没有自定义站点。</div>'; return; }
+  custom.forEach(function(s){
+    h.push('<div class="si"><div class="sn">'+esc(s.n)+'<br><span class="su">'+esc(s.u)+'</span></div>'+
+      '<button class="mini del" data-id="'+esc(s.id)+'">删除</button></div>');
+  });
+  box.innerHTML = h.join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".del"), function(b){
+    b.onclick = function(){
+      var id = b.getAttribute("data-id");
+      SITES = SITES.filter(function(s){ return s.id!==id; });
+      saveSites(SITES); syncTarget(); renderMine(); renderGrid();
+    };
+  });
+}
+
+/* ============ 目标下拉 ============ */
+function syncTarget(){
+  var sel = $("target"), cur = sel.value, h = [];
+  var cats = []; SITES.forEach(function(s){ if(cats.indexOf(s.c)<0) cats.push(s.c); });
+  cats.forEach(function(c){
+    h.push('<optgroup label="'+esc(c)+'">');
+    SITES.filter(function(s){ return s.c===c; }).forEach(function(s){
+      h.push('<option value="'+esc(s.id)+'">'+esc(s.n)+'</option>');
+    });
+    h.push('</optgroup>');
+  });
+  sel.innerHTML = h.join("");
+  if (cur) sel.value = cur;
+  if (!sel.value && SITES.length) sel.value = SITES[0].id;
+}
+
+/* ============ 流程 ============ */
+function switchPane(id){
+  Array.prototype.forEach.call(document.querySelectorAll(".pane"), function(p){
+    p.className = "pane" + (p.id===id ? " on" : ""); });
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(t){
+    t.className = "tab" + (t.getAttribute("data-p")===id ? " on" : ""); });
+}
+
+async function runDeep(site){
+  $("btn_deep").disabled = true;
+  $("deep").innerHTML = '<div class="hint" style="margin-top:14px">诊断中…</div>';
+  log("深度诊断 "+site.n+" …");
+  var r = await probeSite(site, 8000, true);
+  RESULTS[site.id] = r;
+  renderDeep(r); renderGrid(); renderRank();
+  if (r.ok) log(site.n+" "+ms(r.total)+" · "+grade(r.total).t, "ok");
+  else log(site.n+" 不通（"+(r.err||"")+"）", "er");
+  $("btn_deep").disabled = false;
+}
+
+async function runAll(){
+  if (running){ log("正在跑，请稍候", "wn"); return; }
+  running = true;
+  $("btn_run").disabled = true; $("btn_run").textContent = "诊断中…";
+  $("log").innerHTML = "";
+  RESULTS = {};
+  renderGrid(); renderRank();
+  log("开始扫描 "+SITES.length+" 个站点…");
+
+  var queue = SITES.slice(), CONC = 5;
+  var idx = 0;
+  async function worker(){
+    while (idx < queue.length){
+      var s = queue[idx++];
+      var r = await probeSite(s, 6000, false);
+      RESULTS[s.id] = r;
+      renderGrid(); renderRank();
+    }
+  }
+  var ws = []; for (var i=0;i<CONC;i++) ws.push(worker());
+  await Promise.all(ws);
+
+  var okN=0, failN=0;
+  SITES.forEach(function(s){ var r=RESULTS[s.id]; if (r && r.ok) okN++; else failN++; });
+  log("扫描完成：通 "+okN+" · 不通 "+failN, okN? "ok":"er");
+  $("btn_run").disabled = false; $("btn_run").textContent = "开始诊断";
+  running = false;
+}
+
+/* ============ 客户端 IP ============ */
+async function getIP(){
+  var srcs = [
+    {u:"https://api.ipify.org?format=json",      p:function(t){ return JSON.parse(t).ip; }},
+    {u:"https://api64.ipify.org?format=json",    p:function(t){ return JSON.parse(t).ip; }},
+    {u:"https://icanhazip.com",                  p:function(t){ return t.trim(); }},
+    {u:"https://myip.ipip.net",                  p:function(t){ return t.trim().replace(/^.*?IP\s*[:：]?\s*/i,"").split(/\s+/)[0]; }},
+    {u:"https://api.myip.com",                   p:function(t){ return JSON.parse(t).ip; }}
+  ];
+  for (var i=0;i<srcs.length;i++){
+    try{
+      var ac = new AbortController();
+      var tid = setTimeout(function(){ ac.abort(); }, 4000);
+      var r = await fetch(srcs[i].u, {cache:"no-store", signal:ac.signal});
+      clearTimeout(tid);
+      var t = await r.text();
+      var ip = srcs[i].p(t);
+      if (ip && /^\d+\.\d+\.\d+\.\d+$/.test(ip)){ $("myip").textContent = ip; return; }
+    }catch(e){}
+  }
+  $("myip").textContent = "获取失败";
+}
+
+/* ============ 事件 ============ */
+Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(t){
+  t.onclick = function(){ switchPane(t.getAttribute("data-p")); };
+});
+$("btn_run").onclick = runAll;
+$("btn_deep").onclick = function(){
+  var id = $("target").value;
+  var s = SITES.filter(function(x){ return x.id===id; })[0];
+  if (s) runDeep(s);
+};
+$("btn_copy").onclick = function(){
+  var lines = ["网络诊断报告 "+new Date().toLocaleString("zh-CN"),
+               "客户端IP "+$("myip").textContent, ""];
+  SITES.forEach(function(s){
+    var r = RESULTS[s.id]; if (!r) return;
+    lines.push(s.n+"  "+(r.ok ? ms(r.total)+" ("+grade(r.total).t+")" : "不通 "+(r.err||"")));
+  });
+  var txt = lines.join("\n");
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ log("报告已复制","ok"); },
+      function(){ log("复制失败，请手动截图","wn"); });
+  } else { log("浏览器不支持自动复制","wn"); }
+};
+$("btn_add").onclick = function(){
+  var n = $("ns_name").value.trim(), u = $("ns_url").value.trim();
+  if (!n || !u){ log("名称和地址都要填","er"); return; }
+  if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+  SITES.push({ id:"u"+Date.now(), n:n, u:u, c:"自定义" });
+  saveSites(SITES); syncTarget(); renderGrid(); renderMine();
+  $("ns_name").value=""; $("ns_url").value="";
+  log("已添加 "+n, "ok");
+};
+$("btn_reset").onclick = function(){
+  SITES = DEFAULT_SITES.slice(); saveSites(SITES);
+  syncTarget(); renderGrid(); renderMine(); log("已恢复默认站点","ok");
+};
+$("btn_theme").onclick = function(){
+  var d = document.documentElement.getAttribute("data-theme")==="dark" ? "" : "dark";
+  document.documentElement.setAttribute("data-theme", d);
+  try{ localStorage.setItem(LS_THEME, d); }catch(e){}
+};
+
+/* ============ 启动 ============ */
+try{ if (localStorage.getItem(LS_THEME)==="dark")
+        document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+syncTarget(); renderGrid(); renderMine(); renderDeep(null); getIP();
+log("就绪 · 点顶部「开始诊断」扫描全部站点");
+</script>
+</body>
+</html>
