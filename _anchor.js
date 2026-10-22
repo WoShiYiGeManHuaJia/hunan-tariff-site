@@ -5,21 +5,17 @@ const { chromium } = require('playwright');
   await p.goto('https://woshiyigemanhuajia.github.io/hunan-tariff-site/net.html',{waitUntil:'load',timeout:60000});
   await p.waitForTimeout(1000);
   const out = await p.evaluate(async ()=>{
-    const res={};
-    res.bufSize = (performance.setResourceTimingBufferSize)?'api-ok':'no-api';
-    res.entriesBefore = performance.getEntriesByType('resource').length;
-    const a = await probeAnchor();
-    res.anchor = a ? {name:a.anchorName, ok:a.ok, dns:a.dns, tcp:a.tcp, ttfb:a.ttfb, total:a.total, via:a.via, err:a.err||null} : null;
+    const steps=[];
+    for(const a of ANCHORS){
+      try{ performance.clearResourceTimings(); }catch(e){}
+      const r = await probeOnce({id:'anchor',n:a.n,u:a.u,c:''},5000,true);
+      steps.push({n:a.n, ok:!!r.ok, via:r.via||null, dns:r.dns, tcp:r.tcp, ttfb:r.ttfb,
+        err:r.err||null,
+        ents: performance.getEntriesByType('resource').map(e=>e.name.slice(0,46)+' dns'+Math.round(e.domainLookupEnd-e.domainLookupStart)+' tcp'+Math.round(e.connectEnd-e.connectStart))});
+    }
     try{ performance.clearResourceTimings(); }catch(e){}
-    const t0=performance.now();
-    try{ await fetch("https://img.alicdn.com/tfs/TB1.gif?x="+Date.now(),{cache:'no-store',mode:'no-cors',credentials:'omit'}); }
-    catch(e){ res.manualErr=String(e.message); }
-    await new Promise(r=>setTimeout(r,600));
-    res.manualEntries = performance.getEntriesByType('resource').map(e=>({n:e.name.slice(0,58),
-      dns:Math.round(e.domainLookupEnd-e.domainLookupStart), tcp:Math.round(e.connectEnd-e.connectStart),
-      rs:Math.round(e.responseStart), dur:Math.round(e.duration)}));
-    res.logText = document.getElementById('log').innerText.split('\n').slice(-6).join(' | ');
-    return res;
+    const A = await probeAnchor();
+    return {steps, anchor: A?{name:A.anchorName, dns:A.dns, tcp:A.tcp, ttfb:A.ttfb, wait:A.wait, trans:A.trans}:null};
   });
   console.log(JSON.stringify(out,null,1));
   await b.close();
