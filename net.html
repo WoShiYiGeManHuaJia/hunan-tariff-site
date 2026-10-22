@@ -294,6 +294,7 @@ var SITES = loadSites();
 
 /* ============ 工具 ============ */
 var $ = function(i){ return document.getElementById(i); };
+try{ if(performance.setResourceTimingBufferSize) performance.setResourceTimingBufferSize(2000); }catch(e){}
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function log(s,c){
@@ -432,8 +433,10 @@ async function probeSite(site, timeout, deep, times){
 
 /* 找一个能吐出分段数据的锚点，用来反映本机链路质量 */
 async function probeAnchor(){
+  try{ performance.clearResourceTimings(); }catch(e){}
   for(var i=0;i<ANCHORS.length;i++){
     var a=ANCHORS[i];
+    try{ performance.clearResourceTimings(); }catch(e){}
     var r=await probeOnce({id:"anchor",n:a.n,u:a.u,c:""},5000,false);
     if(r.ok && r.dns!=null && r.tcp!=null){
       r.anchorName=a.n; return r;
@@ -775,7 +778,7 @@ async function runDNS(){
 }
 function renderDNS(res){
   var h=[],ips={};
-  res.forEach(function(x){ if(x.ok&&x.ip) ips[x.ip]=(ips[x.ip]||0)+1; });
+  res.forEach(function(x){ if(x.ok&&x.ip&&/\d+\.\d+\.\d+\.\d+/.test(x.ip)) ips[x.ip]=(ips[x.ip]||0)+1; });
   res.forEach(function(x){
     var g=x.ok?grade(x.ms):grade(null);
     h.push('<div class="rowline"><div class="rn">'+esc(x.n)+'</div>'+
@@ -809,7 +812,7 @@ async function spOnce(u){
       var d=await rd.read();
       if(d.done){ done=true; break; }
       got+=d.value.length; last=performance.now();
-      if(last-t0>5000 || got>5*1024*1024){
+      if(last-t0>5000 || (got>8*1024*1024 && last-t0>1200)){
         try{ await rd.cancel(); }catch(e){}
         try{ ac.abort(); }catch(e){}
         break;
@@ -855,7 +858,8 @@ async function runSpeed(){
     '<tr><td>平均速率</td><td>'+kbs.toFixed(0)+' KB/s</td></tr>'+
     '<tr><td>是否跑完</td><td>'+(best.done?"完整下载":"到达上限后中断")+'</td></tr>'+
     '</table>'+
-    (best.got<200*1024?'<div class="hint" style="margin-top:6px;color:var(--y)">样本偏小，结果仅供参考。</div>':'');
+    (best.got<200*1024?'<div class="hint" style="margin-top:6px;color:var(--y)">样本偏小，结果仅供参考。</div>':'')+
+    (sec<0.3?'<div class="hint" style="margin-top:4px;color:var(--y)">下载太快、采样时间不足 0.3 秒，数值仅供参考。</div>':'');
   log("测速完成 "+kbs.toFixed(0)+" KB/s","ok");
   $("btn_speed").disabled=false;
 }
