@@ -300,6 +300,71 @@ public class MainActivity extends Activity {
                 })
                 .show());
 
+        // ---------- 推送卡 ----------
+        LinearLayout cPush = card();
+        addLabel(cPush, "推送通知（钉钉 / 企业微信 / 飞书）");
+        TextView pushTip = new TextView(this);
+        pushTip.setText("网页端受浏览器跨域限制无法直接推送，推送在 App 内发送。");
+        pushTip.setTextSize(11);
+        pushTip.setTextColor(0xFF8B97A4);
+        cPush.addView(pushTip);
+
+        android.widget.Spinner spType = new android.widget.Spinner(this);
+        spType.setAdapter(new android.widget.ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{"钉钉群机器人", "企业微信群机器人", "飞书群机器人"}));
+        cPush.addView(spType);
+
+        addLabel(cPush, "Webhook 地址");
+        EditText etHook = new EditText(this);
+        etHook.setHint("粘贴机器人的完整 webhook 地址");
+        etHook.setSingleLine(true);
+        cPush.addView(etHook);
+
+        addLabel(cPush, "消息模板");
+        android.widget.Spinner spTpl = new android.widget.Spinner(this);
+        spTpl.setAdapter(new android.widget.ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{"简洁版", "详细版", "仅异常", "极简单行", "自定义"}));
+        cPush.addView(spTpl);
+
+        EditText etTpl = new EditText(this);
+        etTpl.setHint("自定义模板，可用 {time} {rows} {sum} {ok}");
+        etTpl.setMinLines(3);
+        etTpl.setVisibility(android.view.View.GONE);
+        cPush.addView(etTpl);
+        spTpl.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(android.widget.AdapterView<?> p, android.view.View v, int pos, long id) {
+                etTpl.setVisibility(pos == 4 ? android.view.View.VISIBLE : android.view.View.GONE);
+                if (pos != 4) etTpl.setText(TPL[pos]);
+            }
+            public void onNothingSelected(android.widget.AdapterView<?> p) { }
+        });
+
+        LinearLayout rowP = new LinearLayout(this);
+        rowP.setOrientation(LinearLayout.HORIZONTAL);
+        Button btnImport = new Button(this);
+        btnImport.setText("粘贴导入");
+        btnImport.setLayoutParams(new LinearLayout.LayoutParams(0, dp(44), 1f));
+        btnImport.setOnClickListener(v -> importPushCfg(etHook, etTpl, spType, spTpl));
+        rowP.addView(btnImport);
+        Button btnSaveP = new Button(this);
+        btnSaveP.setText("保存");
+        btnSaveP.setLayoutParams(new LinearLayout.LayoutParams(0, dp(44), 1f));
+        btnSaveP.setOnClickListener(v -> {
+            saveNotify(spType.getSelectedItemPosition(), etHook.getText().toString().trim(),
+                    spTpl.getSelectedItemPosition(), etTpl.getText().toString());
+            toast("推送配置已保存");
+        });
+        rowP.addView(btnSaveP);
+        Button btnTestP = new Button(this);
+        btnTestP.setText("测试推送");
+        btnTestP.setLayoutParams(new LinearLayout.LayoutParams(0, dp(44), 1f));
+        btnTestP.setOnClickListener(v -> testPush());
+        rowP.addView(btnTestP);
+        cPush.addView(rowP);
+
+        root.addView(cPush);
+        loadNotify(spType, etHook, spTpl, etTpl);
+
         // ---------- 日志卡 ----------
         LinearLayout cLog = card();
         TextView logTitle = new TextView(this);
@@ -451,6 +516,8 @@ public class MainActivity extends Activity {
         saveHist(phone, token);
         tvLog.append("✓ 令牌已获取，手机号 " + phone + "\n");
         toast("成功，点「复制令牌」即可复制完整令牌");
+        // 配了 webhook 就顺带推一条通知（没配则静默跳过）
+        try { pushAfterToken(phone, expireDays(token)); } catch (Exception ignored) { }
     }
 
     // ---------- 令牌显示：默认折叠摘要，点展开才显示长串 ----------
@@ -959,6 +1026,137 @@ public class MainActivity extends Activity {
         if (s == null) return "";
         String t = s.replaceAll("\\s+", " ").trim();
         return t.length() > n ? t.substring(0, n) : t;
+    }
+
+    // ---------- 推送：网页端受 CORS 限制无法直连钉钉/企微，改在 App 内发送 ----------
+    private static final String[] TPL = {
+            "### 移动云盘 \u00b7 每日签到\n{time}\n\n{rows}\n\n合计 +{sum}",
+            "### 移动云盘 \u00b7 每日签到\n{time}\n\n{rows}\n\n合计 +{sum} \u00b7 正常 {ok}",
+            "### \u26a0 云盘签到异常\n{time}\n\n{rows}",
+            "云盘签到 {time}：{sum} 豆，{ok}",
+            ""
+    };
+
+    private void saveNotify(int type, String url, int tpl, String custom) {
+        getSharedPreferences("cfg", MODE_PRIVATE).edit()
+                .putInt("push_type", type).putString("push_url", url)
+                .putInt("push_tpl", tpl).putString("push_custom", custom).apply();
+    }
+
+    private void loadNotify(android.widget.Spinner spType, EditText etHook, android.widget.Spinner spTpl, EditText etTpl) {
+        android.content.SharedPreferences s = getSharedPreferences("cfg", MODE_PRIVATE);
+        spType.setSelection(s.getInt("push_type", 0));
+        etHook.setText(s.getString("push_url", ""));
+        int t = s.getInt("push_tpl", 0);
+        spTpl.setSelection(t);
+        etTpl.setText(s.getString("push_custom", t >= 0 && t < TPL.length ? TPL[t] : ""));
+        etTpl.setVisibility(t == 4 ? android.view.View.VISIBLE : android.view.View.GONE);
+    }
+
+    private void importPushCfg(EditText etHook, EditText etTpl, android.widget.Spinner spType, android.widget.Spinner spTpl) {
+        try {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm == null || cm.getPrimaryClip() == null) { toast("剪贴板为空"); return; }
+            String s = cm.getPrimaryClip().getItemAt(0).coerceToText(this).toString().trim();
+            JSONObject j = new JSONObject(s);
+            String url = j.optString("url", "");
+            if (url.isEmpty()) { toast("配置里没有 webhook"); return; }
+            String tpl = j.optString("tpl", "");
+            String ty = j.optString("type", "dingtalk");
+            etHook.setText(url);
+            spType.setSelection("wecom".equals(ty) ? 1 : ("feishu".equals(ty) ? 2 : 0));
+            int idx = 4;
+            for (int i = 0; i < 4; i++) if (TPL[i].equals(tpl)) { idx = i; break; }
+            spTpl.setSelection(idx);
+            etTpl.setText(tpl);
+            saveNotify(spType.getSelectedItemPosition(), url, idx, tpl);
+            toast("已导入推送配置");
+        } catch (Exception e) { toast("导入失败：" + e.getMessage()); }
+    }
+
+    private void testPush() {
+        android.content.SharedPreferences s = getSharedPreferences("cfg", MODE_PRIVATE);
+        final String url = s.getString("push_url", "");
+        if (url.isEmpty()) { toast("请先填写 webhook 地址"); return; }
+        final int type = s.getInt("push_type", 0);
+        String body = renderTpl(s.getInt("push_tpl", 0), s.getString("push_custom", ""),
+                "182****4895\u3000今日 +6\u3000总 307\n172****9953\u3000今日 +6\u3000总 2021", "12", "2/2");
+        log("测试推送中…");
+        pool.execute(() -> {
+            String r = sendPush(type, url, body);
+            boolean ok = r.startsWith("OK");
+            final String msg = ok ? "\u2713 推送成功，请查看群消息" : "\u2717 推送失败：" + r;
+            runOnUiThread(() -> log(msg, !ok));
+        });
+    }
+
+    private String renderTpl(int idx, String custom, String rows, String sum, String ok) {
+        String t = (idx == 4) ? custom : (idx >= 0 && idx < TPL.length ? TPL[idx] : TPL[0]);
+        if (t == null || t.trim().isEmpty()) t = TPL[0];
+        String time = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.CHINA).format(new java.util.Date());
+        return t.replace("{time}", time).replace("{rows}", rows).replace("{sum}", sum).replace("{ok}", ok);
+    }
+
+    private String sendPush(int type, String url, String text) {
+        try {
+            String body;
+            if (type == 1) body = "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":" + jstr(text) + "}}";
+            else if (type == 2) body = "{\"msgtype\":\"text\",\"content\":{\"text\":" + jstr(text) + "}}";
+            else body = "{\"msgtype\":\"markdown\",\"markdown\":{\"title\":\"云盘签到\",\"text\":" + jstr(text) + "}}";
+            Map<String, String> h = new HashMap<>();
+            h.put("Content-Type", "application/json");
+            Resp r = http(url, "POST", h, body, false);
+            String b = r.body == null ? "" : r.body;
+            if (r.code >= 200 && r.code < 300) {
+                if (b.contains("errcode") && !b.replace(" ", "").contains("\"errcode\":0")) return "接口返回 " + safe(b, 120);
+                return "OK";
+            }
+            return "HTTP " + r.code + " " + safe(b, 120);
+        } catch (Exception e) { return String.valueOf(e.getMessage()); }
+    }
+
+    private static String jstr(String s) {
+        if (s == null) return "\"\"";
+        StringBuilder b = new StringBuilder("\"");
+        for (char c : s.toCharArray()) {
+            if (c == '"') b.append("\\\"");
+            else if (c == '\\') b.append("\\\\");
+            else if (c == '\n') b.append("\\n");
+            else if (c == '\r') b.append("\\r");
+            else if (c == '\t') b.append("\\t");
+            else if (c < 0x20) b.append(String.format("\\u%04x", (int) c));
+            else b.append(c);
+        }
+        return b.append("\"").toString();
+    }
+
+    /** 抓到令牌后按配置推一条通知（没配 webhook 则静默跳过） */
+    private void pushAfterToken(String phone, String days) {
+        android.content.SharedPreferences s = getSharedPreferences("cfg", MODE_PRIVATE);
+        final String url = s.getString("push_url", "");
+        if (url.isEmpty()) return;
+        final int type = s.getInt("push_type", 0);
+        String text = "### 云盘令牌已更新\n"
+                + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.CHINA).format(new java.util.Date())
+                + "\n\n" + mask(phone) + " \u00b7 剩余 " + days + " 天";
+        pool.execute(() -> {
+            String r = sendPush(type, url, text);
+            boolean ok = r.startsWith("OK");
+            runOnUiThread(() -> log(ok ? "\u2713 已推送令牌更新通知" : "\u2717 通知推送失败：" + r, !ok));
+        });
+    }
+
+    private static String expireDays(String token) {
+        try {
+            String dec = new String(Base64.decode(token.trim(), Base64.DEFAULT), "UTF-8");
+            String[] ps = dec.split("\\|");
+            if (ps.length >= 4) {
+                long exp = Long.parseLong(ps[3].trim());
+                long d = Math.round((exp - System.currentTimeMillis()) / 86400000.0 * 10) / 10;
+                return String.valueOf(d);
+            }
+        } catch (Exception ignored) { }
+        return "未知";
     }
 
     private int dp(int v) {
