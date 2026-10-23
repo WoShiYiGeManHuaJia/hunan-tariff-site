@@ -1,10 +1,6 @@
 name: Build YunTok APK
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'yuntok/**'
-      - '.github/workflows/apk.yml'
 permissions:
   contents: write
 jobs:
@@ -21,33 +17,34 @@ jobs:
           curl -sL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.2-bin.zip
           unzip -q /tmp/gradle.zip -d /opt
           chmod +x /opt/gradle-8.2/bin/gradle
-      - name: Build (捕获编译错误)
+      - name: Build
         working-directory: ./yuntok
         run: |
           mkdir -p ../data
-          : > ../data/buildlog.txt
+          TS=$(date -u +%Y%m%d-%H%M%S)
+          { echo "=== BUILD $TS ==="; } > ../data/buildlog.txt
           /opt/gradle-8.2/bin/gradle assembleDebug --no-daemon > /tmp/b.log 2>&1
-          echo "gradle exit=$?" >> ../data/buildlog.txt
-          grep -nE "error:|error\s*:|\.java:[0-9]+|FAILED|Compilation failed" /tmp/b.log | head -60 >> ../data/buildlog.txt
-          echo "----- tail -----" >> ../data/buildlog.txt
-          tail -40 /tmp/b.log >> ../data/buildlog.txt
-          cat ../data/buildlog.txt
-      - name: Publish APK
+          echo "gradle_exit=$?" >> ../data/buildlog.txt
+          echo "--- errors ---" >> ../data/buildlog.txt
+          grep -nE "error:|\.java:[0-9]+|FAILED|Compilation failed|What went wrong" -A3 /tmp/b.log | head -80 >> ../data/buildlog.txt
+          echo "--- tail 60 ---" >> ../data/buildlog.txt
+          tail -60 /tmp/b.log >> ../data/buildlog.txt
+      - name: Publish
         run: |
-          # 只从构建产物目录取，绝不全局 find（避免被仓库内旧副本覆盖）
+          rm -f yuntok.apk
           SRC=yuntok/app/build/outputs/apk/debug/app-debug.apk
           if [ -f "$SRC" ]; then
             cp "$SRC" yuntok.apk
-            ls -l yuntok.apk; md5sum yuntok.apk
+            echo "APK_OK $(stat -c%s yuntok.apk) md5=$(md5sum yuntok.apk|cut -c1-8)" >> data/buildlog.txt
           else
-            echo "NO_APK (build failed)" > data/noapk.txt
+            echo "APK_MISSING" >> data/buildlog.txt
           fi
       - name: Commit
         run: |
           git config user.name zz
           git config user.email zz@x.com
-          git add -f yuntok.apk data/buildlog.txt data/noapk.txt 2>/dev/null || true
-          git diff --cached --quiet && echo "no change" && exit 0
-          git commit -m "chore: yuntok 构建产物与日志 ($(date -u +%Y%m%d-%H%M))"
+          git add -f data/buildlog.txt
+          if [ -f yuntok.apk ]; then git add -f yuntok.apk; else git rm -f --cached yuntok.apk 2>/dev/null || true; fi
+          git commit -m "chore: yuntok build $(date -u +%Y%m%d-%H%M%S)"
           for i in 1 2 3 4 5 6; do git pull --rebase origin main && git push origin main && exit 0; sleep 6; done
           exit 1
