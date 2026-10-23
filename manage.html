@@ -108,10 +108,18 @@ summary{font-size:13px;color:#3b82f6;cursor:pointer;padding:6px 0}
 <div class="card">
   <h2>③ 我的托管账号 <span class="hdsmall" id="cnt"></span><span class="sp"></span>
     <button class="gh sm" onclick="loadList()">刷新</button>
-    <button class="gh sm" onclick="runNow()">立即签到</button>
+    <button class="gh sm" id="btnRun" onclick="runNow(this)">立即签到</button>
   </h2>
   <div class="sub" style="margin-bottom:6px">仅本机可见 · 余额取自后台最近 10 天记录</div>
   <ul id="list"><li class="empty">加载中…</li></ul>
+  <div id="recoverBox" class="note" style="display:none;margin-top:10px;border-top:1px solid #f0f3f7;padding-top:10px">
+    换手机、清过缓存，导致这里空了？<b>后台其实还在帮你跑</b>，只是本机记录没了。<br>
+    <div class="row" style="margin-top:8px">
+      <input id="rcPhone" type="tel" inputmode="numeric" placeholder="输入你自己的手机号" maxlength="11">
+      <button class="gh sm" style="flex:0 0 auto;padding:11px 14px" onclick="recover()">恢复到本机</button>
+    </div>
+    <div style="margin-top:6px">号码只写进本机浏览器，用于查看余额和移除，不会上传。</div>
+  </div>
 </div>
 
 <!-- ④ 历史 -->
@@ -298,7 +306,7 @@ async function submitTok(){
     _lastParsed="";
     CUR=null;
     updQuota(); loadList();
-  } finally { b.textContent="提交托管"; }
+  } finally { b.textContent="提交托管"; b.disabled=true; }
 }
 async function delAcc(p){
   if(!confirm("确定移除 "+p+"？")) return;
@@ -306,13 +314,41 @@ async function delAcc(p){
   log((r&&r.ok?"✓ 已移除 ":"✗ 移除失败：")+((r&&r.msg)||""), (r&&r.ok)?"s":"e");
   if(r&&r.ok){ setMyAccs(myAccs().filter(function(x){return x.phone!==p;})); updQuota(); loadList(); }
 }
-async function runNow(){
-  var b=event&&event.target; if(b){ b.disabled=true; b.textContent="执行中…"; }
+async function runNow(b){
+  if(b){ b.disabled=true; b.textContent="执行中…"; }
+  log("提示：4 个号全跑一遍通常要 3～8 分钟，请耐心等，别重复点","i");
   try{
-    var r=await run("daily",{},240000,"立即签到");
-    if(r) log((r.ok?"✓ 签到完成 ":"✗ 失败：")+(r.msg||""), r.ok?"s":"e");
+    var r=await run("daily",{},600000,"立即签到");
+    if(r){
+      log((r.ok?"✓ 签到完成 ":"✗ 失败：")+(r.msg||""), r.ok?"s":"e");
+      if(Array.isArray(r.perAccount)){
+        r.perAccount.forEach(function(x){
+          var bits=[];
+          if(x.gain!=null) bits.push("今日 "+((x.gain>=0?"+":"")+x.gain));
+          if(x.total!=null) bits.push("总 "+x.total);
+          if(x.sign) bits.push(String(x.sign));
+          if(x.receive) bits.push("气泡 "+String(x.receive));
+          if(!x.ok && !bits.length) bits.push(String(x.error||x.refresh||"失败"));
+          log("  · "+(x.masked||x.phone)+" "+(x.ok?"✓":"✗")+" "+bits.join(" · "), x.ok?"s":"e");
+        });
+      }
+    }
     loadList();
   } finally { if(b){ b.disabled=false; b.textContent="立即签到"; } }
+}
+function recover(){
+  var el=document.getElementById("rcPhone");
+  var p=clean(el.value);
+  if(!/^1\d{10}$/.test(p)){ log("✗ 请输入 11 位手机号","e"); return; }
+  var a=myAccs();
+  if(a.filter(function(x){return x.phone===p;}).length){ log("该号已在本机列表中","i"); return; }
+  var lim=limit();
+  if(a.length>=lim){ log("✗ 已达上限 "+lim+" 个","e"); return; }
+  a.push({phone:p,ts:"恢复"});
+  setMyAccs(a);
+  el.value="";
+  log("✓ 已恢复到本机："+mask(p)+"（后台若已托管会显示余额）","s");
+  loadList();
 }
 
 /* ---------- 列表（只显示本机） ---------- */
@@ -320,6 +356,7 @@ async function loadList(){
   var ul=document.getElementById("list"), cnt=document.getElementById("cnt");
   var mine=myAccs();
   cnt.textContent="（"+mine.length+" 个）";
+  document.getElementById("recoverBox").style.display = mine.length ? "none" : "";
   if(!mine.length){ ul.innerHTML='<li class="empty">还没有添加账号。用 App 取令牌后粘到上面。</li>'; updQuota(); return; }
   ul.innerHTML=mine.map(function(a){ return '<li><div><div class="ph">'+mask(a.phone)+'</div><div class="bal">添加于 '+a.ts+'</div></div><div class="ops"><button class="sm dan" onclick="delAcc(\''+a.phone+'\')">移除</button></div></li>'; }).join("")+
     '<li class="empty">正在读取余额…</li>';
