@@ -232,18 +232,43 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
   </div>
   <div id="pushBox" style="display:none;margin-top:12px">
     <div class="sub" style="margin-bottom:8px">
-      浏览器可直接发送：<span class="badge g">飞书</span> <span class="badge g">Server酱</span> <span class="badge g">钉钉</span><br>
-      <span class="badge r">企业微信</span> 浏览器发不出去（对方服务器不允许），故不提供。
+      浏览器可直接发送：<span class="badge g">飞书</span> <span class="badge g">Server酱</span> <span class="badge g">钉钉</span>
+      <span class="badge g">邮件</span>（后台代发）<br>
+      <span class="badge r">企业微信</span> 浏览器发不出去（对方服务器不允许），故不提供。<br>
+      邮件：浏览器无法直连 SMTP，由后台在签到时发送；点「发一条测试」会让后台立刻发一封测试邮件。
     </div>
     <label>渠道</label>
     <select id="pfType" onchange="onPfType()">
       <option value="feishu">飞书群机器人</option>
       <option value="serverchan">Server酱（微信推送）</option>
       <option value="dingtalk">钉钉群机器人</option>
+      <option value="email">电子邮件（SMTP）</option>
     </select>
     <div id="pfHint" class="note"></div>
     <label id="pfLabel">Webhook 地址</label>
     <input id="pfKey" placeholder="">
+    <div id="pfEmail" style="display:none;margin-top:8px">
+      <label>邮箱服务商</label>
+      <select id="emProv" onchange="onEmProv()">
+        <option value="">自定义</option>
+        <option value="qq">QQ 邮箱</option>
+        <option value="163">163 邮箱</option>
+        <option value="139">139 邮箱</option>
+        <option value="gmail">Gmail</option>
+        <option value="outlook">Outlook</option>
+      </select>
+      <label>SMTP 服务器</label>
+      <input id="emHost" placeholder="smtp.qq.com">
+      <label>端口</label>
+      <input id="emPort" placeholder="465" value="465">
+      <label>邮箱账号（完整地址）</label>
+      <input id="emUser" placeholder="123456@qq.com">
+      <label>授权码（不是登录密码）</label>
+      <input id="emPass" type="password" placeholder="开启 SMTP 后得到的授权码">
+      <label>收件邮箱（留空=发给自己）</label>
+      <input id="emTo" placeholder="可留空">
+      <div class="note">QQ/163/139 用 465；Gmail/Outlook 用 587。授权码在邮箱「设置-账户」里开启 SMTP 后获取。</div>
+    </div>
     <div class="row" style="margin-top:11px">
       <button class="gh" onclick="savePush()">保存</button>
       <button class="ok" onclick="testPush()">发一条测试</button>
@@ -680,8 +705,18 @@ var PF = {
   serverchan:{label:"SendKey", ph:"SCTxxxxx（sctapi.ftqq.com 后台可看到）",
              hint:"Server酱：把消息推到你的微信服务号。打开 sct.ftqq.com 登录即可拿到 SendKey。"},
   dingtalk: {label:"钉钉 Webhook 地址", ph:"https://oapi.dingtalk.com/robot/send?access_token=xxxx",
-             hint:"钉钉群 → 群设置 → 智能群助手 → 添加机器人 → 自定义，复制 Webhook。注意：浏览器发出的钉钉消息无法读取返回结果，请在群里确认是否收到。"}
+             hint:"钉钉群 → 群设置 → 智能群助手 → 添加机器人 → 自定义，复制 Webhook。注意：浏览器发出的钉钉消息无法读取返回结果，请在群里确认是否收到。"},
+  email:    {label:"邮箱配置（在下方填写）", ph:"",
+             hint:"浏览器不能直连 SMTP，邮件由后台发送。填好后点「发一条测试」，后台会发一封测试邮件。授权码不是登录密码，需在邮箱「设置-账户」里开启 SMTP 服务后获取。"}
 };
+var EMPROV={qq:{host:"smtp.qq.com",port:465},"163":{host:"smtp.163.com",port:465},
+            "139":{host:"smtp.139.com",port:465},gmail:{host:"smtp.gmail.com",port:587},
+            outlook:{host:"smtp.office365.com",port:587}};
+function onEmProv(){
+  var v=document.getElementById("emProv").value;
+  if(EMPROV[v]){ document.getElementById("emHost").value=EMPROV[v].host;
+                 document.getElementById("emPort").value=EMPROV[v].port; }
+}
 function togglePush(b){
   var box=document.getElementById("pushBox");
   var open = box.style.display==="none";
@@ -691,6 +726,10 @@ function togglePush(b){
 }
 function onPfType(){
   var t=document.getElementById("pfType").value, c=PF[t];
+  var isMail=(t==="email");
+  document.getElementById("pfLabel").style.display=isMail?"none":"";
+  document.getElementById("pfKey").style.display=isMail?"none":"";
+  document.getElementById("pfEmail").style.display=isMail?"":"none";
   document.getElementById("pfLabel").textContent=c.label;
   var k=document.getElementById("pfKey");
   k.placeholder=c.ph;
@@ -705,15 +744,36 @@ async function loadPush(){
     var d=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))));
     document.getElementById("pfType").value=d.type||"feishu";
     onPfType();
-    document.getElementById("pfKey").value=d.key||"";
+    if((d.type||"")==="email"){
+      try{ var e=JSON.parse(d.key||"{}");
+        document.getElementById("emHost").value=e.host||"";
+        document.getElementById("emPort").value=e.port||465;
+        document.getElementById("emUser").value=e.user||"";
+        document.getElementById("emPass").value=e.pass||"";
+        document.getElementById("emTo").value=e.to||"";
+      }catch(err){}
+    } else {
+      document.getElementById("pfKey").value=d.key||"";
+    }
     document.getElementById("pfState").innerHTML='已保存 · <span class="badge g">'+(d.type||"")+'</span> · '+(d.ts||"");
     log("✓ 已读取云端的推送配置","s");
   }catch(e){ document.getElementById("pfState").textContent="读取失败"; }
 }
 async function savePush(){
   var t=document.getElementById("pfType").value;
-  var k=document.getElementById("pfKey").value.trim();
-  if(!k){ log("✗ 请填写地址/Key","e"); return; }
+  var k="";
+  if(t==="email"){
+    var host=document.getElementById("emHost").value.trim();
+    var port=parseInt(document.getElementById("emPort").value.trim()||"465",10);
+    var user=document.getElementById("emUser").value.trim();
+    var pass=document.getElementById("emPass").value;
+    var to=document.getElementById("emTo").value.trim();
+    if(!host||!user||!pass){ log("✗ 请填写 SMTP 服务器 / 邮箱账号 / 授权码","e"); return; }
+    k=JSON.stringify({host:host,port:port,secure:(port===465),user:user,pass:pass,to:to||user});
+  } else {
+    k=document.getElementById("pfKey").value.trim();
+    if(!k){ log("✗ 请填写地址/Key","e"); return; }
+  }
   var d={type:t,key:k,ts:new Date().toISOString().slice(0,16).replace("T"," ")};
   try{
     var c=cfg(), p="/repos/"+c.owner+"/"+c.repo+"/contents/data/notify.json";
@@ -732,6 +792,13 @@ async function savePush(){
 }
 async function testPush(){
   var t=document.getElementById("pfType").value;
+  if(t==="email"){
+    log("① 邮件由后台发送，正在提交…","i");
+    var rr=await run("send_test",{},120000,"发送测试邮件");
+    if(rr&&rr.ok) log("✓ "+String(rr.msg||"已发送")+"（请查收邮箱）","s");
+    else log("✗ "+(rr?String(rr.msg||"发送失败"):"超时未拿到结果"),"e");
+    return;
+  }
   var k=document.getElementById("pfKey").value.trim();
   if(!k){ log("✗ 请先填写地址/Key","e"); return; }
   var txt="【云盘签到】测试消息\n这是一条来自管理页的测试推送，收到说明配置正确。\n时间："+new Date().toLocaleString("zh-CN");
