@@ -61,8 +61,8 @@ import javax.crypto.spec.SecretKeySpec;
 public class MainActivity extends Activity {
 
     // 版本标识：界面上直接显示，装完一眼可确认是不是新版
-    private static final String APP_VER = "v6 · 推送版";
-    private static final String BUILD_TS = "20261023-2109";
+    private static final String APP_VER = "v7 · 邮箱版";
+    private static final String BUILD_TS = "20261023-2115";
 
     private static final String OBF = "SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
     private static final String OWNER = "WoShiYiGeManHuaJia";
@@ -311,14 +311,85 @@ public class MainActivity extends Activity {
 
         android.widget.Spinner spType = new android.widget.Spinner(this);
         spType.setAdapter(new android.widget.ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[]{"钉钉群机器人", "企业微信群机器人", "飞书群机器人"}));
+                new String[]{"钉钉群机器人", "企业微信群机器人", "飞书群机器人", "电子邮件(SMTP)"}));
         cPush.addView(spType);
 
-        addLabel(cPush, "Webhook 地址");
+        LinearLayout hookBox = new LinearLayout(this);
+        hookBox.setOrientation(LinearLayout.VERTICAL);
+        addLabel(hookBox, "Webhook 地址");
         EditText etHook = new EditText(this);
         etHook.setHint("粘贴机器人的完整 webhook 地址");
         etHook.setSingleLine(true);
-        cPush.addView(etHook);
+        hookBox.addView(etHook);
+        cPush.addView(hookBox);
+
+        LinearLayout mailBox = new LinearLayout(this);
+        mailBox.setOrientation(LinearLayout.VERTICAL);
+        mailBox.setVisibility(android.view.View.GONE);
+        TextView mailTip = new TextView(this);
+        mailTip.setText("邮件走 SMTP，密码处请填邮箱「授权码」而不是登录密码。");
+        mailTip.setTextSize(11);
+        mailTip.setTextColor(0xFF8B97A4);
+        mailBox.addView(mailTip);
+
+        android.widget.Spinner spPreset = new android.widget.Spinner(this);
+        spPreset.setAdapter(new android.widget.ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{"常用邮箱预设…", "QQ邮箱", "163邮箱", "139邮箱", "Gmail", "Outlook", "自定义"}));
+        mailBox.addView(spPreset);
+
+        EditText etHost = new EditText(this);
+        etHost.setHint("SMTP 服务器，如 smtp.qq.com");
+        etHost.setSingleLine(true);
+        mailBox.addView(etHost);
+
+        EditText etPort = new EditText(this);
+        etPort.setHint("端口：465(SSL) 或 587(STARTTLS)");
+        etPort.setSingleLine(true);
+        mailBox.addView(etPort);
+
+        android.widget.CheckBox chkSsl = new android.widget.CheckBox(this);
+        chkSsl.setText("直连 SSL（465 勾上；587 不勾）");
+        chkSsl.setTextSize(12);
+        mailBox.addView(chkSsl);
+
+        EditText etUser = new EditText(this);
+        etUser.setHint("邮箱账号（完整地址）");
+        etUser.setSingleLine(true);
+        mailBox.addView(etUser);
+
+        EditText etPass = new EditText(this);
+        etPass.setHint("授权码 / 密码");
+        etPass.setSingleLine(true);
+        etPass.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        mailBox.addView(etPass);
+
+        EditText etTo = new EditText(this);
+        etTo.setHint("收件邮箱（留空=发给自己）");
+        etTo.setSingleLine(true);
+        mailBox.addView(etTo);
+        cPush.addView(mailBox);
+
+        spType.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(android.widget.AdapterView<?> p, android.view.View v, int pos, long id) {
+                boolean mail = (pos == 3);
+                hookBox.setVisibility(mail ? android.view.View.GONE : android.view.View.VISIBLE);
+                mailBox.setVisibility(mail ? android.view.View.VISIBLE : android.view.View.GONE);
+            }
+            public void onNothingSelected(android.widget.AdapterView<?> p) { }
+        });
+
+        spPreset.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(android.widget.AdapterView<?> p, android.view.View v, int pos, long id) {
+                String[][] P = {{"", ""}, {"smtp.qq.com", "465"}, {"smtp.163.com", "465"},
+                        {"smtp.139.com", "465"}, {"smtp.gmail.com", "587"}, {"smtp.office365.com", "587"}};
+                if (pos >= 1 && pos <= 5) {
+                    etHost.setText(P[pos][0]);
+                    etPort.setText(P[pos][1]);
+                    chkSsl.setChecked("465".equals(P[pos][1]));
+                }
+            }
+            public void onNothingSelected(android.widget.AdapterView<?> p) { }
+        });
 
         addLabel(cPush, "消息模板");
         android.widget.Spinner spTpl = new android.widget.Spinner(this);
@@ -352,6 +423,9 @@ public class MainActivity extends Activity {
         btnSaveP.setOnClickListener(v -> {
             saveNotify(spType.getSelectedItemPosition(), etHook.getText().toString().trim(),
                     spTpl.getSelectedItemPosition(), etTpl.getText().toString());
+            saveMail(etHost.getText().toString().trim(), portOf(etPort.getText().toString()),
+                    chkSsl.isChecked(), etUser.getText().toString().trim(),
+                    etPass.getText().toString().trim(), etTo.getText().toString().trim());
             toast("推送配置已保存");
         });
         rowP.addView(btnSaveP);
@@ -364,6 +438,7 @@ public class MainActivity extends Activity {
 
         root.addView(cPush);
         loadNotify(spType, etHook, spTpl, etTpl);
+        loadMail(etHost, etPort, chkSsl, etUser, etPass, etTo);
 
         // ---------- 日志卡 ----------
         LinearLayout cLog = card();
@@ -1076,18 +1151,63 @@ public class MainActivity extends Activity {
 
     private void testPush() {
         android.content.SharedPreferences s = getSharedPreferences("cfg", MODE_PRIVATE);
-        final String url = s.getString("push_url", "");
-        if (url.isEmpty()) { toast("请先填写 webhook 地址"); return; }
         final int type = s.getInt("push_type", 0);
+        if (type == 3) {
+            if (s.getString("smtp_user", "").trim().isEmpty()) { toast("请先填写邮箱账号"); return; }
+        } else if (s.getString("push_url", "").isEmpty()) { toast("请先填写 webhook 地址"); return; }
         String body = renderTpl(s.getInt("push_tpl", 0), s.getString("push_custom", ""),
                 "182****4895\u3000今日 +6\u3000总 307\n172****9953\u3000今日 +6\u3000总 2021", "12", "2/2");
         log("测试推送中…");
+        final String subj = "【测试】云盘签到通知";
         pool.execute(() -> {
-            String r = sendPush(type, url, body);
+            String r = dispatchPush(subj, body);
             boolean ok = r.startsWith("OK");
-            final String msg = ok ? "\u2713 推送成功，请查看群消息" : "\u2717 推送失败：" + r;
+            final String msg = ok ? "\u2713 推送成功，请查收" : "\u2717 推送失败：" + r;
             runOnUiThread(() -> log(msg, !ok));
         });
+    }
+
+    /** 按当前配置分发：3=邮件SMTP，其余=群机器人 webhook */
+    private String dispatchPush(String subject, String text) {
+        android.content.SharedPreferences s = getSharedPreferences("cfg", MODE_PRIVATE);
+        int type = s.getInt("push_type", 0);
+        if (type == 3) {
+            String user = s.getString("smtp_user", "").trim();
+            String host = s.getString("smtp_host", "").trim();
+            if (user.isEmpty()) return "未填写邮箱账号";
+            if (host.isEmpty()) return "未填写 SMTP 服务器";
+            int port = s.getInt("smtp_port", 465);
+            boolean ssl = s.getBoolean("smtp_ssl", true);
+            String pass = s.getString("smtp_pass", "");
+            String to = s.getString("mail_to", "").trim();
+            if (to.isEmpty()) to = user;
+            try {
+                new SmtpSender().send(host, port, ssl, !ssl, user, pass, user, to, subject, text);
+                return "OK";
+            } catch (Exception e) { return String.valueOf(e.getMessage()); }
+        }
+        return sendPush(type, s.getString("push_url", ""), text);
+    }
+
+    private void saveMail(String host, int port, boolean ssl, String user, String pass, String to) {
+        getSharedPreferences("cfg", MODE_PRIVATE).edit()
+                .putString("smtp_host", host).putInt("smtp_port", port).putBoolean("smtp_ssl", ssl)
+                .putString("smtp_user", user).putString("smtp_pass", pass).putString("mail_to", to).apply();
+    }
+
+    private void loadMail(EditText etHost, EditText etPort, android.widget.CheckBox chkSsl,
+                          EditText etUser, EditText etPass, EditText etTo) {
+        android.content.SharedPreferences s = getSharedPreferences("cfg", MODE_PRIVATE);
+        etHost.setText(s.getString("smtp_host", ""));
+        etPort.setText(String.valueOf(s.getInt("smtp_port", 465)));
+        chkSsl.setChecked(s.getBoolean("smtp_ssl", true));
+        etUser.setText(s.getString("smtp_user", ""));
+        etPass.setText(s.getString("smtp_pass", ""));
+        etTo.setText(s.getString("mail_to", ""));
+    }
+
+    private static int portOf(String v) {
+        try { return Integer.parseInt(v.trim()); } catch (Exception e) { return 465; }
     }
 
     private String renderTpl(int idx, String custom, String rows, String sum, String ok) {
@@ -1133,14 +1253,17 @@ public class MainActivity extends Activity {
     /** 抓到令牌后按配置推一条通知（没配 webhook 则静默跳过） */
     private void pushAfterToken(String phone, String days) {
         android.content.SharedPreferences s = getSharedPreferences("cfg", MODE_PRIVATE);
-        final String url = s.getString("push_url", "");
-        if (url.isEmpty()) return;
         final int type = s.getInt("push_type", 0);
-        String text = "### 云盘令牌已更新\n"
-                + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.CHINA).format(new java.util.Date())
-                + "\n\n" + mask(phone) + " \u00b7 剩余 " + days + " 天";
+        boolean has = (type == 3) ? !s.getString("smtp_user", "").trim().isEmpty()
+                : !s.getString("push_url", "").isEmpty();
+        if (!has) return;
+        String time = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.CHINA).format(new java.util.Date());
+        String text = (type == 3)
+                ? ("云盘令牌已更新\n\n" + mask(phone) + " \u00b7 剩余 " + days + " 天\n\n" + time)
+                : ("### 云盘令牌已更新\n" + time + "\n\n" + mask(phone) + " \u00b7 剩余 " + days + " 天");
+        final String subj = "云盘令牌已更新 \u00b7 " + mask(phone);
         pool.execute(() -> {
-            String r = sendPush(type, url, text);
+            String r = dispatchPush(subj, text);
             boolean ok = r.startsWith("OK");
             runOnUiThread(() -> log(ok ? "\u2713 已推送令牌更新通知" : "\u2717 通知推送失败：" + r, !ok));
         });
