@@ -1,6 +1,10 @@
 name: Build YunTok APK
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'yuntok/**'
+      - '.github/workflows/apk.yml'
 permissions:
   contents: write
 jobs:
@@ -12,6 +16,25 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Accept SDK licenses
+        run: |
+          if [ -n "$ANDROID_HOME" ] && [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || true
+          fi
+          echo "ANDROID_HOME=$ANDROID_HOME"
+      - name: 准备固定签名
+        env:
+          YUNTOK_KS_B64: ${{ secrets.YUNTOK_KS_B64 }}
+        run: |
+          # 从 secret 还原 keystore；缺失则回退生成（签名会变，但不至于构建失败）
+          if [ -n "$YUNTOK_KS_B64" ]; then
+            echo "$YUNTOK_KS_B64" | base64 -d > "$RUNNER_TEMP/yuntok.jks"
+            ls -l "$RUNNER_TEMP/yuntok.jks"
+            keytool -list -keystore "$RUNNER_TEMP/yuntok.jks" -storepass "${{ secrets.YUNTOK_KS_PASS }}" | head -5
+          else
+            echo "!! 未配置 YUNTOK_KS_B64，签名将不固定"
+          fi
       - name: Setup Gradle
         run: |
           curl -sL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.2-bin.zip
@@ -19,32 +42,37 @@ jobs:
           chmod +x /opt/gradle-8.2/bin/gradle
       - name: Build
         working-directory: ./yuntok
+        env:
+          KS_FILE: ${{ runner.temp }}/yuntok.jks
+          KS_PASS: ${{ secrets.YUNTOK_KS_PASS }}
+          KS_ALIAS: ${{ secrets.YUNTOK_KS_ALIAS }}
+        run: /opt/gradle-8.2/bin/gradle assembleDebug --no-daemon --stacktrace
+      - name: 校验签名指纹
+        env:
+          KS_PASS: ${{ secrets.YUNTOK_KS_PASS }}
         run: |
-          mkdir -p ../data
-          TS=$(date -u +%Y%m%d-%H%M%S)
-          { echo "=== BUILD $TS ==="; } > ../data/buildlog.txt
-          /opt/gradle-8.2/bin/gradle assembleDebug --no-daemon > /tmp/b.log 2>&1
-          echo "gradle_exit=$?" >> ../data/buildlog.txt
-          echo "--- errors ---" >> ../data/buildlog.txt
-          grep -nE "error:|\.java:[0-9]+|FAILED|Compilation failed|What went wrong" -A3 /tmp/b.log | head -80 >> ../data/buildlog.txt
-          echo "--- tail 60 ---" >> ../data/buildlog.txt
-          tail -60 /tmp/b.log >> ../data/buildlog.txt
-      - name: Publish
-        run: |
-          rm -f yuntok.apk
-          SRC=yuntok/app/build/outputs/apk/debug/app-debug.apk
-          if [ -f "$SRC" ]; then
-            cp "$SRC" yuntok.apk
-            echo "APK_OK $(stat -c%s yuntok.apk) md5=$(md5sum yuntok.apk|cut -c1-8)" >> data/buildlog.txt
+          APK=yuntok/app/build/outputs/apk/debug/app-debug.apk
+          ls -l "$APK"
+          md5sum "$APK"
+          if command -v apksigner >/dev/null 2>&1; then
+            apksigner verify --print-certs "$APK" | grep -i "SHA-1\|SHA-256" || true
           else
-            echo "APK_MISSING" >> data/buildlog.txt
+            echo "apksigner 不可用，跳过指纹校验"
           fi
+      - name: Publish APK
+        run: |
+          SRC=yuntok/app/build/outputs/apk/debug/app-debug.apk
+          ls -l "$SRC"
+          md5sum "$SRC"
+          cp "$SRC" yuntok.apk
+          ls -l yuntok.apk
+          md5sum yuntok.apk
       - name: Commit
         run: |
           git config user.name zz
           git config user.email zz@x.com
-          git add -f data/buildlog.txt
-          if [ -f yuntok.apk ]; then git add -f yuntok.apk; else git rm -f --cached yuntok.apk 2>/dev/null || true; fi
-          git commit -m "chore: yuntok build $(date -u +%Y%m%d-%H%M%S)"
+          git add -f yuntok.apk
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: 更新 yuntok.apk ($(date -u +%Y%m%d-%H%M))"
           for i in 1 2 3 4 5 6; do git pull --rebase origin main && git push origin main && exit 0; sleep 6; done
           exit 1
