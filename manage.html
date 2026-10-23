@@ -3,147 +3,261 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>云盘托管管理</title>
+<meta name="theme-color" content="#4f46e5">
+<title>云盘签到托管</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:#f5f7fa;color:#1c2430;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;padding:12px 12px calc(24px + env(safe-area-inset-bottom))}
-h1{font-size:19px;margin:4px 0 2px}
-h2{font-size:15px;margin:0 0 8px;display:flex;align-items:center;gap:6px}
-h2 .sp{flex:1}
-.sub{font-size:12.5px;color:#7b8794;line-height:1.5}
-.card{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:14px;margin-bottom:12px}
-.warn{background:#fff8e6;border:1px solid #ffe0a3;color:#8a5a00;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;margin-bottom:12px}
-.warn b{color:#a34b00}
-input,select,textarea{width:100%;padding:10px 12px;border:1px solid #d7dee7;border-radius:9px;font-size:15px;background:#fff;color:#1c2430;font-family:inherit}
+:root{
+  --pri:#4f46e5; --pri2:#7c3aed; --ok:#0f9d58; --warn:#b45309;
+  --bd:#e8ebf0; --mut:#6b7280; --bg:#f4f5f9;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:#111827;
+  font:15px/1.65 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+
+/* ---------- 头部 ---------- */
+.hero{background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
+  color:#fff;padding:22px 18px 26px;border-radius:0 0 22px 22px;
+  box-shadow:0 4px 18px rgba(79,70,229,.22)}
+.hero h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.3px}
+.hero .tip{margin-top:6px;font-size:13px;opacity:.93;line-height:1.6}
+.hero .clock{display:inline-flex;align-items:center;gap:6px;margin-top:12px;
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);
+  border-radius:20px;padding:6px 13px;font-size:12.5px}
+.hero .dot{width:7px;height:7px;border-radius:50%;background:#4ade80;
+  box-shadow:0 0 0 0 rgba(74,222,128,.7);animation:p 2s infinite}
+@keyframes p{70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+
+/* ---------- 卡片 ---------- */
+.wrap{padding:14px 12px 0}
+.card{background:#fff;border-radius:16px;padding:15px 15px 16px;margin-bottom:13px;
+  box-shadow:0 1px 3px rgba(16,24,40,.07),0 1px 2px rgba(16,24,40,.04);
+  border:1px solid rgba(16,24,40,.045)}
+.card h2{margin:0 0 10px;font-size:15.5px;font-weight:650;display:flex;align-items:center;gap:7px}
+.card h2 .sp{flex:1}
+.card h2 .n{width:22px;height:22px;border-radius:7px;background:#eef2ff;color:var(--pri);
+  font-size:12.5px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.sub{font-size:12.5px;color:var(--mut);line-height:1.6}
+
+/* ---------- 表单 ---------- */
+label{display:block;font-size:12.5px;color:#4b5563;margin:11px 0 5px;font-weight:500}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #d8dde5;border-radius:10px;
+  font-size:15px;background:#fff;color:#111827;font-family:inherit;transition:border-color .15s}
 textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;resize:vertical}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6}
-label{display:block;font-size:12.5px;color:#5b6875;margin:10px 0 5px}
-.row{display:flex;gap:8px}
-.row>*{flex:1}
-button{border:0;border-radius:9px;padding:11px 14px;font-size:15px;background:#3b82f6;color:#fff;font-family:inherit}
-button:active{opacity:.8}
-button.gh{background:#eef2f7;color:#33475b}
-button.sm{padding:6px 10px;font-size:12.5px}
-button.dan{background:#fff0f0;color:#c0392b;border:1px solid #f5c6c2}
-button:disabled{opacity:.45}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.row{display:flex;gap:8px}.row>*{flex:1}
+
+button{border:0;border-radius:10px;padding:11px 14px;font-size:15px;font-weight:550;
+  background:var(--pri);color:#fff;font-family:inherit;transition:transform .1s,opacity .15s}
+button:active{transform:scale(.975);opacity:.85}
+button.gh{background:#f1f3f8;color:#374151}
+button.sm{padding:7px 11px;font-size:12.5px;border-radius:8px}
+button.dan{background:#fee2e2;color:#b91c1c}
+button.ok{background:var(--ok)}
+button:disabled{opacity:.42}
+button.wide{width:100%}
+
+/* ---------- 分段控件 ---------- */
+.seg{display:flex;gap:0;border:1px solid #d8dde5;border-radius:11px;overflow:hidden;margin:4px 0 2px}
+.seg button{flex:1;border-radius:0;background:#fff;color:#374151;font-size:13.5px;padding:10px 6px;font-weight:500}
+.seg button.on{background:var(--pri);color:#fff}
+
+/* ---------- 列表 ---------- */
 ul{margin:0;padding:0;list-style:none}
-li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f0f3f7}
+li{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 0;border-bottom:1px solid #f2f4f7}
 li:last-child{border-bottom:0}
 .ph{font-weight:600;font-size:14.5px}
-.bal{font-size:12.5px;color:#7b8794}
-.empty{color:#9aa5b1;font-size:13px;padding:8px 0;display:block}
-#log{background:#101820;color:#c8e0c8;border-radius:10px;padding:10px;font:12px/1.6 ui-monospace,Menlo,Consolas,monospace;max-height:190px;overflow:auto;white-space:pre-wrap;word-break:break-all}
-#log div{margin:1px 0}
-#log .e{color:#ff9b9b}#log .s{color:#7ee08a}#log .i{color:#9fc7e8}
-.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:#eef2f7;color:#5b6875}
-.hdsmall{font-size:12px;color:#7b8794;font-weight:400}
-details{margin-top:10px}
-summary{font-size:13px;color:#3b82f6;cursor:pointer;padding:6px 0}
-.seg{display:flex;gap:0;border:1px solid #d7dee7;border-radius:9px;overflow:hidden;margin:6px 0}
-.seg button{flex:1;border-radius:0;background:#fff;color:#33475b;font-size:14px}
-.seg button.on{background:#3b82f6;color:#fff}
-.quota{font-size:12.5px;color:#5b6875;margin-top:6px}
-.note{font-size:12px;color:#8b97a4;line-height:1.55;margin-top:8px}
-.tokbox{background:#f7f9fc;border:1px dashed #c9d4e0;border-radius:8px;padding:9px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;word-break:break-all;max-height:70px;overflow:auto}
-.ok{background:#e6f4ea;border:1px solid #b7e0c4;color:#1e7e34;border-radius:9px;padding:9px 11px;font-size:13px;margin-top:8px;line-height:1.55}
-.ok b{color:#14622a}
+.bal{font-size:12.5px;color:var(--mut);margin-top:1px}
+.gain{color:var(--ok);font-weight:600}
+.empty{color:#9ca3af;font-size:13px;padding:10px 0;display:block;text-align:center}
 .ops{display:flex;gap:6px;flex-shrink:0}
+
+/* ---------- 提示块 ---------- */
+.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:11px;
+  padding:10px 12px;font-size:13px;margin-top:9px;line-height:1.6}
+.ok b{color:#047857}
+.warn{background:#fffbeb;border:1px solid #fde68a;color:#78350f;border-radius:12px;
+  padding:12px 13px;font-size:12.5px;line-height:1.7;margin-bottom:12px}
+.warn b{color:#92400e}
+.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:12px;
+  padding:12px 13px;font-size:12.5px;line-height:1.7}
+.step{background:#f8fafc;border:1px solid #e5e9f0;border-radius:11px;padding:12px 13px;
+  font-size:13px;line-height:1.85;color:#374151}
+.step b{color:var(--pri)}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;
+  background:#eef2ff;color:var(--pri);font-weight:600}
+.badge.g{background:#ecfdf5;color:#047857}
+.badge.r{background:#fee2e2;color:#b91c1c}
+
+/* ---------- 日志 ---------- */
+#log{background:#0f172a;color:#86efac;border-radius:12px;padding:11px;
+  font:12px/1.65 ui-monospace,Menlo,Consolas,monospace;max-height:200px;overflow:auto;
+  white-space:pre-wrap;word-break:break-all}
+#log div{margin:1px 0}
+#log .e{color:#fca5a5}#log .s{color:#86efac}#log .i{color:#93c5fd}
+
+/* ---------- 折叠 ---------- */
+details{margin-top:11px;border-top:1px solid #f2f4f7;padding-top:9px}
+summary{font-size:13px;color:var(--pri);cursor:pointer;padding:5px 0;font-weight:550;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary:before{content:"▸ ";display:inline-block;transition:transform .15s}
+details[open] summary:before{content:"▾ "}
+.note{font-size:12px;color:#8b97a4;line-height:1.6;margin-top:8px}
+.tokbox{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:9px;padding:9px;
+  font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;word-break:break-all;max-height:70px;overflow:auto}
+.quota{font-size:12.5px;color:var(--mut);margin-top:7px}
 .cnt2{font-size:11.5px;color:#8b97a4;margin-top:4px}
+.foot{text-align:center;color:#9ca3af;font-size:11.5px;padding:6px 0 4px;line-height:1.7}
+code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
 </style>
 </head>
 <body>
 
-<h1>云盘托管管理</h1>
-<div class="sub">粘贴 App 取到的令牌 → 一键托管。后台每天自动签到、做任务、领气泡。</div>
+<div class="hero">
+  <h1>云盘签到托管</h1>
+  <div class="tip">添加一次账号，之后全自动。你不用再打开这个页面。</div>
+  <div class="clock"><span class="dot"></span>每天 09:05 与 20:05 自动签到</div>
+</div>
+
+<div class="wrap">
 
 <div class="warn">
-  <b>隐私说明</b>：你添加的手机号<b>只保存在本机浏览器</b>，不会上传、不会展示给其他人。<br>
-  把这个链接发给别人，对方打开看到的是<b>空白列表</b>——看不到你托管了几个号。
+  <b>免责声明</b><br>
+  本工具仅用于获取<b>本人名下账号</b>的登录令牌并代其签到，不提供、不存储、不传输任何他人账号信息。
+  因使用本工具产生的账号风险、数据变动或损失，由使用者自行承担。<br><br>
+  <b>禁止牟利声明</b><br>
+  本工具<b>免费、非商业</b>。严禁用于代签到收费、批量养号出售、转售令牌、商业刷量等任何牟利或违反中国移动服务协议的行为。
+</div>
+
+<div class="card">
+  <h2><span class="n">⏱</span>托管后会自动做什么</h2>
+  <div class="step">
+    <b>每天 09:05 / 20:05</b> 各跑一轮：<br>
+    · 每日签到<br>
+    · 完成云朵任务<br>
+    · 领取气泡云豆<br>
+    · 令牌快到期时自动续期（每次续 30 天）<br>
+    · 结果推送到你配置的通知渠道
+  </div>
+  <div class="note">全部在云端定时执行，<b>不需要你保持这个页面打开</b>，也不需要安装任何 App。</div>
 </div>
 
 <!-- ① 仓库 -->
 <div class="card">
-  <h2>① 托管到哪个仓库</h2>
+  <h2><span class="n">1</span>托管到哪个仓库<span class="sp"></span><span class="badge" id="modeBadge">共用</span></h2>
   <div class="seg">
-    <button id="segMine" class="on" onclick="setMode('mine')">共用仓库（上限 5 个）</button>
+    <button id="segMine" class="on" onclick="setMode('mine')">共用仓库（5 个上限）</button>
     <button id="segSelf" onclick="setMode('self')">我自己的仓库（不限）</button>
   </div>
   <div id="selfCfg" style="display:none">
     <label>GitHub 用户名</label><input id="cfOwner" placeholder="例如 WoShiYiGeManHuaJia">
     <label>仓库名</label><input id="cfRepo" placeholder="例如 yun139-ghpanel">
     <label>Personal Access Token（需 repo 权限）</label><input id="cfToken" type="password" placeholder="ghp_...">
-    <div class="row" style="margin-top:10px">
+    <div class="row" style="margin-top:11px">
       <button class="gh sm" onclick="saveCfg()">保存配置</button>
       <button class="gh sm" onclick="testCfg()">测试连通</button>
     </div>
     <details>
-      <summary>怎么部署一个自己的仓库？（点开看步骤）</summary>
+      <summary>怎么部署一个自己的仓库？</summary>
       <div class="note">
-        1. 打开 <a href="https://github.com/WoShiYiGeManHuaJia/yun139-ghpanel/fork" target="_blank">这个链接 fork 仓库</a><br>
-        2. 进 fork 后的仓库 → Settings → Secrets → Actions → New secret<br>
-        3. 名字填 <code>PANEL_DATA_KEY</code>，值随便设一串密码（用来加密账号，记牢）<br>
-        4. 点 Actions 标签 → 启用 workflows<br>
-        5. 回到上面填你的用户名、仓库名、Token 即可
+        1. <a href="https://github.com/WoShiYiGeManHuaJia/yun139-ghpanel/fork" target="_blank">点此 fork 仓库</a><br>
+        2. Settings → Secrets → Actions → New secret<br>
+        3. 名称 <code>PANEL_DATA_KEY</code>，值自设一串密码（用于加密账号，记牢）<br>
+        4. Actions 标签页 → 启用 workflows<br>
+        5. 回上面填用户名、仓库名、Token
       </div>
     </details>
   </div>
-  <div id="mineCfg" class="note">使用我提供的公共仓库，简单但<b>每个手机最多 5 个号</b>。想不受限就用自己的仓库。</div>
+  <div id="mineCfg" class="note">使用共用仓库：简单，但一台手机最多 5 个号。想不受限请用自己的仓库。</div>
 </div>
 
-<!-- ② 添加 -->
+<!-- ② 取令牌 -->
 <div class="card">
-  <h2>② 添加账号</h2>
+  <h2><span class="n">2</span>取令牌并托管</h2>
+  <div class="info" style="margin-bottom:12px">
+    <b>推荐方式：书签一键取</b>（在云盘网页登录后点一下即可，不会失败）<br>
+    ① 点「生成书签」→「复制」<br>
+    ② 打开云盘网页 <b>yun.139.com</b> 登录<br>
+    ③ 点那个书签 → 自动跳回并填好
+  </div>
+  <div class="row">
+    <button class="gh" onclick="genBookmark()">生成书签</button>
+    <button class="gh" onclick="openYun()">打开云盘</button>
+  </div>
+  <div style="margin-top:9px">
+    <span id="yunHint" class="sub">入口：云盘网页版</span>
+    <button class="gh sm" style="margin-left:6px" onclick="switchYun()">换入口</button>
+  </div>
+  <div id="bmBox" style="margin-top:11px"></div>
 
-  <div style="background:#f0f7ff;border:1px solid #cfe4ff;border-radius:10px;padding:12px;margin-bottom:14px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:6px">推荐：从云盘网页直接取（不会失败）</div>
-    <div style="font-size:13px;color:#456;line-height:1.65">
-      ① 点下面按钮生成书签<br>
-      ② 手机浏览器打开 <b>m.mcloud.139.com</b> 并登录<br>
-      ③ 点那个书签 → 自动读令牌并跳回本页
-    </div>
+  <details>
+    <summary>手动粘贴令牌</summary>
+    <label>云盘令牌（以 cGM6 开头）</label>
+    <textarea id="tok" rows="3" placeholder="粘贴到这里，自动识别" oninput="onTok()"></textarea>
+    <div id="cnt2" class="cnt2"></div>
+    <div id="parseBox"></div>
     <div class="row" style="margin-top:10px">
-      <button class="gh" onclick="genBookmark()">生成抓取书签</button>
-      <button class="gh" onclick="openYun()">打开云盘登录</button>
+      <button class="gh" onclick="parseTok()">解析</button>
+      <button id="btnSub" onclick="submitTok()" disabled>提交托管</button>
     </div>
-    <div style="margin-top:8px">
-      <span id="yunHint" style="font-size:12px;color:#456">当前入口：云盘网页版(推荐)</span>
-      <button class="gh sm" style="margin-left:8px" onclick="switchYun()">换个入口</button>
-    </div>
-    <div id="bmBox" style="margin-top:10px"></div>
-  </div>
-
-  <label>云盘令牌（App 里复制的那串，以 cGM6 开头）</label>
-  <textarea id="tok" rows="3" placeholder="粘贴到这里，自动识别，不用点解析" oninput="onTok()"></textarea>
-  <div id="cnt2" class="cnt2"></div>
-  <div id="parseBox"></div>
-  <div class="row" style="margin-top:10px">
-    <button class="gh" onclick="parseTok()">解析令牌</button>
-    <button id="btnSub" onclick="submitTok()" disabled>提交托管</button>
-  </div>
-  <div id="quotaBox" class="quota"></div>
+    <div id="quotaBox" class="quota"></div>
+  </details>
 </div>
 
-<!-- ③ 列表 -->
+<!-- ③ 账号 -->
 <div class="card">
-  <h2>③ 我的托管账号 <span class="hdsmall" id="cnt"></span><span class="sp"></span>
+  <h2><span class="n">3</span>我的托管账号 <span class="hdsmall sub" id="cnt"></span><span class="sp"></span>
     <button class="gh sm" onclick="loadList()">刷新</button>
-    <button class="gh sm" id="btnRun" onclick="runNow(this)">立即签到</button>
   </h2>
-  <div class="sub" style="margin-bottom:6px">仅本机可见 · 余额取自后台最近 10 天记录</div>
+  <div class="sub" style="margin-bottom:6px">仅本机可见 · 余额取自后台最近 10 天</div>
   <ul id="list"><li class="empty">加载中…</li></ul>
-  <div id="recoverBox" class="note" style="display:none;margin-top:10px;border-top:1px solid #f0f3f7;padding-top:10px">
-    换手机、清过缓存，导致这里空了？<b>后台其实还在帮你跑</b>，只是本机记录没了。<br>
+  <div id="recoverBox" style="display:none;margin-top:11px;border-top:1px solid #f2f4f7;padding-top:11px">
+    <div class="sub">换手机或清过缓存导致这里空了？<b>后台其实还在帮你跑</b>，只是本机记录没了。</div>
     <div class="row" style="margin-top:8px">
-      <input id="rcPhone" type="tel" inputmode="numeric" placeholder="输入你自己的手机号" maxlength="11">
-      <button class="gh sm" style="flex:0 0 auto;padding:11px 14px" onclick="recover()">恢复到本机</button>
+      <input id="rcPhone" type="tel" inputmode="numeric" placeholder="输入你的手机号" maxlength="11">
+      <button class="gh sm" style="flex:0 0 auto;padding:11px 15px" onclick="recover()">恢复</button>
     </div>
-    <div style="margin-top:6px">号码只写进本机浏览器，用于查看余额和移除，不会上传。</div>
+    <div class="note">号码只写入本机，用于查看余额和移除，不会上传。</div>
   </div>
 </div>
 
-<!-- ④ 历史 -->
+<!-- ④ 推送 -->
 <div class="card">
-  <h2>④ 本机历史 <span class="sp"></span><button class="gh sm" onclick="clearHist()">清空</button></h2>
+  <h2><span class="n">4</span>每日结果推送</h2>
+  <div class="sub">配置后，后台每天签到完会把结果发给你。</div>
+  <div class="row" style="margin-top:11px">
+    <button onclick="togglePush(this)">展开配置</button>
+  </div>
+  <div id="pushBox" style="display:none;margin-top:12px">
+    <div class="sub" style="margin-bottom:8px">
+      浏览器可直接发送：<span class="badge g">飞书</span> <span class="badge g">Server酱</span> <span class="badge g">钉钉</span><br>
+      <span class="badge r">企业微信</span> 浏览器发不出去（对方服务器不允许），故不提供。
+    </div>
+    <label>渠道</label>
+    <select id="pfType" onchange="onPfType()">
+      <option value="feishu">飞书群机器人</option>
+      <option value="serverchan">Server酱（微信推送）</option>
+      <option value="dingtalk">钉钉群机器人</option>
+    </select>
+    <div id="pfHint" class="note"></div>
+    <label id="pfLabel">Webhook 地址</label>
+    <input id="pfKey" placeholder="">
+    <div class="row" style="margin-top:11px">
+      <button class="gh" onclick="savePush()">保存</button>
+      <button class="ok" onclick="testPush()">发一条测试</button>
+    </div>
+    <div id="pfState" class="quota"></div>
+    <div class="note">
+      配置保存在云端<b>私有仓库</b>，不公开。可随时清空。
+    </div>
+  </div>
+</div>
+
+<!-- ⑤ 历史 -->
+<div class="card">
+  <h2><span class="n">5</span>本机历史 <span class="sp"></span><button class="gh sm" onclick="clearHist()">清空</button></h2>
   <ul id="hist"><li class="empty">暂无记录</li></ul>
   <div class="note">只存在本机浏览器，不会上传。</div>
 </div>
@@ -153,7 +267,14 @@ summary{font-size:13px;color:#3b82f6;cursor:pointer;padding:6px 0}
   <div id="log"></div>
 </div>
 
+<div class="foot">
+  云盘签到托管 · 免费非商业<br>请遵守中国移动服务协议
+</div>
+
+</div>
+
 <script>
+
 var OBF="SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
 var MINE={owner:"WoShiYiGeManHuaJia",repo:"yun139-ghpanel"};
 function TOK(){ return atob(OBF).split("").reverse().join(""); }
@@ -238,6 +359,8 @@ function setMode(m){
     if(c.token) document.getElementById("cfToken").value=c.token;
   }catch(e){}
   localStorage.setItem("mg_mode",m);
+  var mb=document.getElementById("modeBadge");
+  if(mb){ mb.textContent = m==="mine"?"共用":"自己的"; }
   updQuota(); loadList();
 }
 function saveCfg(){
@@ -277,17 +400,34 @@ function switchYun(){
   document.getElementById("yunHint").textContent = "当前入口：" + n[1];
   log("入口切换为：" + n[0], "i");
 }
-function genBookmark(){
-  var back = location.origin + location.pathname;
-  // 抓不到时不再只弹一句 alert —— 直接输出诊断页，把所有存储项列出来，
-  // 便于定位令牌究竟存在哪个 key / 哪个域名下
-  var code = "(function(){try{"
+function genBookmark(mode){
+  var back = location.href.split("#")[0];
+  var short = "javascript:(function(){var s=document.createElement('script');s.src='"
+    + bmShortUrl(back) + "';document.body.appendChild(s)})()";
+  var longOne = "javascript:" + BM_CODE(back);
+  var use = (mode === "long") ? longOne : short;
+  var box = document.getElementById("bmBox");
+  box.innerHTML =
+    '<div class="note" style="margin-top:0">'
+    + '① 点下面「复制」<br>'
+    + '② 浏览器菜单 → 书签/收藏 → 新建 → 网址粘贴进去，名称随便<br>'
+    + '③ 打开云盘登录 → 点这个书签'
+    + '</div>'
+    + '<div class="row" style="margin-top:9px">'
+    + '<button class="gh sm" onclick="copyBm()">复制' + ((mode==="long")?"长版":"短版") + '</button>'
+    + '<button class="gh sm" onclick="genBookmark(\'' + ((mode==="long")?"short":"long") + '\')">'
+    + ((mode==="long")?"改用短版":"短版无效？用长版") + '</button>'
+    + '</div>'
+    + '<div class="note">短版 ' + short.length + ' 字符，需联网加载脚本；若云盘拦截外部脚本，改用长版（'
+    + longOne.length + ' 字符，完全自带）。</div>';
+  window.__bm = use;
+  log("书签已生成（" + ((mode==="long")?"长版":"短版") + "），复制后存成书签","i");
+}
+function BM_CODE(back){
+  return "(function(){try{"
     + "var F=[],K=[],P=/pc:1\\d{10}:[A-Za-z0-9|._-]+/;"
     + "function add(t,s){for(var i=0;i<F.length;i++)if(F[i].t===t)return;F.push({s:s,t:t});}"
     + "function look(v,tag){if(typeof v!=='string'||!v)return;"
-    // 云盘 cookie 的 authorization 是 "Basic <base64>"（base64 以 cGM6 开头 = "pc:"）。
-    // 老实现直接 atob 整个串，空格+Basic 让长度非 4 的倍数而抛错，正则又只认明文，
-    // 于是令牌明明在 CK.authorization 里却一直读不到 —— 这里先剥 Basic 前缀再解码。
     + "var c=[v],i,d;"
     + "var bp=v.replace(/^\\s*Basic\\s+/i,'');if(bp!==v)c.push(bp);"
     + "var n0=c.length;"
@@ -318,26 +458,13 @@ function genBookmark(){
     + "+'<p style=\"color:#666;font-size:12px;margin-top:12px\">把这段发给我，我据此定位令牌存在哪。</p>');"
     + "document.close();"
     + "}catch(e){alert('读取出错: '+e.message);}})()";
-  var href = "javascript:" + code;
-  var box = document.getElementById("bmBox");
-  box.innerHTML =
-    '<div style="font-size:12px;color:#456;line-height:1.6;margin-bottom:6px">'
-    + '长按下面链接 → 「复制链接地址」，然后<b>新建书签</b>，名称随便，网址粘贴进去。<br>'
-    + '（部分浏览器不支持长按，可先点一下试试）</div>'
-    + '<a id="bmLink" href="' + href.replace(/"/g,"&quot;") + '" '
-    + 'style="display:block;word-break:break-all;font-size:12px;background:#fff;'
-    + 'border:1px solid #cfe4ff;border-radius:8px;padding:9px;color:#1677ff">'
-    + '云盘取令牌</a>'
-    + '<button class="gh sm" style="margin-top:8px" onclick="copyBm()">复制链接</button>';
-  log("书签已生成。用法：浏览器登录云盘后点这个书签","i");
 }
 function copyBm(){
-  var a = document.getElementById("bmLink");
-  var t = a ? a.getAttribute("href") : "";
-  if(!t){ log("✗ 请先点「生成抓取书签」","e"); return; }
+  var t = window.__bm || "";
+  if(!t){ log("✗ 请先点「生成书签」","e"); return; }
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(t).then(function(){
-      log("✓ 已复制书签链接，去浏览器新建书签粘贴","s");
+      log("✓ 已复制书签（"+t.length+" 字符），去存成书签","s");
     }, function(){ fallbackCopy(t); });
   } else fallbackCopy(t);
 }
@@ -345,7 +472,7 @@ function fallbackCopy(t){
   var ta=document.createElement("textarea");
   ta.value=t; ta.style.position="fixed"; ta.style.left="-9999px";
   document.body.appendChild(ta); ta.select();
-  try{ document.execCommand("copy"); log("✓ 已复制书签链接","s"); }
+  try{ document.execCommand("copy"); log("✓ 已复制书签","s"); }
   catch(e){ log("✗ 复制失败，请手动长按链接复制","e"); }
   document.body.removeChild(ta);
 }
@@ -447,28 +574,6 @@ async function delAcc(p){
   log((r&&r.ok?"✓ 已移除 ":"✗ 移除失败：")+((r&&r.msg)||""), (r&&r.ok)?"s":"e");
   if(r&&r.ok){ setMyAccs(myAccs().filter(function(x){return x.phone!==p;})); updQuota(); loadList(); }
 }
-async function runNow(b){
-  if(b){ b.disabled=true; b.textContent="执行中…"; }
-  log("提示：4 个号全跑一遍通常要 3～8 分钟，请耐心等，别重复点","i");
-  try{
-    var r=await run("daily",{},600000,"立即签到");
-    if(r){
-      log((r.ok?"✓ 签到完成 ":"✗ 失败：")+(r.msg||""), r.ok?"s":"e");
-      if(Array.isArray(r.perAccount)){
-        r.perAccount.forEach(function(x){
-          var bits=[];
-          if(x.gain!=null) bits.push("今日 "+((x.gain>=0?"+":"")+x.gain));
-          if(x.total!=null) bits.push("总 "+x.total);
-          if(x.sign) bits.push(String(x.sign));
-          if(x.receive) bits.push("气泡 "+String(x.receive));
-          if(!x.ok && !bits.length) bits.push(String(x.error||x.refresh||"失败"));
-          log("  · "+(x.masked||x.phone)+" "+(x.ok?"✓":"✗")+" "+bits.join(" · "), x.ok?"s":"e");
-        });
-      }
-    }
-    loadList();
-  } finally { if(b){ b.disabled=false; b.textContent="立即签到"; } }
-}
 function recover(){
   var el=document.getElementById("rcPhone");
   var p=clean(el.value);
@@ -490,7 +595,7 @@ async function loadList(){
   var mine=myAccs();
   cnt.textContent="（"+mine.length+" 个）";
   document.getElementById("recoverBox").style.display = mine.length ? "none" : "";
-  if(!mine.length){ ul.innerHTML='<li class="empty">还没有添加账号。用 App 取令牌后粘到上面。</li>'; updQuota(); return; }
+  if(!mine.length){ ul.innerHTML='<li class="empty">还没有添加账号。用上面的「生成书签」取令牌。</li>'; updQuota(); return; }
   ul.innerHTML=mine.map(function(a){ return '<li><div><div class="ph">'+mask(a.phone)+'</div><div class="bal">添加于 '+a.ts+'</div></div><div class="ops"><button class="sm dan" onclick="delAcc(\''+a.phone+'\')">移除</button></div></li>'; }).join("")+
     '<li class="empty">正在读取余额…</li>';
   updQuota();
@@ -564,9 +669,96 @@ function clearHist(){
 (function(){
   var m=localStorage.getItem("mg_mode"); if(m) MODE=m;
   setMode(MODE); renderHist();
-  log("版本 v4 · 书签取令牌版（列表只存本机）","i");
+  log("版本 v5 · 界面重构版","i");
   setTimeout(function(){ if(!fromHash()) loadList(); else loadList(); }, 60);
 })();
+
+/* ---------- 推送配置（写入私有仓库，后台读取） ---------- */
+var PF = {
+  feishu:   {label:"飞书 Webhook 地址", ph:"https://open.feishu.cn/open-apis/bot/v2/hook/xxxx",
+             hint:"飞书群 → 设置 → 群机器人 → 添加自定义机器人，复制 Webhook。浏览器可直接发送。"},
+  serverchan:{label:"SendKey", ph:"SCTxxxxx（sctapi.ftqq.com 后台可看到）",
+             hint:"Server酱：把消息推到你的微信服务号。打开 sct.ftqq.com 登录即可拿到 SendKey。"},
+  dingtalk: {label:"钉钉 Webhook 地址", ph:"https://oapi.dingtalk.com/robot/send?access_token=xxxx",
+             hint:"钉钉群 → 群设置 → 智能群助手 → 添加机器人 → 自定义，复制 Webhook。注意：浏览器发出的钉钉消息无法读取返回结果，请在群里确认是否收到。"}
+};
+function togglePush(b){
+  var box=document.getElementById("pushBox");
+  var open = box.style.display==="none";
+  box.style.display = open ? "" : "none";
+  b.textContent = open ? "收起配置" : "展开配置";
+  if(open){ loadPush(); onPfType(); }
+}
+function onPfType(){
+  var t=document.getElementById("pfType").value, c=PF[t];
+  document.getElementById("pfLabel").textContent=c.label;
+  var k=document.getElementById("pfKey");
+  k.placeholder=c.ph;
+  document.getElementById("pfHint").textContent=c.hint;
+}
+async function loadPush(){
+  try{
+    var c=cfg();
+    var r=await gh("/repos/"+c.owner+"/"+c.repo+"/contents/data/notify.json?t="+Date.now(),"GET");
+    if(!r.ok){ document.getElementById("pfState").textContent="尚未配置"; return; }
+    var j=await r.json();
+    var d=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))));
+    document.getElementById("pfType").value=d.type||"feishu";
+    onPfType();
+    document.getElementById("pfKey").value=d.key||"";
+    document.getElementById("pfState").innerHTML='已保存 · <span class="badge g">'+(d.type||"")+'</span> · '+(d.ts||"");
+    log("✓ 已读取云端的推送配置","s");
+  }catch(e){ document.getElementById("pfState").textContent="读取失败"; }
+}
+async function savePush(){
+  var t=document.getElementById("pfType").value;
+  var k=document.getElementById("pfKey").value.trim();
+  if(!k){ log("✗ 请填写地址/Key","e"); return; }
+  var d={type:t,key:k,ts:new Date().toISOString().slice(0,16).replace("T"," ")};
+  try{
+    var c=cfg(), p="/repos/"+c.owner+"/"+c.repo+"/contents/data/notify.json";
+    var g=await gh(p,"GET");
+    var body={message:"chore: 更新推送配置",content:btoa(unescape(encodeURIComponent(JSON.stringify(d,null,2))))};
+    if(g.ok){ var j=await g.json(); body.sha=j.sha; }
+    var r=await gh(p,"PUT",body);
+    if(r.ok||r.status===201){
+      log("✓ 推送配置已保存到云端，后台每天签到后会推送","s");
+      document.getElementById("pfState").innerHTML='已保存 · <span class="badge g">'+t+'</span>';
+    } else {
+      var e=await r.json().catch(function(){return{};});
+      log("✗ 保存失败 HTTP "+r.status+" "+String(e.message||"").slice(0,80),"e");
+    }
+  }catch(e){ log("✗ 保存出错："+e.message,"e"); }
+}
+async function testPush(){
+  var t=document.getElementById("pfType").value;
+  var k=document.getElementById("pfKey").value.trim();
+  if(!k){ log("✗ 请先填写地址/Key","e"); return; }
+  var txt="【云盘签到】测试消息\n这是一条来自管理页的测试推送，收到说明配置正确。\n时间："+new Date().toLocaleString("zh-CN");
+  try{
+    if(t==="feishu"){
+      var r=await fetch(k,{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({msg_type:"text",content:{text:txt}})});
+      var j=await r.json().catch(function(){return{};});
+      log(r.ok ? ("✓ 飞书返回 code="+(j.code!=null?j.code:j.StatusCode)) : "✗ HTTP "+r.status, r.ok?"s":"e");
+    } else if(t==="serverchan"){
+      var fd=new URLSearchParams(); fd.set("title","云盘签到测试"); fd.set("desp",txt);
+      var r2=await fetch("https://sctapi.ftqq.com/"+k+".send",{method:"POST",body:fd});
+      log(r2.ok?"✓ Server酱已发送，请查看微信":"✗ HTTP "+r2.status, r2.ok?"s":"e");
+    } else if(t==="dingtalk"){
+      // 钉钉无 CORS 头，浏览器只能 no-cors 发送（发得出去，但读不到返回）
+      await fetch(k,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({msgtype:"text",text:{content:txt}})});
+      log("✓ 已发出（钉钉不返回可读结果，请在群里确认是否收到）","s");
+    }
+  }catch(e){ log("✗ 发送失败："+e.message,"e"); }
+}
+
+/* ---------- 短书签（外部脚本，复制更短更方便） ---------- */
+function bmShortUrl(back){
+  return "https://hnvip.qd.je/bm.js#back=" + encodeURIComponent(back);
+}
+
 </script>
 </body>
 </html>
