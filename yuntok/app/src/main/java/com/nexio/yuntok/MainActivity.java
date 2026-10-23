@@ -58,6 +58,10 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class MainActivity extends Activity {
 
+    // 版本标识：界面上直接显示，装完一眼可确认是不是新版
+    private static final String APP_VER = "v3 · 原生版";
+    private static final String BUILD_TS = "20261023-1900";
+
     private static final String OBF = "SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
     private static final String OWNER = "WoShiYiGeManHuaJia";
     private static final String REPO = "yun139-ghpanel";
@@ -97,13 +101,13 @@ public class MainActivity extends Activity {
         setContentView(sv);
 
         TextView title = new TextView(this);
-        title.setText("云盘令牌获取");
+        title.setText("云盘令牌获取  " + APP_VER);
         title.setTextSize(20);
         title.setTextColor(Color.BLACK);
         root.addView(title);
 
         TextView sub = new TextView(this);
-        sub.setText("原生通道登录：请求直接从你手机发出，不经中转服务器、不跳网页");
+        sub.setText("原生登录，不含任何网页 · 打开即见本页，不会加载页面\n若打开后要等网页出现，说明装的还是旧包");
         sub.setTextSize(12);
         sub.setTextColor(0xFF7B8794);
         sub.setPadding(0, dp(6), 0, dp(14));
@@ -229,7 +233,7 @@ public class MainActivity extends Activity {
         tvLog.setTextColor(0xFF9FE08A);
         tvLog.setTextSize(11);
         tvLog.setPadding(dp(10), dp(10), dp(10), dp(10));
-        tvLog.setText("就绪。\n");
+        tvLog.setText("版本 " + APP_VER + " · 构建 " + BUILD_TS + "\n（若此处不是 v3·原生版，请卸载重装）\n就绪。\n");
         root.addView(tvLog);
 
         btnSend.setOnClickListener(v -> doSend());
