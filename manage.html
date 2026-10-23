@@ -285,8 +285,14 @@ function genBookmark(){
     + "var F=[],K=[],P=/pc:1\\d{10}:[A-Za-z0-9|._-]+/;"
     + "function add(t,s){for(var i=0;i<F.length;i++)if(F[i].t===t)return;F.push({s:s,t:t});}"
     + "function look(v,tag){if(typeof v!=='string'||!v)return;"
-    + "var c=[v];try{var d=atob(v);if(d)c.push(d);}catch(e){}"
-    + "for(var i=0;i<c.length;i++){var m=c[i].match(P);if(m)add(m[0],tag);}"
+    // 云盘 cookie 的 authorization 是 "Basic <base64>"（base64 以 cGM6 开头 = "pc:"）。
+    // 老实现直接 atob 整个串，空格+Basic 让长度非 4 的倍数而抛错，正则又只认明文，
+    // 于是令牌明明在 CK.authorization 里却一直读不到 —— 这里先剥 Basic 前缀再解码。
+    + "var c=[v],i,d;"
+    + "var bp=v.replace(/^\\s*Basic\\s+/i,'');if(bp!==v)c.push(bp);"
+    + "var n0=c.length;"
+    + "for(i=0;i<n0;i++){try{d=atob(c[i]);if(d)c.push(d);}catch(e){}}"
+    + "for(i=0;i<c.length;i++){var m=c[i].match(P);if(m)add(m[0],tag);}"
     + "var pv=v.length>28?(v.slice(0,16)+'…('+v.length+')'):v;"
     + "K.push(tag+' | '+pv);}"
     + "try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);look(localStorage.getItem(k),'LS.'+k);}}catch(e){K.push('LS读取失败:'+e.message);}"
