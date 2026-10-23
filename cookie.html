@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>云盘账号登录 · 抓令牌</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#f4f6f8;font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;color:#1b2733;padding:16px}
+.wrap{max-width:520px;margin:0 auto}
+h1{font-size:19px;margin:6px 0 4px}
+.sub{color:#7b8794;font-size:13px;margin-bottom:16px}
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:14px}
+label{display:block;font-size:13px;color:#52606d;margin:12px 0 6px}
+label:first-child{margin-top:0}
+input{width:100%;height:46px;padding:0 14px;font-size:16px;border:1px solid #d5dbe0;border-radius:10px;background:#fff;outline:none}
+input:focus{border-color:#2f7de1}
+.row{display:flex;gap:10px}
+.row input{flex:1}
+button{width:100%;height:48px;border:0;border-radius:10px;background:#2f7de1;color:#fff;font-size:16px;font-weight:600;margin-top:14px}
+button:disabled{background:#a9c4e6}
+button.ghost{background:#fff;color:#2f7de1;border:1px solid #2f7de1}
+button.sm{width:auto;padding:0 18px;height:46px;margin-top:0;flex:0 0 auto;white-space:nowrap}
+.log{background:#101822;color:#9fe08a;font:12px/1.7 ui-monospace,Menlo,Consolas,monospace;padding:12px;border-radius:10px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto;margin-top:14px}
+.log .e{color:#ff8a80}
+.log .i{color:#8ab4f8}
+.ok{background:#e8f6ec;border:1px solid #b7e2c3;color:#1c7a3e;border-radius:10px;padding:12px;margin-top:14px;font-size:14px}
+.bad{background:#fdeceb;border:1px solid #f5c2bf;color:#b3261e;border-radius:10px;padding:12px;margin-top:14px;font-size:14px}
+details{margin-top:14px;border-top:1px dashed #dde2e7;padding-top:12px}
+summary{font-size:13px;color:#52606d}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>云盘账号登录 · 抓令牌</h1>
+  <div class="sub">输手机号收验证码，登录成功后令牌自动存入后台，之后每天自动签到托管。</div>
+
+  <div class="card">
+    <label>手机号</label>
+    <div class="row">
+      <input id="phone" type="tel" inputmode="numeric" placeholder="11 位手机号" maxlength="11">
+      <button class="sm" id="btnSend">获取验证码</button>
+    </div>
+
+    <label>短信验证码</label>
+    <input id="code" type="text" inputmode="numeric" placeholder="收到的验证码" maxlength="8">
+
+    <button id="btnLogin">登录并抓取令牌</button>
+
+    <div id="res"></div>
+    <div class="log" id="log">准备就绪。\n</div>
+
+    <details>
+      <summary>短信收不到？点这里手动粘贴令牌（方式 B）</summary>
+      <label>authorization（手机浏览器登录后抓到的那串）</label>
+      <input id="manual" type="text" placeholder="Basic xxx... 或完整 authorization">
+      <button class="ghost" id="btnManual">提交令牌</button>
+      <div style="color:#7b8794;font-size:12px;margin-top:10px">
+        方式 B 用法：手机浏览器打开 m.mcloud.139.com 登录 → 地址栏前面加
+        <b>javascript:</b> 执行一段读取脚本 → 复制出来的串粘到上面。需要这段脚本的话跟我说。
+      </div>
+    </details>
+  </div>
+</div>
+
+<script>
+var OBF="SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
+var OWNER="WoShiYiGeManHuaJia", REPO="yun139-ghpanel";
+function TOK(){ return atob(OBF).split("").reverse().join(""); }
+var logEl=document.getElementById("log");
+function log(s,cls){ var d=document.createElement("div"); if(cls) d.className=cls; d.textContent=s; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
+function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
+
+async function gh(path, method, body){
+  var h={ "Authorization":"token "+TOK(), "Accept":"application/vnd.github+json", "User-Agent":"grab" };
+  if(body){ h["Content-Type"]="application/json"; }
+  var r=await fetch("https://api.github.com"+path,{method:method||"GET",headers:h,body:body?JSON.stringify(body):undefined});
+  return r;
+}
+async function dispatch(type,payload){
+  var r=await gh("/repos/"+OWNER+"/"+REPO+"/dispatches","POST",{event_type:type,client_payload:payload||{}});
+  return r.status===204;
+}
+async function getResult(){
+  var r=await gh("/repos/"+OWNER+"/"+REPO+"/contents/data/result.json?t="+Date.now(),"GET");
+  if(!r.ok) return null;
+  var j=await r.json();
+  var c=j.content; if(!c) return null;
+  try{ return JSON.parse(decodeURIComponent(escape(atob(c.replace(/\n/g,""))))); }catch(e){ return null; }
+}
+async function run(type,payload,timeoutMs){
+  log("触发 "+type+" ...","i");
+  var ok=await dispatch(type,payload);
+  if(!ok){ log("触发失败","e"); return null; }
+  var before=null;
+  var r0=await getResult(); if(r0) before=r0.ts+"|"+r0.type;
+  var t0=Date.now();
+  var limit=timeoutMs||120000;
+  while(Date.now()-t0<limit){
+    await sleep(5000);
+    var r=await getResult();
+    if(!r) continue;
+    var cur=r.ts+"|"+r.type;
+    if(cur!==before && r.type===type){ return r; }
+  }
+  log("等待超时，可稍后刷新查看结果","e");
+  return null;
+}
+
+var cd=0;
+document.getElementById("btnSend").onclick=async function(){
+  var p=document.getElementById("phone").value.trim();
+  if(!/^1\d{10}$/.test(p)){ log("手机号格式不对","e"); return; }
+  var b=this; b.disabled=true;
+  log("发送验证码到 "+p+" ...","i");
+  var r=await run("send_code",{phone:p},120000);
+  if(r){ log((r.ok?"✓ ":"✗ ")+(r.msg||""), r.ok?null:"e"); (r.steps||[]).forEach(function(s){ log("  "+s.step+": "+(s.ok?"成功":"失败 "+(s.err||"")), s.ok?null:"e"); }); }
+  b.disabled=false;
+  if(r&&r.ok){ cd=60; var t=setInterval(function(){ cd--; if(cd<=0){ clearInterval(t); b.disabled=false; b.textContent="获取验证码"; } else { b.disabled=true; b.textContent=cd+"s"; } },1000); }
+};
+
+document.getElementById("btnLogin").onclick=async function(){
+  var p=document.getElementById("phone").value.trim();
+  var c=document.getElementById("code").value.trim();
+  if(!/^1\d{10}$/.test(p)){ log("手机号格式不对","e"); return; }
+  if(!/^\d{4,8}$/.test(c)){ log("验证码格式不对","e"); return; }
+  var b=this; b.disabled=true; b.textContent="登录中…";
+  log("登录 "+p+" ...","i");
+  var r=await run("do_login",{phone:p,code:c},180000);
+  if(r){
+    log((r.ok?"✓ ":"✗ ")+(r.msg||""), r.ok?null:"e");
+    (r.steps||[]).forEach(function(s){ log("  "+s.step+": "+(s.ok?"成功":"失败 "+(s.err||"")), s.ok?null:"e"); });
+    var box=document.getElementById("res");
+    if(r.ok){
+      box.innerHTML='<div class="ok">✓ 登录成功，令牌已存入后台<br>手机号 '+p+'<br>明天起自动签到托管，不用再管。</div>';
+    } else {
+      box.innerHTML='<div class="bad">✗ '+(r.msg||"登录失败")+'</div>';
+    }
+  }
+  b.disabled=false; b.textContent="登录并抓取令牌";
+};
+
+document.getElementById("btnManual").onclick=function(){
+  log("手动方式暂未接入后端保存，把串发给我，我帮你存。","i");
+};
+</script>
+</body>
+</html>
