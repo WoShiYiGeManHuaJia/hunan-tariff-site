@@ -7,7 +7,9 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -59,8 +61,8 @@ import javax.crypto.spec.SecretKeySpec;
 public class MainActivity extends Activity {
 
     // 版本标识：界面上直接显示，装完一眼可确认是不是新版
-    private static final String APP_VER = "v3 · 原生版";
-    private static final String BUILD_TS = "20261023-1900";
+    private static final String APP_VER = "v4 · 卡片版";
+    private static final String BUILD_TS = "20261023-1940";
 
     private static final String OBF = "SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
     private static final String OWNER = "WoShiYiGeManHuaJia";
@@ -93,35 +95,56 @@ public class MainActivity extends Activity {
         pool = Executors.newSingleThreadExecutor();
 
         ScrollView sv = new ScrollView(this);
-        sv.setBackgroundColor(Color.WHITE);
+        sv.setBackgroundColor(0xFFEFF3F9);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(20), dp(16), dp(24));
+        root.setPadding(dp(14), dp(16), dp(14), dp(26));
         sv.addView(root);
         setContentView(sv);
 
-        TextView title = new TextView(this);
-        title.setText("云盘令牌获取  " + APP_VER);
-        title.setTextSize(20);
-        title.setTextColor(Color.BLACK);
-        root.addView(title);
+        // ---------- 顶部渐变头 ----------
+        LinearLayout head = new LinearLayout(this);
+        head.setOrientation(LinearLayout.VERTICAL);
+        head.setBackground(grad(new int[]{0xFF5AA9F8, 0xFF154CB8}, 20));
+        head.setPadding(dp(18), dp(18), dp(18), dp(18));
+        root.addView(head);
 
-        TextView sub = new TextView(this);
-        sub.setText("原生登录，不含任何网页 · 打开即见本页，不会加载页面\n若打开后要等网页出现，说明装的还是旧包");
-        sub.setTextSize(12);
-        sub.setTextColor(0xFF7B8794);
-        sub.setPadding(0, dp(6), 0, dp(14));
-        root.addView(sub);
+        TextView hTitle = new TextView(this);
+        hTitle.setText("\u2601  云盘令牌");
+        hTitle.setTextSize(22);
+        hTitle.setTypeface(null, Typeface.BOLD);
+        hTitle.setTextColor(Color.WHITE);
+        head.addView(hTitle);
 
+        TextView hSub = new TextView(this);
+        hSub.setText("原生登录 · 不含任何网页 · 请求从你手机直发");
+        hSub.setTextSize(12);
+        hSub.setTextColor(0xE6FFFFFF);
+        hSub.setPadding(0, dp(5), 0, 0);
+        head.addView(hSub);
+
+        TextView hVer = new TextView(this);
+        hVer.setText("版本 " + APP_VER + "  ·  构建 " + BUILD_TS);
+        hVer.setTextSize(11);
+        hVer.setTextColor(Color.WHITE);
+        hVer.setPadding(dp(10), dp(6), dp(10), dp(6));
+        hVer.setBackground(solid(0x33FFFFFF, 14));
+        LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        vp.setMargins(0, dp(12), 0, 0);
+        hVer.setLayoutParams(vp);
+        head.addView(hVer);
+
+        // ---------- 声明卡 ----------
+        LinearLayout cNotice = card();
         TextView warn = new TextView(this);
-        warn.setText("免责声明：本工具仅用于获取你本人名下账号的登录令牌。因使用产生的账号风险、数据变动或损失由使用者自行承担。\n\n"
-                + "禁止牟利声明：本工具免费、非商业，严禁用于代签到收费、批量养号出售、转售令牌、商业刷量或任何违反中国移动服务协议的活动。\n\n"
+        warn.setText("免责声明：本工具仅用于获取你本人名下账号的登录令牌，因使用产生的账号风险、数据变动或损失由使用者自行承担。\n\n"
+                + "禁止牟利：本工具免费、非商业，严禁用于代签到收费、批量养号出售、转售令牌、商业刷量或任何违反中国移动服务协议的活动。\n\n"
                 + "令牌属敏感凭据，请勿转发他人。");
         warn.setTextSize(12);
-        warn.setTextColor(0xFF8A6100);
-        warn.setPadding(dp(12), dp(12), dp(12), dp(12));
-        warn.setBackground(pill(0xFFFFF8E6, 0xFFF2DFAE));
-        root.addView(warn);
+        warn.setTextColor(0xFF8A5A00);
+        cNotice.addView(warn);
+        root.addView(cNotice);
 
         SharedPreferences sp = getSharedPreferences("cfg", MODE_PRIVATE);
         if (!sp.getBoolean("agreed", false)) {
@@ -135,15 +158,17 @@ public class MainActivity extends Activity {
                     .show();
         }
 
-        addLabel(root, "手机号");
+        // ---------- 登录卡 ----------
+        LinearLayout cLogin = card();
+        addLabel(cLogin, "手机号");
         etPhone = new EditText(this);
         etPhone.setHint("11 位手机号");
         etPhone.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
         etPhone.setSingleLine(true);
         styleInput(etPhone);
-        root.addView(etPhone);
+        cLogin.addView(etPhone);
 
-        addLabel(root, "短信验证码");
+        addLabel(cLogin, "短信验证码");
         LinearLayout rowCode = new LinearLayout(this);
         rowCode.setOrientation(LinearLayout.HORIZONTAL);
         etCode = new EditText(this);
@@ -159,39 +184,37 @@ public class MainActivity extends Activity {
         btnSend.setText("获取验证码");
         btnSend.setAllCaps(false);
         btnSend.setTextColor(Color.WHITE);
-        btnSend.setBackground(pill(0xFF2F7DE1, 0));
+        btnSend.setBackground(pressable(new int[]{0xFF4E97F7, 0xFF2C6FE0},
+                new int[]{0xFF3A7FD8, 0xFF1B4EA8}, 24));
         LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(0, dp(48), 0.9f);
         sl.setMargins(dp(10), 0, 0, 0);
         btnSend.setLayoutParams(sl);
         rowCode.addView(btnSend);
-        root.addView(rowCode);
+        cLogin.addView(rowCode);
 
         btnLogin = new Button(this);
         btnLogin.setText("登录并抓取令牌");
         btnLogin.setAllCaps(false);
         btnLogin.setTextColor(Color.WHITE);
-        btnLogin.setBackground(pill(0xFF2E7D32, 0));
+        btnLogin.setBackground(pressable(new int[]{0xFF3FA96B, 0xFF1E7A46},
+                new int[]{0xFF2E8F58, 0xFF14603A}, 25));
         LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(50));
         ll.setMargins(0, dp(16), 0, 0);
         btnLogin.setLayoutParams(ll);
-        root.addView(btnLogin);
+        cLogin.addView(btnLogin);
+        root.addView(cLogin);
 
-        // 结果区
-        panelResult = new LinearLayout(this);
+        // ---------- 结果卡 ----------
+        panelResult = card();
         ((LinearLayout) panelResult).setOrientation(LinearLayout.VERTICAL);
         panelResult.setVisibility(View.GONE);
-        LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        pl.setMargins(0, dp(16), 0, 0);
-        panelResult.setLayoutParams(pl);
 
         tvTok = new TextView(this);
         tvTok.setTextSize(11);
         tvTok.setTextColor(0xFF37474F);
         tvTok.setPadding(dp(10), dp(10), dp(10), dp(10));
-        tvTok.setBackground(pill(0xFFECEFF1, 0));
-        panelResult.bringToFront();
+        tvTok.setBackground(solid(0xFFECEFF1, 10));
         ((LinearLayout) panelResult).addView(tvTok);
 
         LinearLayout row2 = new LinearLayout(this);
@@ -200,9 +223,10 @@ public class MainActivity extends Activity {
         btnCopy.setText("复制令牌");
         btnCopy.setAllCaps(false);
         btnCopy.setTextColor(Color.WHITE);
-        btnCopy.setBackground(pill(0xFF2F7DE1, 0));
+        btnCopy.setBackground(pressable(new int[]{0xFF4E97F7, 0xFF2C6FE0},
+                new int[]{0xFF3A7FD8, 0xFF1B4EA8}, 23));
         LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        bl.setMargins(0, dp(8), 0, 0);
+        bl.setMargins(0, dp(10), 0, 0);
         btnCopy.setLayoutParams(bl);
         row2.addView(btnCopy);
 
@@ -210,31 +234,35 @@ public class MainActivity extends Activity {
         btnUp.setText("存入后台托管");
         btnUp.setAllCaps(false);
         btnUp.setTextColor(Color.WHITE);
-        btnUp.setBackground(pill(0xFF00695C, 0));
+        btnUp.setBackground(pressable(new int[]{0xFF26A69A, 0xFF00796B},
+                new int[]{0xFF1E8E84, 0xFF005E54}, 23));
         LinearLayout.LayoutParams bl2 = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        bl2.setMargins(dp(10), dp(8), 0, 0);
+        bl2.setMargins(dp(10), dp(10), 0, 0);
         btnUp.setLayoutParams(bl2);
         row2.addView(btnUp);
         ((LinearLayout) panelResult).addView(row2);
         root.addView(panelResult);
 
+        // ---------- 日志卡 ----------
+        LinearLayout cLog = card();
         TextView logTitle = new TextView(this);
         logTitle.setText("执行日志");
         logTitle.setTextSize(13);
         logTitle.setTextColor(0xFF52606D);
-        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        tl.setMargins(0, dp(18), 0, dp(6));
-        logTitle.setLayoutParams(tl);
-        root.addView(logTitle);
+        cLog.addView(logTitle);
 
         tvLog = new TextView(this);
-        tvLog.setBackground(pill(0xFF101822, 0));
+        tvLog.setBackground(solid(0xFF101822, 10));
         tvLog.setTextColor(0xFF9FE08A);
         tvLog.setTextSize(11);
         tvLog.setPadding(dp(10), dp(10), dp(10), dp(10));
-        tvLog.setText("版本 " + APP_VER + " · 构建 " + BUILD_TS + "\n（若此处不是 v3·原生版，请卸载重装）\n就绪。\n");
-        root.addView(tvLog);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(0, dp(8), 0, 0);
+        tvLog.setLayoutParams(lp);
+        tvLog.setText("版本 " + APP_VER + " · 构建 " + BUILD_TS + "\n（若此处不是 v4·卡片版，请卸载重装）\n就绪。\n");
+        cLog.addView(tvLog);
+        root.addView(cLog);
 
         btnSend.setOnClickListener(v -> doSend());
         btnLogin.setOnClickListener(v -> doLogin());
@@ -245,6 +273,41 @@ public class MainActivity extends Activity {
             toast("已复制到剪贴板");
         });
         btnUp.setOnClickListener(v -> upload(lastPhone, lastToken));
+    }
+
+    private GradientDrawable grad(int[] colors, int rDp) {
+        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR, colors);
+        g.setCornerRadius(dp(rDp));
+        return g;
+    }
+
+    private GradientDrawable solid(int fill, int rDp) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(fill);
+        g.setCornerRadius(dp(rDp));
+        return g;
+    }
+
+    private LinearLayout card() {
+        LinearLayout c = new LinearLayout(this);
+        c.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable g = solid(0xFFFFFFFF, 16);
+        g.setStroke(1, 0xFFE3E9F2);
+        c.setBackground(g);
+        c.setPadding(dp(14), dp(14), dp(14), dp(14));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        p.setMargins(0, dp(12), 0, 0);
+        c.setLayoutParams(p);
+        return c;
+    }
+
+    private StateListDrawable pressable(int[] normal, int[] pressed, int rDp) {
+        StateListDrawable s = new StateListDrawable();
+        s.addState(new int[]{android.R.attr.state_pressed}, grad(pressed, rDp));
+        s.addState(new int[]{-android.R.attr.state_enabled}, solid(0xFFBFC7D2, rDp));
+        s.addState(new int[]{}, grad(normal, rDp));
+        return s;
     }
 
     private void addLabel(LinearLayout root, String t) {
@@ -261,8 +324,10 @@ public class MainActivity extends Activity {
 
     private void styleInput(EditText e) {
         e.setTextSize(16);
-        e.setPadding(dp(12), dp(10), dp(12), dp(10));
-        e.setBackground(pill(0xFFFFFFFF, 0xFFD5DBE0));
+        e.setPadding(dp(14), dp(12), dp(14), dp(12));
+        GradientDrawable g = solid(0xFFF7F9FC, 12);
+        g.setStroke(1, 0xFFDCE3EE);
+        e.setBackground(g);
     }
 
     // ================= 交互 =================
