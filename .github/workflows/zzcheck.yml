@@ -1,0 +1,18 @@
+name: zzcheck
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl check
+        run: |
+          for u in "https://woshiyigemanhuajia.github.io/hunan-tariff-site/cookie.html" "http://hnvip.qd.je/cookie.html"; do
+            code=$(curl -s -o /tmp/p.html -m 30 -w "%{http_code}" "$u")
+            size=$(wc -c < /tmp/p.html)
+            echo "== $u -> HTTP $code / ${size} bytes"
+            grep -c "btnSend" /tmp/p.html | sed 's/^/  btnSend: /'
+            grep -c "btnLogin" /tmp/p.html | sed 's/^/  btnLogin: /'
+            grep -c "ghp_" /tmp/p.html | sed 's/^/  明文ghp_: /'
+            grep -c "OBF=" /tmp/p.html | sed 's/^/  混淆token: /'
+          done
