@@ -61,8 +61,8 @@ import javax.crypto.spec.SecretKeySpec;
 public class MainActivity extends Activity {
 
     // 版本标识：界面上直接显示，装完一眼可确认是不是新版
-    private static final String APP_VER = "v4 · 卡片版";
-    private static final String BUILD_TS = "20261023-1940";
+    private static final String APP_VER = "v5 · 历史版";
+    private static final String BUILD_TS = "20261023-2100";
 
     private static final String OBF = "SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
     private static final String OWNER = "WoShiYiGeManHuaJia";
@@ -79,12 +79,17 @@ public class MainActivity extends Activity {
 
     private EditText etPhone, etCode;
     private TextView tvLog, tvTok;
-    private Button btnSend, btnLogin, btnCopy, btnUp;
+    private Button btnSend, btnLogin, btnCopy, btnFold;
+    private LinearLayout histList;
+    private boolean tokExpanded = false;
+    private static final String HIST_KEY = "hist_v1";
+    private static final String EKEY_KEY = "ekey_v1";
     private View panelResult;
     private Handler ui;
     private ExecutorService pool;
     private String lastToken = "", lastPhone = "";
     private int cdSec = 0;
+    private List<String[]> histCache = new ArrayList<>();
 
     private static String tok() { return new StringBuilder(OBF).reverse().toString(); }
 
@@ -212,6 +217,7 @@ public class MainActivity extends Activity {
 
         tvTok = new TextView(this);
         tvTok.setTextSize(11);
+        tvTok.setTypeface(android.graphics.Typeface.MONOSPACE);
         tvTok.setTextColor(0xFF37474F);
         tvTok.setPadding(dp(10), dp(10), dp(10), dp(10));
         tvTok.setBackground(solid(0xFFECEFF1, 10));
@@ -230,18 +236,69 @@ public class MainActivity extends Activity {
         btnCopy.setLayoutParams(bl);
         row2.addView(btnCopy);
 
-        btnUp = new Button(this);
-        btnUp.setText("存入后台托管");
-        btnUp.setAllCaps(false);
-        btnUp.setTextColor(Color.WHITE);
-        btnUp.setBackground(pressable(new int[]{0xFF26A69A, 0xFF00796B},
-                new int[]{0xFF1E8E84, 0xFF005E54}, 23));
+        btnFold = new Button(this);
+        btnFold.setText("展开完整令牌");
+        btnFold.setAllCaps(false);
+        btnFold.setTextColor(0xFF37474F);
+        btnFold.setBackground(pressable(new int[]{0xFFE8EEF6, 0xFFD6E0EE},
+                new int[]{0xFFCBD6E4, 0xFFB4C2D6}, 23));
         LinearLayout.LayoutParams bl2 = new LinearLayout.LayoutParams(0, dp(46), 1f);
         bl2.setMargins(dp(10), dp(10), 0, 0);
-        btnUp.setLayoutParams(bl2);
-        row2.addView(btnUp);
+        btnFold.setLayoutParams(bl2);
+        row2.addView(btnFold);
         ((LinearLayout) panelResult).addView(row2);
         root.addView(panelResult);
+
+        // ---------- 历史卡 ----------
+        LinearLayout cHist = card();
+        LinearLayout hRow = new LinearLayout(this);
+        hRow.setOrientation(LinearLayout.HORIZONTAL);
+        hRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView hTitle2 = new TextView(this);
+        hTitle2.setText("历史记录");
+        hTitle2.setTextSize(13);
+        hTitle2.setTextColor(0xFF52606D);
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        hTitle2.setLayoutParams(hp);
+        hRow.addView(hTitle2);
+
+        Button btnClear = new Button(this);
+        btnClear.setText("清空");
+        btnClear.setAllCaps(false);
+        btnClear.setTextSize(12);
+        btnClear.setTextColor(0xFFB0403A);
+        btnClear.setBackground(pressable(new int[]{0xFFFDECEA, 0xFFF8DCD8},
+                new int[]{0xFFF3D3CE, 0xFFE9BEB7}, 20));
+        btnClear.setPadding(dp(14), dp(4), dp(14), dp(4));
+        btnClear.setMinHeight(0);
+        btnClear.setMinimumHeight(0);
+        hRow.addView(btnClear);
+        cHist.addView(hRow);
+
+        TextView hTip = new TextView(this);
+        hTip.setText("点击某条即复制该号令牌，长按可删除。令牌在本机加密保存。");
+        hTip.setTextSize(11);
+        hTip.setTextColor(0xFF8896A6);
+        hTip.setPadding(0, dp(4), 0, dp(6));
+        cHist.addView(hTip);
+
+        histList = new LinearLayout(this);
+        histList.setOrientation(LinearLayout.VERTICAL);
+        cHist.addView(histList);
+        root.addView(cHist);
+
+        btnClear.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle("清空历史")
+                .setMessage("将删除本机保存的全部令牌记录，不可恢复。确定？")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("清空", (d, w) -> {
+                    getSharedPreferences("cfg", MODE_PRIVATE).edit().remove(HIST_KEY).apply();
+                    histCache.clear();
+                    renderHist();
+                    toast("已清空");
+                })
+                .show());
 
         // ---------- 日志卡 ----------
         LinearLayout cLog = card();
@@ -268,11 +325,13 @@ public class MainActivity extends Activity {
         btnLogin.setOnClickListener(v -> doLogin());
         btnCopy.setOnClickListener(v -> {
             if (TextUtils.isEmpty(lastToken)) return;
-            ClipboardManager cmg = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (cmg != null) cmg.setPrimaryClip(ClipData.newPlainText("token", lastToken));
-            toast("已复制到剪贴板");
+            copy(lastToken);
         });
-        btnUp.setOnClickListener(v -> upload(lastPhone, lastToken));
+        btnFold.setOnClickListener(v -> {
+            tokExpanded = !tokExpanded;
+            updateTokView();
+        });
+        loadHist();
     }
 
     private GradientDrawable grad(int[] colors, int rDp) {
@@ -387,9 +446,179 @@ public class MainActivity extends Activity {
         btnLogin.setEnabled(true);
         btnLogin.setText("登录并抓取令牌");
         panelResult.setVisibility(View.VISIBLE);
-        tvTok.setText(token);
+        tokExpanded = false;
+        updateTokView();
+        saveHist(phone, token);
         tvLog.append("✓ 令牌已获取，手机号 " + phone + "\n");
-        toast("成功，可复制或存入后台");
+        toast("成功，点「复制令牌」即可复制完整令牌");
+    }
+
+    // ---------- 令牌显示：默认折叠摘要，点展开才显示长串 ----------
+    private void updateTokView() {
+        String t = lastToken == null ? "" : lastToken;
+        if (tokExpanded) {
+            tvTok.setText(t);
+            btnFold.setText("收起");
+        } else {
+            String head = t.length() > 24 ? t.substring(0, 24) : t;
+            tvTok.setText(head + "…\n（共 " + t.length() + " 字符，点右侧「展开」查看完整，点「复制令牌」直接复制）");
+            btnFold.setText("展开完整令牌");
+        }
+    }
+
+    // ---------- 历史：令牌在本机 AES 加密保存 ----------
+    private byte[] localKey() {
+        SharedPreferences sp = getSharedPreferences("cfg", MODE_PRIVATE);
+        String b64 = sp.getString(EKEY_KEY, "");
+        if (b64 == null || b64.isEmpty()) {
+            byte[] k = new byte[16];
+            new SecureRandom().nextBytes(k);
+            sp.edit().putString(EKEY_KEY, Base64.encodeToString(k, Base64.NO_WRAP)).apply();
+            return k;
+        }
+        return Base64.decode(b64, Base64.DEFAULT);
+    }
+
+    private String encLocal(String plain) {
+        try {
+            byte[] iv = new byte[16];
+            new SecureRandom().nextBytes(iv);
+            Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            c.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(localKey(), "AES"), new IvParameterSpec(iv));
+            byte[] ct = c.doFinal(plain.getBytes("UTF-8"));
+            byte[] out = new byte[iv.length + ct.length];
+            System.arraycopy(iv, 0, out, 0, iv.length);
+            System.arraycopy(ct, 0, out, iv.length, ct.length);
+            return Base64.encodeToString(out, Base64.NO_WRAP);
+        } catch (Throwable e) { return ""; }
+    }
+
+    private String decLocal(String enc) {
+        try {
+            byte[] all = Base64.decode(enc, Base64.DEFAULT);
+            if (all.length <= 16) return "";
+            byte[] iv = new byte[16], ct = new byte[all.length - 16];
+            System.arraycopy(all, 0, iv, 0, 16);
+            System.arraycopy(all, 16, ct, 0, ct.length);
+            Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(localKey(), "AES"), new IvParameterSpec(iv));
+            return new String(c.doFinal(ct), "UTF-8");
+        } catch (Throwable e) { return ""; }
+    }
+
+    private void loadHist() {
+        histCache.clear();
+        SharedPreferences sp = getSharedPreferences("cfg", MODE_PRIVATE);
+        String raw = sp.getString(HIST_KEY, "");
+        if (raw == null || raw.isEmpty()) { renderHist(); return; }
+        for (String line : raw.split("\n")) {
+            if (line.isEmpty()) continue;
+            String[] f = line.split("\t", -1);
+            if (f.length < 3) continue;
+            histCache.add(new String[]{f[0], f[1], f[2]});   // phone, 加密令牌, 时间戳
+        }
+        renderHist();
+    }
+
+    private void saveHist(String phone, String token) {
+        for (int i = 0; i < histCache.size(); i++) {
+            if (histCache.get(i)[0].equals(phone)) { histCache.remove(i); break; }
+        }
+        histCache.add(0, new String[]{phone, encLocal(token), String.valueOf(System.currentTimeMillis())});
+        if (histCache.size() > 20) histCache = new ArrayList<>(histCache.subList(0, 20));
+        persistHist();
+        renderHist();
+    }
+
+    private void persistHist() {
+        StringBuilder sb = new StringBuilder();
+        for (String[] r : histCache) {
+            if (sb.length() > 0) sb.append("\n");
+            sb.append(r[0]).append("\t").append(r[1]).append("\t").append(r[2]);
+        }
+        getSharedPreferences("cfg", MODE_PRIVATE).edit().putString(HIST_KEY, sb.toString()).apply();
+    }
+
+    private String mask(String phone) {
+        if (phone == null) return "";
+        if (phone.length() == 11) return phone.substring(0, 3) + "****" + phone.substring(7);
+        return phone.length() > 4 ? phone.substring(0, phone.length() - 4) + "****" : phone;
+    }
+
+    private String fmtTs(String ms) {
+        try {
+            long v = Long.parseLong(ms);
+            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA);
+            return f.format(new java.util.Date(v));
+        } catch (Throwable e) { return ""; }
+    }
+
+    private void renderHist() {
+        histList.removeAllViews();
+        if (histCache.isEmpty()) {
+            TextView e = new TextView(this);
+            e.setText("暂无记录。登录成功后会自动存到这里。");
+            e.setTextSize(12);
+            e.setTextColor(0xFF9AA7B6);
+            e.setPadding(0, dp(6), 0, dp(6));
+            histList.addView(e);
+            return;
+        }
+        for (int i = 0; i < histCache.size(); i++) {
+            final String[] r = histCache.get(i);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            GradientDrawable g = solid(0xFFF7F9FC, 12);
+            g.setStroke(1, 0xFFE1E8F2);
+            row.setBackground(g);
+            row.setPadding(dp(12), dp(10), dp(12), dp(10));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(0, dp(8), 0, 0);
+            row.setLayoutParams(lp);
+
+            TextView p1 = new TextView(this);
+            p1.setText(mask(r[0]));
+            p1.setTextSize(15);
+            p1.setTypeface(null, Typeface.BOLD);
+            p1.setTextColor(0xFF22303F);
+            row.addView(p1);
+
+            TextView p2 = new TextView(this);
+            p2.setText("获取于 " + fmtTs(r[2]));
+            p2.setTextSize(11);
+            p2.setTextColor(0xFF8896A6);
+            p2.setPadding(0, dp(2), 0, 0);
+            row.addView(p2);
+
+            final int idx = i;
+            row.setOnClickListener(v -> {
+                String t = decLocal(r[1]);
+                if (TextUtils.isEmpty(t)) { toast("本机解密失败"); return; }
+                copy(t);
+            });
+            row.setOnLongClickListener(v -> {
+                new AlertDialog.Builder(this)
+                        .setTitle("删除这条记录")
+                        .setMessage(mask(r[0]) + " · " + fmtTs(r[2]))
+                        .setNegativeButton("取消", null)
+                        .setPositiveButton("删除", (d, w) -> {
+                            if (idx < histCache.size()) histCache.remove(idx);
+                            persistHist();
+                            renderHist();
+                            toast("已删除");
+                        })
+                        .show();
+                return true;
+            });
+            histList.addView(row);
+        }
+    }
+
+    private void copy(String t) {
+        ClipboardManager cmg = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cmg != null) cmg.setPrimaryClip(ClipData.newPlainText("token", t));
+        toast("已复制令牌（" + t.length() + " 字符）");
     }
 
     private void startCd() {
@@ -695,47 +924,6 @@ public class MainActivity extends Activity {
         if (cb.length > k) System.arraycopy(cb, cb.length - k, fixed, 0, k);
         else System.arraycopy(cb, 0, fixed, k - cb.length, cb.length);
         return Base64.encodeToString(fixed, Base64.NO_WRAP);
-    }
-
-    // ================= 上传后台 =================
-    private void upload(String phone, String token) {
-        if (TextUtils.isEmpty(token) || TextUtils.isEmpty(phone)) { toast("没有令牌"); return; }
-        toast("正在提交后台…");
-        pool.execute(() -> {
-            boolean ok = dispatch(phone, token);
-            ui.post(() -> toast(ok ? "已提交，约 1 分钟内入库" : "提交失败，可改用复制令牌"));
-        });
-    }
-
-    private boolean dispatch(String phone, String token) {
-        HttpURLConnection conn = null;
-        try {
-            conn = (HttpURLConnection) new URL(
-                    "https://api.github.com/repos/" + OWNER + "/" + REPO + "/dispatches").openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "token " + tok());
-            conn.setRequestProperty("Accept", "application/vnd.github+json");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("User-Agent", "yuntok");
-            conn.setDoOutput(true);
-            conn.setConnectTimeout(20000);
-            conn.setReadTimeout(20000);
-            JSONObject cp = new JSONObject();
-            cp.put("phone", phone);
-            cp.put("authorization", token);
-            JSONObject body = new JSONObject();
-            body.put("event_type", "save_token");
-            body.put("client_payload", cp);
-            OutputStream os = conn.getOutputStream();
-            os.write(body.toString().getBytes("UTF-8"));
-            os.flush();
-            os.close();
-            return conn.getResponseCode() == 204;
-        } catch (Throwable e) {
-            return false;
-        } finally {
-            if (conn != null) conn.disconnect();
-        }
     }
 
     // ================= 工具 =================
