@@ -93,6 +93,21 @@ summary{font-size:13px;color:#3b82f6;cursor:pointer;padding:6px 0}
 <!-- ② 添加 -->
 <div class="card">
   <h2>② 添加账号</h2>
+
+  <div style="background:#f0f7ff;border:1px solid #cfe4ff;border-radius:10px;padding:12px;margin-bottom:14px">
+    <div style="font-weight:700;font-size:14px;margin-bottom:6px">推荐：从云盘网页直接取（不会失败）</div>
+    <div style="font-size:13px;color:#456;line-height:1.65">
+      ① 点下面按钮生成书签<br>
+      ② 手机浏览器打开 <b>m.mcloud.139.com</b> 并登录<br>
+      ③ 点那个书签 → 自动读令牌并跳回本页
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="gh" onclick="genBookmark()">生成抓取书签</button>
+      <button class="gh" onclick="openYun()">打开云盘登录</button>
+    </div>
+    <div id="bmBox" style="margin-top:10px"></div>
+  </div>
+
   <label>云盘令牌（App 里复制的那串，以 cGM6 开头）</label>
   <textarea id="tok" rows="3" placeholder="粘贴到这里，自动识别，不用点解析" oninput="onTok()"></textarea>
   <div id="cnt2" class="cnt2"></div>
@@ -240,6 +255,75 @@ async function testCfg(){
 /* ---------- 令牌 ---------- */
 var CUR=null;
 function clean(s){ return String(s||"").replace(/\s+/g,""); }
+
+/* ---------- 书签抓取（不依赖短信接口） ---------- */
+function openYun(){
+  log("已在新窗口打开云盘，登录后回到本页点书签","i");
+  window.open("https://m.mcloud.139.com/portal/mobilecloud/index.html","_blank");
+}
+function genBookmark(){
+  var back = location.origin + location.pathname;
+  var code = "(function(){try{"
+    + "var F=[],P=/pc:1\\d{10}:[A-Za-z0-9|._-]+/;"
+    + "function add(s,t){for(var i=0;i<F.length;i++)if(F[i].t===t)return;F.push({s:s,t:t});}"
+    + "function look(v,tag){if(typeof v!=='string')return;var c=[v];"
+    + "try{var d=atob(v);if(d)c.push(d);}catch(e){}"
+    + "for(var i=0;i<c.length;i++){var m=c[i].match(P);if(m)add(tag,m[0]);}}"
+    + "try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);look(localStorage.getItem(k),k);}}catch(e){}"
+    + "try{for(var i=0;i<sessionStorage.length;i++){var k=sessionStorage.key(i);look(sessionStorage.getItem(k),'session.'+k);}}catch(e){}"
+    + "try{var ck=document.cookie||'';var m=ck.match(P);if(m)add('cookie',m[0]);}catch(e){}"
+    + "var BACK='" + back + "';"
+    + "if(!F.length){alert('未读到令牌。请确认已在本页登录 m.mcloud.139.com（不是 App 里登录）。');return;}"
+    + "var best=F[0];for(var i=0;i<F.length;i++)if(F[i].t.length>best.t.length)best=F[i];"
+    + "try{navigator.clipboard.writeText(best.t);}catch(e){}"
+    + "location.href=BACK+'#tok='+encodeURIComponent(best.t);"
+    + "}catch(e){alert('读取出错: '+e.message);}})()";
+  var href = "javascript:" + code;
+  var box = document.getElementById("bmBox");
+  box.innerHTML =
+    '<div style="font-size:12px;color:#456;line-height:1.6;margin-bottom:6px">'
+    + '长按下面链接 → 「复制链接地址」，然后<b>新建书签</b>，名称随便，网址粘贴进去。<br>'
+    + '（部分浏览器不支持长按，可先点一下试试）</div>'
+    + '<a id="bmLink" href="' + href.replace(/"/g,"&quot;") + '" '
+    + 'style="display:block;word-break:break-all;font-size:12px;background:#fff;'
+    + 'border:1px solid #cfe4ff;border-radius:8px;padding:9px;color:#1677ff">'
+    + '云盘取令牌</a>'
+    + '<button class="gh sm" style="margin-top:8px" onclick="copyBm()">复制链接</button>';
+  log("书签已生成。用法：浏览器登录云盘后点这个书签","i");
+}
+function copyBm(){
+  var a = document.getElementById("bmLink");
+  var t = a ? a.getAttribute("href") : "";
+  if(!t){ log("✗ 请先点「生成抓取书签」","e"); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){
+      log("✓ 已复制书签链接，去浏览器新建书签粘贴","s");
+    }, function(){ fallbackCopy(t); });
+  } else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  var ta=document.createElement("textarea");
+  ta.value=t; ta.style.position="fixed"; ta.style.left="-9999px";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); log("✓ 已复制书签链接","s"); }
+  catch(e){ log("✗ 复制失败，请手动长按链接复制","e"); }
+  document.body.removeChild(ta);
+}
+/* 书签回跳：URL 里带 #tok= 时自动填入 */
+function fromHash(){
+  var h = location.hash || "";
+  var m = h.match(/[#&]tok=([^&]+)/);
+  if(!m) return false;
+  var t = decodeURIComponent(m[1]);
+  var el = document.getElementById("tok");
+  if(!el || !t) return false;
+  el.value = t;
+  _lastParsed = "";
+  parseTok();
+  try{ history.replaceState(null,"",location.pathname); }catch(e){}
+  log("✓ 已从云盘网页读到令牌并自动填入，点「提交托管」即可","s");
+  return true;
+}
 var _lastParsed="";
 function onTok(){
   var n=clean(document.getElementById("tok").value).length;
@@ -260,6 +344,12 @@ function parseTok(){
   document.getElementById("parseBox").innerHTML="";
   document.getElementById("cnt2").textContent=s.length+" 字符";
   var dec="";
+  // 书签抓到的可能是明文 pc:手机号:token（未 base64），这里统一归一化成 base64 再提交
+  if(/^pc:1\d{10}:/.test(s)){
+    s = btoa(s); el.value = s; _lastParsed = s;
+    document.getElementById("cnt2").textContent = s.length+" 字符";
+    log("（已把明文令牌转为 base64）","i");
+  }
   try{ dec=atob(s); }catch(e){ log("✗ 令牌不是合法 base64","e"); return; }
   var m=dec.match(/(1\d{10})/);
   if(!m){ log("✗ 令牌里没找到手机号","e"); return; }
@@ -431,7 +521,8 @@ function clearHist(){
 (function(){
   var m=localStorage.getItem("mg_mode"); if(m) MODE=m;
   setMode(MODE); renderHist();
-  log("版本 v3 · 隐私版（列表只存本机）","i");
+  log("版本 v4 · 书签取令牌版（列表只存本机）","i");
+  setTimeout(function(){ if(!fromHash()) loadList(); else loadList(); }, 60);
 })();
 </script>
 </body>
