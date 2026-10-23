@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -6,92 +6,166 @@
 <title>云盘托管管理</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f5f9;color:#1b2733;padding-bottom:40px}
-.hd{background:linear-gradient(135deg,#1e7fe0,#28c3b6);color:#fff;padding:22px 18px 26px;border-radius:0 0 22px 22px}
-.hd h1{margin:0;font-size:19px;font-weight:700}
-.hd .sub{margin-top:6px;font-size:12px;opacity:.9}
-.vd{display:inline-block;margin-top:8px;font-size:11px;background:rgba(255,255,255,.22);padding:3px 9px;border-radius:20px}
-.wrap{padding:14px}
-.card{background:#fff;border:1px solid #e6ecf3;border-radius:14px;padding:15px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,40,70,.05)}
-.card h2{margin:0 0 10px;font-size:15px;font-weight:700;color:#14324f;display:flex;align-items:center;gap:6px}
-.warn{background:#fff8e6;border:1px solid #f5d98a;border-radius:12px;padding:13px;font-size:12.5px;line-height:1.75;color:#6b4e10;margin-bottom:14px}
-.warn b{display:block;margin-bottom:4px;color:#8a5a00;font-size:13px}
-.warn b:not(:first-child){margin-top:9px}
-textarea{width:100%;min-height:92px;border:1px solid #d5dfe9;border-radius:10px;padding:11px;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;background:#fbfdff;resize:vertical}
-textarea:focus{outline:none;border-color:#1e7fe0}
-.btn{display:block;width:100%;border:0;border-radius:11px;padding:13px;font-size:15px;font-weight:600;color:#fff;background:linear-gradient(135deg,#1e7fe0,#2aa5cf);margin-top:11px;transition:filter .15s}
-.btn:active{filter:brightness(.9)}
-.btn.g{background:#fff;color:#1e7fe0;border:1px solid #bcd8f5}
-.btn.r{background:linear-gradient(135deg,#e05a4e,#d0342a)}
-.btn.sm{padding:9px;font-size:13.5px;margin-top:0}
-.row{display:flex;gap:9px;margin-top:11px}
-.row .btn{margin-top:0}
-.info{margin-top:11px;background:#f4f9ff;border:1px solid #d9e9fb;border-radius:10px;padding:11px;font-size:13px;color:#1c4b75;word-break:break-all}
-.info .k{color:#6b8299;font-size:12px}
-.muted{font-size:12px;color:#8496a8;margin-top:8px}
+body{margin:0;background:#f5f7fa;color:#1c2430;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;padding:12px 12px calc(24px + env(safe-area-inset-bottom))}
+h1{font-size:19px;margin:4px 0 2px}
+h2{font-size:15px;margin:0 0 8px;display:flex;align-items:center;gap:6px}
+.sub{font-size:12.5px;color:#7b8794;line-height:1.5}
+.card{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:14px;margin-bottom:12px}
+.warn{background:#fff8e6;border:1px solid #ffe0a3;color:#8a5a00;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;margin-bottom:12px}
+.warn b{color:#a34b00}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #d7dee7;border-radius:9px;font-size:15px;background:#fff;color:#1c2430;font-family:inherit}
+textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6}
+label{display:block;font-size:12.5px;color:#5b6875;margin:10px 0 5px}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+button{border:0;border-radius:9px;padding:11px 14px;font-size:15px;background:#3b82f6;color:#fff;font-family:inherit}
+button:active{opacity:.8}
+button.gh{background:#eef2f7;color:#33475b}
+button.sm{padding:6px 10px;font-size:12.5px}
+button.dan{background:#fff0f0;color:#c0392b;border:1px solid #f5c6c2}
+button:disabled{opacity:.45}
 ul{margin:0;padding:0;list-style:none}
-li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #eef2f7}
+li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f0f3f7}
 li:last-child{border-bottom:0}
-li .ph{font-weight:600;font-size:14px}
-li li .bal{color:#5b7085}
-li .ops{display:flex;gap:7px}
-.x{border:1px solid #f0c2bc;background:#fff5f4;color:#c8412f;border-radius:8px;padding:6px 11px;font-size:12.5px}
-.cp{border:1px solid #bcd8f5;background:#f2f8ff;color:#1e7fe0;border-radius:8px;padding:6px 11px;font-size:12.5px}
-#log{background:#12181f;color:#9fe8c8;font:12px/1.65 ui-monospace,Menlo,Consolas,monospace;border-radius:11px;padding:12px;max-height:230px;overflow:auto;white-space:pre-wrap;word-break:break-all}
-#log div{padding:1px 0}
-#log .e{color:#ff8f80}
-#log .i{color:#8fb6d8}
-#log .s{color:#7ee0a8}
-.empty{font-size:13px;color:#8b9bab;text-align:center;padding:14px 0}
-.hdsmall{font-size:12px;color:#8496a8;font-weight:400}
+.ph{font-weight:600;font-size:14.5px}
+.bal{font-size:12.5px;color:#7b8794}
+.empty{color:#9aa5b1;font-size:13px;padding:8px 0;display:block}
+#log{background:#101820;color:#c8e0c8;border-radius:10px;padding:10px;font:12px/1.6 ui-monospace,Menlo,Consolas,monospace;max-height:190px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+#log div{margin:1px 0}
+#log .e{color:#ff9b9b}#log .s{color:#7ee08a}#log .i{color:#9fc7e8}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:#eef2f7;color:#5b6875}
+.tag.on{background:#e6f4ea;color:#1e7e34}
+.hdsmall{font-size:12px;color:#7b8794;font-weight:400}
+details{margin-top:10px}
+summary{font-size:13px;color:#3b82f6;cursor:pointer;padding:6px 0}
+.seg{display:flex;gap:0;border:1px solid #d7dee7;border-radius:9px;overflow:hidden;margin:6px 0}
+.seg button{flex:1;border-radius:0;background:#fff;color:#33475b;font-size:14px}
+.seg button.on{background:#3b82f6;color:#fff}
+.quota{font-size:12.5px;color:#5b6875;margin-top:6px}
+.note{font-size:12px;color:#8b97a4;line-height:1.55;margin-top:8px}
+.tokbox{background:#f7f9fc;border:1px dashed #c9d4e0;border-radius:8px;padding:9px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;word-break:break-all;max-height:70px;overflow:auto}
 </style>
 </head>
 <body>
-<div class="hd">
-  <h1>云盘托管管理</h1>
-  <div class="sub">粘贴 App 取到的令牌 → 一键托管，后台每天自动签到</div>
-  <div class="vd">版本 v1 · 构建 20261023-2030</div>
+
+<h1>云盘托管管理</h1>
+<div class="sub">粘贴 App 取到的令牌 → 一键托管。后台每天自动签到、做任务、领气泡。</div>
+
+<div class="warn">
+  <b>隐私说明</b>：你添加的手机号<b>只保存在本机浏览器</b>，不会上传、不会展示给其他人。<br>
+  把这个链接发给别人，对方打开看到的是<b>空白列表</b>——看不到你托管了几个号。
 </div>
 
-<div class="wrap">
-
-  <div class="warn">
-    <b>免责声明</b>本工具仅用于处理<b>本人名下账号</b>的登录令牌。令牌等同于账号凭据，请妥善保管、切勿转发他人。因使用本工具产生的任何账号风险、数据变动或损失，由使用者自行承担。
-    <b>禁止牟利声明</b>本工具免费、非商业，严禁用于任何形式的牟利行为，包括但不限于代签到收费、批量养号出售、转售令牌、商业刷量，或任何违反中国移动服务协议的活动。
+<!-- ① 仓库 -->
+<div class="card">
+  <h2>① 托管到哪个仓库</h2>
+  <div class="seg">
+    <button id="segMine" class="on" onclick="setMode('mine')">共用仓库（上限 5 个）</button>
+    <button id="segSelf" onclick="setMode('self')">我自己的仓库（不限）</button>
   </div>
-
-  <div class="card">
-    <h2>① 粘贴令牌</h2>
-    <textarea id="tok" placeholder="在此粘贴 App 复制到的令牌（以 cGM6 开头那一长串）"></textarea>
-    <button class="btn g" onclick="parseTok()">解析令牌</button>
-    <div id="pinfo"></div>
-    <button class="btn" id="btnSub" onclick="submitTok()" disabled>提交托管</button>
-    <div class="muted">提交后，明天 09:05 那轮起自动签到、做任务、领气泡，并自动续期。</div>
+  <div id="selfCfg" style="display:none">
+    <label>GitHub 用户名</label><input id="cfOwner" placeholder="例如 WoShiYiGeManHuaJia">
+    <label>仓库名</label><input id="cfRepo" placeholder="例如 yun139-ghpanel">
+    <label>Personal Access Token（需 repo 权限）</label><input id="cfToken" type="password" placeholder="ghp_...">
+    <div class="row" style="margin-top:10px">
+      <button class="gh sm" onclick="saveCfg()">保存配置</button>
+      <button class="gh sm" onclick="testCfg()">测试连通</button>
+    </div>
+    <details>
+      <summary>怎么部署一个自己的仓库？（点开看步骤）</summary>
+      <div class="note">
+        1. 打开 <a href="https://github.com/WoShiYiGeManHuaJia/yun139-ghpanel/fork" target="_blank">这个链接 fork 仓库</a><br>
+        2. 进 fork 后的仓库 → Settings → Secrets → Actions → New secret<br>
+        3. 名字填 <code>PANEL_DATA_KEY</code>，值随便设一串密码（用来加密账号，记牢）<br>
+        4. 点 Actions 标签 → 启用 workflows<br>
+        5. 回到上面填你的用户名、仓库名、Token 即可
+      </div>
+    </details>
   </div>
+  <div id="mineCfg" class="note">使用我提供的公共仓库，简单但<b>每个手机最多 5 个号</b>。想不受限就用自己的仓库。</div>
+</div>
 
-  <div class="card">
-    <h2>② 已托管账号 <span class="hdsmall" id="cnt"></span></h2>
-    <ul id="list"><li class="empty">加载中…</li></ul>
-    <div class="muted">余额为最近一次签到的记录值。</div>
+<!-- ② 添加 -->
+<div class="card">
+  <h2>② 添加账号</h2>
+  <label>云盘令牌（App 里复制的那串，以 cGM6 开头）</label>
+  <input id="tok" placeholder="cGM6..." oninput="onTok()">
+  <div id="parseBox" class="note"></div>
+  <div class="row" style="margin-top:10px">
+    <button class="gh" onclick="parseTok()">解析令牌</button>
+    <button id="btnSub" onclick="submitTok()" disabled>提交托管</button>
   </div>
+  <div id="quotaBox" class="quota"></div>
+</div>
 
-  <div class="card">
-    <h2>③ 本机历史</h2>
-    <ul id="hist"></ul>
-    <div class="muted">只存在你手机浏览器本地，不会上传。</div>
+<!-- ③ 列表 -->
+<div class="card">
+  <h2>③ 我的托管账号 <span class="hdsmall" id="cnt"></span></h2>
+  <div class="sub" style="margin-bottom:6px">仅本机可见 · 余额取自后台最近 10 天记录</div>
+  <ul id="list"><li class="empty">加载中…</li></ul>
+</div>
+
+<!-- ④ 推送 -->
+<div class="card">
+  <h2>④ 推送通知</h2>
+  <div class="sub">钉钉 / 企业微信都不允许网页直接调用（浏览器跨域限制），所以推送由 <b>App 端</b> 发送。这里配置好后导进 App 即可。</div>
+  <label>推送渠道</label>
+  <select id="nfType" onchange="saveNf()">
+    <option value="dingtalk">钉钉群机器人</option>
+    <option value="wecom">企业微信群机器人</option>
+    <option value="feishu">飞书群机器人</option>
+  </select>
+  <label>机器人 Webhook 地址</label>
+  <input id="nfUrl" placeholder="https://oapi.dingtalk.com/robot/send?access_token=..." oninput="saveNf()">
+  <label>消息模板</label>
+  <select id="nfTpl" onchange="onTpl()">
+    <option value="simple">简洁版（推荐）</option>
+    <option value="detail">详细版（含任务完成数）</option>
+    <option value="error">仅异常（全正常就不发）</option>
+    <option value="oneline">极简单行</option>
+    <option value="custom">自定义</option>
+  </select>
+  <textarea id="nfCustom" rows="6" style="display:none;margin-top:8px" oninput="saveNf()" placeholder="自定义模板，可用变量见下方"></textarea>
+  <div class="note">
+    可用变量：<code>{time}</code> 时间 · <code>{rows}</code> 每个号一行 · <code>{sum}</code> 今日合计 · <code>{ok}</code> 成功/总数
   </div>
-
-  <div class="card">
-    <h2>执行日志</h2>
-    <div id="log"></div>
+  <div class="row" style="margin-top:10px">
+    <button class="gh sm" onclick="exportNf()">复制配置到 App</button>
+    <button class="gh sm" onclick="previewNf()">预览效果</button>
   </div>
+  <div id="nfPrev" class="tokbox" style="display:none;margin-top:8px;max-height:160px"></div>
+</div>
 
+<!-- ⑤ 历史 -->
+<div class="card">
+  <h2>⑤ 本机历史</h2>
+  <ul id="hist"><li class="empty">暂无记录</li></ul>
+  <div class="note">只存在本机浏览器，不会上传。</div>
+</div>
+
+<div class="card">
+  <h2>执行日志</h2>
+  <div id="log"></div>
 </div>
 
 <script>
 var OBF="SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
-var OWNER="WoShiYiGeManHuaJia", REPO="yun139-ghpanel";
+var MINE={owner:"WoShiYiGeManHuaJia",repo:"yun139-ghpanel"};
 function TOK(){ return atob(OBF).split("").reverse().join(""); }
+var MODE="mine";
+function cfg(){
+  if(MODE==="mine") return {owner:MINE.owner,repo:MINE.repo,token:TOK()};
+  try{ var c=JSON.parse(localStorage.getItem("mg_repo")||"{}");
+    return {owner:c.owner||"",repo:c.repo||"",token:c.token||""};
+  }catch(e){ return {owner:"",repo:"",token:""}; }
+}
+function limit(){ return MODE==="mine" ? 5 : Infinity; }
+function myAccs(){
+  try{ return JSON.parse(localStorage.getItem("mg_accounts")||"[]"); }catch(e){ return []; }
+}
+function setMyAccs(a){ localStorage.setItem("mg_accounts",JSON.stringify(a)); }
+
 var logEl=document.getElementById("log");
 function log(s,cls){ var d=document.createElement("div"); if(cls)d.className=cls; d.textContent=s; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
 function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
@@ -101,17 +175,19 @@ function copyText(v){
   return Promise.resolve(fb(v));
   function fb(x){ try{var ta=document.createElement("textarea");ta.value=x;ta.style.position="fixed";ta.style.left="-9999px";document.body.appendChild(ta);ta.select();var o=document.execCommand("copy");document.body.removeChild(ta);return o;}catch(e){return false;} }
 }
-async function gh(path,method,body){
-  var h={"Authorization":"token "+TOK(),"Accept":"application/vnd.github+json","User-Agent":"grab"};
+async function gh(path,method,body,tok){
+  var h={"Authorization":"token "+(tok||cfg().token),"Accept":"application/vnd.github+json","User-Agent":"grab"};
   if(body) h["Content-Type"]="application/json";
   return await fetch("https://api.github.com"+path,{method:method||"GET",headers:h,body:body?JSON.stringify(body):undefined});
 }
 async function dispatch(type,payload){
-  var r=await gh("/repos/"+OWNER+"/"+REPO+"/dispatches","POST",{event_type:type,client_payload:payload||{}});
+  var c=cfg();
+  var r=await gh("/repos/"+c.owner+"/"+c.repo+"/dispatches","POST",{event_type:type,client_payload:payload||{}});
   return r.status===204;
 }
 async function getResult(){
-  var r=await gh("/repos/"+OWNER+"/"+REPO+"/contents/data/result.json?t="+Date.now(),"GET");
+  var c=cfg();
+  var r=await gh("/repos/"+c.owner+"/"+c.repo+"/contents/data/result.json?t="+Date.now(),"GET");
   if(!r.ok) return null;
   var j=await r.json(); if(!j.content) return null;
   try{ return JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,""))))); }catch(e){ return null; }
@@ -119,12 +195,12 @@ async function getResult(){
 async function run(type,payload,timeoutMs,label){
   log("① 提交「"+label+"」到后台…","i");
   var ok=await dispatch(type,payload);
-  if(!ok){ log("✗ 提交失败（网络或密钥问题）","e"); return null; }
+  if(!ok){ log("✗ 提交失败（网络或仓库配置问题）","e"); return null; }
   var before=null,r0=await getResult(); if(r0) before=r0.ts+"|"+r0.type;
-  var t0=Date.now(),limit=timeoutMs||150000,tick=null;
+  var t0=Date.now(),limitMs=timeoutMs||150000,tick=null;
   tick=setInterval(function(){ log("   …已等待 "+Math.round((Date.now()-t0)/1000)+" 秒","i"); },5000);
   try{
-    while(Date.now()-t0<limit){
+    while(Date.now()-t0<limitMs){
       await sleep(5000);
       var r=await getResult();
       if(r&&(r.ts+"|"+r.type)!==before&&r.type===type) return r;
@@ -133,85 +209,165 @@ async function run(type,payload,timeoutMs,label){
   } finally { clearInterval(tick); }
 }
 
-var CUR=null;
-function parseTok(){
-  var raw=document.getElementById("tok").value.trim();
-  var box=document.getElementById("pinfo");
-  var btn=document.getElementById("btnSub");
-  if(!raw){ box.innerHTML='<div class="info" style="color:#c8412f">请先粘贴令牌</div>'; btn.disabled=true; CUR=null; return; }
+/* ---------- 模式切换 ---------- */
+function setMode(m){
+  MODE=m;
+  document.getElementById("segMine").className = m==="mine"?"on":"";
+  document.getElementById("segSelf").className = m==="self"?"on":"";
+  document.getElementById("selfCfg").style.display = m==="self"?"":"none";
+  document.getElementById("mineCfg").style.display = m==="mine"?"":"none";
   try{
-    var t=raw.replace(/^Basic\s+/i,"").trim();
-    var dec=atob(t);
-    var parts=dec.split(":");
-    var phone=parts.length>=2?parts[1]:"";
-    var token=parts.slice(2).join(":");
-    if(!/^1\d{10}$/.test(phone)) throw new Error("解出的手机号不合法");
-    var strs=token.split("|");
-    var expMs=strs.length>=4?parseInt(strs[3],10):0;
-    var days=(expMs>0)?Math.max(0,Math.round((expMs-Date.now())/86400000)):null;
-    CUR={phone:phone,authorization:raw,token:token};
-    box.innerHTML='<div class="info"><span class="k">号码</span> '+mask(phone)+
-      '<br><span class="k">令牌长度</span> '+raw.length+' 字符'+
-      (days!==null?'<br><span class="k">有效期</span> '+days+' 天':'')+'</div>';
-    btn.disabled=false;
-    log("解析成功："+mask(phone)+"，令牌 "+raw.length+" 字符","s");
-  }catch(e){
-    box.innerHTML='<div class="info" style="color:#c8412f">解析失败：'+String(e.message||e)+'</div>';
-    btn.disabled=true; CUR=null; log("✗ 令牌解析失败："+e.message,"e");
-  }
+    var c=JSON.parse(localStorage.getItem("mg_repo")||"{}");
+    if(c.owner) document.getElementById("cfOwner").value=c.owner;
+    if(c.repo) document.getElementById("cfRepo").value=c.repo;
+    if(c.token) document.getElementById("cfToken").value=c.token;
+  }catch(e){}
+  localStorage.setItem("mg_mode",m);
+  updQuota(); loadList();
+}
+function saveCfg(){
+  var o={owner:document.getElementById("cfOwner").value.trim(),
+         repo:document.getElementById("cfRepo").value.trim(),
+         token:document.getElementById("cfToken").value.trim()};
+  localStorage.setItem("mg_repo",JSON.stringify(o));
+  log("✓ 仓库配置已保存到本机","s");
+}
+async function testCfg(){
+  var c=cfg();
+  if(!c.owner||!c.repo||!c.token){ log("✗ 请先填写用户名、仓库名、Token","e"); return; }
+  var r=await gh("/repos/"+c.owner+"/"+c.repo,null,null,c.token);
+  log(r.status===200?"✓ 仓库连通":"✗ 连通失败 HTTP "+r.status, r.status===200?"s":"e");
+}
+
+/* ---------- 令牌 ---------- */
+var CUR=null;
+function onTok(){ document.getElementById("btnSub").disabled=true; document.getElementById("parseBox").textContent=""; }
+function parseTok(){
+  var s=document.getElementById("tok").value.trim();
+  if(!s){ log("✗ 请先粘贴令牌","e"); return; }
+  var dec="";
+  try{ dec=atob(s.replace(/\s/g,"")); }catch(e){ log("✗ 令牌不是合法 base64","e"); return; }
+  var m=dec.match(/(1\d{10})/);
+  if(!m){ log("✗ 令牌里没找到手机号","e"); return; }
+  var phone=m[1];
+  var parts=dec.split("|");
+  var days=null;
+  if(parts.length>=4){ var exp=parseInt(parts[3],10); if(exp>0) days=Math.round((exp-Date.now())/86400000*10)/10; }
+  CUR={phone:phone,authorization:s.trim()};
+  var box=document.getElementById("parseBox");
+  box.innerHTML="号码 <b>"+mask(phone)+"</b> · 令牌长度 "+s.length+
+    (days!==null?(" · 剩余 <b>"+days+"</b> 天"):"")+
+    (days!==null&&days<3?" <span style='color:#c0392b'>（快过期，建议重新获取）</span>":"");
+  document.getElementById("btnSub").disabled=false;
+  log("✓ 解析成功："+mask(phone)+"，剩余 "+(days===null?"未知":days+" 天"),"s");
+}
+function updQuota(){
+  var n=myAccs().length, lim=limit();
+  document.getElementById("quotaBox").innerHTML = lim===Infinity
+    ? "已添加 <b>"+n+"</b> 个（自己的仓库，无上限）"
+    : "已添加 <b>"+n+"</b> / 5 个";
 }
 async function submitTok(){
-  if(!CUR){ log("请先解析令牌","e"); return; }
-  log("提交托管："+mask(CUR.phone),"i");
-  var r=await run("save_token",{phone:CUR.phone,authorization:CUR.authorization},180000,"存入令牌");
-  if(!r){ log("✗ 未拿到后台结果","e"); return; }
-  (r.steps||[]).forEach(function(s){ log((s.ok?"✓ ":"✗ ")+s.step+(s.ok?"":" "+s.err||""),(s.ok?"s":"e")); });
-  log(r.ok?("✓ "+r.msg):("✗ "+r.msg),(r.ok?"s":"e"));
-  if(r.ok){
-    if(r.remaining_days!=null) log("令牌剩余 "+r.remaining_days+" 天","s");
-    pushHist({phone:CUR.phone,ts:new Date().toLocaleString("zh-CN"),tok:CUR.authorization});
-    loadList();
-  }
+  if(!CUR){ log("✗ 请先解析令牌","e"); return; }
+  var accs=myAccs(), lim=limit();
+  if(accs.length>=lim){ log("✗ 已达上限 "+lim+" 个。换用自己的仓库可解除限制","e"); return; }
+  var r=await run("save_token",{phone:CUR.phone,authorization:CUR.authorization},150000,"存令牌");
+  if(!r){ return; }
+  log((r.ok?"✓ ":"✗ ")+(r.msg||"")+(r.remaining_days?(" · 剩余 "+r.remaining_days+" 天"):""), r.ok?"s":"e");
+  if(!r.ok) return;
+  var a=myAccs().filter(function(x){return x.phone!==CUR.phone;});
+  a.push({phone:CUR.phone,ts:new Date().toISOString().slice(0,16).replace("T"," ")});
+  setMyAccs(a);
+  pushHist({phone:CUR.phone,ts:a[a.length-1].ts});
+  updQuota(); loadList();
 }
-async function delAcc(phone){
-  if(!confirm("确定从后台移除 "+mask(phone)+" ？移除后将不再自动签到。")) return;
-  log("请求删除 "+mask(phone),"i");
-  var r=await run("del_account",{phone:phone},180000,"删除账号");
-  if(r){ log((r.ok?"✓ ":"✗ ")+r.msg,(r.ok?"s":"e")); loadList(); }
+async function delAcc(p){
+  if(!confirm("确定移除 "+p+"？")) return;
+  var r=await run("del_account",{phone:p},120000,"移除");
+  log((r&&r.ok?"✓ 已移除 ":"✗ 移除失败：")+((r&&r.msg)||""), (r&&r.ok)?"s":"e");
+  if(r&&r.ok){ setMyAccs(myAccs().filter(function(x){return x.phone!==p;})); updQuota(); loadList(); }
 }
+
+/* ---------- 列表（只显示本机） ---------- */
 async function loadList(){
   var ul=document.getElementById("list"), cnt=document.getElementById("cnt");
-  ul.innerHTML='<li class="empty">加载中…</li>';
+  var mine=myAccs();
+  cnt.textContent="（"+mine.length+" 个）";
+  if(!mine.length){ ul.innerHTML='<li class="empty">还没有添加账号。用 App 取令牌后粘到上面。</li>'; updQuota(); return; }
+  ul.innerHTML=mine.map(function(a){ return '<li><div><div class="ph">'+mask(a.phone)+'</div><div class="bal">添加于 '+a.ts+'</div></div><div class="ops"><button class="x sm dan" onclick="delAcc(\''+a.phone+'\')">移除</button></div></li>'; }).join("");
+  updQuota();
+  // 余额补充展示
   try{
-    var r=await gh("/repos/"+OWNER+"/"+REPO+"/contents/data/totals.json?t="+Date.now(),"GET");
-    if(!r.ok) throw new Error("HTTP "+r.status);
+    var c=cfg();
+    var r=await gh("/repos/"+c.owner+"/"+c.repo+"/contents/data/totals.json?t="+Date.now(),"GET");
+    if(!r.ok) return;
     var j=await r.json();
     var d=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))));
-    // 旧逻辑只读最后一天：某号当天没跑出数据时，页面上就整个消失（例如 10-23
-    // 缺 182****4895，页面只剩 3 个）。改为合并最近 10 天取并集，
-    // 每个号显示它最近一次有记录的余额，并标出该数据的日期。
-    var days=Object.keys(d).sort();
-    var recent=days.slice(-10);
-    var bal={}, day={};
-    recent.forEach(function(dy){
-      var rec=d[dy]||{};
-      Object.keys(rec).forEach(function(k){
-        if(k==="_gain") return;
-        bal[k]=rec[k]; day[k]=dy;
-      });
-    });
-    var items=Object.keys(bal).sort();
-    cnt.textContent="（"+items.length+" 个）";
-    if(!items.length){ ul.innerHTML='<li class="empty">暂无</li>'; return; }
-    ul.innerHTML=items.map(function(p){
-      var lag = day[p]===days[days.length-1] ? "" : ' <span style="opacity:.55;font-size:12px">'+day[p]+'</span>';
-      return '<li><div><div class="ph">'+p+lag+'</div><div class="bal">云豆 '+bal[p]+'</div></div>'+
-        '<div class="ops"><button class="x" onclick="delAcc(\''+p+'\')">移除</button></div></li>';
+    var days=Object.keys(d).sort(), recent=days.slice(-10), bal={}, day={};
+    recent.forEach(function(dy){ var rec=d[dy]||{}; Object.keys(rec).forEach(function(k){ if(k==="_gain")return; bal[k]=rec[k]; day[k]=dy; }); });
+    ul.innerHTML=mine.map(function(a){
+      var full=a.phone, b=bal[full];
+      var line = b!==undefined ? ("云豆 "+b+(day[full]!==days[days.length-1]?" ("+day[full]+")":"")) : "暂无数据";
+      return '<li><div><div class="ph">'+mask(full)+'</div><div class="bal">'+line+'</div></div>'+
+        '<div class="ops"><button class="sm dan" onclick="delAcc(\''+full+'\')">移除</button></div></li>';
     }).join("");
-  }catch(e){
-    ul.innerHTML='<li class="empty">加载失败：'+String(e.message||e)+'</li>';
-  }
+  }catch(e){}
 }
+
+/* ---------- 推送模板 ---------- */
+var TPLS={
+  simple:"### 移动云盘 · 每日签到\n{time}\n\n{rows}\n\n合计 +{sum}",
+  detail:"### 移动云盘 · 每日签到\n{time}\n\n{rows}\n\n合计 +{sum} · 正常 {ok}",
+  error:"### ⚠ 云盘签到异常\n{time}\n\n{rows}",
+  oneline:"云盘签到 {time}：{sum} 豆，{ok}"
+};
+function nfGet(){
+  try{ return JSON.parse(localStorage.getItem("mg_notify")||"{}"); }catch(e){ return {}; }
+}
+function nfSave(o){ localStorage.setItem("mg_notify",JSON.stringify(o)); }
+function onTpl(){
+  var v=document.getElementById("nfTpl").value;
+  document.getElementById("nfCustom").style.display = v==="custom"?"":"none";
+  if(v!=="custom") document.getElementById("nfCustom").value=TPLS[v]||"";
+  saveNf();
+}
+function saveNf(){
+  nfSave({type:document.getElementById("nfType").value,
+          url:document.getElementById("nfUrl").value.trim(),
+          tpl:document.getElementById("nfTpl").value,
+          custom:document.getElementById("nfCustom").value});
+}
+function loadNf(){
+  var n=nfGet();
+  if(n.type) document.getElementById("nfType").value=n.type;
+  if(n.url) document.getElementById("nfUrl").value=n.url;
+  if(n.tpl) document.getElementById("nfTpl").value=n.tpl;
+  if(n.custom!==undefined) document.getElementById("nfCustom").value=n.custom;
+  onTpl();
+}
+function renderTpl(tpl,rows,sum,ok,time){
+  return tpl.replace(/\{time\}/g,time).replace(/\{rows\}/g,rows)
+            .replace(/\{sum\}/g,sum).replace(/\{ok\}/g,ok);
+}
+function previewNf(){
+  var n=nfGet(), tpl = n.tpl==="custom" ? (n.custom||TPLS.simple) : (TPLS[n.tpl]||TPLS.simple);
+  var rows="182****4895　今日 +6　总 307\n172****9953　今日 +6　总 2021";
+  var out=renderTpl(tpl,rows,12,"2/2","2026-10-23 09:05");
+  var el=document.getElementById("nfPrev");
+  el.style.display=""; el.textContent=out;
+  log("预览已生成（示例数据）","i");
+}
+function exportNf(){
+  saveNf();
+  var n=nfGet();
+  var out=JSON.stringify({v:1,type:n.type||"dingtalk",url:n.url||"",
+    tpl:n.tpl==="custom"?(n.custom||TPLS.simple):(TPLS[n.tpl]||TPLS.simple)},null,0);
+  copyText(out).then(function(ok){
+    log(ok?"✓ 配置已复制，去 App 里「推送设置 → 粘贴导入」":"✗ 复制失败，请手动选中复制","i");
+  });
+}
+
+/* ---------- 历史 ---------- */
 function pushHist(o){
   try{
     var h=JSON.parse(localStorage.getItem("mg_hist")||"[]");
@@ -225,25 +381,17 @@ function renderHist(){
   var ul=document.getElementById("hist");
   var h=[]; try{ h=JSON.parse(localStorage.getItem("mg_hist")||"[]"); }catch(e){}
   if(!h.length){ ul.innerHTML='<li class="empty">暂无记录</li>'; return; }
-  ul.innerHTML=h.map(function(x,i){
-    return '<li><div><div class="ph">'+mask(x.phone)+'</div><div class="bal">'+x.ts+'</div></div>'+
-      '<div class="ops"><button class="cp" onclick="copyHist('+i+')">复制令牌</button>'+
-      '<button class="x" onclick="delHist('+i+')">删除</button></div></li>';
+  ul.innerHTML=h.map(function(x){
+    return '<li><div><div class="ph">'+mask(x.phone)+'</div><div class="bal">'+x.ts+'</div></div></li>';
   }).join("");
 }
-function copyHist(i){
-  var h=JSON.parse(localStorage.getItem("mg_hist")||"[]");
-  copyText(h[i].tok).then(function(ok){ log(ok?"✓ 已复制令牌":"✗ 复制失败",ok?"s":"e"); });
-}
-function delHist(i){
-  var h=JSON.parse(localStorage.getItem("mg_hist")||"[]");
-  h.splice(i,1); localStorage.setItem("mg_hist",JSON.stringify(h)); renderHist();
-}
-document.getElementById("tok").addEventListener("input",function(){
-  document.getElementById("btnSub").disabled=true; document.getElementById("pinfo").innerHTML=""; CUR=null;
-});
-log("版本 v1 · 构建 20261023-2030","i");
-loadList(); renderHist();
+
+/* ---------- init ---------- */
+(function(){
+  var m=localStorage.getItem("mg_mode"); if(m) MODE=m;
+  setMode(MODE); loadNf(); renderHist(); loadList();
+  log("版本 v2 · 隐私版（列表只存本机）","i");
+})();
 </script>
 </body>
 </html>
