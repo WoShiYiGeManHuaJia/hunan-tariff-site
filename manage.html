@@ -106,40 +106,9 @@ summary{font-size:13px;color:#3b82f6;cursor:pointer;padding:6px 0}
   <ul id="list"><li class="empty">加载中…</li></ul>
 </div>
 
-<!-- ④ 推送 -->
+<!-- ④ 历史 -->
 <div class="card">
-  <h2>④ 推送通知</h2>
-  <div class="sub">钉钉 / 企业微信都不允许网页直接调用（浏览器跨域限制），所以推送由 <b>App 端</b> 发送。这里配置好后导进 App 即可。</div>
-  <label>推送渠道</label>
-  <select id="nfType" onchange="saveNf()">
-    <option value="dingtalk">钉钉群机器人</option>
-    <option value="wecom">企业微信群机器人</option>
-    <option value="feishu">飞书群机器人</option>
-  </select>
-  <label>机器人 Webhook 地址</label>
-  <input id="nfUrl" placeholder="https://oapi.dingtalk.com/robot/send?access_token=..." oninput="saveNf()">
-  <label>消息模板</label>
-  <select id="nfTpl" onchange="onTpl()">
-    <option value="simple">简洁版（推荐）</option>
-    <option value="detail">详细版（含任务完成数）</option>
-    <option value="error">仅异常（全正常就不发）</option>
-    <option value="oneline">极简单行</option>
-    <option value="custom">自定义</option>
-  </select>
-  <textarea id="nfCustom" rows="6" style="display:none;margin-top:8px" oninput="saveNf()" placeholder="自定义模板，可用变量见下方"></textarea>
-  <div class="note">
-    可用变量：<code>{time}</code> 时间 · <code>{rows}</code> 每个号一行 · <code>{sum}</code> 今日合计 · <code>{ok}</code> 成功/总数
-  </div>
-  <div class="row" style="margin-top:10px">
-    <button class="gh sm" onclick="exportNf()">复制配置到 App</button>
-    <button class="gh sm" onclick="previewNf()">预览效果</button>
-  </div>
-  <div id="nfPrev" class="tokbox" style="display:none;margin-top:8px;max-height:160px"></div>
-</div>
-
-<!-- ⑤ 历史 -->
-<div class="card">
-  <h2>⑤ 本机历史</h2>
+  <h2>④ 本机历史</h2>
   <ul id="hist"><li class="empty">暂无记录</li></ul>
   <div class="note">只存在本机浏览器，不会上传。</div>
 </div>
@@ -314,59 +283,6 @@ async function loadList(){
   }catch(e){}
 }
 
-/* ---------- 推送模板 ---------- */
-var TPLS={
-  simple:"### 移动云盘 · 每日签到\n{time}\n\n{rows}\n\n合计 +{sum}",
-  detail:"### 移动云盘 · 每日签到\n{time}\n\n{rows}\n\n合计 +{sum} · 正常 {ok}",
-  error:"### ⚠ 云盘签到异常\n{time}\n\n{rows}",
-  oneline:"云盘签到 {time}：{sum} 豆，{ok}"
-};
-function nfGet(){
-  try{ return JSON.parse(localStorage.getItem("mg_notify")||"{}"); }catch(e){ return {}; }
-}
-function nfSave(o){ localStorage.setItem("mg_notify",JSON.stringify(o)); }
-function onTpl(){
-  var v=document.getElementById("nfTpl").value;
-  document.getElementById("nfCustom").style.display = v==="custom"?"":"none";
-  if(v!=="custom") document.getElementById("nfCustom").value=TPLS[v]||"";
-  saveNf();
-}
-function saveNf(){
-  nfSave({type:document.getElementById("nfType").value,
-          url:document.getElementById("nfUrl").value.trim(),
-          tpl:document.getElementById("nfTpl").value,
-          custom:document.getElementById("nfCustom").value});
-}
-function loadNf(){
-  var n=nfGet();
-  if(n.type) document.getElementById("nfType").value=n.type;
-  if(n.url) document.getElementById("nfUrl").value=n.url;
-  if(n.tpl) document.getElementById("nfTpl").value=n.tpl;
-  if(n.custom!==undefined) document.getElementById("nfCustom").value=n.custom;
-  onTpl();
-}
-function renderTpl(tpl,rows,sum,ok,time){
-  return tpl.replace(/\{time\}/g,time).replace(/\{rows\}/g,rows)
-            .replace(/\{sum\}/g,sum).replace(/\{ok\}/g,ok);
-}
-function previewNf(){
-  var n=nfGet(), tpl = n.tpl==="custom" ? (n.custom||TPLS.simple) : (TPLS[n.tpl]||TPLS.simple);
-  var rows="182****4895　今日 +6　总 307\n172****9953　今日 +6　总 2021";
-  var out=renderTpl(tpl,rows,12,"2/2","2026-10-23 09:05");
-  var el=document.getElementById("nfPrev");
-  el.style.display=""; el.textContent=out;
-  log("预览已生成（示例数据）","i");
-}
-function exportNf(){
-  saveNf();
-  var n=nfGet();
-  var out=JSON.stringify({v:1,type:n.type||"dingtalk",url:n.url||"",
-    tpl:n.tpl==="custom"?(n.custom||TPLS.simple):(TPLS[n.tpl]||TPLS.simple)},null,0);
-  copyText(out).then(function(ok){
-    log(ok?"✓ 配置已复制，去 App 里「推送设置 → 粘贴导入」":"✗ 复制失败，请手动选中复制","i");
-  });
-}
-
 /* ---------- 历史 ---------- */
 function pushHist(o){
   try{
@@ -389,7 +305,7 @@ function renderHist(){
 /* ---------- init ---------- */
 (function(){
   var m=localStorage.getItem("mg_mode"); if(m) MODE=m;
-  setMode(MODE); loadNf(); renderHist(); loadList();
+  setMode(MODE); renderHist(); loadList();
   log("版本 v2 · 隐私版（列表只存本机）","i");
 })();
 </script>
