@@ -1,18 +1,30 @@
 name: zzcheck
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - name: curl check
         run: |
+          out=".github/zzout.txt"
+          : > "$out"
           for u in "https://woshiyigemanhuajia.github.io/hunan-tariff-site/cookie.html" "http://hnvip.qd.je/cookie.html"; do
             code=$(curl -s -o /tmp/p.html -m 30 -w "%{http_code}" "$u")
             size=$(wc -c < /tmp/p.html)
-            echo "== $u -> HTTP $code / ${size} bytes"
-            grep -c "btnSend" /tmp/p.html | sed 's/^/  btnSend: /'
-            grep -c "btnLogin" /tmp/p.html | sed 's/^/  btnLogin: /'
-            grep -c "ghp_" /tmp/p.html | sed 's/^/  明文ghp_: /'
-            grep -c "OBF=" /tmp/p.html | sed 's/^/  混淆token: /'
+            echo "== $u -> HTTP $code / ${size} bytes" >> "$out"
+            echo "  btnSend: $(grep -c btnSend /tmp/p.html)" >> "$out"
+            echo "  btnLogin: $(grep -c btnLogin /tmp/p.html)" >> "$out"
+            echo "  明文ghp_: $(grep -c ghp_ /tmp/p.html)" >> "$out"
+            echo "  混淆token: $(grep -c 'OBF=' /tmp/p.html)" >> "$out"
           done
+          cat "$out"
+      - name: commit
+        run: |
+          git config user.name zz; git config user.email zz@x.com
+          git fetch origin main && git checkout -f -B main FETCH_HEAD
+          git add .github/zzout.txt || true
+          git diff --cached --quiet && exit 0 || git commit -m "zzout"
+          git push origin main
