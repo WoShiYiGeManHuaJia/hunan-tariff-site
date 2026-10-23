@@ -51,14 +51,21 @@ summary{font-size:13px;color:#52606d}
     <div id="res"></div>
     <div class="log" id="log">准备就绪。\n</div>
 
-    <details>
+    <details open>
       <summary>短信收不到？点这里手动粘贴令牌（方式 B）</summary>
       <label>authorization（手机浏览器登录后抓到的那串）</label>
       <input id="manual" type="text" placeholder="Basic xxx... 或完整 authorization">
       <button class="ghost" id="btnManual">提交令牌</button>
-      <div style="color:#7b8794;font-size:12px;margin-top:10px">
-        方式 B 用法：手机浏览器打开 m.mcloud.139.com 登录 → 地址栏前面加
-        <b>javascript:</b> 执行一段读取脚本 → 复制出来的串粘到上面。需要这段脚本的话跟我说。
+      <button class="ghost" id="btnReader">生成读取脚本（免装 Kiwi）</button>
+      <div id="readerBox" class="hide" style="margin-top:10px">
+        <div style="color:#7b8794;font-size:12px;line-height:1.7">
+          ① 用手机浏览器打开 <b>m.mcloud.139.com</b> 并登录<br>
+          ② 长按下面这个链接 → 「复制链接地址」<br>
+          ③ 新建书签，名字随便，网址粘贴刚才复制的<br>
+          ④ 回到已登录的云盘页面，点这个书签 → 弹出/复制出令牌<br>
+          ⑤ 粘回上面的框
+        </div>
+        <a id="readerLink" href="#" style="display:block;margin-top:8px;font-size:11px;color:#2f7de1;word-break:break-all">读取脚本（长按复制链接地址）</a>
       </div>
     </details>
   </div>
@@ -109,15 +116,33 @@ async function run(type,payload,timeoutMs){
 }
 
 var cd=0;
+function cdTick(b){
+  cd=60; b.disabled=true; b.textContent=cd+"s";
+  var t=setInterval(function(){ cd--; if(cd<=0){ clearInterval(t); b.disabled=false; b.textContent="获取验证码"; } else { b.textContent=cd+"s"; } },1000);
+}
 document.getElementById("btnSend").onclick=async function(){
   var p=document.getElementById("phone").value.trim();
   if(!/^1\d{10}$/.test(p)){ log("手机号格式不对","e"); return; }
-  var b=this; b.disabled=true;
-  log("发送验证码到 "+p+" ...","i");
-  var r=await run("send_code",{phone:p},120000);
-  if(r){ log((r.ok?"✓ ":"✗ ")+(r.msg||""), r.ok?null:"e"); (r.steps||[]).forEach(function(s){ log("  "+s.step+": "+(s.ok?"成功":"失败 "+(s.err||"")), s.ok?null:"e"); }); }
-  b.disabled=false;
-  if(r&&r.ok){ cd=60; var t=setInterval(function(){ cd--; if(cd<=0){ clearInterval(t); b.disabled=false; b.textContent="获取验证码"; } else { b.disabled=true; b.textContent=cd+"s"; } },1000); }
+  var b=this; b.disabled=true; b.textContent="发送中…";
+  document.getElementById("res").innerHTML='<div class="ok" style="background:#eef4fb;border-color:#cfe0f5;color:#2f7de1">正在发送验证码到 '+p+' …</div>';
+  log("① 提交任务到后台…","i");
+  var t0=Date.now();
+  var tick=setInterval(function(){ var s=Math.round((Date.now()-t0)/1000); log("   …已等待 "+s+" 秒（后台正在连移动服务器发码）","i"); },5000);
+  var r=null;
+  try{ r=await run("send_code",{phone:p},150000); }
+  catch(e){ log("请求异常: "+String(e.message||e),"e"); }
+  clearInterval(tick);
+  if(r){
+    log((r.ok?"✓ ":"✗ ")+(r.msg||""), r.ok?null:"e");
+    (r.steps||[]).forEach(function(s){ log("  "+s.step+": "+(s.ok?"成功":"失败 "+(s.err||"")), s.ok?null:"e"); });
+    var box=document.getElementById("res");
+    if(r.ok){ box.innerHTML='<div class="ok">✓ 验证码已发送，查收短信后填上面</div>'; }
+    else { box.innerHTML='<div class="bad">✗ 发送失败：'+(r.msg||"未知")+'<br><span style="font-size:12px">若一直失败，用下面「方式 B」手动抓令牌</span></div>'; }
+  } else {
+    document.getElementById("res").innerHTML='<div class="bad">✗ 没拿到结果（后台可能超时）。可重试，或用下面「方式 B」</div>';
+  }
+  b.disabled=false; b.textContent="获取验证码";
+  if(r&&r.ok) cdTick(b);
 };
 
 document.getElementById("btnLogin").onclick=async function(){
@@ -141,8 +166,25 @@ document.getElementById("btnLogin").onclick=async function(){
   b.disabled=false; b.textContent="登录并抓取令牌";
 };
 
-document.getElementById("btnManual").onclick=function(){
-  log("手动方式暂未接入后端保存，把串发给我，我帮你存。","i");
+document.getElementById("btnManual").onclick=async function(){
+  var v=document.getElementById("manual").value.trim();
+  if(v.length<20){ log("串太短，看起来不像有效令牌","e"); return; }
+  log("已读取令牌，长度 "+v.length,"i");
+  var ta=document.createElement("textarea");
+  ta.value=v; ta.style.position="fixed"; ta.style.left="-9999px";
+  document.body.appendChild(ta); ta.select();
+  var ok=false; try{ ok=document.execCommand("copy"); }catch(e){}
+  document.body.removeChild(ta);
+  document.getElementById("res").innerHTML='<div class="ok">✓ 令牌已'+(ok?"复制到剪贴板":"读取成功（复制失败请长按选中）")+'<br>把它发给我，我直接帮你存进后台。<br><span style="font-size:12px;word-break:break-all;color:#52606d">'+v.slice(0,60)+'…</span></div>';
+  if(ok) log("已复制到剪贴板","i"); else log("复制失败，请手动长按选中复制","e");
+};
+
+// 方式 B 的读取脚本（复制到手机浏览器地址栏执行）
+var READER="javascript:(function(){var a='';try{var s=window.localStorage||{};for(var i=0;i<s.length;i++){var k=s.key(i);if(/token|auth|jwt|user|phone/i.test(k))a+=k+'='+s.getItem(k)+'\\n';}}catch(e){}var c=document.cookie||'';var t=a+'\\nCOOKIE:'+c;var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert(t.slice(0,300));})()";
+document.getElementById("btnReader").onclick=function(){
+  document.getElementById("readerBox").classList.remove("hide");
+  document.getElementById("readerLink").href=READER;
+  log("已生成读取脚本：长按下面链接 → 复制链接地址 → 存为书签","i");
 };
 </script>
 </body>
