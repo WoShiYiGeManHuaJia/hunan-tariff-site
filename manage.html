@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>云盘托管管理</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f5f9;color:#1b2733;padding-bottom:40px}
+.hd{background:linear-gradient(135deg,#1e7fe0,#28c3b6);color:#fff;padding:22px 18px 26px;border-radius:0 0 22px 22px}
+.hd h1{margin:0;font-size:19px;font-weight:700}
+.hd .sub{margin-top:6px;font-size:12px;opacity:.9}
+.vd{display:inline-block;margin-top:8px;font-size:11px;background:rgba(255,255,255,.22);padding:3px 9px;border-radius:20px}
+.wrap{padding:14px}
+.card{background:#fff;border:1px solid #e6ecf3;border-radius:14px;padding:15px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,40,70,.05)}
+.card h2{margin:0 0 10px;font-size:15px;font-weight:700;color:#14324f;display:flex;align-items:center;gap:6px}
+.warn{background:#fff8e6;border:1px solid #f5d98a;border-radius:12px;padding:13px;font-size:12.5px;line-height:1.75;color:#6b4e10;margin-bottom:14px}
+.warn b{display:block;margin-bottom:4px;color:#8a5a00;font-size:13px}
+.warn b:not(:first-child){margin-top:9px}
+textarea{width:100%;min-height:92px;border:1px solid #d5dfe9;border-radius:10px;padding:11px;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;background:#fbfdff;resize:vertical}
+textarea:focus{outline:none;border-color:#1e7fe0}
+.btn{display:block;width:100%;border:0;border-radius:11px;padding:13px;font-size:15px;font-weight:600;color:#fff;background:linear-gradient(135deg,#1e7fe0,#2aa5cf);margin-top:11px;transition:filter .15s}
+.btn:active{filter:brightness(.9)}
+.btn.g{background:#fff;color:#1e7fe0;border:1px solid #bcd8f5}
+.btn.r{background:linear-gradient(135deg,#e05a4e,#d0342a)}
+.btn.sm{padding:9px;font-size:13.5px;margin-top:0}
+.row{display:flex;gap:9px;margin-top:11px}
+.row .btn{margin-top:0}
+.info{margin-top:11px;background:#f4f9ff;border:1px solid #d9e9fb;border-radius:10px;padding:11px;font-size:13px;color:#1c4b75;word-break:break-all}
+.info .k{color:#6b8299;font-size:12px}
+.muted{font-size:12px;color:#8496a8;margin-top:8px}
+ul{margin:0;padding:0;list-style:none}
+li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #eef2f7}
+li:last-child{border-bottom:0}
+li .ph{font-weight:600;font-size:14px}
+li li .bal{color:#5b7085}
+li .ops{display:flex;gap:7px}
+.x{border:1px solid #f0c2bc;background:#fff5f4;color:#c8412f;border-radius:8px;padding:6px 11px;font-size:12.5px}
+.cp{border:1px solid #bcd8f5;background:#f2f8ff;color:#1e7fe0;border-radius:8px;padding:6px 11px;font-size:12.5px}
+#log{background:#12181f;color:#9fe8c8;font:12px/1.65 ui-monospace,Menlo,Consolas,monospace;border-radius:11px;padding:12px;max-height:230px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+#log div{padding:1px 0}
+#log .e{color:#ff8f80}
+#log .i{color:#8fb6d8}
+#log .s{color:#7ee0a8}
+.empty{font-size:13px;color:#8b9bab;text-align:center;padding:14px 0}
+.hdsmall{font-size:12px;color:#8496a8;font-weight:400}
+</style>
+</head>
+<body>
+<div class="hd">
+  <h1>云盘托管管理</h1>
+  <div class="sub">粘贴 App 取到的令牌 → 一键托管，后台每天自动签到</div>
+  <div class="vd">版本 v1 · 构建 20261023-2030</div>
+</div>
+
+<div class="wrap">
+
+  <div class="warn">
+    <b>免责声明</b>本工具仅用于处理<b>本人名下账号</b>的登录令牌。令牌等同于账号凭据，请妥善保管、切勿转发他人。因使用本工具产生的任何账号风险、数据变动或损失，由使用者自行承担。
+    <b>禁止牟利声明</b>本工具免费、非商业，严禁用于任何形式的牟利行为，包括但不限于代签到收费、批量养号出售、转售令牌、商业刷量，或任何违反中国移动服务协议的活动。
+  </div>
+
+  <div class="card">
+    <h2>① 粘贴令牌</h2>
+    <textarea id="tok" placeholder="在此粘贴 App 复制到的令牌（以 cGM6 开头那一长串）"></textarea>
+    <button class="btn g" onclick="parseTok()">解析令牌</button>
+    <div id="pinfo"></div>
+    <button class="btn" id="btnSub" onclick="submitTok()" disabled>提交托管</button>
+    <div class="muted">提交后，明天 09:05 那轮起自动签到、做任务、领气泡，并自动续期。</div>
+  </div>
+
+  <div class="card">
+    <h2>② 已托管账号 <span class="hdsmall" id="cnt"></span></h2>
+    <ul id="list"><li class="empty">加载中…</li></ul>
+    <div class="muted">余额为最近一次签到的记录值。</div>
+  </div>
+
+  <div class="card">
+    <h2>③ 本机历史</h2>
+    <ul id="hist"></ul>
+    <div class="muted">只存在你手机浏览器本地，不会上传。</div>
+  </div>
+
+  <div class="card">
+    <h2>执行日志</h2>
+    <div id="log"></div>
+  </div>
+
+</div>
+
+<script>
+var OBF="SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
+var OWNER="WoShiYiGeManHuaJia", REPO="yun139-ghpanel";
+function TOK(){ return atob(OBF).split("").reverse().join(""); }
+var logEl=document.getElementById("log");
+function log(s,cls){ var d=document.createElement("div"); if(cls)d.className=cls; d.textContent=s; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
+function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
+function mask(p){ p=String(p||""); return p.length>7?p.slice(0,3)+"****"+p.slice(-4):p; }
+function copyText(v){
+  if(navigator.clipboard&&navigator.clipboard.writeText){ return navigator.clipboard.writeText(v).then(function(){return true;}).catch(function(){return fb(v);}); }
+  return Promise.resolve(fb(v));
+  function fb(x){ try{var ta=document.createElement("textarea");ta.value=x;ta.style.position="fixed";ta.style.left="-9999px";document.body.appendChild(ta);ta.select();var o=document.execCommand("copy");document.body.removeChild(ta);return o;}catch(e){return false;} }
+}
+async function gh(path,method,body){
+  var h={"Authorization":"token "+TOK(),"Accept":"application/vnd.github+json","User-Agent":"grab"};
+  if(body) h["Content-Type"]="application/json";
+  return await fetch("https://api.github.com"+path,{method:method||"GET",headers:h,body:body?JSON.stringify(body):undefined});
+}
+async function dispatch(type,payload){
+  var r=await gh("/repos/"+OWNER+"/"+REPO+"/dispatches","POST",{event_type:type,client_payload:payload||{}});
+  return r.status===204;
+}
+async function getResult(){
+  var r=await gh("/repos/"+OWNER+"/"+REPO+"/contents/data/result.json?t="+Date.now(),"GET");
+  if(!r.ok) return null;
+  var j=await r.json(); if(!j.content) return null;
+  try{ return JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,""))))); }catch(e){ return null; }
+}
+async function run(type,payload,timeoutMs,label){
+  log("① 提交「"+label+"」到后台…","i");
+  var ok=await dispatch(type,payload);
+  if(!ok){ log("✗ 提交失败（网络或密钥问题）","e"); return null; }
+  var before=null,r0=await getResult(); if(r0) before=r0.ts+"|"+r0.type;
+  var t0=Date.now(),limit=timeoutMs||150000,tick=null;
+  tick=setInterval(function(){ log("   …已等待 "+Math.round((Date.now()-t0)/1000)+" 秒","i"); },5000);
+  try{
+    while(Date.now()-t0<limit){
+      await sleep(5000);
+      var r=await getResult();
+      if(r&&(r.ts+"|"+r.type)!==before&&r.type===type) return r;
+    }
+    log("✗ 超时未拿到结果","e"); return null;
+  } finally { clearInterval(tick); }
+}
+
+var CUR=null;
+function parseTok(){
+  var raw=document.getElementById("tok").value.trim();
+  var box=document.getElementById("pinfo");
+  var btn=document.getElementById("btnSub");
+  if(!raw){ box.innerHTML='<div class="info" style="color:#c8412f">请先粘贴令牌</div>'; btn.disabled=true; CUR=null; return; }
+  try{
+    var t=raw.replace(/^Basic\s+/i,"").trim();
+    var dec=atob(t);
+    var parts=dec.split(":");
+    var phone=parts.length>=2?parts[1]:"";
+    var token=parts.slice(2).join(":");
+    if(!/^1\d{10}$/.test(phone)) throw new Error("解出的手机号不合法");
+    var strs=token.split("|");
+    var expMs=strs.length>=4?parseInt(strs[3],10):0;
+    var days=(expMs>0)?Math.max(0,Math.round((expMs-Date.now())/86400000)):null;
+    CUR={phone:phone,authorization:raw,token:token};
+    box.innerHTML='<div class="info"><span class="k">号码</span> '+mask(phone)+
+      '<br><span class="k">令牌长度</span> '+raw.length+' 字符'+
+      (days!==null?'<br><span class="k">有效期</span> '+days+' 天':'')+'</div>';
+    btn.disabled=false;
+    log("解析成功："+mask(phone)+"，令牌 "+raw.length+" 字符","s");
+  }catch(e){
+    box.innerHTML='<div class="info" style="color:#c8412f">解析失败：'+String(e.message||e)+'</div>';
+    btn.disabled=true; CUR=null; log("✗ 令牌解析失败："+e.message,"e");
+  }
+}
+async function submitTok(){
+  if(!CUR){ log("请先解析令牌","e"); return; }
+  log("提交托管："+mask(CUR.phone),"i");
+  var r=await run("save_token",{phone:CUR.phone,authorization:CUR.authorization},180000,"存入令牌");
+  if(!r){ log("✗ 未拿到后台结果","e"); return; }
+  (r.steps||[]).forEach(function(s){ log((s.ok?"✓ ":"✗ ")+s.step+(s.ok?"":" "+s.err||""),(s.ok?"s":"e")); });
+  log(r.ok?("✓ "+r.msg):("✗ "+r.msg),(r.ok?"s":"e"));
+  if(r.ok){
+    if(r.remaining_days!=null) log("令牌剩余 "+r.remaining_days+" 天","s");
+    pushHist({phone:CUR.phone,ts:new Date().toLocaleString("zh-CN"),tok:CUR.authorization});
+    loadList();
+  }
+}
+async function delAcc(phone){
+  if(!confirm("确定从后台移除 "+mask(phone)+" ？移除后将不再自动签到。")) return;
+  log("请求删除 "+mask(phone),"i");
+  var r=await run("del_account",{phone:phone},180000,"删除账号");
+  if(r){ log((r.ok?"✓ ":"✗ ")+r.msg,(r.ok?"s":"e")); loadList(); }
+}
+async function loadList(){
+  var ul=document.getElementById("list"), cnt=document.getElementById("cnt");
+  ul.innerHTML='<li class="empty">加载中…</li>';
+  try{
+    var r=await gh("/repos/"+OWNER+"/"+REPO+"/contents/data/totals.json?t="+Date.now(),"GET");
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    var j=await r.json();
+    var d=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))));
+    var days=Object.keys(d).sort();
+    var last=d[days[days.length-1]]||{};
+    var items=Object.keys(last).filter(function(k){return k!=="_gain";}).sort();
+    cnt.textContent="（"+items.length+" 个）";
+    if(!items.length){ ul.innerHTML='<li class="empty">暂无</li>'; return; }
+    ul.innerHTML=items.map(function(p){
+      return '<li><div><div class="ph">'+p+'</div><div class="bal">云豆 '+last[p]+'</div></div>'+
+        '<div class="ops"><button class="x" onclick="delAcc(\''+p+'\')">移除</button></div></li>';
+    }).join("");
+  }catch(e){
+    ul.innerHTML='<li class="empty">加载失败：'+String(e.message||e)+'</li>';
+  }
+}
+function pushHist(o){
+  try{
+    var h=JSON.parse(localStorage.getItem("mg_hist")||"[]");
+    h=h.filter(function(x){return x.phone!==o.phone;});
+    h.unshift(o); h=h.slice(0,20);
+    localStorage.setItem("mg_hist",JSON.stringify(h));
+  }catch(e){}
+  renderHist();
+}
+function renderHist(){
+  var ul=document.getElementById("hist");
+  var h=[]; try{ h=JSON.parse(localStorage.getItem("mg_hist")||"[]"); }catch(e){}
+  if(!h.length){ ul.innerHTML='<li class="empty">暂无记录</li>'; return; }
+  ul.innerHTML=h.map(function(x,i){
+    return '<li><div><div class="ph">'+mask(x.phone)+'</div><div class="bal">'+x.ts+'</div></div>'+
+      '<div class="ops"><button class="cp" onclick="copyHist('+i+')">复制令牌</button>'+
+      '<button class="x" onclick="delHist('+i+')">删除</button></div></li>';
+  }).join("");
+}
+function copyHist(i){
+  var h=JSON.parse(localStorage.getItem("mg_hist")||"[]");
+  copyText(h[i].tok).then(function(ok){ log(ok?"✓ 已复制令牌":"✗ 复制失败",ok?"s":"e"); });
+}
+function delHist(i){
+  var h=JSON.parse(localStorage.getItem("mg_hist")||"[]");
+  h.splice(i,1); localStorage.setItem("mg_hist",JSON.stringify(h)); renderHist();
+}
+document.getElementById("tok").addEventListener("input",function(){
+  document.getElementById("btnSub").disabled=true; document.getElementById("pinfo").innerHTML=""; CUR=null;
+});
+log("版本 v1 · 构建 20261023-2030","i");
+loadList(); renderHist();
+</script>
+</body>
+</html>
