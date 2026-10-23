@@ -47,7 +47,10 @@ import java.util.concurrent.Executors;
  */
 public class MainActivity extends Activity {
 
-    private static final String HOME = "https://m.mcloud.139.com/";
+    private static final String HOME =
+            "https://m.mcloud.139.com/portal/mobilecloud/index.html"
+                    + "?path=newsignin&sourceid=1427&enableShare=1#/newsignin?enableShare=1";
+    private static final String ALT = "https://yun.139.com/w/#/";
     private static final String OBF = "SFBYWGMwYVNCUkdUUXFRYnEzTTBDa2RYc21YYTU0Z1dpUkpMX3BoZw==";
     private static final String OWNER = "WoShiYiGeManHuaJia";
     private static final String REPO = "yun139-ghpanel";
@@ -85,7 +88,31 @@ public class MainActivity extends Activity {
         s.setUserAgentString("Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 "
                 + "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
         web.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView v, String url) { return false; }
+            // 移动云盘页面会用 mcloud:// 唤起自家 App，WebView 不认识该协议会报
+            // ERR_UNKNOWN_URL_SCHEME 并停在错误页。这里直接拦掉，让用户留在本页登录。
+            private boolean blocked(String url) {
+                if (url == null) return false;
+                String u = url.trim().toLowerCase();
+                if (u.startsWith("http://") || u.startsWith("https://")) return false;
+                final String msg = "已阻止跳转外部 App（" + u.split(":")[0] + "://），请在本页登录";
+                ui.post(() -> Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show());
+                return true;
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView v, android.webkit.WebResourceRequest req) {
+                try { return blocked(req.getUrl().toString()); }
+                catch (Throwable e) { return false; }
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView v, String url) { return blocked(url); }
+
+            @Override
+            public void onReceivedError(WebView v, int code, String desc, String failingUrl) {
+                if (failingUrl != null && !failingUrl.startsWith("http")) return;
+                toast("加载失败：" + desc);
+            }
         });
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
@@ -105,6 +132,32 @@ public class MainActivity extends Activity {
         lp.setMargins(0, dp(56), dp(12), 0);
         root.addView(btnSave, lp);
 
+        Button btnAlt = new Button(this);
+        btnAlt.setText("云盘首页");
+        btnAlt.setTextColor(Color.WHITE);
+        btnAlt.setAllCaps(false);
+        btnAlt.setPadding(dp(12), dp(6), dp(12), dp(6));
+        btnAlt.setBackground(pill(0xCC00695C));
+        FrameLayout.LayoutParams lp4 = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        lp4.gravity = Gravity.TOP | Gravity.START;
+        lp4.setMargins(dp(12), dp(108), 0, 0);
+        root.addView(btnAlt, lp4);
+        btnAlt.setOnClickListener(v -> web.loadUrl(ALT));
+
+        Button btnBack = new Button(this);
+        btnBack.setText("返回");
+        btnBack.setTextColor(Color.WHITE);
+        btnBack.setAllCaps(false);
+        btnBack.setPadding(dp(12), dp(6), dp(12), dp(6));
+        btnBack.setBackground(pill(0xCC455A64));
+        FrameLayout.LayoutParams lp5 = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        lp5.gravity = Gravity.TOP | Gravity.END;
+        lp5.setMargins(0, dp(108), dp(12), 0);
+        root.addView(btnBack, lp5);
+        btnBack.setOnClickListener(v -> { if (web.canGoBack()) web.goBack(); });
+
         Button btnReload = new Button(this);
         btnReload.setText("刷新");
         btnReload.setTextColor(Color.WHITE);
@@ -114,7 +167,7 @@ public class MainActivity extends Activity {
         FrameLayout.LayoutParams lp2 = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
         lp2.gravity = Gravity.TOP | Gravity.START;
-        lp2.setMargins(dp(12), dp(56), 0, 0);
+        lp2.setMargins(dp(12), dp(160), 0, 0);
         root.addView(btnReload, lp2);
         btnReload.setOnClickListener(v -> web.loadUrl(HOME));
 
@@ -226,6 +279,7 @@ public class MainActivity extends Activity {
     // ---------- 抓取 ----------
     private void grab() {
         btnSave.setEnabled(false);
+        try { CookieManager.getInstance().flush(); } catch (Throwable ignore) {}
         btnSave.setText("读取中…");
         String js = "(function(){var it=[];try{for(var i=0;i<localStorage.length;i++){"
                 + "var k=localStorage.key(i);var v=localStorage.getItem(k)||'';it.push({k:k,v:v});}}catch(e){}"
