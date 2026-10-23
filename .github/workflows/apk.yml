@@ -16,36 +16,38 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Accept SDK licenses
-        run: |
-          if [ -n "$ANDROID_HOME" ] && [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
-            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || true
-          fi
-          echo "ANDROID_HOME=$ANDROID_HOME"
       - name: Setup Gradle
         run: |
           curl -sL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.2-bin.zip
           unzip -q /tmp/gradle.zip -d /opt
           chmod +x /opt/gradle-8.2/bin/gradle
-      - name: Build
+      - name: Build (捕获编译错误)
         working-directory: ./yuntok
-        run: /opt/gradle-8.2/bin/gradle assembleDebug --no-daemon --stacktrace
+        run: |
+          mkdir -p ../data
+          : > ../data/buildlog.txt
+          /opt/gradle-8.2/bin/gradle assembleDebug --no-daemon > /tmp/b.log 2>&1
+          echo "gradle exit=$?" >> ../data/buildlog.txt
+          grep -nE "error:|error\s*:|\.java:[0-9]+|FAILED|Compilation failed" /tmp/b.log | head -60 >> ../data/buildlog.txt
+          echo "----- tail -----" >> ../data/buildlog.txt
+          tail -40 /tmp/b.log >> ../data/buildlog.txt
+          cat ../data/buildlog.txt
       - name: Publish APK
         run: |
-          # 只从构建产物目录取，绝不全局 find（避免被仓库内的旧副本覆盖）
+          # 只从构建产物目录取，绝不全局 find（避免被仓库内旧副本覆盖）
           SRC=yuntok/app/build/outputs/apk/debug/app-debug.apk
-          ls -l "$SRC"
-          md5sum "$SRC"
-          cp "$SRC" yuntok.apk
-          ls -l yuntok.apk
-          md5sum yuntok.apk
+          if [ -f "$SRC" ]; then
+            cp "$SRC" yuntok.apk
+            ls -l yuntok.apk; md5sum yuntok.apk
+          else
+            echo "NO_APK (build failed)" > data/noapk.txt
+          fi
       - name: Commit
         run: |
           git config user.name zz
           git config user.email zz@x.com
-          git add -f yuntok.apk
+          git add -f yuntok.apk data/buildlog.txt data/noapk.txt 2>/dev/null || true
           git diff --cached --quiet && echo "no change" && exit 0
-          git commit -m "chore: 更新 yuntok.apk ($(date -u +%Y%m%d-%H%M))"
+          git commit -m "chore: yuntok 构建产物与日志 ($(date -u +%Y%m%d-%H%M))"
           for i in 1 2 3 4 5 6; do git pull --rebase origin main && git push origin main && exit 0; sleep 6; done
           exit 1
