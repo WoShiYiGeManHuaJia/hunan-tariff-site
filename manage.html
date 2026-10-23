@@ -105,6 +105,10 @@ summary{font-size:13px;color:#3b82f6;cursor:pointer;padding:6px 0}
       <button class="gh" onclick="genBookmark()">生成抓取书签</button>
       <button class="gh" onclick="openYun()">打开云盘登录</button>
     </div>
+    <div style="margin-top:8px">
+      <span id="yunHint" style="font-size:12px;color:#456">当前入口：云盘网页版(推荐)</span>
+      <button class="gh sm" style="margin-left:8px" onclick="switchYun()">换个入口</button>
+    </div>
     <div id="bmBox" style="margin-top:10px"></div>
   </div>
 
@@ -257,26 +261,56 @@ var CUR=null;
 function clean(s){ return String(s||"").replace(/\s+/g,""); }
 
 /* ---------- 书签抓取（不依赖短信接口） ---------- */
+var YUN_URLS = [
+  ["https://yun.139.com/w/#/transfer", "云盘网页版(推荐)"],
+  ["https://m.mcloud.139.com/portal/mobilecloud/index.html", "移动门户(备用)"]
+];
+var yunIdx = 0;
 function openYun(){
-  log("已在新窗口打开云盘，登录后回到本页点书签","i");
-  window.open("https://m.mcloud.139.com/portal/mobilecloud/index.html","_blank");
+  var u = YUN_URLS[yunIdx % YUN_URLS.length][0];
+  log("打开：" + YUN_URLS[yunIdx % YUN_URLS.length][1], "i");
+  window.open(u, "_blank");
+}
+function switchYun(){
+  yunIdx++;
+  var n = YUN_URLS[yunIdx % YUN_URLS.length];
+  document.getElementById("yunHint").textContent = "当前入口：" + n[1];
+  log("入口切换为：" + n[0], "i");
 }
 function genBookmark(){
   var back = location.origin + location.pathname;
+  // 抓不到时不再只弹一句 alert —— 直接输出诊断页，把所有存储项列出来，
+  // 便于定位令牌究竟存在哪个 key / 哪个域名下
   var code = "(function(){try{"
-    + "var F=[],P=/pc:1\\d{10}:[A-Za-z0-9|._-]+/;"
-    + "function add(s,t){for(var i=0;i<F.length;i++)if(F[i].t===t)return;F.push({s:s,t:t});}"
-    + "function look(v,tag){if(typeof v!=='string')return;var c=[v];"
-    + "try{var d=atob(v);if(d)c.push(d);}catch(e){}"
-    + "for(var i=0;i<c.length;i++){var m=c[i].match(P);if(m)add(tag,m[0]);}}"
-    + "try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);look(localStorage.getItem(k),k);}}catch(e){}"
-    + "try{for(var i=0;i<sessionStorage.length;i++){var k=sessionStorage.key(i);look(sessionStorage.getItem(k),'session.'+k);}}catch(e){}"
-    + "try{var ck=document.cookie||'';var m=ck.match(P);if(m)add('cookie',m[0]);}catch(e){}"
+    + "var F=[],K=[],P=/pc:1\\d{10}:[A-Za-z0-9|._-]+/;"
+    + "function add(t,s){for(var i=0;i<F.length;i++)if(F[i].t===t)return;F.push({s:s,t:t});}"
+    + "function look(v,tag){if(typeof v!=='string'||!v)return;"
+    + "var c=[v];try{var d=atob(v);if(d)c.push(d);}catch(e){}"
+    + "for(var i=0;i<c.length;i++){var m=c[i].match(P);if(m)add(m[0],tag);}"
+    + "var pv=v.length>28?(v.slice(0,16)+'…('+v.length+')'):v;"
+    + "K.push(tag+' | '+pv);}"
+    + "try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);look(localStorage.getItem(k),'LS.'+k);}}catch(e){K.push('LS读取失败:'+e.message);}"
+    + "try{for(var i=0;i<sessionStorage.length;i++){var k=sessionStorage.key(i);look(sessionStorage.getItem(k),'SS.'+k);}}catch(e){K.push('SS读取失败:'+e.message);}"
+    + "var ck=document.cookie||'';"
+    + "ck.split(';').forEach(function(p){var t=p.trim();if(!t)return;"
+    + "var i=t.indexOf('=');var n=t.slice(0,i);var v=t.slice(i+1);"
+    + "try{v=decodeURIComponent(v);}catch(e){}"
+    + "look(v,'CK.'+n);});"
     + "var BACK='" + back + "';"
-    + "if(!F.length){alert('未读到令牌。请确认已在本页登录 m.mcloud.139.com（不是 App 里登录）。');return;}"
+    + "if(F.length){"
     + "var best=F[0];for(var i=0;i<F.length;i++)if(F[i].t.length>best.t.length)best=F[i];"
     + "try{navigator.clipboard.writeText(best.t);}catch(e){}"
-    + "location.href=BACK+'#tok='+encodeURIComponent(best.t);"
+    + "location.href=BACK+'#tok='+encodeURIComponent(best.t);return;}"
+    + "var txt='域名: '+location.host+'\\n存储项 '+K.length+' 个\\n\\n'+K.join('\\n');"
+    + "try{navigator.clipboard.writeText(txt);}catch(e){}"
+    + "document.open();document.write('<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">'"
+    + "+'<body style=\"font:13px/1.7 -apple-system,sans-serif;padding:16px;background:#fff\">'"
+    + "+'<h3 style=\"color:#c0392b;margin:0 0 8px\">未找到令牌</h3>'"
+    + "+'<p style=\"color:#555\">域名 <b>'+location.host+'</b> 下共 '+K.length+' 项存储，已尝试复制到剪贴板。</p>'"
+    + "+'<pre id=\"DG\" style=\"white-space:pre-wrap;word-break:break-all;background:#f6f8fa;padding:12px;border-radius:8px;font-size:12px;margin:10px 0\">'+txt.replace(/</g,'&lt;')+'</pre>'"
+    + "+'<button onclick=\"var t=document.getElementById(\\'DG\\').textContent;navigator.clipboard.writeText(t);this.textContent=\\'已复制\\'\" style=\"padding:10px 16px;background:#1677ff;color:#fff;border:0;border-radius:8px;font-size:15px\">复制诊断信息</button>'"
+    + "+'<p style=\"color:#666;font-size:12px;margin-top:12px\">把这段发给我，我据此定位令牌存在哪。</p>');"
+    + "document.close();"
     + "}catch(e){alert('读取出错: '+e.message);}})()";
   var href = "javascript:" + code;
   var box = document.getElementById("bmBox");
@@ -310,11 +344,14 @@ function fallbackCopy(t){
   document.body.removeChild(ta);
 }
 /* 书签回跳：URL 里带 #tok= 时自动填入 */
+/* 只改 hash 不会重载页面，必须监听 hashchange，否则从云盘点书签跳回来时不会触发解析 */
+window.addEventListener("hashchange", function(){ fromHash(); });
 function fromHash(){
   var h = location.hash || "";
   var m = h.match(/[#&]tok=([^&]+)/);
   if(!m) return false;
   var t = decodeURIComponent(m[1]);
+  if(_lastParsed && _lastParsed === t) return false;   // 同一令牌不重复解析
   var el = document.getElementById("tok");
   if(!el || !t) return false;
   el.value = t;
