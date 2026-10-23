@@ -187,13 +187,25 @@ async function loadList(){
     if(!r.ok) throw new Error("HTTP "+r.status);
     var j=await r.json();
     var d=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))));
+    // 旧逻辑只读最后一天：某号当天没跑出数据时，页面上就整个消失（例如 10-23
+    // 缺 182****4895，页面只剩 3 个）。改为合并最近 10 天取并集，
+    // 每个号显示它最近一次有记录的余额，并标出该数据的日期。
     var days=Object.keys(d).sort();
-    var last=d[days[days.length-1]]||{};
-    var items=Object.keys(last).filter(function(k){return k!=="_gain";}).sort();
+    var recent=days.slice(-10);
+    var bal={}, day={};
+    recent.forEach(function(dy){
+      var rec=d[dy]||{};
+      Object.keys(rec).forEach(function(k){
+        if(k==="_gain") return;
+        bal[k]=rec[k]; day[k]=dy;
+      });
+    });
+    var items=Object.keys(bal).sort();
     cnt.textContent="（"+items.length+" 个）";
     if(!items.length){ ul.innerHTML='<li class="empty">暂无</li>'; return; }
     ul.innerHTML=items.map(function(p){
-      return '<li><div><div class="ph">'+p+'</div><div class="bal">云豆 '+last[p]+'</div></div>'+
+      var lag = day[p]===days[days.length-1] ? "" : ' <span style="opacity:.55;font-size:12px">'+day[p]+'</span>';
+      return '<li><div><div class="ph">'+p+lag+'</div><div class="bal">云豆 '+bal[p]+'</div></div>'+
         '<div class="ops"><button class="x" onclick="delAcc(\''+p+'\')">移除</button></div></li>';
     }).join("");
   }catch(e){
