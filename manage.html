@@ -16,6 +16,23 @@ body{background:var(--bg);color:#111827;
   font:15px/1.65 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
   padding-bottom:calc(28px + env(safe-area-inset-bottom))}
 
+/* ---------- 口令门禁 ---------- */
+#gate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  padding:22px;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+#gate .gb{width:100%;max-width:340px;background:#fff;border-radius:20px;padding:24px 20px 20px;
+  box-shadow:0 18px 46px rgba(0,0,0,.28);text-align:center}
+#gate .gi{font-size:38px;line-height:1;margin-bottom:10px}
+#gate .gt{font-size:17px;font-weight:700;color:#111827}
+#gate .gq{margin-top:10px;font-size:14.5px;color:#374151;line-height:1.7}
+#gate .gq b{color:#4f46e5}
+#gate input{margin-top:14px;text-align:center;font-size:18px;letter-spacing:2px;font-weight:700}
+#gate .ge{display:none;margin-top:9px;font-size:13px;color:#c0392b}
+#gate .row{margin-top:14px}
+#gate .gn{margin-top:12px;font-size:11.5px;color:#6b7280;line-height:1.6}
+body.gated{overflow:hidden}
+body.gated .wrap,body.gated .hero{display:none}
+
 /* ---------- 头部 ---------- */
 .hero{background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
   color:#fff;padding:22px 18px 26px;border-radius:0 0 22px 22px;
@@ -129,7 +146,20 @@ details[open] summary:before{content:"▾ "}
 code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
 </style>
 </head>
-<body>
+<body class="gated">
+
+<div id="gate">
+  <div class="gb">
+    <div class="gi">🔒</div>
+    <div class="gt">云盘自动签到</div>
+    <div class="gq">进入前请回答：<br><b>我国有多少个民族？</b></div>
+    <input id="passIn" type="text" inputmode="numeric" placeholder="填数字"
+           onkeydown="if(event.key==='Enter')passCheck()">
+    <div class="ge" id="passErr"></div>
+    <div class="row"><button class="ok" onclick="passCheck()">进入</button></div>
+    <div class="gn">答对一次即可，之后本机不再询问。<br>答案不在本页，由后台校验。</div>
+  </div>
+</div>
 
 <div class="hero">
   <h1>云盘签到托管</h1>
@@ -752,12 +782,64 @@ function clearHist(){
   localStorage.removeItem("mg_hist"); renderHist(); log("✓ 历史已清空","s");
 }
 
+/* ---------- 口令门禁 ----------
+   进入本页需要先答对一道题。答案和判定都在私有后端，页面里没有任何答案。
+   答对一次写进本机 localStorage，之后同一台手机不再重复问。 */
+function passOk(){
+  try{ localStorage.setItem("mg_pass","1"); }catch(e){}
+  var g=document.getElementById("gate");
+  if(g) g.parentNode.removeChild(g);
+  document.body.classList.remove("gated");
+  setTimeout(function(){ fromHash(); loadList(); }, 60);
+}
+function passErr(t){
+  var e=document.getElementById("passErr");
+  if(e){ e.textContent=t; e.style.display="block"; }
+  var b=document.getElementById("passBtn");
+  if(b){ b.disabled=false; b.textContent="进入"; }
+}
+async function passCheck(){
+  var el=document.getElementById("passIn");
+  var v=(el && el.value ? el.value : "").replace(/\s+/g,"");
+  if(!v){ passErr("请先填答案"); return; }
+  var b=document.getElementById("passBtn");
+  var e0=document.getElementById("passErr"); if(e0) e0.style.display="none";
+  if(b){ b.disabled=true; b.textContent="验证中…"; }
+  var rid="pk-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+  try{
+    var r=await gh("/repos/"+MINE.owner+"/"+MINE.repo+"/dispatches","POST",
+      {event_type:"check_pass",client_payload:{pass:v,requestId:rid}}, TOK());
+    if(r.status!==204){ passErr("提交失败（网络问题），请重试"); return; }
+    for(var i=0;i<28;i++){
+      await sleep(4000);
+      var g=await gh("/repos/"+MINE.owner+"/"+MINE.repo+"/contents/data/result.json?t="+Date.now(),"GET",null,TOK());
+      if(!g.ok) continue;
+      var j=await g.json();
+      if(!j.content) continue;
+      var o; try{ o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,""))))); }catch(_){ continue; }
+      if(o && o.requestId===rid){
+        if(o.ok){ passOk(); return; }
+        passErr("答案不对，再想想"); return;
+      }
+    }
+    passErr("验证超时，请重试");
+  }catch(err){ passErr("网络异常："+(err && err.message ? err.message : err)); }
+}
+
 /* ---------- init ---------- */
 (function(){
   var m=localStorage.getItem("mg_mode"); if(m) MODE=m;
   setMode(MODE); renderHist();
-  log("版本 v5 · 界面重构版","i");
-  setTimeout(function(){ if(!fromHash()) loadList(); else loadList(); }, 60);
+  log("版本 v6 · 口令门禁版","i");
+  var passed=false;
+  try{ passed = localStorage.getItem("mg_pass")==="1"; }catch(e){}
+  if(passed){
+    var g0=document.getElementById("gate");
+    if(g0) g0.parentNode.removeChild(g0);
+    document.body.classList.remove("gated");
+    setTimeout(function(){ fromHash(); loadList(); }, 60);
+  }
+  /* 未通过时门禁遮罩可见，页面正文被 CSS 隐藏，什么都不加载 */
 })();
 
 /* ---------- 推送配置（写入私有仓库，后台读取） ---------- */
