@@ -366,6 +366,10 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
       云端存的是<b>密文</b>（后端密钥加密），别人即使拿到仓库文件也看不到你的邮箱/webhook。<br>
       换手机时在另一台设备填入<b>同一个保管箱标识</b>，就能沿用这份配置。
     </div>
+    <div class="row" style="margin-top:11px">
+      <button class="gh" onclick="selfCheck()">🔍 自查：云端到底存的是不是密文</button>
+    </div>
+    <div id="ckBox" class="note" style="display:none;margin-top:9px;line-height:1.7"></div>
   </div>
 </div>
 
@@ -1021,9 +1025,15 @@ async function loadPush(){
   var v=(document.getElementById("pfVault").value||"").trim()||vault();
   var r=await run("read_notify",{vault:v},120000,"读取本保管箱配置");
   if(r&&r.ok&&r.cfg){
-    applyCfg(r.cfg);
-    try{ localStorage.setItem(cacheKey(), JSON.stringify(r.cfg)); }catch(e){}
-    log("✓ 已读取本保管箱的配置（云端密文，仅本人可解）","s");
+    // 后端出于安全不回传授权码/webhook，云端只回"类型+存在与否"。
+    // 本机有缓存时以本机为准（授权码完整）；换设备则提示重填一次。
+    var hasLocal=false; try{ hasLocal=!!localStorage.getItem(cacheKey()); }catch(e){}
+    if(hasLocal){
+      log("✓ 云端保管箱存在配置：" + (r.cfg.hint||r.cfg.type) + "（本机已有完整配置）","s");
+    }else{
+      document.getElementById("pfState").innerHTML='云端已保存 · <span class="badge g">'+(r.cfg.type||"")+'</span> · '+(r.cfg.hint||"")+'<br>授权码不会回传，请在本机重新填写一次';
+      log("· 云端保管箱有配置：" + (r.cfg.hint||"") + "；授权码不回传，请重填一次","i");
+    }
   } else {
     if(!(localStorage.getItem(cacheKey()))){
       document.getElementById("pfState").textContent="本保管箱暂无配置";
@@ -1031,6 +1041,60 @@ async function loadPush(){
       log("· 云端该保管箱暂无配置，当前显示的是本机缓存","i");
     }
   }
+}
+// 自查：由你的浏览器直接读 GitHub 仓库文件，不经过我的后端。
+// 结果就是云端真实存的东西 —— 密文还是明文，眼见为实。
+async function selfCheck(){
+  var box=document.getElementById("ckBox");
+  if(!box) return;
+  box.style.display="block";
+  box.innerHTML="正在直连仓库读取…";
+  var files=[{p:"data/notify.json",n:"data/notify.json"}];
+  try{
+    var r=await gh("/repos/"+MINE.owner+"/"+MINE.repo+"/contents/data/notify?t="+Date.now(),"GET");
+    if(r.ok){
+      var arr=await r.json();
+      for(var i=0;i<arr.length;i++){
+        if(/\.json$/i.test(arr[i].name)) files.push({p:"data/notify/"+arr[i].name,n:"data/notify/"+arr[i].name});
+      }
+    }
+  }catch(e){}
+
+  var html="";
+  var bad=0;
+  for(var k=0;k<files.length;k++){
+    var f=files[k];
+    var st;
+    try{
+      var rr=await gh("/repos/"+MINE.owner+"/"+MINE.repo+"/contents/"+f.p+"?t="+Date.now(),"GET");
+      if(rr.status===404){ html+=line(f.n,"不存在","i"); continue; }
+      if(!rr.ok){ html+=line(f.n,"读取失败 HTTP "+rr.status,"e"); continue; }
+      var j=await rr.json();
+      var raw=decodeURIComponent(escape(atob((j.content||"").replace(/\n/g,""))));
+      var o=null; try{ o=JSON.parse(raw); }catch(e){}
+      if(o && o.enc){
+        st=line(f.n,"✅ 密文（无法还原内容）","s");
+        html+=st;
+      }else if(o && o.type && o.key){
+        bad++;
+        // 明文时不展示内容，避免把别人的授权码/邮箱暴露在屏幕上
+        html+=line(f.n,"⚠️ 明文！含邮箱或授权码（内容已隐藏）","e");
+      }else{
+        html+=line(f.n,"· 无有效配置","i");
+      }
+    }catch(e){ html+=line(f.n,"异常 "+String(e.message||e).slice(0,40),"e"); }
+  }
+  var head=bad===0
+    ? "<b style='color:#0a8'>结论：云端全部是密文 ✅</b><br>仓库文件里只有一串乱码，翻不到邮箱地址也翻不到授权码。"
+    : "<b style='color:#c33'>结论：发现 "+bad+" 份明文 ⚠️</b><br>这些能被直接读到内容，需要修复。";
+  html=head+"<hr style='margin:8px 0;border:0;border-top:1px solid #e3e6f0'>"+html;
+  html+="<div style='margin-top:8px;color:#8a90a2;font-size:12px'>以上由你的浏览器直连 GitHub 读取，是云端真实存的内容。</div>";
+  box.innerHTML=html;
+  log(bad===0?"✓ 自查完成：云端全部密文":"⚠ 自查完成：发现 "+bad+" 份明文", bad===0?"s":"e");
+}
+function line(name,txt,cls){
+  var c=cls==="s"?"#0a8":(cls==="e"?"#c33":"#8a90a2");
+  return "<div style='display:flex;justify-content:space-between;gap:8px'><span style='font-family:monospace;font-size:12px;word-break:break-all'>"+name+"</span><b style='color:"+c+";flex:0 0 auto'>"+txt+"</b></div>";
 }
 async function savePush(){
   var t=document.getElementById("pfType").value;
