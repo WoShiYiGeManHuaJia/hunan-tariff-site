@@ -325,8 +325,17 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
       <button class="ok" onclick="testPush()">发一条测试</button>
     </div>
     <div id="pfState" class="quota"></div>
+    <label>推送保管箱（每人独立）</label>
+    <div class="row">
+      <input id="pfVault" placeholder="保管箱标识">
+      <button class="gh sm" style="flex:0 0 auto;padding:11px 13px" onclick="copyVault()">复制</button>
+    </div>
     <div class="note">
-      配置保存在云端<b>私有仓库</b>，不公开。可随时清空。
+      推送配置按<b>保管箱</b>分开存放，<b>每人一份，互不干扰</b>：你只能看到和改到自己的这一份，
+      也不会收到别人的签到结果 —— 每天只推送你在下面登记的号码。<br>
+      换手机时在另一台设备填入<b>同一个保管箱标识</b>，就能沿用这份配置。<br>
+      要推送的号码（留空=推送后台全部账号）：<br>
+      <input id="pfPhones" placeholder="多个用逗号分隔，留空则推送全部" style="margin-top:6px">
     </div>
   </div>
 </div>
@@ -900,12 +909,34 @@ function onEmProv(){
   if(EMPROV[v]){ document.getElementById("emHost").value=EMPROV[v].host;
                  document.getElementById("emPort").value=EMPROV[v].port; }
 }
+function vault(){
+  var v=localStorage.getItem("mg_vault");
+  if(!v){
+    v="v"+Math.random().toString(36).slice(2,10);
+    localStorage.setItem("mg_vault",v);
+  }
+  return v;
+}
+function copyVault(){
+  var v=(document.getElementById("pfVault").value||"").trim()||vault();
+  try{ navigator.clipboard.writeText(v); }catch(e){}
+  log("✓ 保管箱标识已复制："+v+"（换设备时填入它即可沿用配置）","s");
+}
+function notifyPath(){
+  var v=(document.getElementById("pfVault") && document.getElementById("pfVault").value||"").trim() || vault();
+  return "data/notify/"+v.replace(/[^A-Za-z0-9_\-]/g,"")+".json";
+}
 function togglePush(b){
   var box=document.getElementById("pushBox");
   var open = box.style.display==="none";
   box.style.display = open ? "" : "none";
   b.textContent = open ? "收起配置" : "展开配置";
-  if(open){ loadPush(); onPfType(); }
+  if(open){
+    var ve=document.getElementById("pfVault"); if(ve && !ve.value) ve.value=vault();
+    var pe=document.getElementById("pfPhones");
+    if(pe && !pe.value){ var ma=myAccs().map(function(x){return x.phone;}); if(ma.length) pe.value=ma.join(","); }
+    loadPush(); onPfType();
+  }
 }
 function onPfType(){
   var t=document.getElementById("pfType").value, c=PF[t];
@@ -921,10 +952,12 @@ function onPfType(){
 async function loadPush(){
   try{
     var c=cfg();
-    var r=await gh("/repos/"+c.owner+"/"+c.repo+"/contents/data/notify.json?t="+Date.now(),"GET");
-    if(!r.ok){ document.getElementById("pfState").textContent="尚未配置"; return; }
+    var r=await gh("/repos/"+c.owner+"/"+c.repo+"/contents/"+notifyPath()+"?t="+Date.now(),"GET");
+    if(r.status===404){ document.getElementById("pfState").textContent="尚未配置（本保管箱为空）"; return; }
+    if(!r.ok){ document.getElementById("pfState").textContent="读取失败 HTTP "+r.status; return; }
     var j=await r.json();
     var d=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))));
+    if(Array.isArray(d.phones)){ var pe=document.getElementById("pfPhones"); if(pe) pe.value=d.phones.join(","); }
     document.getElementById("pfType").value=d.type||"feishu";
     onPfType();
     if((d.type||"")==="email"){
@@ -938,8 +971,8 @@ async function loadPush(){
     } else {
       document.getElementById("pfKey").value=d.key||"";
     }
-    document.getElementById("pfState").innerHTML='已保存 · <span class="badge g">'+(d.type||"")+'</span> · '+(d.ts||"");
-    log("✓ 已读取云端的推送配置","s");
+    document.getElementById("pfState").innerHTML='已保存 · <span class="badge g">'+(d.type||"")+'</span> · '+(d.ts||"")+' · 仅本保管箱可见';
+    log("✓ 已读取本保管箱的推送配置","s");
   }catch(e){ document.getElementById("pfState").textContent="读取失败"; }
 }
 async function savePush(){
@@ -957,16 +990,18 @@ async function savePush(){
     k=document.getElementById("pfKey").value.trim();
     if(!k){ log("✗ 请填写地址/Key","e"); return; }
   }
-  var d={type:t,key:k,ts:new Date().toISOString().slice(0,16).replace("T"," ")};
+  var phRaw=(document.getElementById("pfPhones") && document.getElementById("pfPhones").value||"");
+  var phones=phRaw.split(/[,\s;，、]+/).map(function(x){return (x||"").replace(/\D/g,"");}).filter(function(x){return /^1\d{10}$/.test(x);});
+  var d={type:t,key:k,phones:phones,ts:new Date().toISOString().slice(0,16).replace("T"," ")};
   try{
-    var c=cfg(), p="/repos/"+c.owner+"/"+c.repo+"/contents/data/notify.json";
+    var c=cfg(), p="/repos/"+c.owner+"/"+c.repo+"/contents/"+notifyPath();
     var g=await gh(p,"GET");
     var body={message:"chore: 更新推送配置",content:btoa(unescape(encodeURIComponent(JSON.stringify(d,null,2))))};
     if(g.ok){ var j=await g.json(); body.sha=j.sha; }
     var r=await gh(p,"PUT",body);
     if(r.ok||r.status===201){
-      log("✓ 推送配置已保存到云端，后台每天签到后会推送","s");
-      document.getElementById("pfState").innerHTML='已保存 · <span class="badge g">'+t+'</span>';
+      log("✓ 已保存到本保管箱（"+(phones.length?phones.length+" 个号":"全部账号")+"），后台每天只推送这些号","s");
+      document.getElementById("pfState").innerHTML='已保存 · <span class="badge g">'+t+'</span> · 仅本保管箱可见';
     } else {
       var e=await r.json().catch(function(){return{};});
       log("✗ 保存失败 HTTP "+r.status+" "+String(e.message||"").slice(0,80),"e");
@@ -977,7 +1012,7 @@ async function testPush(){
   var t=document.getElementById("pfType").value;
   if(t==="email"){
     log("① 邮件由后台发送，正在提交…","i");
-    var rr=await run("send_test",{},120000,"发送测试邮件");
+    var rr=await run("send_test",{vault:(document.getElementById("pfVault").value||"").trim()||vault()},120000,"发送测试邮件");
     if(rr&&rr.ok) log("✓ "+String(rr.msg||"已发送")+"（请查收邮箱）","s");
     else log("✗ "+(rr?String(rr.msg||"发送失败"):"超时未拿到结果"),"e");
     return;
