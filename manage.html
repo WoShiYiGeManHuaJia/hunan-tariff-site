@@ -30,6 +30,8 @@ body{background:var(--bg);color:#111827;
 #gate .ge{display:none;margin-top:9px;font-size:13px;color:#c0392b}
 #gate .row{margin-top:14px}
 #gate .gn{margin-top:12px;font-size:11.5px;color:#6b7280;line-height:1.6}
+#gate .gw{margin-top:11px;font-size:13px;color:#4f46e5;font-weight:600;min-height:19px}
+#gate button.ok:disabled{opacity:.55;cursor:not-allowed}
 body.gated{overflow:hidden}
 body.gated .wrap,body.gated .hero{display:none}
 
@@ -156,8 +158,8 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
     <input id="passIn" type="text" inputmode="numeric" placeholder="填数字"
            onkeydown="if(event.key==='Enter')passCheck()">
     <div class="ge" id="passErr"></div>
-    <div class="row"><button class="ok" onclick="passCheck()">进入</button></div>
-    <div class="gn">答对一次即可，之后本机不再询问。<br>答案不在本页，由后台校验。</div>
+    <div class="row"><button class="ok" id="passBtn" onclick="passCheck()">进入</button></div>
+    <div class="gw" id="passWait"></div>
   </div>
 </div>
 
@@ -798,18 +800,38 @@ function passErr(t){
   var b=document.getElementById("passBtn");
   if(b){ b.disabled=false; b.textContent="进入"; }
 }
+var _pwEl=null, _pwT=0, _pwTimer=null;
+function pwStart(){
+  var w=document.getElementById("passWait"); if(!w) return;
+  _pwEl=w; _pwT=Date.now();
+  var b=document.getElementById("passBtn");
+  if(b){ b.disabled=true; b.textContent="验证中…"; }
+  w.textContent="已提交，正在验证 0s…";
+  if(_pwTimer) clearInterval(_pwTimer);
+  _pwTimer=setInterval(function(){
+    if(!_pwEl) return;
+    _pwEl.textContent="已提交，正在验证 "+Math.round((Date.now()-_pwT)/1000)+"s…";
+  },500);
+}
+function pwStop(t){
+  if(_pwTimer){ clearInterval(_pwTimer); _pwTimer=null; }
+  _pwEl=null;
+  var b=document.getElementById("passBtn");
+  if(b){ b.disabled=false; b.textContent="进入"; }
+  var w=document.getElementById("passWait");
+  if(w) w.textContent=t||"";
+}
 async function passCheck(){
   var el=document.getElementById("passIn");
   var v=(el && el.value ? el.value : "").replace(/\s+/g,"");
   if(!v){ passErr("请先填答案"); return; }
-  var b=document.getElementById("passBtn");
   var e0=document.getElementById("passErr"); if(e0) e0.style.display="none";
-  if(b){ b.disabled=true; b.textContent="验证中…"; }
+  pwStart();
   var rid="pk-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
   try{
     var r=await gh("/repos/"+MINE.owner+"/"+MINE.repo+"/dispatches","POST",
       {event_type:"check_pass",client_payload:{pass:v,requestId:rid}}, TOK());
-    if(r.status!==204){ passErr("提交失败（网络问题），请重试"); return; }
+    if(r.status!==204){ pwStop(""); passErr("提交失败（网络问题），请重试"); return; }
     for(var i=0;i<28;i++){
       await sleep(4000);
       var g=await gh("/repos/"+MINE.owner+"/"+MINE.repo+"/contents/data/result.json?t="+Date.now(),"GET",null,TOK());
@@ -818,12 +840,13 @@ async function passCheck(){
       if(!j.content) continue;
       var o; try{ o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,""))))); }catch(_){ continue; }
       if(o && o.requestId===rid){
+        pwStop("");
         if(o.ok){ passOk(); return; }
         passErr("答案不对，再想想"); return;
       }
     }
-    passErr("验证超时，请重试");
-  }catch(err){ passErr("网络异常："+(err && err.message ? err.message : err)); }
+    pwStop(""); passErr("验证超时，请重试");
+  }catch(err){ pwStop(""); passErr("网络异常："+(err && err.message ? err.message : err)); }
 }
 
 /* ---------- init ---------- */
