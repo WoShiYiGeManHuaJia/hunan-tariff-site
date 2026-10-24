@@ -266,10 +266,11 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
   <div id="recoverBox" style="display:none;margin-top:11px;border-top:1px solid #f2f4f7;padding-top:11px">
     <div class="sub">换手机或清过缓存导致这里空了？<b>后台其实还在帮你跑</b>，只是本机记录没了。</div>
     <div class="row" style="margin-top:8px">
-      <input id="rcPhone" type="tel" inputmode="numeric" placeholder="输入你的手机号" maxlength="11">
+      <input id="rcPhone" type="text" inputmode="numeric" placeholder="手机号，多个用逗号/空格分隔">
       <button class="gh sm" style="flex:0 0 auto;padding:11px 15px" onclick="recover()">恢复</button>
+      <button class="gh sm" style="flex:0 0 auto;padding:11px 13px" onclick="rtHide()" title="收起">✕</button>
     </div>
-    <div class="note">号码只写入本机，用于查看余额和移除，不会上传。</div>
+    <div class="note">号码只写入本机，用于查看余额和移除，不会上传。可一次填多个，也可反复恢复。</div>
   </div>
 </div>
 
@@ -693,19 +694,34 @@ async function delAcc(p){
   log((r&&r.ok?"✓ 已移除 ":"✗ 移除失败：")+((r&&r.msg)||""), (r&&r.ok)?"s":"e");
   if(r&&r.ok){ setMyAccs(myAccs().filter(function(x){return x.phone!==p;})); updQuota(); loadList(); }
 }
+function rtShow(on){ var b=document.getElementById("recoverBox"); if(b) b.style.display = on ? "" : "none"; }
+function rtHide(){ rtShow(false); }
 function recover(){
   var el=document.getElementById("rcPhone");
-  var p=clean(el.value);
-  if(!/^1\d{10}$/.test(p)){ log("✗ 请输入 11 位手机号","e"); return; }
+  var raw=String((el && el.value) || "");
+  // 支持逗号、空格、换行、分号分隔，一次恢复多个
+  var parts=raw.split(/[,\s;，、]+/).map(function(x){ return clean(x); }).filter(Boolean);
+  if(!parts.length){ log("✗ 请输入手机号","e"); return; }
+  var bad=parts.filter(function(x){ return !/^1\d{10}$/.test(x); });
+  if(bad.length){ log("✗ 号码格式不对："+bad.slice(0,3).join("、"),"e"); return; }
   var a=myAccs();
-  if(a.filter(function(x){return x.phone===p;}).length){ log("该号已在本机列表中","i"); return; }
   var lim=limit();
-  if(a.length>=lim){ log("✗ 已达上限 "+lim+" 个","e"); return; }
-  a.push({phone:p,ts:"恢复"});
-  setMyAccs(a);
+  var added=0, dup=0, full=false;
+  for(var i=0;i<parts.length;i++){
+    var p=parts[i];
+    if(a.filter(function(x){return x.phone===p;}).length){ dup++; continue; }
+    if(a.length>=lim){ full=true; break; }
+    a.push({phone:p,ts:"恢复"});
+    added++;
+  }
+  if(added){ setMyAccs(a); }
   el.value="";
-  log("✓ 已恢复到本机："+mask(p)+"（后台若已托管会显示余额）","s");
+  var msg="✓ 恢复 "+added+" 个";
+  if(dup) msg+="，"+dup+" 个已在本机";
+  if(full) msg+="（已达上限 "+lim+" 个，其余未加入）";
+  log(msg,"s");
   loadList();
+  // 不再自动收起入口：用户可能还要继续恢复其他号
 }
 
 /* ---------- 列表（只显示本机） ---------- */
@@ -713,7 +729,7 @@ async function loadList(){
   var ul=document.getElementById("list"), cnt=document.getElementById("cnt");
   var mine=myAccs();
   cnt.textContent="（"+mine.length+" 个）";
-  document.getElementById("recoverBox").style.display = mine.length ? "none" : "";
+  if(!mine.length) rtShow(true);
   if(!mine.length){ ul.innerHTML='<li class="empty">还没有添加账号。用上面的「生成书签」取令牌。</li>'; updQuota(); return; }
   ul.innerHTML=mine.map(function(a){ return '<li><div><div class="ph">'+mask(a.phone)+'</div><div class="bal">添加于 '+a.ts+'</div></div><div class="ops"><button class="sm dan" onclick="delAcc(\''+a.phone+'\')">移除</button></div></li>'; }).join("")+
     '<li class="empty">正在读取余额…</li>';
