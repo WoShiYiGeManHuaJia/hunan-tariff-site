@@ -29,6 +29,22 @@ body{background:var(--bg);color:#111827;
   box-shadow:0 0 0 0 rgba(74,222,128,.7);animation:p 2s infinite}
 @keyframes p{70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 
+/* ---------- 顶部结果条（书签抓完跳回时用，避免反馈藏在页面底部） ---------- */
+.flash{display:none;margin-bottom:13px;padding:14px 15px;border-radius:16px;
+  background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);
+  border:1px solid #a7f3d0;box-shadow:0 3px 14px rgba(15,157,88,.16)}
+.flash.on{display:block;animation:pop .34s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.flash .t{display:flex;align-items:center;gap:8px;font-size:15.5px;font-weight:700;color:#065f46}
+.flash .ic{width:24px;height:24px;border-radius:50%;background:var(--ok);color:#fff;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.flash .d{margin-top:6px;font-size:13px;color:#047857;line-height:1.7}
+.flash .row{margin-top:12px}
+.flash.err{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca}
+.flash.err .t{color:#991b1b}
+.flash.err .d{color:#b91c1c}
+.flash.err .ic{background:#dc2626}
+
 /* ---------- 卡片 ---------- */
 .wrap{padding:14px 12px 0}
 .card{background:#fff;border-radius:16px;padding:15px 15px 16px;margin-bottom:13px;
@@ -122,6 +138,8 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
 </div>
 
 <div class="wrap">
+
+<div class="flash" id="flash"></div>
 
 <div class="warn">
   <b>免责声明</b><br>
@@ -516,8 +534,42 @@ function fromHash(){
   _lastParsed = "";
   parseTok();
   try{ history.replaceState(null,"",location.pathname); }catch(e){}
+  if(CUR){
+    /* 结果放页面顶部：之前只在底部日志提示，用户跳回来根本看不见 */
+    flash('<div class="t"><span class="ic">✓</span>已抓到令牌</div>'
+      + '<div class="d">号码 <b>' + mask(CUR.phone) + '</b>'
+      + (CUR.days!==null && CUR.days!==undefined ? (' · 剩余 ' + CUR.days + ' 天') : '')
+      + '<br>令牌已自动填入并复制，点右边按钮完成托管即可。</div>'
+      + '<div class="row"><button class="ok" onclick="flashSubmit()">提交托管</button>'
+      + '<button class="gh" onclick="flashOff()">先不提交</button></div>');
+  } else {
+    flash('<div class="t"><span class="ic">!</span>读到了内容但解析失败</div>'
+      + '<div class="d">令牌没能识别成有效格式，请确认是在 <b>m.mcloud.139.com</b> 登录后点的书签。</div>'
+      + '<div class="row"><button class="gh" onclick="flashOff()">知道了</button></div>', true);
+  }
   log("✓ 已从云盘网页读到令牌并自动填入，点「提交托管」即可","s");
   return true;
+}
+function flash(html,isErr){
+  var el=document.getElementById("flash");
+  if(!el) return;
+  el.className = "flash on" + (isErr?" err":"");
+  el.innerHTML = html;
+  try{ el.scrollIntoView({behavior:"smooth",block:"start"}); }
+  catch(e){ try{ window.scrollTo(0,0); }catch(_){} }
+}
+function flashOff(){
+  var el=document.getElementById("flash");
+  if(el){ el.className="flash"; el.innerHTML=""; }
+}
+async function flashSubmit(){
+  var el=document.getElementById("flash");
+  var b=el ? el.querySelector("button.ok") : null;
+  if(b){ b.disabled=true; b.textContent="提交中…"; }
+  try{ await submitTok(); } finally {
+    /* 成功时 CUR 被清空，submitTok 已弹出「托管成功」横幅，这里不要再关掉 */
+    if(CUR && b){ b.disabled=false; b.textContent="提交托管"; }
+  }
 }
 var _lastParsed="";
 function onTok(){
@@ -552,7 +604,7 @@ function parseTok(){
   var parts=dec.split("|");
   var days=null;
   if(parts.length>=4){ var exp=parseInt(parts[3],10); if(exp>0) days=Math.round((exp-Date.now())/86400000*10)/10; }
-  CUR={phone:phone,authorization:s};
+  CUR={phone:phone,authorization:s,days:days};
   var dup=myAccs().filter(function(x){return x.phone===phone;}).length>0;
   var html="号码 <b>"+mask(phone)+"</b> · 令牌长度 "+s.length+
     (days!==null?(" · 剩余 <b>"+days+"</b> 天"):"")+
@@ -579,12 +631,22 @@ async function submitTok(){
     var r=await run("save_token",{phone:CUR.phone,authorization:CUR.authorization},150000,"存令牌");
     if(!r) return;
     log((r.ok?"✓ ":"✗ ")+(r.msg||"")+(r.remaining_days?(" · 剩余 "+r.remaining_days+" 天"):""), r.ok?"s":"e");
-    if(!r.ok) return;
+    if(!r.ok){
+      flash('<div class="t"><span class="ic">!</span>提交失败</div><div class="d">'
+        + String(r.msg||"未知原因").replace(/</g,"&lt;") + '</div>'
+        + '<div class="row"><button class="gh" onclick="flashOff()">知道了</button></div>', true);
+      return;
+    }
+    var ph=CUR.phone;
     var a=myAccs().filter(function(x){return x.phone!==CUR.phone;});
     var ts=new Date().toISOString().slice(0,16).replace("T"," ");
     a.push({phone:CUR.phone,ts:ts});
     setMyAccs(a);
     pushHist({phone:CUR.phone,ts:ts});
+    flash('<div class="t"><span class="ic">✓</span>托管成功</div>'
+      + '<div class="d">号码 <b>' + mask(ph) + '</b> 已加入托管。<br>'
+      + '明天 09:05 起自动签到、做任务、领气泡，令牌到期自动续。</div>'
+      + '<div class="row"><button class="gh" onclick="flashOff()">好的</button></div>');
     document.getElementById("tok").value="";
     document.getElementById("parseBox").innerHTML="";
     document.getElementById("cnt2").textContent="";
