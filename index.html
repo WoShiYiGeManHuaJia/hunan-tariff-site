@@ -22,7 +22,7 @@
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261019e";
+var BUILD_VER = "20261024a";
 (function(){
   function base(){
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
@@ -166,6 +166,13 @@ body{
 .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.45);transform:scale(0);pointer-events:none;animation:rp .6s ease-out}
 .btn.pri .ripple{background:rgba(255,255,255,.3)}
 @keyframes rp{to{transform:scale(2.6);opacity:0}}
+
+/* 云盘自动签到入口：紫蓝渐变，与托管页头部同色系，从资费页一眼能找到 */
+.btn.cloud{background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 60%,#a855f7 100%);
+  color:#fff;border-color:transparent;text-decoration:none;
+  box-shadow:0 8px 22px rgba(79,70,229,.34)}
+.btn.cloud:hover{box-shadow:0 12px 28px rgba(79,70,229,.46);border-color:transparent}
+.btn.cloud .ic{font-size:14px;line-height:1}
 
 /* ---------- Tab（可自由滑动） ---------- */
 .tabs-wrap{position:relative}
@@ -852,6 +859,7 @@ body{
   .logo{width:34px;height:34px;font-size:13px}
   .brand-n{font-size:14px}
   .nav-act .btn{padding:8px 12px;font-size:12.5px}
+  .nav-act .btn.cloud{padding:8px 10px;font-size:12px;order:-1}
   .upd{display:none}
   .tabs{padding:5px}
   .tab{padding:9px 13px;font-size:13px}
@@ -969,6 +977,7 @@ a.opc{text-decoration:none;display:block}
         <div class="nav-cnt">最近变更 <b id="navChg">—</b></div>
       </div>
       <div class="nav-act">
+        <a class="btn cloud" href="manage.html" title="移动云盘自动签到托管"><span class="ic">☁️</span>云盘自动签到</a>
         <button class="btn pri" data-act="check">检测资费</button>
         <button class="btn" id="opBtn" data-act="op"><span id="opBtnTxt">移动</span> ▾</button>
         <button class="btn" data-act="theme">深色</button>
