@@ -362,11 +362,9 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
     </div>
     <div class="note">
       推送配置按<b>保管箱</b>分开存放，<b>每人一份，互不干扰</b>：你只能看到和改到自己的这一份，
-      也不会收到别人的签到结果 —— 每天只推送你在下面登记的号码。<br>
+      别人也看不到你的。<br>
       云端存的是<b>密文</b>（后端密钥加密），别人即使拿到仓库文件也看不到你的邮箱/webhook。<br>
-      换手机时在另一台设备填入<b>同一个保管箱标识</b>，就能沿用这份配置。<br>
-      要推送的号码（留空=推送后台全部账号）：<br>
-      <input id="pfPhones" placeholder="多个用逗号分隔，留空则推送全部" style="margin-top:6px">
+      换手机时在另一台设备填入<b>同一个保管箱标识</b>，就能沿用这份配置。
     </div>
   </div>
 </div>
@@ -955,16 +953,14 @@ function onEmProv(){
   if(EMPROV[v]){ document.getElementById("emHost").value=EMPROV[v].host;
                  document.getElementById("emPort").value=EMPROV[v].port; }
 }
-// 默认名用「p + 本人号码」：换手机/清缓存后填回自己的号就能自动认回配置，
-// 不必记随机串。老用户此前用随机串，本地已存的保持不变。
+// 保管箱标识：只用随机串，不包含手机号，页面上不显示任何号码。
+// 旧值若是「p+11位号码」则换成随机串，避免号码出现在界面上。
 function vault(){
   var v=localStorage.getItem("mg_vault");
-  var accs=[];
-  try{ accs=JSON.parse(localStorage.getItem("mg_accounts")||"[]"); }catch(e){}
-  var mine="";
-  for(var i=0;i<accs.length;i++){ if(/^1\d{10}$/.test(String(accs[i].phone||""))){ mine=String(accs[i].phone); break; } }
-  if(mine && (!v || /^v[0-9a-z]{6,}$/i.test(v))){ v="p"+mine; localStorage.setItem("mg_vault",v); }
-  if(!v){ v=mine?("p"+mine):("v"+Math.random().toString(36).slice(2,10)); localStorage.setItem("mg_vault",v); }
+  if(!v || /^p\d{11}$/.test(v)){
+    v="v"+Math.random().toString(36).slice(2,10);
+    localStorage.setItem("mg_vault",v);
+  }
   return v;
 }
 function copyVault(){
@@ -983,8 +979,6 @@ function togglePush(b){
   b.textContent = open ? "收起配置" : "展开配置";
   if(open){
     var ve=document.getElementById("pfVault"); if(ve && !ve.value) ve.value=vault();
-    var pe=document.getElementById("pfPhones");
-    if(pe && !pe.value){ var ma=myAccs().map(function(x){return x.phone;}); if(ma.length) pe.value=ma.join(","); }
     loadPush(); onPfType();
   }
 }
@@ -1001,7 +995,6 @@ function onPfType(){
 }
 function applyCfg(d){
   if(!d) return;
-  if(Array.isArray(d.phones)){ var pe=document.getElementById("pfPhones"); if(pe && d.phones.length) pe.value=d.phones.join(","); }
   document.getElementById("pfType").value=d.type||"feishu";
   onPfType();
   if((d.type||"")==="email"){
@@ -1054,14 +1047,13 @@ async function savePush(){
     k=document.getElementById("pfKey").value.trim();
     if(!k){ log("✗ 请填写地址/Key","e"); return; }
   }
-  var phRaw=(document.getElementById("pfPhones") && document.getElementById("pfPhones").value||"");
-  var phones=phRaw.split(/[^0-9]+/).map(function(x){return (x||"").replace(/\D/g,"");}).filter(function(x){return /^1\d{10}$/.test(x);});
+  var phones=[];   // 号码不再填写：留空=推送后台全部账号，界面上不出现任何号码
   var d={type:t,key:k,phones:phones,ts:new Date().toISOString().slice(0,16).replace("T"," ")};
   var v=(document.getElementById("pfVault").value||"").trim()||vault();
   var r=await run("save_notify",{vault:v,cfg:d},180000,"加密保存到本保管箱");
   if(r&&r.ok){
     try{ localStorage.setItem(cacheKey(), JSON.stringify(d)); }catch(e){}
-    log("✓ "+String(r.msg||"已保存")+"（"+(phones.length?phones.length+" 个号":"全部账号")+"）· 云端只存密文，别人看不到","s");
+    log("✓ "+String(r.msg||"已保存")+" · 云端只存密文，别人看不到","s");
     document.getElementById("pfState").innerHTML='已保存 · <span class="badge g">'+t+'</span> · 仅本保管箱可见';
   } else {
     log("✗ 保存失败："+((r&&r.msg)||"超时未拿到结果"),"e");
