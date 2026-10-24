@@ -28,13 +28,21 @@ var BUILD_VER = "20261024a";
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
     return m ? (m[1] || "") : "";
   }
+  /* 防死循环：一次会话内最多自动跳 1 次。
+     若版本号与页面不一致但刷新后仍拿到同一个旧页面，就会无限 replace，
+     必须限制次数，宁可停在旧页面也不能把页面跳死。 */
+  var JUMPED = false;
+  try{ if(sessionStorage.getItem("__autoup") === BUILD_VER) JUMPED = true; }catch(e){}
   function go(){
+    if(JUMPED) return;
     var u = base() + "/version.json?_t=" + Date.now();
     fetch(u, {cache:"no-store"})
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(j){
         if(!j || !j.ver) return;
         if(j.ver !== BUILD_VER){
+          JUMPED = true;
+          try{ sessionStorage.setItem("__autoup", BUILD_VER); }catch(e){}
           var cur = location.href.split("#")[0].split("?")[0];
           location.replace(cur + "?_v=" + j.ver + "&_t=" + Date.now());
         }
