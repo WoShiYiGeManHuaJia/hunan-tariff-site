@@ -22,7 +22,7 @@
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261024a";
+var BUILD_VER = "20261024c";
 (function(){
   function base(){
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
