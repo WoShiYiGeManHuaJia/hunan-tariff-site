@@ -35,6 +35,35 @@ body{background:var(--bg);color:#111827;
 body.gated{overflow:hidden}
 body.gated .wrap,body.gated .hero{display:none}
 
+/* ---------- 一次性公告 ---------- */
+#ntMask{position:fixed;inset:0;z-index:9998;display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(15,17,26,.55);backdrop-filter:blur(3px)}
+#ntMask.on{display:flex}
+#ntMask .ntm{width:100%;max-width:352px;max-height:84vh;overflow:auto;background:#fff;
+  border-radius:18px;box-shadow:0 18px 46px rgba(0,0,0,.3);animation:ntIn .22s ease}
+@keyframes ntIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+#ntMask .nth2{padding:17px 18px 13px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px}
+#ntMask .nth2 .t{font-size:16.5px;font-weight:800;color:#111827;flex:1}
+#ntMask .nth2 .x{width:29px;height:29px;border:0;background:#f1f2f6;border-radius:50%;
+  color:var(--mut);font-size:17px;line-height:1;cursor:pointer}
+#ntMask .ntb{padding:15px 18px 4px}
+#ntMask .ntv{display:inline-flex;align-items:center;gap:5px;padding:3.5px 10px;border-radius:999px;
+  font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f0883e,#db6d28)}
+#ntMask .ntd{font-size:11.5px;color:var(--mut);font-weight:700;margin:8px 0 12px}
+#ntMask .ntsec{font-size:13.5px;font-weight:800;margin:14px 0 6px;color:#111827;
+  display:flex;align-items:center;gap:6px}
+#ntMask .ntsec::before{content:'';width:3px;height:13px;border-radius:2px;
+  background:linear-gradient(180deg,var(--pri),var(--pri2))}
+#ntMask .ntul{margin:0 0 4px;padding-left:18px}
+#ntMask .ntul li{margin-bottom:5px}
+#ntMask .ntul b{color:var(--pri)}
+#ntMask .ntwarn{background:#fff7ed;border:1px solid #fed7aa;border-radius:11px;
+  padding:10px 12px;font-size:13px;color:#9a3412;line-height:1.65}
+#ntMask .ntf{padding:13px 18px 16px}
+#ntMask .ntf button{width:100%;border:0;border-radius:12px;padding:12px;font-size:15px;font-weight:700;
+  color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));cursor:pointer}
+#ntMask .ntf button:active{transform:scale(.985)}
+
 /* ---------- 头部 ---------- */
 .hero{background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
   color:#fff;padding:22px 18px 26px;border-radius:0 0 22px 22px;
@@ -358,6 +387,14 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
   云盘签到托管 · 免费非商业<br>请遵守中国移动服务协议
 </div>
 
+</div>
+
+<div id="ntMask">
+  <div class="ntm">
+    <div class="nth2"><div class="t" id="ntTitle">站点公告</div><button class="x" id="ntX">×</button></div>
+    <div class="ntb" id="ntBody"></div>
+    <div class="ntf"><button id="ntOk">我知道了</button></div>
+  </div>
 </div>
 
 <script>
@@ -826,6 +863,7 @@ function passOk(){
   if(g) g.parentNode.removeChild(g);
   document.body.classList.remove("gated");
   setTimeout(function(){ fromHash(); loadList(); }, 60);
+  try{ setTimeout(ntAuto, 500); }catch(e){}   // 门禁刚过，补弹一次性公告
 }
 function passErr(t){
   var e=document.getElementById("passErr");
@@ -1059,6 +1097,59 @@ async function testPush(){
     }
   }catch(e){ log("✗ 发送失败："+e.message,"e"); }
 }
+
+/* ---------- 一次性公告：每个版本只在每台设备弹一次 ---------- */
+var SITE_NOTICE = {
+  ver: "2026-10-24-incident",
+  badge: "安全事件",
+  date: "2026-10-24 20:00 左右",
+  title: "服务异常已修复，请重新配置推送",
+  body:
+    '<span class="ntv">' + "安全事件" + '</span>' +
+    '<div class="ntd">' + "2026-10-24 20:00 左右" + '</div>' +
+    '<div class="ntwarn">' +
+      '<b>发生了什么</b>：今天 20:00 前后，本服务遭到外部攻击，' +
+      '有非本人的推送配置被写入后台。紧急防护已自动触发，' +
+      '并<b>清除了全部推送配置</b>以防止结果被发送到他人邮箱。' +
+    '</div>' +
+    '<div class="ntsec">现在的状态</div>' +
+    '<ul class="ntul">' +
+      "<li>攻击已阻断，异常配置已全部清除</li>" +
+      "<li>推送改为<b>每人独立保管箱</b>，云端只存<b>密文</b>，互相看不到对方配置</li>" +
+      "<li><b>你的托管账号没受影响</b>，签到一直在正常跑</li>" +
+    "</ul>" +
+    '<div class="ntsec">需要你做一件事</div>' +
+    '<ul class="ntul">' +
+      "<li>展开本页第 <b>4</b> 块「每日结果推送」，重新填一次邮箱 / webhook</li>" +
+      "<li>新配置会以密文存进<b>你自己的保管箱</b>，仅本人可见</li>" +
+    "</ul>"
+};
+function ntKey(){ return "siteNotice__" + SITE_NOTICE.ver; }
+function ntClose(){
+  var m = document.getElementById("ntMask");
+  if(m){ m.classList.remove("on"); }
+  try{ localStorage.setItem(ntKey(), "1"); }catch(e){}
+}
+function ntShow(){
+  var m = document.getElementById("ntMask");
+  if(!m){ return; }
+  var t = document.getElementById("ntTitle");
+  var b = document.getElementById("ntBody");
+  if(t){ t.textContent = SITE_NOTICE.title || "站点公告"; }
+  if(b){ b.innerHTML = SITE_NOTICE.body || ""; }
+  m.classList.add("on");
+  var ok = document.getElementById("ntOk"), x = document.getElementById("ntX");
+  if(ok){ ok.onclick = ntClose; }
+  if(x){ x.onclick = ntClose; }
+  // 点遮罩空白处也关闭
+  m.onclick = function(e){ if(e.target === m){ ntClose(); } };
+}
+function ntAuto(){
+  try{ if(localStorage.getItem(ntKey()) === "1"){ return; } }catch(e){}
+  try{ ntShow(); }catch(e){}
+}
+// 门禁通过后才弹，避免盖住口令输入
+try{ setTimeout(function(){ if(!document.body.classList.contains("gated")) ntAuto(); }, 800); }catch(e){}
 
 /* ---------- 短书签（外部脚本，复制更短更方便） ---------- */
 function bmShortUrl(back){
