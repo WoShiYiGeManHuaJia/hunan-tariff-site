@@ -1,0 +1,84 @@
+name: kb-fetch
+on:
+  workflow_dispatch:
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 公网直连教务抓课表
+        continue-on-error: true
+        env:
+          KB_USER: ${{ secrets.KEBIAO_USER_NO }}
+          KB_PWD: ${{ secrets.KEBIAO_PWD_ENC }}
+          KB_SCH: ${{ secrets.KEBIAO_SCHOOL_CODE }}
+        run: |
+          set +e
+          mkdir -p kbout
+          python3 - <<'PY' > kbout/fetch.log 2>&1
+          import json,os,sys,time,urllib.request,urllib.parse,urllib.error
+          BASE="http://222.243.161.213:81/hnrjzyxyhd"
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          U=os.environ.get("KB_USER","202405190231")
+          P=os.environ.get("KB_PWD","QlRZY0NDcTBDRG5uQnZ4TDROSWFzZz09")
+          S=os.environ.get("KB_SCH","4711")
+          def http(u,h=None,m="GET",t=25):
+              try:
+                  r=urllib.request.Request(u,method=m,headers={"User-Agent":UA,**(h or {})})
+                  with urllib.request.urlopen(r,timeout=t) as x: return x.status,x.read().decode("utf-8","ignore")
+              except urllib.error.HTTPError as e: return e.code,e.read().decode("utf-8","ignore")
+              except Exception as e: return -1,"%s: %s"%(type(e).__name__,e)
+          print("== 出口 IP 探测 ==")
+          for ipu in ["https://api.ipify.org","https://myip.ipip.net"]:
+              c,b=http(ipu,t=12); print(" ",ipu,"->",c,b[:80].replace("\n"," "))
+          print("\n== 1. 根路径 ==")
+          for p in ["/","/hnrjzyxyhd/"]:
+              c,b=http("http://222.243.161.213:81"+p,t=15); print("  %-14s HTTP %s | %s"%(p,c,b[:70].replace("\n"," ")))
+          print("\n== 2. 登录 ==")
+          q="userNo=%s&pwd=%s&encode=1&captchaData=&codeVal="%(urllib.parse.quote(U),urllib.parse.quote(P))
+          c,raw=http(BASE+"/login?"+q,m="POST",t=30)
+          print("  HTTP",c,"|",raw[:180])
+          try: lj=json.loads(raw)
+          except Exception: print("  非JSON"); sys.exit(1)
+          if lj.get("code")!="1": print("  登录失败"); sys.exit(1)
+          tok=(lj.get("data") or {}).get("token","")
+          print("  OK token=%s..."%tok[:16])
+          print("\n== 3. 拉周次 ==")
+          weeks={};sem="";cur=1
+          for w in range(1,21):
+              c,raw=http("%s/student/curriculum?week=%d&kbjcmsid="%(BASE,w),h={"Token":tok,"schoolCode":S},t=30)
+              if c!=200: print("  w%-2d HTTP %s"%(w,c)); continue
+              try: j=json.loads(raw)
+              except Exception: continue
+              if j.get("code")!="1": continue
+              d=(j.get("data") or [{}])[0]; top=(d.get("topInfo") or [{}])[0]
+              if w==1: sem=top.get("semesterId",""); cur=int(top.get("week") or 1)
+              arr=[]
+              for co in (d.get("courses") or []):
+                  ct=co.get("classTime","") or ""
+                  secs=[int(ct[i+1:i+3]) for i in range(0,max(0,len(ct)-1),2) if ct[i+1:i+3].isdigit()]
+                  arr.append({"day":co.get("weekDay",1),"secs":secs,"name":co.get("courseName",""),
+                    "teacher":co.get("teacherName",""),"room":co.get("classroomName",""),
+                    "bld":co.get("buildingName",""),
+                    "time":"%s-%s"%(co.get("startTime",""),co.get("endTIme",""))})
+              weeks[str(w)]=arr; print("  w%-2d %d节"%(w,len(arr)))
+          tot=sum(len(v) for v in weeks.values())
+          print("\n== 4. 汇总 == 学期=%s 当前周=%s 总课=%d"%(sem,cur,tot))
+          if tot==0: sys.exit(1)
+          json.dump({"weeks":weeks,"semester":sem,"current_week":cur,"ts":int(time.time())},
+                    open("kbout/weeks_cache.json","w",encoding="utf-8"),ensure_ascii=False)
+          print("  已保存")
+          PY
+          echo "EXIT=$?"
+          cat kbout/fetch.log
+      - name: 提交结果
+        run: |
+          git config user.name bot; git config user.email b@e.com
+          git add kbout/
+          git diff --cached --quiet || git commit -m "kb: 公网直连教务抓取课表"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q && break || sleep 5; done
