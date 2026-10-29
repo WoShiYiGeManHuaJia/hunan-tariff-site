@@ -1,0 +1,41 @@
+name: dp-probe
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 探测 digitalplat
+        continue-on-error: true
+        env:
+          DP: "dp_live_c4ptg1tLovIHQJhij41zTxXf"
+        run: |
+          set +e
+          mkdir -p probe
+          {
+          echo "## digitalplat 域名 API"
+          for ep in "https://dash.domain.digitalplat.org/api/v1/domain/list"                     "https://api.digitalplat.org/api/v1/domain/list"                     "https://dash.digitalplat.org/api/v1/domain/list"; do
+            echo "### $ep"
+            curl -sS -m 25 -o /tmp/a.json -w "HTTP=%{http_code}\n" -H "Authorization: Bearer $DP" -H "accept: application/json" "$ep"
+            head -c 400 /tmp/a.json; echo
+          done
+          echo
+          echo "## DNS 解析 hnvip.qd.je"
+          curl -sS -m 25 "https://dns.google/resolve?name=hnvip.qd.je&type=CNAME"; echo
+          curl -sS -m 25 "https://dns.google/resolve?name=hnvip.qd.je&type=A"; echo
+          echo
+          echo "## hnvip.qd.je 证书（忽略校验）"
+          curl -sk -m 25 -o /dev/null -w "HTTP=%{http_code}\n" "https://hnvip.qd.je/" 
+          curl -sk -m 25 -o /tmp/h.txt -D /tmp/hh.txt "https://hnvip.qd.je/"
+          echo "--- headers ---"; cat /tmp/hh.txt | head -20
+          echo "--- BUILD_VER ---"; grep -o 'BUILD_VER = "[^"]*"' /tmp/h.txt | head -2
+          echo "--- server/SW ---"; grep -ci "sw-kill" /tmp/h.txt
+          } > probe/dp.txt 2>&1
+          cat probe/dp.txt
+      - name: 提交
+        run: |
+          git config user.name bot; git config user.email b@e.com
+          git add probe/dp.txt; git diff --cached --quiet || git commit -m "diag: dp"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q && break || sleep 5; done
