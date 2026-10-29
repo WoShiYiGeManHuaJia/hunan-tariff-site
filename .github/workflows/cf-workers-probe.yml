@@ -1,0 +1,33 @@
+name: cf-workers-probe
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 探测 CF Workers
+        continue-on-error: true
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          CID: "9156c2cae565fdf42d208827b523e47e"
+        run: |
+          set +e
+          mkdir -p probe
+          {
+          echo "## Account $CID"
+          echo "-- accounts --"
+          curl -sS -m 25 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/accounts | head -c 300; echo
+          echo "-- accounts/$CID/workers/scripts --"
+          curl -sS -m 25 -o /tmp/s.json -w "HTTP=%{http_code}\n" -H "Authorization: Bearer $CF"             "https://api.cloudflare.com/client/v4/accounts/$CID/workers/scripts"
+          head -c 600 /tmp/s.json; echo
+          echo "-- accounts/$CID/workers/subdomain --"
+          curl -sS -m 25 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$CID/workers/subdomain" | head -c 200; echo
+          } > probe/cfw.txt 2>&1
+          cat probe/cfw.txt
+      - name: 提交
+        run: |
+          git config user.name bot; git config user.email b@e.com
+          git add probe/cfw.txt; git diff --cached --quiet || git commit -m "diag: cf workers"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q && break || sleep 5; done
