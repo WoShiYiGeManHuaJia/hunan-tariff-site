@@ -1,0 +1,30 @@
+本轮在「源码修复版」之上补的漏洞
+================================
+
+1. 广电管线 NameError
+   gb_pipeline.py 把 import 写在 shebang 前面，且漏了 diff_items。
+   抓取能完成，一进对比就崩，history / latest 本轮不更新。
+   已把 shebang 放回第一行，补上 diff_items / filter_test_items。
+
+2. 电信没有 --rebuild
+   workflow 勾选「重建基线」会给电信传 --rebuild，argparse 直接退出。
+   已与联通/广电对齐，增加该参数。
+
+3. 联通 / 电信历史弹窗没有配置快照
+   联通定义了 _brief 却从未调用；电信用 globals().get("_brief") 偷偷跳过。
+   三家现在都会写入 added_list / removed_list / modified_list。
+
+4. 公告抓取 OpenSSL 配置路径
+   announce_fetch.py 找 pipelines/openssl_legacy.cnf，
+   文件实际在 pipelines/mobile/openssl_legacy.cnf。已改路径。
+
+5. 广电 / 联通上一版快照不过滤测试数据
+   公开仓旧快照里若残留「【测试】请忽略」，会被判成下架误报。
+   对比前同步过滤。广电本轮抓取也会剔除测试条目。
+
+6. 文档
+   补了 .env.example、requirements.txt；怎么用.txt 不再让人装没用的 requests；
+   DINGTALK_SETUP.md 的 workflow 名改成实际的 Tariff Notify。
+
+验证
+  python3 tests/test_diff.py
