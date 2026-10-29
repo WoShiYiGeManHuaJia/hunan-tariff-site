@@ -1,0 +1,72 @@
+name: SDHN
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Find 山东/河南 provCode
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, os
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY=b"telecom_wap_2018"
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode()
+          def call(fn,rc,to=30):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode(),method="POST",headers={
+                  "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
+                  "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              last=None
+              for a in range(2):
+                  try:
+                      with urllib.request.urlopen(req,timeout=to) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last=e; time.sleep(1.5)
+              return {"__err":str(last)}
+          cands=[]
+          for base in (600001,600101,600201,600301,600401,600501,600601,600701,600801,600901,609901):
+              for i in range(0,12): cands.append(str(base+i))
+          for i in range(1,41): cands.append("10000000%02d"%i)
+          out=[]
+          hit=[]
+          for p in cands:
+              d=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":p})
+              rc=d.get("responseContent") or {}
+              b=rc.get("lableOneList") or []
+              if not b:
+                  continue
+              sess=rc.get("sessionid")
+              rq=call("tariffSectionQuery",{"sessionid":sess,"type":1,"provCode":p,"lable1Id":b[0]["id"],"lable2Id":""})
+              lst=(rq.get("responseContent") or {}).get("zoneTitleList") or []
+              names=[str(x.get("name","")) for x in lst[:6]]
+              nm=" | ".join(names)[:220]
+              line="%s :: boards=%d :: n=%d :: %s"%(p,len(b),len(lst),nm)
+              out.append(line)
+              kw=("山东","济南","青岛","潍坊","临沂","淄博","烟台","济宁","河南","郑州","洛阳","开封","南阳","新乡","许昌")
+              if any(k in nm for k in kw): hit.append(line)
+              time.sleep(0.3)
+          txt="=== ALL ===\n"+"\n".join(out)+"\n\n=== HIT 山东/河南 ===\n"+"\n".join(hit)
+          print(txt[:20000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              dd=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=dd.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn scan","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read(); print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
