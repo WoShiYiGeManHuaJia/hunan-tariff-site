@@ -1,0 +1,535 @@
+name: Tariff Notify
+# 汇总推送：钉钉 / 飞书 / 企业微信 / 邮件（配哪个推哪个）
+#
+# ══ 重点省份与推送模式统一在本文件配置（不再散落到各抓取 workflow）══
+#
+# 仓库变量（Settings → Secrets and variables → Actions → Variables）：
+#   FOCUS_PROVS   重点省份，3 个，拼音逗号分隔
+#                 例：hunan,guangdong,zhejiang
+#                 四家通用；每项都自动附带「全国」，即每家抓 4 个板块。
+#   NOTIFY_MODE   推送模式（定时触发时生效）：
+#     full_auto     (a) 定时全量推送——当日抓取范围为全量，到点推送
+#     focus_auto    (b) 定时重点省份推送——当日抓取范围为 3 省+全国，到点推送
+#     focus_manual  (c) 不自动推送——等手动点「手动推送(重点省)」才跑
+#   SCRAPE_MODE   抓取范围，需与 NOTIFY_MODE 保持一致：
+#     (a) → full    (b)(c) → focus
+#     它决定三个抓取 workflow（08:47/09:17/09:37）每天抓多少省份
+#
+# 手动触发（Actions → 本 workflow → Run workflow）可临时覆盖：
+#   手动推送(重点省)  ← 点一下就只跑重点省份并推送（对应需求 1、4）
+#   仅推送            ← 不抓取，直接推当前已有数据
+#   全量推送          ← 抓全部省份后推送
+#
+# 注：电信源站仅公开 quanguo 与 hunan 两个板块（其余省 h5 受瑞数 WAF
+#     拦截、provCode 无公开口径），故模式对电信无实际影响，它始终抓
+#     这两个板块；这不影响其余三家的重点省份设置。
+
+on:
+  # 外部精确触发（cron-job.org / 服务器 crontab 调 GitHub API 用）
+  # 这是唯一能保证「北京 08:00 / 20:00 准点」的方式：
+  # GitHub 自带 schedule 在免费账号上实测延迟 5~9 小时，无法靠改 cron 修正。
+  repository_dispatch:
+    types: [notify]
+  schedule:
+    # focus 模式下各家耗时：移动 ~4 分 / 电信广电 ~5 分 / 联通 ~7 分，
+    # 三家在本 workflow 内顺序跑约 20 分钟，10:00 与 20:00 推送前有足够余量。
+    #   午场必须排在早间抓取(移动08:47/电信广电09:17/联通09:37)之后。
+    #   原 北京10:00 比抓取还早，且 GitHub 定时任务常延迟数小时，
+    #   导致推送时当日数据尚未抓完，只能报「昨天的变化」。
+    #   现改到北京16:00，并配合下方 fresh 检查兜底（数据陈旧则本轮自抓再推）。
+    # 北京 08:23（cron 一律按 UTC）；用 23 分避开整点排队高峰
+    # 注：当天抓取 08:47 才开始，故本轮 fresh 检查会判定陈旧，先自抓再推
+    - cron: "20 19 * * *"
+    #   晚场必须排在晚间抓取(移动20:47/电信广电21:17/联通21:37)之后：
+    #   原 北京20:00 比抓取还早47分钟，只能报当天早上08:47的数据，整整旧12小时。
+    # 北京 20:23；同样避开整点
+    - cron: "20 20 * * *"
+    - cron: "20 21 * * *"
+    - cron: "20 7 * * *"
+    - cron: "20 8 * * *"
+    - cron: "20 9 * * *"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "推送方式"
+        type: choice
+        options:
+          - "手动推送(重点省)"
+          - "仅推送"
+          - "全量推送"
+        default: "手动推送(重点省)"
+      focus_provs:
+        description: "重点省份（3 个，拼音逗号分隔；留空用仓库变量 FOCUS_PROVS）"
+        type: string
+        default: ""
+      hours:
+        description: "统计最近 N 小时"
+        default: "24"
+
+permissions:
+  contents: write    # 抓取后需要提交数据
+
+# 去重：同一时刻只允许一个 Tariff Notify 运行。
+# 之前手动触发时脚本把 204 误判为失败并重试 10 次，导致连发 10 条钉钉。
+# concurrency 让新任务排队等旧的跑完，而不是并发跑多个
+#（并发会让多个 notify 同时读到同一份 history，推送内容重复）。
+concurrency:
+  # 必须与 mobile-build.yml 使用同一个 group。
+  # 两个 workflow 都会跑 build_site.py 写 history.json / data/hist 分片，
+  # 之前 group 不同（mobile-build / tariff-notify）导致并发执行：
+  # 两进程各自取不同的 now，互相 git reset+push 覆盖，
+  # 最终 history.json 里的 ts 与分片文件名对不上，前端按 ts 取分片 404，
+  # 表现为「有变动记录但点开没有修改前/后详情」。
+  group: tariff-build
+  cancel-in-progress: false
+
+jobs:
+
+  # ══════════ 推送时间窗守卫 ══════════
+  # GitHub schedule 实测延迟 5~9 小时，cron 写几点都拦不住平台排队。
+  # 与其让它在下午三点乱发一条，不如：不在目标窗口内就直接不推。
+  #   早场 北京 07:30–09:30
+  #   晚场 北京 19:30–21:30
+  # 外部触发器（cron-job.org）在 08:00 / 20:00 通过 repository_dispatch
+  # 打进来，必定落在窗口内；手动触发不受窗口限制。
+  window:
+    runs-on: ubuntu-latest
+    outputs:
+      ok:   ${{ steps.w.outputs.ok }}
+      slot: ${{ steps.w.outputs.slot }}
+      bj:   ${{ steps.w.outputs.bj }}
+    env:
+      # 根因（2026-10-17 去重失效）：Actions 默认**没有** GITHUB_TOKEN 环境
+      # 变量，只有 secrets.GITHUB_TOKEN。上面读标记若不注入，Authorization
+      # 就成了 "Bearer "（空）→ API 401 → 读不到标记 → 永远判定「没推过」
+      # → 同一场次连推两条。notify job 侧注入了 GH_TOKEN 所以写得进，
+      # 读写不对称导致去重形同虚设。
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      # 需要读场次标记（防同场次重复推），故必须先 checkout
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - id: w
+        run: |
+          python3 - <<'PYEOF'
+          import datetime, os, json, base64
+          bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+          hm = bj.hour * 60 + bj.minute
+          day = bj.strftime("%Y-%m-%d")
+          # 窗口放宽到 3 小时：GitHub 自带 schedule 的延迟实测在 4~7 小时之间
+          # 漂移，放宽后各种延迟都能落进窗口；重复推送由下面「每场次每天只推
+          # 一次」兜住，所以放宽窗口不会导致一天推好几次。
+          WINDOWS = [(7 * 60, 10 * 60, "早场"), (19 * 60, 22 * 60, "晚场")]
+          slot = ""
+          for a, b, nm in WINDOWS:
+              if a <= hm <= b:
+                  slot = nm; break
+          ev = os.environ.get("GITHUB_EVENT_NAME", "")
+          manual = (ev == "workflow_dispatch")
+          # 场次去重：cron 设了多个覆盖点（应对延迟漂移），没有这个去重，
+          # 多个点会各推一条 —— 又变回「一天乱推好几次」。
+          # 用 API 读，而不是读 checkout 下来的文件：
+          # checkout 拿到的是「触发本工作流的那个 commit」，可能已被别的任务
+          # 覆盖；API 读到的一定是远端最新，去重才准。
+          marks = {}
+          try:
+              import urllib.request
+              rq = urllib.request.Request(
+                  "https://api.github.com/repos/%s/contents/data/.notify_marks.json"
+                  % os.environ.get("GITHUB_REPOSITORY", ""),
+                  headers={"Authorization": "Bearer " + os.environ.get("GITHUB_TOKEN", ""),
+                           "User-Agent": "notify-guard"})
+              raw = json.load(urllib.request.urlopen(rq, timeout=30))
+              if raw.get("content"):
+                  marks = json.loads(base64.b64decode(raw["content"]).decode("utf-8"))
+              print("[去重] API 读到标记: %s" % json.dumps(marks, ensure_ascii=False))
+          except Exception as ex:
+              # 读不到标记 = 去重失效，必须显眼报警，不能静默放行
+              print("[去重][警告] 读标记失败，本轮去重失效: %s" % str(ex)[:140])
+              marks = {}
+          today = marks.get(day) if isinstance(marks, dict) else None
+          today = today if isinstance(today, list) else []
+          dup = (not manual) and slot != "" and (slot in today)
+          ok = True if manual else (slot != "" and not dup)
+          reason = ("手动触发" if manual else
+                    ("窗口外" if slot == "" else
+                     ("今天%s已推过 → 跳过" % slot if dup else "放行")))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write("ok=%s\n" % ("true" if ok else "false"))
+              f.write("slot=%s\n" % (slot or "窗口外"))
+              f.write("bj=%s\n" % bj.strftime("%m-%d %H:%M"))
+          print("[窗口守卫] 北京 %s | 事件 %s | 场次 %s | 今日已推 %s | dup=%s | -> %s"
+                % (bj.strftime("%m-%d %H:%M"), ev, slot or "无", today, dup, reason))
+          PYEOF
+
+  fresh:
+    needs: window
+    if: github.event_name == 'schedule' || github.event_name == 'repository_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      stale:  ${{ steps.chk.outputs.stale }}
+      age:    ${{ steps.chk.outputs.age }}
+      newest: ${{ steps.chk.outputs.newest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - id: chk
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, datetime
+          pats = ["data/latest.json", "unicom/data/latest.json",
+                  "telecom/data/latest.json", "gb/data/latest.json"]
+          keys = ["updated", "updated_at", "generated_at", "time", "date"]
+          now = datetime.datetime.utcnow()
+          best, src = None, ""
+          for p in pats:
+              if not os.path.exists(p):
+                  continue
+              try:
+                  j = json.load(open(p, encoding="utf-8"))
+              except Exception:
+                  continue
+              s = ""
+              for k in keys:
+                  if isinstance(j, dict) and j.get(k):
+                      s = str(j[k]); break
+              if not s:
+                  continue
+              try:
+                  t = datetime.datetime.strptime(s[:19], "%Y-%m-%d %H:%M:%S")
+              except Exception:
+                  continue
+              if best is None or t > best:
+                  best, src = t, p
+          out = os.environ["GITHUB_OUTPUT"]
+          if best is None:
+              print("[fresh] 未找到任何时间戳，判定陈旧")
+              with open(out, "a") as f:
+                  f.write("stale=true\nage=999\nnewest=none\n")
+          else:
+              age = (now - best).total_seconds() / 3600.0
+              stale = "true" if age >= 6 else "false"
+              print("[fresh] 最新数据 %s (%s)，距今 %.1f 小时 -> stale=%s"
+                    % (best, src, age, stale))
+              with open(out, "a") as f:
+                  f.write("stale=%s\nage=%.1f\nnewest=%s\n" % (stale, age, best))
+          PYEOF
+
+  # ══════════ 抓取（手动 / 定时且数据陈旧时）══════════
+  fetch:
+    needs: [window, fresh]
+    # 手动触发且选了「手动推送(重点省)」/「全量推送」→ 抓取；
+    # 定时触发 → 当日抓取本由三个 workflow 在 08:47/09:17/09:37 完成，
+    #   但若它们被 GitHub 延迟、数据仍陈旧（fresh.stale=true），本轮自己
+    #   抓一遍再推，避免推成「昨天的变化」。
+    if: >-
+      always() && needs.window.outputs.ok == 'true' && (
+        (github.event_name == 'workflow_dispatch' && (
+          contains(github.event.inputs.action, '重点省') ||
+          contains(github.event.inputs.action, '全量')
+        )) ||
+        (github.event_name == 'schedule' && needs.fresh.outputs.stale == 'true') ||
+        github.event_name == 'repository_dispatch'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install pycryptodome
+
+      - name: 恢复降级峰值缓存（移动）
+        uses: actions/cache@v4
+        with:
+          path: pipelines/mobile/snapshots/peaks.json
+          key: mobile-peaks-v1
+          restore-keys: |
+            mobile-peaks-
+
+      - name: 解析模式与重点省份
+        id: cfg
+        run: |
+          ACTION="${{ github.event.inputs.action }}"
+          # 模式：手动「全量推送」或定时 full_auto → full；否则 focus
+          if [ -n "$ACTION" ]; then
+            case "$ACTION" in
+              *全量*) MODE="full" ;;
+              *)      MODE="focus" ;;
+            esac
+          else
+            case "${{ vars.NOTIFY_MODE }}" in
+              full_auto) MODE="full" ;;
+              *)         MODE="focus" ;;
+            esac
+          fi
+          FOCUS="${{ github.event.inputs.focus_provs }}"
+          [ -n "$FOCUS" ] || FOCUS="${{ vars.FOCUS_PROVS }}"
+          [ -n "$FOCUS" ] || FOCUS="hunan,guangdong,zhejiang"
+          echo "mode=$MODE"        >> "$GITHUB_OUTPUT"
+          echo "focus=$FOCUS"      >> "$GITHUB_OUTPUT"
+          echo "模式=$MODE  重点省=$FOCUS"
+
+      # ── 移动 ──
+      - name: 抓取移动（3省+全国 或 全量）
+        run: |
+          set -e
+          cd pipelines/mobile
+          if [ "${{ steps.cfg.outputs.mode }}" = "focus" ]; then
+            export TRACK_PROVINCES="${{ steps.cfg.outputs.focus }}"
+          else
+            unset TRACK_PROVINCES
+          fi
+          echo "=== 移动抓取开始 $(date -u +%FT%TZ) ==="
+          set +e
+          python3 -u main.py --once 2>&1 | tail -60
+          echo "移动抓取 exit=${PIPESTATUS[0]}"
+          set -e
+
+      - name: 构建移动站点数据
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          rm -rf snapshots
+          cp -r pipelines/mobile/snapshots ./snapshots 2>/dev/null || true
+          N=$(find snapshots -maxdepth 1 -type f -name "*.json" ! -name "peaks.json" | wc -l)
+          echo "移动快照文件数: $N"
+          if [ "$N" -eq 0 ]; then
+            echo "::warning::移动本轮无快照，保留现有 data/"
+            rm -rf snapshots
+            exit 0
+          fi
+          rm -rf _prev && mkdir -p _prev
+          cp -f data/*.json _prev/ 2>/dev/null || true
+          python3 pipelines/scripts/announce_fetch.py --move-dir site/data || true
+          python3 scripts/build_site.py 2>&1 | tail -30
+          QT=$(python3 -c "import json;print(json.load(open('_site/data/latest.json')).get('quanguo_total',0))" 2>/dev/null || echo 0)
+          echo "新构建 quanguo_total=$QT"
+          if [ "$QT" = "0" ]; then
+            echo "::warning::构建结果为 0，放弃覆盖 data/"
+            python3 scripts/rebuild_latest.py
+            rm -rf _site
+            exit 0
+          fi
+          mkdir -p data
+          # ★ 必须用 -a 同步整个目录：history 详情分片在 _site/data/hist/ 子目录。
+          #   旧写法 `cp _site/data/*.json` 只拷顶层文件，hist/ 永远进不了仓库，
+          #   导致「本轮 notify 构建产生的记录」点开显示「无修改后记录」
+          #   （实测 2026-10-11 14:06:20 那条就是这样丢的）。
+          #   这与 mobile-build.yml 已修的坑完全相同，此处此前漏改。
+          cp -a _site/data/. data/ 2>/dev/null || true
+          rm -f data/peaks.json
+          rm -rf _site _prev snapshots
+
+      # ── 联通 ──
+      - name: 抓取联通
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          SCOPE=""
+          if [ "${{ steps.cfg.outputs.mode }}" = "focus" ]; then
+            SCOPE="--scopes quanguo,${{ steps.cfg.outputs.focus }}"
+          fi
+          echo "=== 联通抓取开始 $(date -u +%FT%TZ) ==="
+          set +e
+          python3 -u pipelines/unicom_pipeline.py \
+            --prev-dir unicom/data --out-dir unicom/data $SCOPE 2>&1 | tail -40
+          echo "联通 exit=${PIPESTATUS[0]}"
+          set -e
+
+      # ── 电信 + 广电 ──
+      - name: 抓取电信与广电
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          GBSCOPE=""
+          if [ "${{ steps.cfg.outputs.mode }}" = "focus" ]; then
+            GBSCOPE="--scopes quanguo,${{ steps.cfg.outputs.focus }}"
+          fi
+          set +e
+          echo "--- 电信（源站仅公开 全网+湖南，模式对其无效）---"
+          PYTHONPATH=pipelines python3 -u pipelines/telecom_pipeline.py \
+            --prev-dir telecom/data --out-dir telecom/data 2>&1 | tail -30
+          echo "--- 广电 ---"
+          PYTHONPATH=pipelines python3 -u pipelines/gb_pipeline.py \
+            --prev-dir gb/data --out-dir gb/data $GBSCOPE 2>&1 | tail -30
+          set -e
+
+      - name: 提交抓取结果
+        if: always()
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          # 备份产物（防止被远程新提交冲掉）
+          rm -rf /tmp/art && mkdir -p /tmp/art
+          cp -a data    /tmp/art/ 2>/dev/null || true
+          # ★ 与 mobile-build 同款修复：本轮抓取产出的新快照必须一并备份。
+          #   否则下面 git reset --hard 会把 snapshots 打回远程旧版本，
+          #   下一轮 mobile-build 的基线（data/）已含本轮新数据、快照却是旧的，
+          #   时间倒退保护会让真实变化被整轮跳过（各省「不跑」）。
+          mkdir -p /tmp/art/snap
+          cp -a pipelines/mobile/snapshots/. /tmp/art/snap/ 2>/dev/null || true
+          echo "备份移动快照文件数: $(find /tmp/art/snap -maxdepth 1 -type f -name '*.json' | wc -l)"
+          cp -a unicom  /tmp/art/ 2>/dev/null || true
+          cp -a telecom /tmp/art/ 2>/dev/null || true
+          cp -a gb      /tmp/art/ 2>/dev/null || true
+          git fetch origin main || true
+          git reset --hard FETCH_HEAD || true
+          # 原子恢复：先确认产物存在，再覆盖，避免把「目录消失」提交上去
+          for d in data unicom telecom gb; do
+            if [ -d "/tmp/art/$d" ]; then
+              rm -rf "$d"
+              cp -a "/tmp/art/$d" "./$d"
+            fi
+          done
+          if [ "$(find /tmp/art/snap -maxdepth 1 -type f -name '*.json' | wc -l)" -gt 0 ]; then
+            mkdir -p pipelines/mobile/snapshots
+            cp -a /tmp/art/snap/. pipelines/mobile/snapshots/ || echo "::warning::移动快照恢复失败"
+            echo "恢复移动快照文件数: $(find pipelines/mobile/snapshots -maxdepth 1 -type f -name '*.json' | wc -l)"
+          fi
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "无变化"
+          else
+            git commit -q -m "notify fetch+push $(date -u +%FT%TZ)"
+            PUSHED=0
+            for i in 1 2 3 4 5; do
+              if git push origin main; then echo "已推送"; PUSHED=1; break; fi
+              echo "[warn] push 失败，重新对齐后重试 ($i/5)"
+              git fetch origin main
+              git reset --hard FETCH_HEAD
+              for d in data unicom telecom gb; do
+                [ -d "/tmp/art/$d" ] && { rm -rf "$d"; cp -a "/tmp/art/$d" "./$d"; }
+              done
+              git add -A
+              git commit -q -m "notify fetch+push retry$i $(date -u +%FT%TZ)" || true
+              sleep 8
+            done
+            if [ "$PUSHED" -ne 1 ]; then
+              echo "::error::连续5次 git push 均失败"
+              exit 1
+            fi
+          fi
+
+  # ══════════ 推送 ══════════
+  notify:
+    needs: [window, fetch]
+    # fetch 被跳过或失败时也照常推送（推当前已有数据）
+    if: >-
+      always() && needs.window.outputs.ok == 'true' && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'repository_dispatch' ||
+        (github.event_name == 'schedule' && vars.NOTIFY_MODE != 'focus_manual')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # 必须显式 checkout main 最新：默认的 checkout 拉的是「触发本工作流的
+      # 那个 commit」，而 fetch job 之后又提交了新的抓取结果。不拉最新的话
+      # notify 读到的是抓取前的旧 history —— 这就是钉钉内容与网站不一致的
+      # 根因（钉钉说有变化、网站上已经没有了）。
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 推送汇总（多通道）
+        env:
+          # ── 通道开关说明 ──
+          # 定时触发（10:00/20:00）：推全部已配置通道（钉钉/飞书/企微/邮件）。
+          # 站长手动触发（workflow_dispatch，即「我让你推送」）：只推站长自己的
+          # 钉钉；飞书/企微/邮件置空后 notify.py 会自动跳过，避免打扰网页访客。
+          # 注：网页访客在 push-center.html 里的配置只存在各自浏览器 localStorage，
+          #     由访客浏览器直连官方接口推送，与本 workflow 无关（见 push-center.html）。
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET:  ${{ secrets.DINGTALK_SECRET }}
+          # 飞书（仅定时推送；手动触发置空跳过）
+          FEISHU_WEBHOOK:   ${{ github.event_name == 'workflow_dispatch' && '' || secrets.FEISHU_WEBHOOK }}
+          FEISHU_SECRET:    ${{ github.event_name == 'workflow_dispatch' && '' || secrets.FEISHU_SECRET }}
+          # 企业微信机器人（仅定时推送；手动触发置空跳过）
+          WECOM_WEBHOOK:    ${{ github.event_name == 'workflow_dispatch' && '' || secrets.WECOM_WEBHOOK }}
+          # 邮件（仅定时推送；手动触发置空跳过）
+          SMTP_HOST:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.SMTP_HOST }}
+          SMTP_PORT:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.SMTP_PORT }}
+          SMTP_USER:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.SMTP_USER }}
+          SMTP_PASS:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.SMTP_PASS }}
+          MAIL_TO:          ${{ github.event_name == 'workflow_dispatch' && '' || secrets.MAIL_TO }}
+          MAIL_FROM:        ${{ github.event_name == 'workflow_dispatch' && '' || secrets.MAIL_FROM }}
+          MAIL_FROM_NAME:   ${{ github.event_name == 'workflow_dispatch' && '' || secrets.MAIL_FROM_NAME }}
+          # 通用
+          SINCE_HOURS:      ${{ github.event.inputs.hours || '24' }}
+          # 推送过滤（可选）：不设置 = 与历史行为完全一致（四家全推、只给总览）
+          # PUSH_OPS   只推哪些运营商：mobile,unicom,telecom,gb（例：mobile,unicom）
+          # PUSH_PROVS 只统计哪些省份（拼音）：例 quanguo,hunan,guangdong
+          #            设置后推送里会列出分省明细；不设置则不列明细
+          # 两个变量在 Settings → Secrets and variables → Actions → Variables 里填
+          PUSH_OPS:         ${{ vars.PUSH_OPS || '' }}
+          PUSH_PROVS:       ${{ vars.PUSH_PROVS || '' }}
+          # 仓库未配置 vars 时这里会是空串，必须给默认值
+          # （脚本里也做了显式回退，双保险）
+          # 注意：FOCUS_SEC 已不再用于「筛选推送哪些省」——推送一律列全部
+          # 有变化的省，与网站变化历史同源同口径。此变量仅为兼容旧配置保留。
+          FOCUS_SEC:        ${{ vars.FOCUS_SEC || '' }}
+          SITE_URL:         ${{ vars.SITE_URL || 'https://woshiyigemanhuajia.github.io/hunan-tariff-site/' }}
+          SITE_ROOT:        "."
+        run: python3 scripts/dingtalk_summary.py
+
+      - name: 记录本场次已推送（防同场次重复推）
+        if: always() && needs.window.outputs.ok == 'true'
+        env:
+          SLOT:     ${{ needs.window.outputs.slot }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO:     ${{ github.repository }}
+        run: |
+          python3 - <<'PYEOF'
+          import datetime, os, json, base64, urllib.request
+          slot = os.environ.get("SLOT", "")
+          if not slot or slot == "窗口外":
+              print("无有效场次，不写标记"); raise SystemExit(0)
+          bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+          day = bj.strftime("%Y-%m-%d")
+          repo, tok = os.environ["REPO"], os.environ["GH_TOKEN"]
+          url = "https://api.github.com/repos/%s/contents/data/.notify_marks.json" % repo
+          H = {"Authorization": "Bearer " + tok, "User-Agent": "notify-guard",
+               "Accept": "application/vnd.github+json"}
+          m, old = {}, None
+          try:
+              raw = json.load(urllib.request.urlopen(urllib.request.Request(url, headers=H), timeout=30))
+              old = raw.get("sha")
+              if raw.get("content"):
+                  m = json.loads(base64.b64decode(raw["content"]).decode("utf-8"))
+          except Exception:
+              m = {}
+          if not isinstance(m, dict): m = {}
+          cut = (bj - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+          for kk in list(m.keys()):
+              if kk < cut: m.pop(kk, None)
+          cur = m.get(day) if isinstance(m.get(day), list) else []
+          if slot not in cur: cur.append(slot)
+          m[day] = cur
+          body = {"message": "notify mark %s %s" % (day, slot),
+                  "content": base64.b64encode(json.dumps(m, ensure_ascii=False, indent=2)
+                                              .encode()).decode()}
+          if old: body["sha"] = old
+          rq = urllib.request.Request(url, data=json.dumps(body).encode(), method="PUT", headers=H)
+          try:
+              json.load(urllib.request.urlopen(rq, timeout=40))
+              print("[场次标记] 已提交 %s -> %s" % (day, cur))
+          except Exception as e:
+              # 写不进标记 = 下一条重复推送必然发生，这里必须让 job 失败，
+              # 否则就像上次一样：step 显示 success，实际去重从来没生效。
+              print("[场次标记][严重] 提交失败，下一轮会重复推送: %s" % str(e)[:160])
+              raise SystemExit(1)
+          PYEOF
