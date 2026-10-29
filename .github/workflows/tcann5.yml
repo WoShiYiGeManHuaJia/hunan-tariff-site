@@ -1,0 +1,82 @@
+name: TCANN5
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pycryptodome -q
+      - name: probe detail
+        run: |
+          python3 - << 'PYEOF' > _tcann_out.txt 2>&1
+          import json, os, base64, gzip, random, time, urllib.request, re
+          from Crypto.Cipher import AES, PKCS1_v1_5
+          from Crypto.PublicKey import RSA
+          from Crypto.Util.Padding import pad
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          PUB="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIvCpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mif5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+ip2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlbKZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5KLF/30wIDAQAB"
+          pub=RSA.import_key(base64.b64decode(PUB))
+          def post(url, obj, fcode="Y121043001"):
+              key=os.urandom(16); iv=os.urandom(16)
+              ct=AES.new(key,AES.MODE_CBC,iv).encrypt(pad(json.dumps(obj,ensure_ascii=False).encode(),16))
+              inner=json.dumps({"key":base64.b64encode(key).decode(),"iv":base64.b64encode(iv).decode()},separators=(",",":"))
+              payload={"param":base64.b64encode(ct).decode(),"key":base64.b64encode(PKCS1_v1_5.new(pub).encrypt(inner.encode())).decode()}
+              tid="".join("%x"%random.randint(0,15) for _ in range(32))
+              req=urllib.request.Request(url,data=json.dumps(payload,separators=(",",":")).encode(),method="POST",
+                headers={"User-Agent":UA,"Content-Type":"application/json;charset=UTF-8","Accept":"application/json, text/plain, */*",
+                  "Origin":"https://www.189.cn","Referer":"https://www.189.cn/web/notice/index.html","Fcode":fcode,"TransactionId":tid})
+              for a in range(4):
+                  try:
+                      with urllib.request.urlopen(req,timeout=30) as r:
+                          raw=r.read()
+                          if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                          return json.loads(raw.decode("utf-8","replace"))
+                  except Exception as e:
+                      last=e; time.sleep(2*(a+1))
+              return {"__err":str(last)}
+          REC="https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
+          r=post(REC,{"shopId":"20001","type":"wt_sy_bzzx","order":"","provinceCode":"600203","cityCode":""})
+          print("LIST code=",r.get("code"),"data_len=",len(r.get("data") or []))
+          fis=[]
+          for d in (r.get("data") or []):
+              for x in (d.get("floorItems") or []): fis.append(x)
+          print("FLOORITEMS=",len(fis))
+          if fis:
+              print("RAW0=",json.dumps(fis[0],ensure_ascii=False)[:800])
+              print("KEYS=",sorted(fis[0].keys()))
+          # 尝试详情接口
+          D1="https://www.189.cn/wtBusiness/wtservice/nc/announcement/getAnnouncementDetail.do"
+          for x in fis[:4]:
+              oc=x.get("externalOfferCode") or x.get("offerCode") or x.get("id") or ""
+              tp=x.get("type") or "wt_sy_bzzx"
+              for name,obj in [
+                  ("A_type+offerCode",{"type":tp,"offerCode":oc,"provinceCode":"600203","cityCode":""}),
+                  ("B_id",{"id":oc,"provinceCode":"600203","cityCode":""}),
+                  ("C_announceId",{"announceId":oc,"provinceCode":"600203","cityCode":""}),
+              ]:
+                  d=post(D1,obj)
+                  s=json.dumps(d,ensure_ascii=False)
+                  print("DETAIL %s oc=%s -> %s"%(name,oc,s[:400]))
+                  if "content" in s and len(s)>200:
+                      print("   *** HIT ***")
+                  time.sleep(0.8)
+              # link 字段直接取
+              lk=x.get("link") or ""
+              print("LINK=",lk[:200])
+              time.sleep(0.5)
+          PYEOF
+          cat _tcann_out.txt
+
+      - name: 提交结果
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A _tcann_out.txt
+          git commit -q -m "tcann out" || echo "no change"
+          for i in 1 2 3 4 5; do git pull --rebase -q origin main && git push -q origin main && break; sleep 5; done
