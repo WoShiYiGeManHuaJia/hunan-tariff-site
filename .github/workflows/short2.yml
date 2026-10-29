@@ -1,0 +1,36 @@
+name: short2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: verify existing links
+        run: |
+          OUT="# 短链验证结果"
+          OUT="$OUT"$'\n'
+          OUT="$OUT"$'\n'"target: https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
+          OUT="$OUT"$'\n'
+          for L in https://tinyurl.com/hntf2 https://tinyurl.com/zf2026 https://tinyurl.com/hunan2026 https://tinyurl.com/hntf2026 https://tinyurl.com/23xqwhm7 https://clck.ru/3W4LN5; do
+            H=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{http_code}" -L "$L")
+            F=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{url_effective}" -L "$L")
+            N=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{num_redirects}" -L "$L")
+            T=$(curl -s -m 25 -A "Mozilla/5.0" -L "$L" | grep -oE '<title>[^<]*</title>' | head -1)
+            OUT="$OUT"$'\n'"=== $L"
+            OUT="$OUT"$'\n'"  http=$H  跳转次数=$N  最终=$F"
+            OUT="$OUT"$'\n'"  页面标题=$T"
+            OUT="$OUT"$'\n'
+          done
+          echo "$OUT" > SHORT2.md
+          cat SHORT2.md
+      - name: commit result
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add SHORT2.md
+          git commit -m "verify short links" || echo "no change"
+          git pull --rebase origin main || true
+          git push || echo pushfail
