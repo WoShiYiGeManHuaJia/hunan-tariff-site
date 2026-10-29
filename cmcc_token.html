@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>取签到凭证</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:14px;font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;background:#f5f6f8;color:#222}
+h1{font-size:17px;margin:0 0 10px}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.ok{color:#0a0;font-weight:600}
+.err{color:#c00;font-weight:600}
+.mut{color:#888;font-size:13px}
+textarea{width:100%;height:190px;font:12px/1.5 monospace;border:1px solid #ddd;border-radius:8px;padding:8px;margin-top:8px;background:#fafafa}
+button{width:100%;padding:13px;margin-top:8px;border:0;border-radius:10px;background:#5b4bd6;color:#fff;font-size:16px;font-weight:600}
+button:active{opacity:.75}
+#log{white-space:pre-wrap;font:11px/1.6 monospace;color:#555;margin-top:8px;max-height:260px;overflow:auto}
+</style>
+</head>
+<body>
+
+<h1>取签到凭证</h1>
+
+<div class="card">
+  <div id="status" class="mut">正在检测…</div>
+  <div id="log"></div>
+</div>
+
+<div class="card" id="box" style="display:none">
+  <textarea id="out" readonly></textarea>
+  <button onclick="cp()">复制全部</button>
+</div>
+
+<div class="card">
+  <div class="mut">
+    <b>怎么用</b><br>
+    1. 打开<b>中国移动 App</b><br>
+    2. 用 App 里的<b>扫一扫</b>扫二维码<br>
+    3. 页面自动取凭证，点「复制全部」发给我<br><br>
+    提示「不在 App 内」= 用普通浏览器打开的，拿不到。
+  </div>
+</div>
+
+<script>
+var outEl=document.getElementById('out'),stEl=document.getElementById('status'),logEl=document.getElementById('log');
+function log(s){logEl.textContent+=s+'\n';logEl.scrollTop=logEl.scrollHeight;}
+function ok(s){stEl.className='ok';stEl.textContent=s;}
+function err(s){stEl.className='err';stEl.textContent=s;}
+var DUMP={};
+
+function show(){
+  DUMP.UA=navigator.userAgent;
+  var t='===凭证===\n'+(DUMP.token||'(没拿到)')+
+    '\n\n===手机号===\n'+(DUMP.phone||'(没拿到)')+
+    '\n\n===省份===\n'+(DUMP.province||'')+
+    '\n===城市===\n'+(DUMP.city||'')+
+    '\n===运营商===\n'+(DUMP.carrier||'')+
+    '\n===版本===\n'+(DUMP.version||'')+
+    '\n\n===其他字段===\n'+JSON.stringify(DUMP.extra||{},null,1)+
+    '\n\n===leadeon方法===\n'+(DUMP.methods||'').join(', ')+
+    '\n\n===localStorage===\n'+(DUMP.ls||'')+
+    '\n\n===Cookie===\n'+(DUMP.ck||'(无)')+
+    '\n\n===UA===\n'+navigator.userAgent;
+  outEl.value=t;
+  document.getElementById('box').style.display='block';
+  if(DUMP.token) ok('拿到凭证了！点复制发给我');
+  else err('凭证没拿到，但请把下面全部内容发我');
+}
+function grab(o){
+  if(!o||typeof o!='object')return false;
+  var s=JSON.stringify(o);
+  if(s.length<8)return false;
+  DUMP.token=DUMP.token||o.token||o.ticket||o.tk||o.appToken||o.userCheckId||o.userToken||o.sessionId||o.sid||'';
+  DUMP.phone=DUMP.phone||o.phoneNumber||o.phone||o.mobile||o.phoneNum||'';
+  DUMP.province=DUMP.province||o.province||o.provinceCode||o.provinceId||'';
+  DUMP.city=DUMP.city||o.city||o.cityCode||o.cityId||'';
+  DUMP.carrier=DUMP.carrier||o.carrierOperator||o.carrier||'';
+  DUMP.version=DUMP.version||o.appVersionCode||o.version||o.appVersion||'';
+  if(!DUMP.extra)DUMP.extra={};
+  for(var k in o){if(typeof o[k]==='string'&&o[k].length<200)DUMP.extra[k]=o[k];}
+  return !!DUMP.token;
+}
+function dumpStorage(){
+  var a=[];
+  try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);var v=localStorage.getItem(k);if(v&&v.length<600)a.push(k+' = '+v);}}catch(e){}
+  DUMP.ls=a.join('\n')||'(空)';
+  DUMP.ck=document.cookie||'(无)';
+}
+function listMethods(){
+  var m=[];
+  try{if(window.leadeon){for(var k in window.leadeon){if(typeof window.leadeon[k]==='function')m.push('leadeon.'+k);}}}catch(e){}
+  try{if(window.newSdkInterface){for(var k in window.newSdkInterface){if(typeof window.newSdkInterface[k]==='function')m.push('newSdk.'+k);}}}catch(e){}
+  try{if(window.myWeb){for(var k in window.myWeb){if(typeof window.myWeb[k]==='function')m.push('myWeb.'+k);}}}catch(e){}
+  DUMP.methods=m;
+  return m;
+}
+// 防止 SDK 内部 newSdkInterface 未定义而崩溃
+if(typeof window.newSdkInterface==='undefined'){
+  try{window.newSdkInterface={getUserInfo:function(){},call:function(){},postMsg:function(){}};log('已补 newSdkInterface 占位');}catch(e){}
+}
+function trySdk(name,obj){
+  if(!obj)return false;
+  var fns=['getUserInfo','getUserInfoSync','getUserInfos','getLoginInfo','getLoginUserInfo','getToken','getAppToken','getSessionId'];
+  for(var i=0;i<fns.length;i++){
+    var fn=fns[i];
+    if(typeof obj[fn]!=='function')continue;
+    log('尝试 '+name+'.'+fn+'()');
+    try{
+      var r=obj[fn]();
+      log('  返回: '+JSON.stringify(r).slice(0,200));
+      if(grab(r))return true;
+    }catch(e){log('  异常: '+e.message);}
+    try{
+      obj[fn]({debug:false,success:function(res){log('  异步返回: '+JSON.stringify(res).slice(0,200));if(grab(res))show();},error:function(e){log('  错误: '+JSON.stringify(e).slice(0,150));}});
+      if(DUMP.token)return true;
+    }catch(e){log('  异步异常: '+e.message);}
+  }
+  return false;
+}
+function boot(){
+  log('UA: '+navigator.userAgent.slice(0,90));
+  var got=false;
+  got=trySdk('leadeon',window.leadeon);
+  if(!got)got=trySdk('newSdk',window.newSdkInterface);
+  if(!got)got=trySdk('myWeb',window.myWeb);
+  listMethods();
+  dumpStorage();
+  if(!DUMP.token){
+    log('直接调用都没拿到，等待 SDK 注入…');
+    var tries=0;
+    var t=setInterval(function(){
+      tries++;
+      var g=trySdk('leadeon',window.leadeon)||trySdk('newSdk',window.newSdkInterface)||trySdk('myWeb',window.myWeb);
+      listMethods();dumpStorage();
+      if(g||tries>=6){clearInterval(t);show();}
+    },1200);
+  } else show();
+}
+setTimeout(boot,400);
+
+function cp(){
+  outEl.select();outEl.setSelectionRange(0,999999);
+  var okk=false;try{okk=document.execCommand('copy');}catch(e){}
+  stEl.className=okk?'ok':'err';
+  stEl.textContent=okk?'已复制，粘贴发给 AI':'请长按手动复制';
+}
+</script>
+</body>
+</html>
