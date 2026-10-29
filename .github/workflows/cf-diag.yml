@@ -1,0 +1,39 @@
+name: CF 令牌诊断
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 诊断
+        env:
+          CF_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set +e
+          OUT="cf_diag_result.txt"; : > "$OUT"
+          AUTH=(-H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json")
+          {
+          echo "===== $(date -u) ====="
+          echo "--- token 长度 ---"
+          echo -n "$CF_TOKEN" | wc -c
+          echo "--- token 前缀 ---"
+          echo -n "$CF_TOKEN" | cut -c1-8
+          echo "--- verify ---"
+          curl -s "${AUTH[@]}" "https://api.cloudflare.com/client/v4/user/tokens/verify"
+          echo ""
+          echo "--- 列出 zones ---"
+          curl -s "${AUTH[@]}" "https://api.cloudflare.com/client/v4/zones?per_page=50" \
+            | jq -c '{success, errors, names:[.result[]?.name]}'
+          } 2>&1 | tee -a "$OUT"
+      - name: 提交结果
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cf_diag_result.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "CF 诊断结果"; git push
+          fi
