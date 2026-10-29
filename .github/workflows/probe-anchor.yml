@@ -1,0 +1,30 @@
+name: probe-anchor
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  v:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm i --no-audit --no-fund playwright@1.63.0
+      - run: npx playwright install chromium
+      - run: node _anchor.js > anchor_out.txt 2>&1 || echo bad >> anchor_out.txt
+      - name: 回写
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: |
+          python3 - <<'PYEOF'
+          import base64,json,urllib.request,os
+          tok=os.environ['GH_TOKEN']; repo="${{ github.repository }}"
+          Hf={'Authorization':'token '+tok,'User-Agent':'x','Accept':'application/vnd.github+json'}
+          b=base64.b64encode(open('anchor_out.txt','rb').read()).decode(); sha=None
+          try:
+              d=json.load(urllib.request.urlopen(urllib.request.Request('https://api.github.com/repos/%s/contents/anchor_out.txt?ref=main'%repo,headers=Hf),timeout=60)); sha=d.get('sha')
+          except Exception: pass
+          pl={'message':'anchor probe','content':b,'branch':'main'}
+          if sha: pl['sha']=sha
+          urllib.request.urlopen(urllib.request.Request('https://api.github.com/repos/%s/contents/anchor_out.txt'%repo,data=json.dumps(pl).encode(),method='PUT',headers=Hf),timeout=120)
+          PYEOF
