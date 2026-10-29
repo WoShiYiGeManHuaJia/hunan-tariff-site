@@ -1,0 +1,317 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""中国电信资费监控管线（可在 GitHub Actions 直接运行，路径全部相对脚本目录）
+
+职责：抓取电信「湖南(600203) + 广东(600101) + 山东(609903) + 河南(609904)
+      + 全国(1000000037)」资费（对齐联通站 JSON schema）
+      → 与上一版数据 diff → 输出站点数据目录（{scope}.json + latest.json + history.json）。
+说明：provCode 为集团 wap 资费专区内部编码。完整 31 省编码取自电信网厅前端
+      index-xdZ1yBwq.js 内置省份表（权威来源），摘录：
+      600101广东 600102上海 600103江苏 600104浙江 600105福建 600201四川
+      600202湖北 600203湖南 600204陕西 600205云南 600301安徽 600302广西
+      600303新疆 600304重庆 600305江西 600401甘肃 600402贵州 600403海南
+      600404宁夏 600405青海 600406西藏 609001北京 609902天津 609903山东
+      609904河南 609905辽宁 609906河北 609907山西 609908内蒙古 609909吉林
+      609910黑龙江。
+      新增省份只需在 SCOPES 里加一行，前端会自动出现省份选项。
+用法:
+  python3 telecom_pipeline.py --prev-dir PATH --out-dir PATH
+"""
+import urllib.request, json, time, base64, hashlib, os, sys, argparse, random
+
+from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
+                             modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key, field_snapshot)
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+
+KEY = b"telecom_wap_2018"
+# UA 池：每次请求随机取一个，避免长时间单一指纹（配合随机间隔降低风控命中率）
+UAS = [
+    "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 12; Redmi Note 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 14; V2218A) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0 Mobile Safari/537.36",
+]
+def _ua():
+    return random.choice(UAS)
+API = "https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+
+SCOPES = {
+    "hunan": {"prov": "600203", "name": "湖南"},
+    "guangdong": {"prov": "600101", "name": "广东"},
+    "shandong": {"prov": "609903", "name": "山东"},
+    "henan": {"prov": "609904", "name": "河南"},
+    "quanguo": {"prov": "1000000037", "name": "全国"},
+}
+
+
+def encrypt(m):
+    return base64.b64encode(AES.new(KEY, AES.MODE_ECB).encrypt(pad(m.encode("utf-8"), 16))).decode("utf-8")
+
+
+def call(fn, rc):
+    body = encrypt(json.dumps({"headerInfo": {"functionCode": fn}, "requestContent": rc}, ensure_ascii=False))
+    req = urllib.request.Request(API, data=body.encode("utf-8"), method="POST", headers={
+        "User-Agent": _ua(),
+        "Referer": "https://www.189.cn/wapportalweb/rateZone/index.html",
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "text/plain;charset=UTF-8",
+        "Origin": "https://www.189.cn",
+        "x-qd-reqtime": str(int(time.time() * 1000)),
+    })
+    last = None
+    for a in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.loads(r.read().decode("utf-8"))
+        except Exception as e:
+            last = e
+            time.sleep(2 * (a + 1))
+    raise last
+
+
+def home(prov):
+    d = call("tariffSectionHome", {"ticket": "", "sessionid": "", "provCode": prov})
+    return d.get("responseContent", {})
+
+
+def query(sess, prov, l1, l2=""):
+    d = call("tariffSectionQuery", {"sessionid": sess, "type": 1, "provCode": prov, "lable1Id": l1, "lable2Id": l2})
+    return d.get("responseContent", {})
+
+
+def _fmt_date(s):
+    """多种官方日期格式 → YYYY-MM-DD（不支持则原样截断）"""
+    if not s:
+        return ""
+    t = str(s).strip()
+    if len(t) >= 10 and t[4] == "-":
+        return t[:10]
+    if len(t) >= 8 and t[:8].isdigit():
+        return "%s-%s-%s" % (t[:4], t[4:6], t[6:8])
+    return t[:10]
+
+
+def parse_item(x):
+    """电信原始字段 → 联通站统一 schema"""
+    fee = x.get("fees", "") or ""
+    detail = {
+        "name": x.get("name", ""),
+        "reportNo": x.get("reportNo", ""),
+        "codeType": x.get("lable1Name", ""),
+        "feesStandard": fee,
+        "feeUnit": x.get("feesUnit", ""),
+        "minute": x.get("call", ""),
+        "commonData": x.get("data", ""),
+        "dataUnit": x.get("dataUnit", ""),
+        "sms": x.get("sms", ""),
+        "orientTraffic": x.get("orientTraffic", ""),
+        "iptv": x.get("iptv", ""),
+        "broadBand": x.get("bandwidth", ""),
+        "extraFees": x.get("otherFees", ""),
+        "serviceContent": x.get("rights", ""),
+        "useScope": x.get("applicablePeople", ""),
+        "validPeriod": x.get("validPeriod", ""),
+        "saleChnl": x.get("channel", ""),
+        "onDate": _fmt_date(x.get("onlineDay")),
+        "offDate": _fmt_date(x.get("offlineDay")),
+        "unsubscribe": x.get("unsubscribe", ""),
+        "responsibility": x.get("responsibility", ""),
+        "inNetReq": x.get("duration", ""),
+        "otherNotes": x.get("otherContent", ""),
+        "firstLevelType": x.get("type1", "1"),
+        "secondLevelType": x.get("type2", "1"),
+    }
+    title = x.get("name", "")
+    return {
+        "id": x.get("id", "") or hashlib.md5((title + fee).encode("utf-8")).hexdigest(),
+        "title": title,
+        "fee": fee,
+        "firstLevel": x.get("lable1Name", "其他"),
+        "secondLevel": x.get("lable2Name", "") or "其他",
+        "detail": detail,
+    }
+
+
+def fetch_scope(scope, prov):
+    rc = home(prov)
+    sess = rc.get("sessionid")
+    boards = rc.get("lableOneList") or []
+    items = []
+    print("[%s] session=%s boards=%s" % (scope, sess, [b.get("name") for b in boards]))
+    if not boards:
+        print("  !! home 未返回板块，provCode=%s 可能受限" % prov)
+        return []
+    for b in boards:
+        l1 = b["id"]
+        rq = query(sess, prov, l1)
+        lst = rq.get("zoneTitleList") or []
+        for x in lst:
+            items.append(parse_item(x))
+        print("  [%s] count=%s got=%d" % (b.get("name"), rq.get("zoneTitleListCount"), len(lst)))
+        time.sleep(random.uniform(0.8, 1.5))
+    seen, uniq = set(), []
+    for it in items:
+        if it["id"] in seen:
+            continue
+        seen.add(it["id"]); uniq.append(it)
+    return uniq
+
+
+def load(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save(path, obj):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
+
+
+def digest_item(it):
+    return json.dumps([it.get("id"), it.get("title"), it.get("fee"), it.get("firstLevel")], ensure_ascii=False)
+
+
+def digest_stable(it):
+    """跨板块业务身份；与公共 Diff 使用同一套键，价格变化不会造成身份变化。"""
+    return stable_business_key(it)
+
+
+def _brief(it):
+    """历史页弹窗展示用的配置快照（与联通/广电对齐）。"""
+    d = it.get("detail") or {}
+    out = {"title": it.get("title", ""), "fee": it.get("fee", ""),
+           "firstLevel": it.get("firstLevel", ""), "secondLevel": it.get("secondLevel", "")}
+    for k, v in d.items():
+        if k in ("timestamp", "responseContent", "data"):
+            continue
+        if isinstance(v, str) and len(v) > 600:
+            v = v[:600] + "…"
+        out[k] = v
+    return out
+
+
+def diff_scope(prev, cur):
+    r = diff_items(prev.get("items") or [], cur.get("items") or [], detail_limit=int(os.getenv("TELECOM_DETAILS_LIMIT") or "60"))
+    added, removed, modified = r["added_items"], r["removed_items"], r["modified_items"]
+    # 原 shifted 分支已移除：raw_added = len(added)，故 not added/removed 成立时
+    # raw_n 必为 0，0/total_n > 0.5 恒假 —— 该分支永不可达，ID 漂移检测从未生效。
+    # 真正防 ID 漂移的是 diff_items 的 stable_business_key 匹配，此处无需额外处理。
+    return {"added": len(added), "removed": len(removed), "modified": len(modified),
+            "added_names": [x.get("title", "") for x in added],
+            "removed_names": [x.get("title", "") for x in removed],
+            "modified_names": [x.get("title", "") for x in modified],
+            "modified_details": r["modified_details"],
+            "added_details": {(x.get("title","") or x.get("name","")): field_snapshot(x) for x in added},
+            "removed_details": {(x.get("title","") or x.get("name","")): field_snapshot(x) for x in removed},
+            "added_list": [_brief(x) for x in added[:24]],
+            "removed_list": [_brief(x) for x in removed[:24]],
+            "modified_list": [_brief(x) for x in modified[:24]]}
+
+def build_latest(scopes, datadir):
+    sections, prov_stats = [], {}
+    q_total = None
+    for scope in scopes:
+        p = os.path.join(datadir, scope + ".json")
+        if not os.path.exists(p):
+            continue
+        d = load(p)
+        items = d["items"]
+        total = len(items)
+        dist = {}
+        for it in items:
+            fl = it["firstLevel"] or "其他"
+            dist[fl] = dist.get(fl, 0) + 1
+        if scope == "quanguo":
+            q_total = total
+        prov_stats[scope] = {"total": total, "onsale": total, "dist": dist}
+        sections.append({"section": scope, "name": SCOPES[scope]["name"], "total": total,
+                         "onsale": total, "updated": d.get("timestamp") or ""})
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    # 省份合计：所有非全国板块之和（此前写死取 hunan，新增省份后统计会漏算）
+    prov_total = sum(v.get("total", 0) for k, v in prov_stats.items() if k != "quanguo")
+    latest = {"sections": sections, "default": "hunan", "quanguo_total": q_total,
+              "prov_total": prov_total,
+              "prov_stats": prov_stats, "updated": now, "timestamp": now}
+    save(os.path.join(datadir, "latest.json"), latest)
+    print("latest.json 已生成: quanguo=%s prov_total=%s 各省=%s" % (
+        q_total, prov_total, {k: v.get("total") for k, v in prov_stats.items()}))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--prev-dir", required=True)
+    ap.add_argument("--out-dir", required=True)
+    ap.add_argument("--rebuild", action="store_true",
+                    help="重建基线模式：仅抓取并覆盖渲染数据/latest，跳过对比与历史记录")
+    args = ap.parse_args()
+    prev_dir, out_dir = args.prev_dir, args.out_dir
+    scopes = list(SCOPES.keys())
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    # 先读上一版
+    prev_data = {sc: (load(os.path.join(prev_dir, sc + ".json")) if os.path.exists(os.path.join(prev_dir, sc + ".json")) else None) for sc in scopes}
+    # 本轮抓取为空的板块（接口异常 / WAF 拦截）：绝不落盘，否则会把线上正常数据覆盖成 0 条
+    empty_scopes = set()
+    for scope in scopes:
+        print("=== 抓取 %s (%s) ===" % (scope, SCOPES[scope]["name"]))
+        items = fetch_scope(scope, SCOPES[scope]["prov"])
+        # 剔除官方混入的测试/作废业务，避免其被当作真实变更写进 history 与推送
+        items = filter_test_items(items)
+        if not items:
+            print("[%s] !! 本轮抓取 0 条，保留旧数据不覆盖（接口异常或受 WAF 拦截）" % scope)
+            empty_scopes.add(scope)
+            time.sleep(random.uniform(2.0, 3.5))
+            continue
+        data = {"scope": scope, "timestamp": now, "items": items}
+        save(os.path.join(out_dir, scope + ".json"), data)
+        print("[%s] total=%d" % (scope, len(items)))
+        time.sleep(random.uniform(2.0, 3.5))
+    hp = os.path.join(out_dir, "history.json")
+    if args.rebuild:
+        print("== 重建基线模式：跳过对比与历史，仅刷新数据/latest ==")
+        build_latest(scopes, out_dir)
+        print("完成(重建)，history 保持现有 %d 条" % len(load(hp) if os.path.exists(hp) else []))
+        return
+    history = load(hp) if os.path.exists(hp) else []
+    changes = {}
+    for sc in scopes:
+        cur_path = os.path.join(out_dir, sc + ".json")
+        if sc in empty_scopes or not os.path.exists(cur_path):
+            # 本轮无数据：不参与对比，避免产生「整板块下架」的假变化
+            continue
+        cur = load(cur_path)
+        if prev_data[sc] is None:
+            print("  %s 首次，建基线（不记变化）" % sc)
+            continue
+        # prev 同步过滤：公开仓历史快照里可能仍残留测试数据，
+        # 不过滤会让它们在本轮被判成"下架"而产生误报。
+        prev_clean = prev_data[sc]
+        if prev_clean and prev_clean.get("items"):
+            kept = filter_test_items(prev_clean["items"], verbose=False)
+            if len(kept) != len(prev_clean["items"]):
+                prev_clean = dict(prev_clean, items=kept)
+        r = diff_scope(prev_clean, cur)
+        _bt = len((prev_clean or {}).get("items") or [])
+        if is_sampling_noise(r, _bt):
+            print("    >> 采样噪声：" + str(mark_noise(r, _bt).get("note", "")))
+        r = slim_change(mark_noise(r, _bt))
+        if has_real_change(r):
+            changes[sc] = r
+    if changes:
+        entry = {"ts": now}
+        entry.update(changes)
+        history.append(entry)
+        # history 会随轮次无限增长（names/details 全量保存），
+        # 前端需一次性下载，不截断最终会让移动端打不开页面。
+        history = history[-int(os.getenv("HISTORY_LIMIT") or "30"):]
+        print("检测到变化:", {k: "add%d/rm%d/mod%d" % (v["added"], v["removed"], v["modified"]) for k, v in changes.items()})
+    else:
+        print("本次检测：无变化")
+    save(hp, history)
+    build_latest(scopes, out_dir)
+    print("完成，history 共 %d 条" % len(history))
+
+
+if __name__ == "__main__":
+    main()
