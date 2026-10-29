@@ -1,0 +1,30 @@
+== authoritative check
+-- SOA hnvip.qd.je @dns1.digitalplat.org
+dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300
+-- NS  hnvip.qd.je @dns1.digitalplat.org
+dns2.digitalplat.org.
+dns1.digitalplat.org.
+-- ANY
+== DP API hosts
+-- host api.digitalplat.org
+   (no dns)
+   https://api.digitalplat.org/api/v1/domains -> 000 | 
+-- host digitalplat.org
+2606:4700:10::ac42:ae04 digitalplat.org
+2606:4700:10::6814:2071 digitalplat.org
+   https://digitalplat.org/api/v1/domains -> 403 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+-- host api.digitalplat.dev
+   (no dns)
+   https://api.digitalplat.dev/api/v1/domains -> 000 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+-- host oss.digitalplat.org
+   (no dns)
+   https://oss.digitalplat.org/api/v1/domains -> 000 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+-- host dash.digitalplat.org
+   (no dns)
+   https://dash.digitalplat.org/api/v1/domains -> 000 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+-- host api.dpdns.org
+   (no dns)
+   https://api.dpdns.org/api/v1/domains -> 000 | <!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-w
+== deSEC reachable?
+desec 200
+{"register":"https://desec.io/api/v1/auth/","login":"https://desec.io/api/v1/auth/login/","reset-password":"https://dese
