@@ -1,0 +1,73 @@
+name: SDHN4
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Probe 600401/600404/600405/600406
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, os
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY=b"telecom_wap_2018"
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode("utf-8")
+          def call(fn,rc,to=15):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode("utf-8"),method="POST",headers={
+                  "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
+                  "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              last=None
+              for a in range(2):
+                  try:
+                      with urllib.request.urlopen(req,timeout=to) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e: last=e; time.sleep(1)
+              raise last
+          out=[]
+          for prov in ["600401","600404","600405","600406","600407","600408"]:
+              try:
+                  rc=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":prov})
+                  rcc=rc.get("responseContent",{}) or {}
+                  boards=rcc.get("lableOneList") or []
+                  if not boards:
+                      out.append("%s -> EMPTY" % prov); continue
+                  sess=rcc.get("sessionid"); names=set(); cnt=0
+                  for b in boards[:4]:
+                      try:
+                          rq=call("tariffSectionQuery",{"sessionid":sess,"type":1,"provCode":prov,"lable1Id":b["id"],"lable2Id":""})
+                          lst=(rq.get("responseContent",{}) or {}).get("zoneTitleList") or []
+                          for it in lst[:3]:
+                              pn=str(it.get("provinceName",""))
+                              if pn: names.add(pn)
+                          cnt+=len(lst)
+                      except Exception: pass
+                      time.sleep(0.2)
+                  out.append("%s => %s | boards=%d items=%d" % (prov, ",".join(names) if names else "?", len(boards), cnt))
+              except Exception as e:
+                  out.append("%s -> ERR %s" % (prov,e))
+              time.sleep(0.2)
+          txt="SDHN4:\n"+"\n".join(out)
+          print(txt)
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn4.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn4","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
