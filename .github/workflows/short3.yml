@@ -1,0 +1,47 @@
+name: short3
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  g:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: try more
+        run: |
+          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/nav.html"
+          E=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$U")
+          out=SHORT3.md
+          echo "# 更短短码尝试" > $out
+          echo "" >> $out
+          echo "| 服务 | 创建结果 | 验证(最终URL) |" >> $out
+          echo "|---|---|---|" >> $out
+          try() {
+            name="$1"; api="$2"
+            r=$(curl -s -m 20 -A "Mozilla/5.0" "$api" | tr -d '\r\n' | head -c 120)
+            if [ -z "$r" ]; then echo "| $name | (空) | - |" >> $out; return; fi
+            fin=$(curl -s -o /dev/null -m 20 -A "Mozilla/5.0" -w "%{http_code} %{url_effective}" -L "$r" 2>/dev/null)
+            echo "| $name | \`$r\` | $fin |" >> $out
+          }
+          try "gg.gg/hntf"   "https://gg.gg/create.php?format=simple&url=$E&shortname=hntf"
+          try "gg.gg 随机"    "https://gg.gg/create.php?format=simple&url=$E"
+          try "s.id/hntf"    "https://s.id/api?url=$E&alias=hntf"
+          try "u.nu"         "https://u.nu/api.php?url=$E"
+          try "rb.gy"        "https://rb.gy/api?url=$E"
+          try "c1n.cn"       "https://c1n.cn/api?url=$E"
+          try "mrw.so"       "https://mrw.so/api?url=$E"
+          try "suo.im"       "https://suo.im/api?url=$E"
+          try "6du.in"       "https://6du.in/api?url=$E"
+          try "is.gd 再试"    "https://is.gd/create.php?format=simple&url=$E"
+          try "v.gd 再试"     "https://v.gd/create.php?format=simple&url=$E"
+          echo "" >> $out
+          echo "目标: $U" >> $out
+          cat $out
+      - name: commit
+        run: |
+          git config user.name bot
+          git config user.email bot@users.noreply.github.com
+          git add -A
+          git commit -m short3 || echo nochange
+          git push
