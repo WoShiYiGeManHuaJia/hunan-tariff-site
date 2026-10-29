@@ -1,0 +1,6 @@
+====================================================================
+源站接口探测
+====================================================================
+
+[1] 响应结构
+    失败: <urlopen error [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe legacy renegotiation disabled (_ssl.c:1016)>
