@@ -1,0 +1,82 @@
+name: TCANN7
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome -q
+      - name: 探测详情 type 与 412 成因
+        run: |
+          python3 - << 'PYEOF' > _tcann7_out.txt 2>&1
+          import json, os, base64, gzip, random, time, urllib.request, http.cookiejar
+          from Crypto.Cipher import AES, PKCS1_v1_5
+          from Crypto.PublicKey import RSA
+          from Crypto.Util.Padding import pad
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          PUB="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIvCpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mif5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+ip2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlbKZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5KLF/30wIDAQAB"
+          pub=RSA.import_key(base64.b64decode(PUB))
+          cj=http.cookiejar.CookieJar()
+          opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+          def post(url, obj, fcode="Y121043001", tries=3):
+              key=os.urandom(16); iv=os.urandom(16)
+              ct=AES.new(key,AES.MODE_CBC,iv).encrypt(pad(json.dumps(obj,ensure_ascii=False).encode(),16))
+              inner=json.dumps({"key":base64.b64encode(key).decode(),"iv":base64.b64encode(iv).decode()},separators=(",",":"))
+              payload={"param":base64.b64encode(ct).decode(),"key":base64.b64encode(PKCS1_v1_5.new(pub).encrypt(inner.encode())).decode()}
+              tid="".join("%x"%random.randint(0,15) for _ in range(32))
+              req=urllib.request.Request(url,data=json.dumps(payload,separators=(",",":")).encode(),method="POST",
+                headers={"User-Agent":UA,"Content-Type":"application/json;charset=UTF-8","Accept":"application/json, text/plain, */*",
+                  "Origin":"https://www.189.cn","Referer":"https://www.189.cn/web/notice/index.html","Fcode":fcode,"TransactionId":tid})
+              for a in range(tries):
+                  try:
+                      with opener.open(req,timeout=30) as r:
+                          raw=r.read()
+                          if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                          return json.loads(raw.decode("utf-8","replace"))
+                  except Exception as e:
+                      last=e; time.sleep(2*(a+1))
+              return {"__err":str(last)}
+          REC="https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
+          DET="https://www.189.cn/wtBusiness/wtservice/nc/announcement/getAnnouncementDetail.do"
+          r=post(REC,{"shopId":"20001","type":"wt_sy_bzzx","order":1,"provinceCode":"600203","cityCode":""})
+          fis=[]
+          for d in (r.get("data") or []):
+              for x in (d.get("floorItems") or []): fis.append(x)
+          print("N=",len(fis))
+          if fis:
+              x=fis[0]
+              print("TYPE=",repr(x.get("type")),"tabType=",repr(x.get("tabType")),"showType=",repr(x.get("showType")),"offerType=",repr(x.get("offerType")))
+              print("EOC=",x.get("externalOfferCode"),"MOC=",x.get("mainOfferCode"),"sceneId=",str(x.get("sceneId"))[:80])
+          items=sorted(fis,key=lambda x:str(x.get("liveStartTime") or ""),reverse=True)[:15]
+          print("=== 依次请求 15 条详情 (type 用 floorItems 自带) ===")
+          for i,x in enumerate(items):
+              tp=x.get("type") or "wt_sy_bzzx"
+              oc=x.get("externalOfferCode") or ""
+              d=post(DET,{"type":tp,"offerCode":oc,"provinceCode":"600203","cityCode":""},tries=1)
+              c=d.get("code"); clen=len(((d.get("data") or {}).get("content") or ""))
+              print("%02d %s type=%s -> code=%s len=%d %s"%(i,oc,tp,c,clen,str(d.get("message"))[:30]))
+              time.sleep(1.3)
+          print("=== 隔 3s 重试第一条 ===")
+          if items:
+              x=items[0]
+              d=post(DET,{"type":x.get("type") or "wt_sy_bzzx","offerCode":x.get("externalOfferCode") or "","provinceCode":"600203","cityCode":""})
+              print("retry1 code=",d.get("code"),"len=",len(((d.get("data") or {}).get("content") or "")))
+          print("COOKIES=", [c.name for c in cj])
+          PYEOF
+          cat _tcann7_out.txt
+      - name: 提交结果
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A _tcann7_out.txt
+          git commit -q -m "tcann7 out" || echo "no change"
+          for i in 1 2 3 4 5; do git pull --rebase -q origin main && git push -q origin main && break; sleep 5; done
