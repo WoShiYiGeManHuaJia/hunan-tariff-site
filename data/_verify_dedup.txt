@@ -1,0 +1,6 @@
+<stdin>:2: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+北京时刻 = 10-17 20:23 | 判定场次 = 晚场
+读标记方式 = API读取成功
+标记内容   = {"2026-10-17": ["晚场"]}
+  模拟 schedule + 场次=早场 -> dup=False -> 放行
+  模拟 schedule + 场次=晚场 -> dup=True -> 跳过(正确去重)
