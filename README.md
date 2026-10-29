@@ -1,0 +1,79 @@
+# 运营商资费监控 · 数据展示站（移动 / 联通 / 电信 / 广电）
+
+本仓库是一个**自包含**的运营商资费监控项目：定时抓取四家运营商官网的公开资费数据，
+自动构建静态展示站点，并可选推送变化到钉钉 / 飞书 / 企业微信 / 邮箱。
+
+抓取、构建、推送全部由本仓库的 GitHub Actions 完成（公开仓免费且不限量），
+**不含任何代码密钥**——所有凭据走环境变量与 Secrets。
+
+## 在线访问
+
+- 中国移动：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/>
+- 中国联通：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/unicom/>
+- 中国电信：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/telecom/>
+- 中国广电：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/gb/>
+
+## 数据说明
+
+- **移动**：全网资费（全国）+ 31 省，含套餐 / 加装包 / 营销活动 × 个人 / 政企 全分类
+- **联通 / 广电**：全网 + 31 省；**电信**：湖南 + 全国
+- 由本仓库的 GitHub Actions 每日两次定时抓取并自动更新，无需外部依赖
+- 数据均为各运营商官网公示的公开信息，仅供参考，办理业务请以营业厅官方信息为准
+
+## 站点功能
+
+省份切换与搜索、分类筛选、资费变化历史追踪、**CSV 导出**、**收藏关注**（保存在本机浏览器）。
+
+
+---
+
+## 📮 接入你自己的通知通道
+
+fork 本项目后，填入**你自己的**凭据，资费变化就能推送到**你的**
+**钉钉 / 飞书 / 企业微信 / 邮箱**。四个通道任意组合，配几个推几个。
+
+**完整教程见 → [NOTIFY_SETUP.md](NOTIFY_SETUP.md)**
+
+| 通道 | 要填的 Secrets |
+|---|---|
+| 🔵 钉钉 | `DINGTALK_WEBHOOK` + `DINGTALK_SECRET` |
+| 🟦 飞书 | `FEISHU_WEBHOOK` + `FEISHU_SECRET` |
+| 🟩 企业微信 | `WECOM_WEBHOOK` |
+| 📧 邮件 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `MAIL_TO` |
+
+三步速览：
+
+1. 在对应群里添加机器人，拿到 Webhook 地址（邮件则用邮箱授权码）
+2. 仓库 **Settings → Secrets and variables → Actions** 添加上表变量
+3. Actions 运行 **Tariff Notify**，约 14 秒后收到；或本地 `python3 scripts/notify.py --test`
+
+推送示例：
+
+```
+- 🔵 移动：新增 340、下架 284、修改 1196
+  - 湖南：无变化
+- 🟠 联通：无变化
+- 🟢 电信：新增 7、下架 8、修改 0
+  - 湖南：新增7 下架8 修改0
+- 🟣 广电：新增 5、下架 1、修改 1
+  - 湖南：无变化
+
+**合计**：新增 352、下架 293、修改 1197
+🔗 查看完整资费站
+```
+
+> 🔒 密钥只存在你自己的仓库里，加密存储且**只写不读**，作者与他人均无法查看。
+> 抓取与推送脚本**不含任何硬编码凭据**，全部通过环境变量注入。
+
+## 自动化说明
+
+抓取与推送**全部在本仓库内完成**，跑于 GitHub Actions（公开仓免费、不限量）：
+
+| 工作流 | 频率（北京） | 说明 |
+|---|---|---|
+| `mobile-build.yml` | 08:47 / 20:47 | 移动抓取 + 站点构建 |
+| `telecom-gb-fetch.yml` | 09:17 / 21:17 | 电信 + 广电抓取 |
+| `unicom-fetch.yml` | 09:37 / 21:37 | 联通抓取（32 板块） |
+| `dingtalk-summary.yml` | 10:00 / 20:00 | 汇总推送（钉钉/飞书/企微/邮件） |
+
+fork 后如需停掉自动抓取，删除对应 workflow 文件即可。
