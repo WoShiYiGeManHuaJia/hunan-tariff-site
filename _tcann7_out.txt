@@ -1,0 +1,22 @@
+N= 143
+TYPE= 'wt_sy_jtgg' tabType= None showType= None offerType= None
+EOC= 518652200001 MOC= 5186522 sceneId= wt_sy_jtgg##38237##default##518652200001##010001002000##3##N##N##1##N##N##518652
+=== 依次请求 15 条详情 (type 用 floorItems 自带) ===
+00 570447200001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=194 操作成功
+01 567750700001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=478 操作成功
+02 567768800001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=637 操作成功
+03 567676400001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=1041 操作成功
+04 566924800001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=344 操作成功
+05 563739300001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=642 操作成功
+06 540248600001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=367 操作成功
+07 539122600001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=303 操作成功
+08 532603000001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=366 操作成功
+09 532606100001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=9382 操作成功
+10 525663100001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=16904 操作成功
+11 518652200001 type=wt_sy_jtgg -> code=S_COMMON_0000 len=1858 操作成功
+12 515998500001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=265 操作成功
+13 516019000001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=265 操作成功
+14 515009300001 type=wt_sy_bzzx -> code=S_COMMON_0000 len=321 操作成功
+=== 隔 3s 重试第一条 ===
+retry1 code= S_COMMON_0000 len= 194
+COOKIES= []
