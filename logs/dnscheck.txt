@@ -1,0 +1,17 @@
+[google] NS -> dns2.digitalplat.org.
+[google] NS -> dns1.digitalplat.org.
+[google] A -> (no answer) status=0
+[google] CNAME -> (no answer) status=0
+[google] SOA -> dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300
+[cloudflare] NS -> dns1.digitalplat.org.
+[cloudflare] NS -> dns2.digitalplat.org.
+[cloudflare] A -> (no answer) status=0
+[cloudflare] CNAME -> (no answer) status=0
+[cloudflare] SOA -> dns1.digitalplat.org. hostmaster.digitalplat.org. 2026092402 10800 3600 604800 300
+---- resolve A ----
+getaddrinfo failed: [Errno -5] No address associated with hostname
+---- CAA/NS of parent qd.je ----
+qd.je NS -> ns2.digitalplat.org.
+qd.je NS -> ns1.digitalplat.org.
+qd.je NS -> ns3.digitalplat.org.
+qd.je NS -> ns4.digitalplat.org.
