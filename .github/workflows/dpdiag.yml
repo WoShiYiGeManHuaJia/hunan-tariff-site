@@ -1,0 +1,53 @@
+name: dp-diag
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Diagnose
+        env:
+          DP: ${{ secrets.DP_API_TOKEN }}
+          CF: ${{ secrets.CF_TOKEN_FULL }}
+        run: |
+          set +e
+          {
+          echo "===== A. DigitalPlat host resolution ====="
+          for h in api.digitalplat.org digitalplat.org www.digitalplat.org dashboard.digitalplat.org dash.digitalplat.org dns1.digitalplat.org; do
+            echo "-- $h"; getent hosts $h || echo "  (no A record)"
+          done
+          echo "===== B. DigitalPlat API verbose ====="
+          curl -sv -m 12 https://api.digitalplat.org/ 2>&1 | head -c 600
+          echo
+          curl -s -m 12 -o /dev/null -w "root_http:%{http_code}\n" https://api.digitalplat.org/
+          curl -s -m 12 -o /dev/null -w "www_http:%{http_code}\n" https://www.digitalplat.org/
+          curl -s -m 12 -o /dev/null -w "dash_http:%{http_code}\n" https://dashboard.digitalplat.org/
+          echo "===== C. Cloudflare token probe ====="
+          echo "-- verify"
+          curl -s -m 15 -w "\n[%{http_code}]\n" https://api.cloudflare.com/client/v4/user/tokens/verify -H "Authorization: Bearer $CF" | head -c 800
+          echo "-- accounts"
+          curl -s -m 15 -w "\n[%{http_code}]\n" https://api.cloudflare.com/client/v4/accounts -H "Authorization: Bearer $CF" | head -c 600
+          echo "-- zones"
+          curl -s -m 15 -w "\n[%{http_code}]\n" "https://api.cloudflare.com/client/v4/zones?per_page=50" -H "Authorization: Bearer $CF" | head -c 600
+          echo "-- try create zone hnvip.qd.je"
+          curl -s -m 20 -w "\n[%{http_code}]\n" -X POST https://api.cloudflare.com/client/v4/zones -H "Authorization: Bearer $CF" -H "Content-Type: application/json" -d '{"name":"hnvip.qd.je","jump_start":false}' | head -c 1200
+          } 2>&1 | tee dp_diag.txt
+      - name: Push diag
+        env:
+          GH: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 -c "
+          import json,base64
+          d={'message':'diag result','content':base64.b64encode(open('dp_diag.txt').read().encode()).decode()}
+          try:
+            import urllib.request
+            r=json.load(urllib.request.urlopen(urllib.request.Request('https://api.github.com/repos/${{ github.repository }}/contents/dp_diag.txt',headers={'Authorization':'token $GH'})))
+            if 'sha' in r: d['sha']=r['sha']
+          except Exception as e: pass
+          open('/tmp/p.json','w').write(json.dumps(d))
+          "
+          curl -s -m 30 -X PUT -H "Authorization: token $GH" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}/contents/dp_diag.txt" -d @/tmp/p.json | head -c 150
