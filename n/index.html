@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>资费监控 · 总入口</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  min-height:100vh;background:#0f172a;color:#e8eef8;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px 16px calc(24px + env(safe-area-inset-bottom));
+}
+.wrap{width:100%;max-width:460px}
+h1{margin:0 0 6px;font-size:20px;font-weight:800;letter-spacing:.5px;text-align:center}
+.sub{margin:0 0 22px;font-size:12.5px;color:#8b9bb4;text-align:center;line-height:1.6}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+a.op{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  padding:20px 10px;border-radius:16px;text-decoration:none;color:#fff;
+  font-weight:700;font-size:16px;letter-spacing:.5px;
+  box-shadow:0 6px 18px rgba(0,0,0,.28);
+  transition:transform .12s ease;
+  position:relative;overflow:hidden;
+}
+a.op:active{transform:scale(.96)}
+a.op .ic{font-size:26px;line-height:1}
+a.op .n{font-size:12px;font-weight:500;opacity:.85;letter-spacing:0}
+a.op .badge{
+  position:absolute;top:6px;right:6px;font-size:9.5px;font-weight:600;
+  background:rgba(255,255,255,.22);border-radius:20px;padding:2px 7px;letter-spacing:0;
+}
+.c-yd{background:linear-gradient(150deg,#2f7ff6,#1a4fd0)}
+.c-lt{background:linear-gradient(150deg,#f2542d,#c62f2f)}
+.c-dx{background:linear-gradient(150deg,#1ba0e1,#0b6fb8)}
+.c-gd{background:linear-gradient(150deg,#a3254e,#6d1230)}
+.tip{
+  margin-top:20px;padding:11px 13px;border-radius:12px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+  font-size:12px;color:#9fb0c8;line-height:1.65;text-align:center;
+}
+.tip b{color:#ffd86b;font-weight:700}
+.auto{
+  margin-top:14px;padding:12px;border-radius:12px;
+  background:rgba(255,216,107,.1);border:1px solid rgba(255,216,107,.3);
+  font-size:12.5px;color:#ffd86b;text-align:center;line-height:1.6;display:none;
+}
+.auto button{
+  margin-top:8px;background:rgba(255,255,255,.14);border:0;color:#fff;
+  padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;
+}
+.foot{margin-top:18px;font-size:11px;color:#5f7089;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>资费监控 · 总入口</h1>
+  <p class="sub">四大运营商 · 湖南资费公示<br>选一个进入</p>
+
+  <div class="grid">
+    <a class="op c-yd" href="../" data-k="yd">
+      <span class="ic">📘</span><span>中国移动</span><span class="n">在架最多 · 含湖南</span>
+    </a>
+    <a class="op c-lt" href="../unicom/" data-k="lt">
+      <span class="ic">📕</span><span>中国联通</span><span class="n">全国 + 省份</span>
+    </a>
+    <a class="op c-dx" href="../telecom/" data-k="dx">
+      <span class="ic">📗</span><span>中国电信</span><span class="n">全国 + 省份</span>
+    </a>
+    <a class="op c-gd" href="../gb/" data-k="gd">
+      <span class="ic">📙</span><span>中国广电</span><span class="n">精简数据</span>
+    </a>
+  </div>
+
+  <div class="auto" id="auto">
+    检测到你上次进的是 <b id="lastName"></b>，<span id="cnt">3</span> 秒后自动进入…
+    <br><button id="stay">留在本页</button>
+  </div>
+
+  <div class="tip">
+    长按任意卡片 → 「添加到主屏幕」<br>
+    以后 <b>点图标直接进</b>，不用记网址
+  </div>
+
+  <div class="foot">
+    数据每日自动抓取 · 更新时间见各站页头<br>
+    本页只是一个跳转面板，不存任何数据
+  </div>
+</div>
+
+<script>
+(function(){
+  var MAP = {yd:["./","中国移动"], lt:["../unicom/","中国联通"], dx:["../telecom/","中国电信"], gd:["../gb/","中国广电"]};
+  var last = null;
+  try { last = localStorage.getItem("tf_last"); } catch(e){}
+  if (last && MAP[last]) {
+    var box = document.getElementById("auto");
+    document.getElementById("lastName").textContent = MAP[last][1];
+    box.style.display = "block";
+    var n = 3, cd = document.getElementById("cnt");
+    var timer = setInterval(function(){
+      n--; cd.textContent = n;
+      if (n <= 0) { clearInterval(timer); location.href = MAP[last][0]; }
+    }, 1000);
+    document.getElementById("stay").onclick = function(){ clearInterval(timer); box.style.display="none"; };
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("a.op"), function(a){
+    a.addEventListener("click", function(){
+      try { localStorage.setItem("tf_last", a.getAttribute("data-k")); } catch(e){}
+    });
+  });
+})();
+</script>
+
+<!-- SW-KILL: 注销旧 Service Worker 并清空本地缓存（旧 SW 缓存优先导致一直显示老 UI） -->
+<script>
+(function(){
+  try{
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        rs.forEach(function(r){ r.unregister(); });
+      }).catch(function(){});
+    }
+    if(window.caches && caches.keys){
+      caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }).catch(function(){});
+    }
+  }catch(e){}
+})();
+</script>
+
+</body>
+</html>
