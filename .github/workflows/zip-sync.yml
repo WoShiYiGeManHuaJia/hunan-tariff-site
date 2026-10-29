@@ -1,0 +1,58 @@
+name: Sync Source Zip
+# 源码一有变更，立即重打「自己创建」下载包 tariff-fetch-source.zip 并提交，
+# 保证配置中心 push-center.html 的下载按钮拿到的是与 main 一致的代码。
+# 不依赖 mobile-build 的定时构建，改完即同步。
+#
+# 触发范围：只监听源码相关路径；tariff-fetch-source.zip 不在其中，
+# 因此本 workflow 自己提交 zip 不会再次触发，不会死循环。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pipelines/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - 'requirements.txt'
+      - 'config.example.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zip-sync
+  cancel-in-progress: false
+
+jobs:
+  repack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: 重打源码包
+        run: |
+          python3 scripts/make_source_zip.py || { echo "::error::源码包生成失败"; exit 1; }
+      - name: 提交并推送
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tariff-fetch-source.zip
+          if git diff --cached --quiet; then
+            echo "源码包无变化，跳过提交"
+            exit 0
+          fi
+          git commit -q -m "sync: 重打源码包 tariff-fetch-source.zip"
+          PUSHED=0
+          for i in 1 2 3 4 5; do
+            if git push origin main; then echo "已推送"; PUSHED=1; break; fi
+            echo "[warn] push 失败，重新对齐后重试 ($i/5)"
+            git fetch origin main
+            git reset --hard FETCH_HEAD
+            python3 scripts/make_source_zip.py || exit 1
+            git add tariff-fetch-source.zip
+            git commit -q -m "sync: 重打源码包 $(date -u +%FT%TZ) retry$i" || true
+            sleep 8
+          done
+          [ "$PUSHED" -eq 1 ] || { echo "::error::多次推送失败"; exit 1; }
