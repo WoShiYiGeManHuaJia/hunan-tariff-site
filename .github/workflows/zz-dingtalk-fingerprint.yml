@@ -1,0 +1,23 @@
+name: zz DingTalk Fingerprint
+on:
+  workflow_dispatch:
+jobs:
+  fp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: fingerprint
+        env:
+          OWN_HOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          OWN_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, hashlib, urllib.parse
+          hook = os.environ.get('OWN_HOOK','')
+          sec = os.environ.get('OWN_SECRET','')
+          d = urllib.parse.parse_qs(urllib.parse.urlparse(hook).query)
+          tok = (d.get('access_token') or [''])[0]
+          print('HOOK_SET', bool(hook))
+          print('SECRET_LEN', len(sec))
+          print('SECRET_SHA8', hashlib.sha256(sec.encode()).hexdigest()[:8] if sec else 'none')
+          print('TOKEN_SHA8', hashlib.sha256(tok.encode()).hexdigest()[:8] if tok else 'none')
+          PYEOF
