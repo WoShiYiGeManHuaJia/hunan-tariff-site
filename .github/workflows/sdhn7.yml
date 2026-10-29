@@ -1,0 +1,80 @@
+name: SDHN7
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Extract notice API context and try call
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, os, re, gzip, urllib.parse
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          def fetch(u,to=25,hdr=None,data=None,method=None):
+              h={"User-Agent":UA,"Accept":"text/html,application/json,*/*","Accept-Language":"zh-CN,zh;q=0.9",
+                 "Referer":"https://www.189.cn/web/notice/index.html","Origin":"https://www.189.cn"}
+              if hdr: h.update(hdr)
+              try:
+                  req=urllib.request.Request(u,headers=h,data=data,method=method)
+                  with urllib.request.urlopen(req,timeout=to) as r:
+                      raw=r.read()
+                      if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8","replace")
+              except Exception as e: return 0, str(e)
+          out=[]
+          jsu="https://www.189.cn/web/assets/index-xdZ1yBwq.js"
+          st,js=fetch(jsu)
+          out.append("JS %s -> %s len=%d"%(jsu,st,len(js)))
+          def ctx(js,kw,n=6,w=350):
+              res=[]
+              for m in re.finditer(re.escape(kw),js):
+                  a=max(0,m.start()-w); b=min(len(js),m.end()+w)
+                  res.append(js[a:b].replace("\n"," "))
+                  if len(res)>=n: break
+              return res
+          for kw in ["wtBusiness","nc/search","baseURL","baseUrl","provCode","noticeType","channelId"]:
+              c=ctx(js,kw)
+              out.append("### CTX %s (%d)"%(kw,len(c)))
+              for i,x in enumerate(c): out.append("   [%d] %s"%(i,x[:700]))
+          # try call the .do endpoint
+          ep="https://www.189.cn/wtBusiness/wtservice/nc/search/list.do"
+          trials=[
+            ("GET",  None, {"pageNo":1,"pageSize":15}),
+            ("POST", None, {"pageNo":1,"pageSize":15,"provCode":"600203"}),
+          ]
+          for method,_,params in trials:
+              if method=="GET":
+                  u=ep+"?"+urllib.parse.urlencode(params)
+                  s,t=fetch(u)
+              else:
+                  body=urllib.parse.urlencode(params).encode()
+                  s,t=fetch(ep,data=body,hdr={"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8","X-Requested-With":"XMLHttpRequest"})
+              out.append("TRY %s %s -> %s len=%d :: %s"%(method,params,s,len(t),re.sub(r'\s+',' ',t[:400])))
+          # try json post
+          for body in [{"pageNo":1,"pageSize":15},{"pageNo":1,"pageSize":15,"provCode":"600203"},
+                       {"pageNum":1,"pageSize":15,"provCode":"600203","noticeType":""}]:
+              try:
+                  s,t=fetch(ep,data=json.dumps(body).encode(),hdr={"Content-Type":"application/json;charset=UTF-8","X-Requested-With":"XMLHttpRequest"})
+              except Exception as e: s,t=0,str(e)
+              out.append("TRYJSON %s -> %s len=%d :: %s"%(body,s,len(t),re.sub(r'\s+',' ',t[:400])))
+          txt="\n".join(out)
+          print(txt[:16000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn7.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn7","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
