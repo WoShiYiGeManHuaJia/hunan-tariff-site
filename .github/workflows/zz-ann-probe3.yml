@@ -1,0 +1,64 @@
+name: zz-ann-probe3
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python 带 legacy renegotiation 抓取
+        run: |
+          mkdir -p logs
+          python3 - > logs/ann_probe3.md 2>&1 <<'PY'
+          import ssl, json, re, urllib.request, datetime
+          ctx = ssl.create_default_context()
+          ctx.check_hostname = False
+          ctx.verify_mode = ssl.CERT_NONE
+          for opt in ("OP_LEGACY_SERVER_CONNECT",):
+              v = getattr(ssl, opt, None)
+              if v: ctx.options |= v
+          try:
+              ctx.options |= ssl.OP_LEGACY_SERVER_CONNECT
+          except Exception:
+              pass
+          UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+          print("== 探测时间", datetime.datetime.utcnow().isoformat(), "UTC ==")
+          base = "https://www.10086.cn/aboutus/news/pannounce/hn/731/5004505_873_2361"
+          for U in [base + ".json"] + [base + "_%d.json" % i for i in (1, 2, 3)]:
+              print("###", U)
+              try:
+                  req = urllib.request.Request(U, headers={
+                      "User-Agent": UA,
+                      "Referer": "https://www.10086.cn/aboutus/news/pannounce/hn/",
+                      "Accept": "application/json, text/plain, */*"})
+                  raw = urllib.request.urlopen(req, timeout=40, context=ctx).read().decode("utf-8", "ignore")
+                  print("size", len(raw))
+                  j = json.loads(raw)
+                  cd = j.get("cData") or {}
+                  lst = cd.get("list") or []
+                  print("条数", len(lst))
+                  for k in ("totalCount", "total", "recordCount", "pageCount", "pageNo", "pageSize"):
+                      if cd.get(k): print(" cData.%s = %s" % (k, cd[k]))
+                  rows = []
+                  for r in lst:
+                      m = re.search(r"_detail_(\d+)\.", r.get("detail_href") or "")
+                      rows.append((m.group(1) if m else "", r.get("publishTime") or "",
+                                   (r.get("noticeTitle") or "")[:44]))
+                  rows.sort(key=lambda x: -int(x[0] or 0))
+                  for i, (a, b, c) in enumerate(rows[:20]):
+                      print(" %2d id=%-8s %-12s %s" % (i + 1, a, b, c))
+              except Exception as e:
+                  print("ERR", type(e).__name__, str(e)[:120])
+          PY
+          cat logs/ann_probe3.md
+      - name: 提交
+        run: |
+          git config user.name "probe-bot"
+          git config user.email "probe@bot.local"
+          git add -A logs
+          git diff --cached --quiet && echo "无变化" || git commit -m "probe3: 移动公告探测 $(date -u +%FT%TZ)"
+          for i in 1 2 3; do git pull --rebase -X theirs origin main >/dev/null 2>&1 || true; git push origin main && break || sleep 5; done
