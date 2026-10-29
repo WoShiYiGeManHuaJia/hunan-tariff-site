@@ -1,0 +1,107 @@
+name: SDHN5
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Probe extra provCodes + telecom Hunan notice
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, os, re, gzip
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY=b"telecom_wap_2018"
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode("utf-8")
+          def call(fn,rc,to=10,retry=1):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode("utf-8"),method="POST",headers={
+                  "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
+                  "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              last=None
+              for a in range(retry+1):
+                  try:
+                      with urllib.request.urlopen(req,timeout=to) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e: last=e; time.sleep(0.8)
+              raise last
+          out=[]
+          for prov in ["600106","600206","600306","600501","600601","600701"]:
+              try:
+                  rc=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":prov})
+                  boards=(rc.get("responseContent",{}) or {}).get("lableOneList") or []
+                  if not boards: out.append("%s -> EMPTY"%prov); continue
+                  sess=(rc.get("responseContent",{}) or {}).get("sessionid"); names=set()
+                  for b in boards[:3]:
+                      try:
+                          rq=call("tariffSectionQuery",{"sessionid":sess,"type":1,"provCode":prov,"lable1Id":b["id"],"lable2Id":""})
+                          for it in ((rq.get("responseContent",{}) or {}).get("zoneTitleList") or [])[:2]:
+                              pn=str(it.get("provinceName",""))
+                              if pn: names.add(pn)
+                      except Exception: pass
+                      if names: break
+                  out.append("%s => %s"%(prov,",".join(names) if names else "?"))
+              except Exception as e: out.append("%s -> ERR %s"%(prov,e))
+          print("PROV:\n"+"\n".join(out), flush=True)
+
+          # ---- 湖南电信公告源探测 ----
+          n=[]
+          def fetch(u,to=12,ua=UA,hdr=None,data=None):
+              h={"User-Agent":ua,"Accept":"text/html,application/json,*/*","Accept-Language":"zh-CN,zh;q=0.9"}
+              if hdr: h.update(hdr)
+              try:
+                  req=urllib.request.Request(u,headers=h,data=data)
+                  with urllib.request.urlopen(req,timeout=to) as r:
+                      raw=r.read()
+                      if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8","replace")
+              except Exception as e: return 0, str(e)
+          urls=[
+            "https://www.189.cn/web/notice/index.html",
+            "https://m.189.cn/web/notice/index.html",
+            "https://www.189.cn/hn/web/notice/index.html",
+            "https://hn.189.cn/web/notice/index.html",
+            "https://www.189.cn/web/notice",
+            "https://www.189.cn/hn/",
+            "https://e.189.cn/",
+            "https://www.189.cn/portal/web/notice",
+            "https://www.189.cn/web/support/notice.html",
+            "https://www.189.cn/web/notice/notice.html",
+          ]
+          for u in urls:
+              s,t=fetch(u)
+              waf=('$_ts' in t) or ('ICOn' in t) or s in (202,412,403,521)
+              n.append("URL %s -> %s len=%d waf=%s"%(u,s,len(t),waf))
+              if s==200 and len(t)>800 and not waf:
+                  n.append("   HEAD "+re.sub(r'\s+',' ',t[:600]))
+          # wapportalweb 公告类 functionCode
+          for fn in ["noticeList","queryNoticeList","getNoticeList","noticeQuery","queryNotice","notice","queryAnnouncementList"]:
+              try:
+                  r=call(fn,{"provCode":"600203","pageNo":1,"pageSize":20},to=10,retry=0)
+                  n.append("FN %s -> 200 :: %s"%(fn,re.sub(r'\s+',' ',json.dumps(r,ensure_ascii=False)[:250])))
+              except Exception as e:
+                  n.append("FN %s -> ERR %s"%(fn,e))
+          txt2="NOTICE:\n"+"\n".join(n)
+          print(txt2, flush=True)
+          full="PROV:\n"+"\n".join(out)+"\n\n"+txt2
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn5.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn5","content":base64.b64encode(full.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
