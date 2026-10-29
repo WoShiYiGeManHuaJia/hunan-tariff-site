@@ -1,0 +1,57 @@
+name: TCANN2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - name: Find notice API url
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, base64, os, re, gzip
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          def fetch(u,to=30):
+              h={"User-Agent":UA,"Accept":"*/*","Referer":"https://www.189.cn/web/notice"}
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(u,headers=h),timeout=to) as r:
+                      raw=r.read()
+                      if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                      return r.status, raw.decode("utf-8","replace")
+              except Exception as e: return 0, str(e)
+          out=[]
+          st,js=fetch("https://www.189.cn/web/assets/index-xdZ1yBwq.js")
+          out.append("MAIN len=%d status=%d"%(len(js),st))
+          # 所有 .do 接口
+          urls=sorted(set(re.findall(r'["\'](/[A-Za-z0-9_\-/\.]*?\.do)["\']', js)))
+          out.append("=== DO URLS (%d) ==="%len(urls))
+          out.append("\n".join(urls))
+          # bzzx 上下文
+          for m in re.finditer(r'bzzx', js):
+              a=max(0,m.start()-400); out.append("--- bzzx ctx ---"); out.append(js[a:m.start()+400])
+              if len(out)>60: break
+          # 找 export 的 h 函数 (Notice 用的 f)
+          m=re.search(r'const\s+Qp\s*=\s*["\']([^"\']{80,})["\']', js)
+          out.append("=== PUBKEY ==="); out.append(m.group(1)[:400] if m else "NF")
+          # 搜索 wtBusiness / notice 相关 post 封装
+          for kw in ["getFloorInfo","floorItems","queryFloor","announce","noticeList","floorType"]:
+              for mm in list(re.finditer(kw, js))[:2]:
+                  a=max(0,mm.start()-350); out.append("--- %s ---"%kw); out.append(js[a:mm.start()+350])
+          txt="\n".join(out)[:20000]
+          print(txt)
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/tcann2.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"tcann2","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read(); print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
