@@ -1,0 +1,120 @@
+/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py:135: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  res = {"updated": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") + " UTC",
+OK count=15
+ - 2026-09-18 湖南电信装维延伸服务收费公示 | 
+ - 2026-09-16 关于中国电信张家界公司宽带网络升级的公告 | 
+ - 2026-09-15 关于中国电信株洲公司宽带网络升级的公告 | 
+ - 2026-09-14 关于中国电信湘西、衡阳公司宽带网络升级的公告 | 
+ - 2026-09-14 中国电信股份有限公司湖南电子渠道部 互联网合作商招商公告 | 
+ - 2026-09-08 关于中国电信株洲公司宽带网络升级的公告 | 
+ - 2026-09-05 关于中国电信株洲公司宽带网络升级的公告 | 
+ - 2026-09-01 关于中国电信株洲公司宽带网络升级的公告 | 
+ - 2026-08-24 关于中国电信怀化公司宽带网络升级的公告 | 
+ - 2026-08-20 中国电信股份有限公司湖南分公司2025年基站建设项目环境影响登记备案信息及环境监 | 
+ - 2026-08-12 关于可办理外籍人员新入网号卡业务的营业厅公示 | 
+ - 2026-07-31 关于规范互联网渠道售卡管理的公告 | 
+ - 2026-07-26 关于中国电信长沙公司网络升级的公告 | 
+ - 2026-07-23 关于中国电信长沙公司网络升级的公告 | 
+ - 2026-07-21 关于中国电信湘潭公司宽带网络升级的公告 | 
+HOME 609903 山东 lableOne=5 ['套餐', '加装包', '营销活动', '国际/港澳台资费', '国内（不含港澳台）标准资费']
+  L1 套餐 -> 0
+  L1 加装包 -> 0
+  L1 营销活动 -> 0
+  L1 国际/港澳台资费 -> 0
+  L1 国内（不含港澳台）标准资费 -> 0
+  TOTAL 609903 山东 0
+HOME 609904 河南 lableOne=5 ['套餐', '加装包', '营销活动', '国际/港澳台资费', '国内（不含港澳台）标准资费']
+  L1 套餐 -> 0
+  L1 加装包 -> 0
+  L1 营销活动 -> 0
+  L1 国际/港澳台资费 -> 0
+  L1 国内（不含港澳台）标准资费 -> 0
+  TOTAL 609904 河南 0
+HOME 600203 湖南 lableOne=3 ['套餐', '加装包', '营销活动']
+  L1 套餐 -> 0
+  L1 加装包 -> 0
+  L1 营销活动 -> 0
+  TOTAL 600203 湖南 0
+
+=== JSON ===
+{
+ "updated": "2026-09-25 17:18:52 UTC",
+ "province": "湖南",
+ "source": "https://www.189.cn/web/notice",
+ "items": [
+  {
+   "title": "湖南电信装维延伸服务收费公示",
+   "date": "2026-09-18",
+   "offerCode": "570447200001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "linkType": "",
+   "tab": "公告",
+   "url": "",
+   "content": "<p><img src=\"https://w.189.cn/bigdata/2026/9/18/111789714342510997.jpg\" alt=\"微信图片_20260918115333_331_243.jpg\" data-href=\"https://w.189.cn/bigdata/2026/9/18/111789714342510997.jpg\" style=\"\"/></p>"
+  },
+  {
+   "title": "关于中国电信张家界公司宽带网络升级的公告",
+   "date": "2026-09-16",
+   "offerCode": "567750700001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "linkType": "",
+   "tab": "公告",
+   "url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好地服务客户，我公司将于9月18日01:00-05:00对张家界市区、永定区的宽带网络进行升级。升级期间，张家界市区、永定区部分电信用户的宽带上网、IPTV电视、固定电话等业务约中断150分钟，请您提前做好安排。升级后如不能正常使用，请重启光猫和路由器等设备，仍未恢复请关注微信服务号“湖南电信”或拨打客服热线10000申告故障。给您带来不便，敬请谅解。</p><p> </p><p style=\"text-align: right;\">中国电信张家界公司</p><p style=\"text-align: right;\"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2026年9月16日</p><p><br></p><p><br></p>"
+  },
+  {
+   "title": "关于中国电信株洲公司宽带网络升级的公告",
+   "date": "2026-09-15",
+   "offerCode": "567768800001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "linkType": "",
+   "tab": "公告",
+   "url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好地服务客户，我公司将于9月18日1:00-6:00对石峰区、荷塘区的宽带网络进行升级。升级期间，石峰区、荷塘区部分电信用户的宽带、IPTV、固定电话、专线等业务约中断60分钟，请您提前做好安排。升级后如不能正常使用，请重启光猫和路由器等设备，仍未恢复请关注微信服务号“湖南电信”或拨打客服热线10000申告故障。给您带来不便，敬请谅解。感谢您的理解与支持！</p><p> </p><p><br></p><p style=\"text-align: right;\"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;中国电信株洲公司</p><p style=\"text-align: right;\"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2026年9月15日</p><p><br></p><p><br></p>"
+  },
+  {
+   "title": "关于中国电信湘西、衡阳公司宽带网络升级的公告",
+   "date": "2026-09-14",
+   "offerCode": "566924800001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "linkType": "",
+   "tab": "公告",
+   "url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好的服务客户，我公司将于9月17日00:00-06:00对宽带网络进行升级维护，期间可能会造成湘西、衡阳部分用户宽带上网、观看IPTV电视瞬断，在此期间如遇业务不能正常使用，请重启光猫/机顶盒一次。给您带来不便，敬请谅解，感谢您对中国电信的支持和关注。</p><p style=\"text-indent: 28pt; text-align: right;\">中国电信湘西、衡阳<span style=\"color: rgb(0, 0, 0);\">分公司</span></p><p style=\"text-indent: 28pt; text-align: right;\">2026年9月11日</p><p><br></p>"
+  },
+  {
+   "title": "中国电信股份有限公司湖南电子渠道部 互联网合作商招商公告",
+   "date": "2026-09-14",
+   "offerCode": "567676400001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "linkType": "",
+   "tab": "公告",
+   "url": "",
+   "content": "<p>尊敬的合作伙伴：</p><p> &nbsp; &nbsp; &nbsp; &nbsp;中国电信股份有限公司湖南电子渠道部主要经营基础电信业务，为促进线上战新业务的高质量发展，推进渠道运营创新，构建全渠道、全触点、全闭环线上线下数字化、一体化运营体系，现进行公开招商。具体招商要求如下：</p><p>一、合作商合作范围</p><p>与合作商签署代理协议，合作商在授权范围内代表我司从事电信云电脑、云手机、云盘、TeleAgent等战新业务代理，在互联网平台进行电信授权业务推广等工作。</p><p>二、电信业务合作商引入要求</p><p>1、注册资本不低于100万元且成立时间不短于1年。</p><p>2、提供证明其为合法成立且存续经营主体的资质文件，包含营业执照、法人身份证、开户许可证、等保证明等。</p><p>3、具备良好的消费者口碑与企业品牌形象，2年内无严重违反法律法规情况，未曾被列入全国法院失信被执行人名单。</p><p>4、原则上需拥有网上销售渠道(包括但不限于WEB网站、WAP网站等)。</p><p>5、运营管理制度规范，内容宣传或电子商务流程成熟、安全。</p><p>6、按照湖南电信线上渠道相关管理办法要求开展业务拓展。</p><p>7、具有类似业务合作运营经验，能提供有效合作证明材料和运营效果分析。</p><p>三、电信业务代理合作商申请引入方式</p><p>合作商通过www.189.cn/hn发布的业务合作信息，下载并填写合作申请表。具体见下：</p><p>（ &nbsp;https://pan.baidu.com/s/1sjoIW-QZ5_ilDKDG_tGFmA?pwd=j7m9 （访问码： j7m9）），提交满足引入条件的文件或图片资料（需加盖公司公章），并以电子邮件形式将申请表及资质文件发送至招商人邮箱。通过内部初审的将安排后续洽谈合作引入事宜。</p><p>注：本次招商公告自发布后至26年12月31日</p><p> </p><p>招商人信息</p><p>1、地址：长沙市芙蓉区东二环荷花园电信楼</p><p>2、联系人/邮箱：何女士 &nbsp;hex4@chinatelecom.cn</p><p><br></p><p style=\"text-align: right;\">中国电信股份有限公司湖南电子渠道部</p><p style=\"text-align: right;\">2026年9月14日</p><p><br></p>"
+  },
+  {
+   "title": "关于中国电信株洲公司宽带网络升级的公告",
+   "date": "2026-09-08",
+   "offerCode": "563739300001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "linkType": "",
+   "tab": "公告",
+   "url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好地服务客户，我公司将于9月10日1:00-6:00对攸县的宽带网络进行升级。升级期间，攸县部分电信用户的宽带、IPTV、固定电话、专线等业务约中断60分钟，请您提前做好安排。升级后如不能正常使用，请重启光猫和路由器等设备，仍未恢复请关注微信服务号“湖南电信”或拨打客服热线10000申告故障。给您带来不便，敬请谅解。感谢您的理解与支持！</p><p style=\"text-align: right;\"> </p><p style=\"text-align: right;\"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;中国电信株洲公司</p><p style=\"text-align: right;\"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2026年9月8日</p><p><br></p><p><br></p>"
+  },
+  {
+   "title": "关于中国电信株洲公司宽带网络升级的公告",
+   "date": "2026-09-05",
+   "offerCode": "540248600001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "linkType": "",
+   "tab": "公告",
+   "url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; 为更好地服务客户，我公司将于9月8日00:00-06:00对宽带网络进行升级维护，
