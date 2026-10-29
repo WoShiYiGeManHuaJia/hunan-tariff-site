@@ -1,0 +1,21 @@
+TIME: Thu Sep 24 12:41:11 UTC 2026
+=== http://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt ===
+code=200 size=39
+BODY:[bfc0819abf16f9c84c37242f54f856bda51eef3]
+=== https://hnvip.qd.je/9a0c6a0cba595feb5a29661d1450e9bf.txt ===
+curl: (60) SSL: no alternative certificate subject name matches target host name 'hnvip.qd.je'
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+code=000 size=0
+curl_fail
+BODY:[bfc0819abf16f9c84c37242f54f856bda51eef3]
+=== github.io ===
+code=301
+BODY:[<html><head><title>301 Moved Permanently</title></head><body><center><h1>301 Moved Permanently</h1></center><hr><cen]
+=== cert ===
+subject=CN = *.github.io
+issuer=C = US, O = Let's Encrypt, CN = YR1
+notAfter=Oct 31 23:38:01 2026 GMT
