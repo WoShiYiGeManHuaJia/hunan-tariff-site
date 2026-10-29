@@ -1,0 +1,15 @@
+FAIL
+Traceback (most recent call last):
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 147, in <module>
+    r = main()
+        ^^^^^^
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 128, in main
+    out = fetch_all()
+          ^^^^^^^^^^^
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/scripts/announce_telecom.py", line 82, in fetch_all
+    raise RuntimeError("tab list code=%s msg=%s" % (tabs.get("code"), tabs.get("message")))
+RuntimeError: tab list code=S_WEB_0104 msg=系统繁忙，请稍后重试
+
+
+=== JSON ===
+no json: [Errno 2] No such file or directory: '/tmp/tcann.json'
