@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>中国移动签到</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:14px;background:#f6f7fb;font:15px/1.65 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;color:#222}
+h1{font-size:18px;margin:0 0 4px}
+.sub{color:#888;font-size:13px;margin-bottom:14px}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h2{font-size:15px;margin:0 0 8px;color:#5b3cc4}
+.card h2 .n{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;background:#5b3cc4;color:#fff;border-radius:50%;font-size:13px;margin-right:6px}
+ol{margin:0;padding-left:20px}
+ol li{margin-bottom:8px}
+.warn{background:#fff7e6;border:1px solid #ffd591;border-radius:10px;padding:11px;font-size:13.5px;color:#8a5a00;margin-bottom:12px}
+.ok{background:#eafbe7;border:1px solid #b7eb8f;border-radius:10px;padding:11px;font-size:13.5px;color:#2f6b1f;margin-bottom:12px}
+.info{background:#eaf2ff;border:1px solid #adc6ff;border-radius:10px;padding:11px;font-size:13.5px;color:#1d3a8a;margin-bottom:12px}
+textarea{width:100%;height:120px;font:12px/1.5 monospace;border:1px solid #ddd;border-radius:8px;padding:9px;background:#fafafa}
+button{display:block;width:100%;padding:13px;margin-top:10px;border:0;border-radius:10px;background:#5b3cc4;color:#fff;font-size:15px;font-weight:600}
+button.ghost{background:#fff;color:#5b3cc4;border:1px solid #5b3cc4}
+a{color:#5b3cc4}
+code{background:#f0f0f4;padding:1px 5px;border-radius:4px;font-size:13px}
+.stepdone{color:#2f6b1f;font-size:13px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<h1>中国移动每日签到</h1>
+<div class="sub">两步搞定：先手动签一次，再把凭证交给服务器自动签</div>
+
+<div class="warn">
+<b>为什么一直签不上？</b><br>
+自动签到跑在 GitHub 的服务器上，而 GitHub 服务器在<b>境外</b>（实测出口 IP：美国圣何塞）。移动对境外 IP 拒绝登录，所以签不了。
+<br><br>
+你的手机在国内 —— 让签到用<b>你手机的登录凭证</b>就能正常签。
+</div>
+
+<div class="card">
+<h2><span class="n">1</span>打开活动页并确认已登录</h2>
+<ol>
+<li>用手机浏览器（Safari / Chrome）打开活动页</li>
+<li>确认页面正常显示、右上角是你自己的号</li>
+<li><b>停留在这个页面</b>，下面的操作都在这页上做</li>
+</ol>
+<button class="ghost" onclick="location.href='https://wx.10086.cn/qwhdhub/qwhdmark/1021122301'">打开活动页</button>
+</div>
+
+<div class="card">
+<h2><span class="n">2</span>添加「签到书签」（今天先手动签）</h2>
+<ol>
+<li>点「复制书签代码」</li>
+<li>浏览器新建书签，名字写「签到」</li>
+<li>网址栏<b>清空</b>，粘贴代码，保存</li>
+<li>回到活动页，点一下这个书签 → 弹「签到成功」</li>
+</ol>
+<textarea id="code" readonly></textarea>
+<button onclick="copyCode('code','tip1')">复制书签代码</button>
+<div id="tip1" class="stepdone"></div>
+</div>
+
+<div class="card">
+<h2><span class="n">3</span>导出凭证（关键，做完就全自动）</h2>
+<div class="info">
+上一步签到成功后，你的活动页就有了登录凭证。把它导出交给服务器，服务器每天替你签，<b>你再也不用管</b>。
+</div>
+<ol>
+<li>再新建一个书签，名字写「导出」</li>
+<li>点「复制导出代码」，网址栏清空粘贴，保存</li>
+<li><b>回到活动页</b>，点一下「导出」书签</li>
+<li>页面会弹出一串文字 → 复制 → 发给 AI</li>
+</ol>
+<textarea id="code2" readonly></textarea>
+<button onclick="copyCode('code2','tip2')">复制导出代码</button>
+<div id="tip2" class="stepdone"></div>
+</div>
+
+<div class="card">
+<h2>常见问题</h2>
+<p style="margin:0 0 6px"><b>凭证会过期吗？</b><br>会（通常几天到几十天）。过期后服务器会通知你，重复第 3 步再导一次即可。</p>
+<p style="margin:6px 0 0"><b>凭证里有我的手机号吗？</b><br>没有明文号码，是会话票据。不放心可以随时在移动 App 里退出登录让它失效。</p>
+</div>
+
+<script>
+// 书签1：签到
+var SIGN = "javascript:(async()=>{try{var d=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai'}).format(new Date()).replace(/-/g,'');var h={'Content-Type':'application/json;charset=UTF-8','login-check':'1','x-requested-with':'XMLHttpRequest'};var s=await fetch('/qwhdhub/api/mark/mark31/markstatus',{method:'POST',headers:h,body:'{}',credentials:'include'});var sj=await s.json();if((sj.code||'')==='GOTO_LOGIN'){alert('活动页未登录，请先确认页面已登录再点');return;}var rec=((sj.data&&sj.data.markstatus)||[]).find(function(x){return x.date===d});if(rec&&String(rec.status)==='1'){alert('今日已签（'+d+'），不用再点');return;}var r=await fetch('/qwhdhub/api/mark/mark31/domark',{method:'POST',headers:h,body:JSON.stringify({date:d}),credentials:'include'});var j=await r.json();alert('签到结果：'+(j.code||'')+' '+(j.msg||''));}catch(e){alert('没签上：'+e.message)})()";
+
+// 书签2：导出登录凭证（cookie + localStorage + sessionStorage 全导出）
+var EXPORT = "javascript:(function(){var out={};try{out.cookie=document.cookie||''}catch(e){out.cookie=''};try{var L={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);L[k]=localStorage.getItem(k)}out.localStorage=L}catch(e){out.localStorage={}};try{var S={};for(var j=0;j<sessionStorage.length;j++){var k2=sessionStorage.key(j);S[k2]=sessionStorage.getItem(k2)}out.sessionStorage=S}catch(e){out.sessionStorage={}};var txt='===COOKIE===\\n'+out.cookie+'\\n\\n===LOCALSTORAGE===\\n'+JSON.stringify(out.localStorage)+'\\n\\n===SESSIONSTORAGE===\\n'+JSON.stringify(out.sessionStorage);var box=document.createElement('textarea');box.value=txt;box.style.cssText='position:fixed;top:0;left:0;width:100%;height:60%;z-index:99999;font:11px monospace;background:#fff';document.body.appendChild(box);box.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}alert(ok?'已复制全部凭证（cookie+localStorage），粘贴发给AI':'请长按选中文本框内容手动复制');})()";
+
+document.getElementById('code').value = SIGN;
+document.getElementById('code2').value = EXPORT;
+
+function copyCode(id, tip){
+  var t=document.getElementById(id);
+  t.select(); t.setSelectionRange(0,999999);
+  var ok=false;
+  try{ ok=document.execCommand('copy'); }catch(e){}
+  if(!ok && navigator.clipboard){ navigator.clipboard.writeText(t.value); ok=true; }
+  document.getElementById(tip).textContent = ok ? '已复制，去新建书签粘贴即可' : '复制失败，请手动长按选中上面的代码复制';
+}
+</script>
+
+</body>
+</html>
