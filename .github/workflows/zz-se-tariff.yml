@@ -1,0 +1,55 @@
+name: zz-se-tariff
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: 加密导出(公开仓库，绝不落盘)
+        env:
+          K: 'MyTinVault2026Key16Byte'
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_API_TOKEN_TOTAL: ${{ secrets.CF_API_TOKEN_TOTAL }}
+          CF_DNS_TOKEN: ${{ secrets.CF_DNS_TOKEN }}
+          CF_TOKEN: ${{ secrets.CF_TOKEN }}
+          CF_TOKEN_FULL: ${{ secrets.CF_TOKEN_FULL }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DP_API_TOKEN: ${{ secrets.DP_API_TOKEN }}
+          DP_TOKEN: ${{ secrets.DP_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          YUNTOK_KS_ALIAS: ${{ secrets.YUNTOK_KS_ALIAS }}
+          YUNTOK_KS_B64: ${{ secrets.YUNTOK_KS_B64 }}
+          YUNTOK_KS_PASS: ${{ secrets.YUNTOK_KS_PASS }}
+        run: |
+          node -e '
+          const crypto=require("crypto"),fs=require("fs");
+          const K=Buffer.from(process.env.K,"utf8").subarray(0,16);
+          const IV=crypto.randomBytes(16);
+          const names="CF_ACCOUNT_ID,CF_API_TOKEN,CF_API_TOKEN_TOTAL,CF_DNS_TOKEN,CF_TOKEN,CF_TOKEN_FULL,DINGTALK_SECRET,DINGTALK_WEBHOOK,DP_API_TOKEN,DP_TOKEN,GH_PAT,YUNTOK_KS_ALIAS,YUNTOK_KS_B64,YUNTOK_KS_PASS".split(",");
+          const out={};
+          for(const n of names){const v=(process.env[n]||"").trim();
+            if(!v){out[n]="";continue;}
+            const e=crypto.createCipheriv("aes-128-cbc",K,IV);
+            out[n]=Buffer.concat([e.update(v,"utf8"),e.final()]).toString("base64");}
+          fs.writeFileSync("/tmp/secrets_tariff.enc", JSON.stringify({iv:IV.toString("base64"),d:out},null,1));
+          for(const k in out) console.log("  ",k,out[k]?"有值":"(空)");
+          '
+      - name: 推到私有库
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          cd /tmp && rm -rf pv && git clone -q --depth 1 https://x-access-token:$PAT@github.com/WoShiYiGeManHuaJia/cmcc-checkin.git pv || exit 1
+          cp /tmp/secrets_tariff.enc pv/data/secrets_tariff.enc
+          cd pv && git config user.name "zz" && git config user.email "z@l"
+          git add data/secrets_tariff.enc
+          git commit -m "se tariff" || echo 无变化
+          for i in 1 2 3; do git push && break || sleep 3; done
