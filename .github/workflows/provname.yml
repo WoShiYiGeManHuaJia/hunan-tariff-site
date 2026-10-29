@@ -1,0 +1,79 @@
+name: ProvNameProbe
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pycryptodome -q
+      - name: Probe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, os
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY = b"telecom_wap_2018"
+          UA = "Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API = "https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def encrypt(m):
+              return base64.b64encode(AES.new(KEY, AES.MODE_ECB).encrypt(pad(m.encode("utf-8"), 16))).decode("utf-8")
+          def call(fn, rc):
+              body = encrypt(json.dumps({"headerInfo": {"functionCode": fn}, "requestContent": rc}, ensure_ascii=False))
+              req = urllib.request.Request(API, data=body.encode("utf-8"), method="POST", headers={
+                  "User-Agent": UA,
+                  "Referer": "https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept": "application/json, text/plain, */*",
+                  "Content-Type": "text/plain;charset=UTF-8",
+                  "Origin": "https://www.189.cn",
+                  "x-qd-reqtime": str(int(time.time() * 1000)),
+              })
+              last = None
+              for a in range(3):
+                  try:
+                      with urllib.request.urlopen(req, timeout=40) as r:
+                          return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last = e; time.sleep(1.2 * (a + 1))
+              return None
+          res = {}
+          codes = []
+          for base in ["6001", "6002", "6003", "6004", "6005", "6006"]:
+              for i in range(1, 31):
+                  codes.append(base + "%02d" % i)
+          # 重点：已知有数据但省份未识别的三个
+          focus = ["600401", "600404", "600405", "600406"]
+          for prov in codes:
+              d = call("tariffSectionHome", {"ticket": "", "sessionid": "", "provCode": prov})
+              rc = (d or {}).get("responseContent", {}) or {}
+              boards = rc.get("lableOneList") or []
+              if not boards:
+                  continue
+              # 顶层非列表字段（可能含省份名）
+              meta = {k: v for k, v in rc.items()
+                      if isinstance(v, (str, int, float)) and k not in ("sessionid", "ticket")}
+              entry = {"boards": [b.get("name") for b in boards], "meta": meta}
+              res[prov] = entry
+              print("HIT %s boards=%s meta=%s" % (prov, entry["boards"], json.dumps(meta, ensure_ascii=False)[:300]))
+              if prov in focus:
+                  print("   FOCUS-META %s => %s" % (prov, json.dumps(meta, ensure_ascii=False)))
+              time.sleep(0.2)
+          os.makedirs("_probe", exist_ok=True)
+          open("_probe/prov.json", "w").write(json.dumps(res, ensure_ascii=False, indent=1))
+          print("TOTAL HIT", len(res))
+          PYEOF
+      - name: Commit
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A _probe
+          git commit -q -m "probe: prov meta $(date -u +%FT%TZ)" || echo "no change"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin main && { echo pushed; break; }
+            sleep 5
+          done
