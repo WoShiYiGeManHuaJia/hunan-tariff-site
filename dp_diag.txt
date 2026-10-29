@@ -1,0 +1,36 @@
+===== A. DigitalPlat host resolution =====
+-- api.digitalplat.org
+  (no A record)
+-- digitalplat.org
+2606:4700:10::6814:2071 digitalplat.org
+2606:4700:10::ac42:ae04 digitalplat.org
+-- www.digitalplat.org
+2606:4700:10::6814:2071 www.digitalplat.org
+2606:4700:10::ac42:ae04 www.digitalplat.org
+-- dashboard.digitalplat.org
+2606:4700:10::6814:2071 dashboard.digitalplat.org
+2606:4700:10::ac42:ae04 dashboard.digitalplat.org
+-- dash.digitalplat.org
+  (no A record)
+-- dns1.digitalplat.org
+192.9.243.240   dns1.digitalplat.org
+===== B. DigitalPlat API verbose =====
+* Could not resolve host: api.digitalplat.org
+* Closing connection
+
+root_http:000
+www_http:403
+dash_http:403
+===== C. Cloudflare token probe =====
+-- verify
+{"result":{"id":"a04d27a3db7245d205abd17d67ad8eb7","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
+[200]
+-- accounts
+{"result":[{"id":"9156c2cae565fdf42d208827b523e47e","name":"Jiangzhongming2005@gmail.com's Account","type":"standard","settings":{"enforce_twofactor":false,"api_access_enabled":null,"access_approval_expiry":null,"abuse_contact_email":null,"oauth_app_access_enabled":true},"legacy_flags":{"enterprise_zone_quota":{"maximum":0,"current":0,"available":0}},"created_on":"2026-09-02T11:25:44.925222Z"}],"result_info":{"page":1,"per_page":20,"total_pages":1,"count":1,"total_count":1},"success":true,"errors":[],"messages":[]}
+[200]
+-- zones
+{"result":[],"result_info":{"page":1,"per_page":50,"total_pages":0,"count":0,"total_count":0},"success":true,"errors":[],"messages":[]}
+[200]
+-- try create zone hnvip.qd.je
+{"success":false,"errors":[{"code":0,"message":"Requires permission \"com.cloudflare.api.account.zone.create\" to create zones for the selected account"}],"messages":[],"result":null}
+[403]
