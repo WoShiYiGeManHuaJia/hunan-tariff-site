@@ -1,0 +1,33 @@
+PROV:
+600106 -> EMPTY
+600206 -> EMPTY
+600306 -> EMPTY
+600501 -> EMPTY
+600601 -> EMPTY
+600701 -> EMPTY
+
+NOTICE:
+URL https://www.189.cn/web/notice/index.html -> 200 len=1330 waf=False
+   HEAD <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content="yes" name="apple-touch-fullscreen"/><meta content="telephone=no,email=no" name="format-detection"/><meta name="App-Config" content="fullscreen=yes,useHistoryState=yes,transition=yes"/><meta name="msapplication-tap-hightlight" content="no"><meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="https://www.189.cn/image/189cnv2/indexv2/images/favicon.ico"/><title>中国电信网上营业厅</title><link rel="stylesheet" href="/web/css/swiper.min.css"/><l
+URL https://m.189.cn/web/notice/index.html -> 0 len=25 waf=False
+URL https://www.189.cn/hn/web/notice/index.html -> 200 len=813 waf=False
+   HEAD <!DOCTYPE html> <html> <head> <meta charset="UTF-8"> <meta name="apple-mobile-web-app-capable" content="yes"/> <meta name="apple-mobile-web-app-status-bar-style" content="black"/> <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no"/> <meta http-equiv="pragma" content="no-cache"/> <meta http-equiv="expires" content="Wed, 26 Feb 1997 08:21:57 GMT" /> <meta http-equiv="Cache-Control" content="no-cache,must-revalidate" /> <meta name="format-detection" content="telephone=no"/> <title>中国电信掌上营业厅</titl
+URL https://hn.189.cn/web/notice/index.html -> 202 len=1783 waf=True
+URL https://www.189.cn/web/notice -> 200 len=1330 waf=False
+   HEAD <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content="yes" name="apple-touch-fullscreen"/><meta content="telephone=no,email=no" name="format-detection"/><meta name="App-Config" content="fullscreen=yes,useHistoryState=yes,transition=yes"/><meta name="msapplication-tap-hightlight" content="no"><meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="https://www.189.cn/image/189cnv2/indexv2/images/favicon.ico"/><title>中国电信网上营业厅</title><link rel="stylesheet" href="/web/css/swiper.min.css"/><l
+URL https://www.189.cn/hn/ -> 200 len=813 waf=False
+   HEAD <!DOCTYPE html> <html> <head> <meta charset="UTF-8"> <meta name="apple-mobile-web-app-capable" content="yes"/> <meta name="apple-mobile-web-app-status-bar-style" content="black"/> <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no"/> <meta http-equiv="pragma" content="no-cache"/> <meta http-equiv="expires" content="Wed, 26 Feb 1997 08:21:57 GMT" /> <meta http-equiv="Cache-Control" content="no-cache,must-revalidate" /> <meta name="format-detection" content="telephone=no"/> <title>中国电信掌上营业厅</titl
+URL https://e.189.cn/ -> 200 len=6369 waf=False
+   HEAD <!DOCTYPE html><html lang=""><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="https://static.e.189.cn/e/2016/page/wap/favicon.ico"><title>天翼账号</title><link rel="stylesheet" type="text/css" href="https://static.e.189.cn/e/2016/page/wap/js/captch/captcha.css"><script>var _uxt = []; function Rem() { var docEl = document.documentElement, oSize = docEl.clientWidth / 7.5; if (oSize > 64) { oSize = 64; } 
+URL https://www.189.cn/portal/web/notice -> 0 len=27 waf=False
+URL https://www.189.cn/web/support/notice.html -> 200 len=1330 waf=False
+   HEAD <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content="yes" name="apple-touch-fullscreen"/><meta content="telephone=no,email=no" name="format-detection"/><meta name="App-Config" content="fullscreen=yes,useHistoryState=yes,transition=yes"/><meta name="msapplication-tap-hightlight" content="no"><meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="https://www.189.cn/image/189cnv2/indexv2/images/favicon.ico"/><title>中国电信网上营业厅</title><link rel="stylesheet" href="/web/css/swiper.min.css"/><l
+URL https://www.189.cn/web/notice/notice.html -> 200 len=1330 waf=False
+   HEAD <!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"><meta content="yes" name="apple-touch-fullscreen"/><meta content="telephone=no,email=no" name="format-detection"/><meta name="App-Config" content="fullscreen=yes,useHistoryState=yes,transition=yes"/><meta name="msapplication-tap-hightlight" content="no"><meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="https://www.189.cn/image/189cnv2/indexv2/images/favicon.ico"/><title>中国电信网上营业厅</title><link rel="stylesheet" href="/web/css/swiper.min.css"/><l
+FN noticeList -> ERR Expecting value: line 1 column 1 (char 0)
+FN queryNoticeList -> ERR Expecting value: line 1 column 1 (char 0)
+FN getNoticeList -> ERR Expecting value: line 1 column 1 (char 0)
+FN noticeQuery -> ERR Expecting value: line 1 column 1 (char 0)
+FN queryNotice -> ERR Expecting value: line 1 column 1 (char 0)
+FN notice -> ERR Expecting value: line 1 column 1 (char 0)
+FN queryAnnouncementList -> ERR Expecting value: line 1 column 1 (char 0)
