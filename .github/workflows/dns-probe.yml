@@ -1,0 +1,49 @@
+name: dns-probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run probe
+        continue-on-error: true
+        env:
+          DP: ${{ secrets.DP_API_TOKEN }}
+        run: |
+          set +e
+          OUT=probe-out.txt
+          : > $OUT
+          {
+          echo "== authoritative check"
+          echo "-- SOA hnvip.qd.je @dns1.digitalplat.org"; dig +short SOA hnvip.qd.je @dns1.digitalplat.org 2>&1
+          echo "-- NS  hnvip.qd.je @dns1.digitalplat.org"; dig +short NS  hnvip.qd.je @dns1.digitalplat.org 2>&1
+          echo "-- ANY"; dig +noall +answer hnvip.qd.je @dns1.digitalplat.org 2>&1
+          echo "== DP API hosts"
+          for h in api.digitalplat.org digitalplat.org api.digitalplat.dev oss.digitalplat.org dash.digitalplat.org api.dpdns.org; do
+            echo "-- host $h"; getent hosts $h || echo "   (no dns)"
+            code=$(curl -s -m 10 -o /tmp/o -w "%{http_code}" -H "Authorization: Bearer $DP" "https://$h/api/v1/domains")
+            echo "   https://$h/api/v1/domains -> $code | $(head -c 120 /tmp/o | tr -d '\n')"
+          done
+          echo "== deSEC reachable?"
+          curl -s -m 10 -o /tmp/d -w "desec %{http_code}\n" https://desec.io/api/v1/
+          head -c 120 /tmp/d
+          } >> $OUT
+          cat $OUT
+          true
+      - name: Commit
+        if: always()
+        env:
+          GT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          B64=$(base64 -w0 probe-out.txt)
+          SHA=$(curl -s -H "Authorization: Bearer $GT" https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt | python3 -c "import json,sys
+          try:
+            d=json.load(sys.stdin); print(d.get('sha',''))
+          except Exception: print('')")
+          if [ -n "$SHA" ]; then EX=",\"sha\":\"$SHA\""; else EX=""; fi
+          printf '{"message":"probe v4","content":"%s"%s}' "$B64" "$EX" > /tmp/body.json
+          curl -s -X PUT -H "Authorization: Bearer $GT" -H "Accept: application/vnd.github+json" https://api.github.com/repos/${{ github.repository }}/contents/probe-out.txt --data-binary @/tmp/body.json | head -c 150
+          true
