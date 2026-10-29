@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>移动签到面板 · 状态 / 签到 / 取凭证</title>
+<meta name="description" content="移动 App 通道签到与取凭证一体化面板：一把门禁口令解锁，可登记统一令牌、查看每日签到状态、派发取凭证任务。敏感值只在浏览器内解密，不进公开仓库与日志。">
+<style>
+:root{
+  --bg:#080b11; --bg2:#0e141d; --card:#131b26; --card2:#18212e; --line:#243044; --line2:#2f3d55;
+  --fg:#e9eff8; --fg2:#a7b6cb; --fg3:#6d7f97;
+  --accent:#3b82f6; --accent2:#7cb0ff; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+  --r:18px; --r2:12px; --maxw:940px; --tabh:64px;
+  --shadow:0 10px 30px rgba(0,0,0,.38);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; color:var(--fg); background:var(--bg);
+  background-image:radial-gradient(1100px 520px at 50% -12%, rgba(59,130,246,.16), transparent 62%);
+  font:15px/1.62 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,"Segoe UI",sans-serif;
+  padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 18px);
+}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 14px}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:.2px}
+p{margin:.4em 0}
+.muted{color:var(--fg2)}.tiny{font-size:12.5px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.hidden{display:none !important}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,textarea{font:inherit;color:var(--fg);background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);
+  padding:12px 13px;width:100%;min-height:46px;font-size:16px;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.16)}
+textarea{min-height:96px;resize:vertical;line-height:1.5}
+input::placeholder,textarea::placeholder{color:var(--fg3)}
+
+/* ---------- 顶栏 ---------- */
+.hero{padding:18px 0 6px}
+.hero-top{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.logo{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(150deg,#2563eb,#1d4ed8 60%,#0f3ba7);box-shadow:0 6px 18px rgba(37,99,235,.4)}
+.logo svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.brand h1{font-size:19px}
+.brand p{margin:1px 0 0;font-size:12.5px;color:var(--fg3)}
+.hero-actions{display:flex;align-items:center;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--fg2);background:var(--card);
+  border:1px solid var(--line);border-radius:999px;padding:5px 10px;white-space:nowrap}
+.chip.warn{color:#fcd34d;border-color:rgba(245,158,11,.38);background:rgba(245,158,11,.10)}
+.chip.ok{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.10)}
+
+/* ---------- 标签栏 ---------- */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:center;gap:4px;
+  padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px));
+  background:rgba(10,14,20,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+.tab{flex:1 1 0;max-width:150px;min-height:52px;border-radius:14px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;color:var(--fg3);font-size:12px;transition:background .15s,color .15s}
+.tab svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab.active{color:var(--accent2);background:rgba(59,130,246,.13)}
+@media (min-width:900px){
+  body{padding-bottom:34px}
+  .tabs{position:static;border:0;background:none;backdrop-filter:none;justify-content:flex-start;gap:8px;padding:14px 0 2px;margin-bottom:6px}
+  .tab{flex:0 0 auto;flex-direction:row;gap:8px;min-height:44px;padding:0 16px;font-size:14px;border:1px solid var(--line);background:var(--card)}
+  .tab.active{background:rgba(59,130,246,.14);border-color:rgba(59,130,246,.4)}
+  .hero{padding-top:26px}
+}
+
+/* ---------- 卡片 ---------- */
+.card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;margin:0 0 14px;box-shadow:var(--shadow)}
+.card-h{display:flex;align-items:center;gap:9px;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap}
+.card-h h2{font-size:16px;display:flex;align-items:center;gap:8px}
+.card-h h2 .no{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:12px;
+  background:rgba(59,130,246,.16);color:var(--accent2);font-weight:700}
+.card-h .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:12px}
+@media (min-width:760px){ .grid.two{grid-template-columns:1fr 1fr} }
+label.field{display:block;margin:0 0 10px}
+label.field>span{display:block;font-size:13px;color:var(--fg2);margin:0 0 6px}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.row.tight{gap:7px}
+.grow{flex:1 1 190px}
+.btn{min-height:46px;padding:0 18px;border-radius:12px;background:var(--accent);color:#fff;font-weight:600;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:filter .15s,opacity .15s}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;filter:grayscale(.3)}
+.btn.ghost{background:rgba(255,255,255,.06);border:1px solid var(--line2);color:var(--fg2);font-weight:500}
+.btn.sm{min-height:38px;padding:0 13px;font-size:13.5px;border-radius:10px}
+.btn.block{width:100%}
+.field-foot{display:flex;justify-content:space-between;font-size:12px;color:var(--fg3);margin:-4px 2px 10px}
+.msg{margin-top:10px;padding:10px 12px;border-radius:12px;font-size:13.5px;border:1px solid transparent;word-break:break-word;white-space:pre-wrap}
+.msg.ok{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.32);color:#bbf7d0}
+.msg.err{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.32);color:#fecaca}
+.msg.idle,.msg.wait{background:rgba(148,163,184,.10);border-color:var(--line);color:var(--fg2)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;font-size:13.5px;line-height:1.55;
+  background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.34);color:#fde68a;margin-bottom:14px}
+.banner b{color:#fcd34d}
+.banner .bi{flex:0 0 auto;font-size:15px;line-height:1.4}
+
+/* ---------- 状态列表 ---------- */
+.items{display:grid;gap:10px}
+.item{border:1px solid var(--line);border-radius:14px;padding:12px 13px;background:var(--bg2)}
+.item .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px}
+.item .num{font-weight:650;font-size:15px;letter-spacing:.4px}
+.pill{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--fg2);white-space:nowrap}
+.pill.ok{color:#86efac;border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.1)}
+.pill.warn{color:#fcd34d;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.1)}
+.pill.bad{color:#fca5a5;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1)}
+.item dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13.5px}
+.item dt{color:var(--fg3)}
+.item dd{margin:0;color:var(--fg)}
+.empty{color:var(--fg3);font-size:13.5px;padding:10px 2px}
+
+/* ---------- 步骤时间线 ---------- */
+.steps{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:9px}
+.steps li{display:flex;gap:10px;align-items:flex-start}
+.steps .dot{width:9px;height:9px;border-radius:50%;background:var(--fg3);margin-top:7px;flex:0 0 auto}
+.steps .dot.run{background:var(--accent);box-shadow:0 0 0 4px rgba(59,130,246,.18)}
+.steps .dot.ok{background:var(--ok)}
+.steps .dot.err{background:var(--bad)}
+.steps .st-name{font-weight:600;font-size:14px}
+.steps .st-detail{display:block;color:var(--fg3);font-size:12.5px;word-break:break-word}
+.out{margin-top:10px;display:grid;gap:9px}
+.out .kv{border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--bg2)}
+.out .kv .k{font-size:12px;color:var(--fg3);margin-bottom:3px}
+.out .kv .v{font-size:13px;word-break:break-all;max-height:130px;overflow:auto}
+
+/* ---------- 锁屏 ---------- */
+.lock{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:18px;
+  background:radial-gradient(900px 500px at 50% 0%,rgba(59,130,246,.18),transparent 60%),rgba(6,9,14,.97);overflow:auto}
+.lock-card{width:100%;max-width:420px;background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);
+  border-radius:22px;padding:22px 18px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.lock-card h2{font-size:19px}
+.lock-sub{color:var(--fg2);font-size:13.5px;margin:6px 0 16px}
+.lock-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.lock .logo{width:46px;height:46px;margin-bottom:12px}
+@media (min-width:900px){ .lock{background:radial-gradient(900px 500px at 50% 0%,rgba(59,130,246,.18),transparent 60%),rgba(6,9,14,.94)} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-top">
+      <div class="brand">
+        <div class="logo"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.6"/><path d="M11 18.4h2"/></svg></div>
+        <div><h1>移动签到面板</h1><p>登记 · 状态 · 取凭证</p></div>
+      </div>
+      <div class="hero-actions">
+        <span class="chip" id="verChip">v20261028e</span>
+        <button class="btn ghost sm" id="btnLock" hidden>上锁</button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="sign"><svg viewBox="0 0 24 24"><path d="M4 19h16M7 16V9m5 7V5m5 11v-4"/></svg><span>状态·签到</span></button>
+      <button class="tab" data-tab="tool"><svg viewBox="0 0 24 24"><path d="M15.5 3.5 20 8l-2 2-4.5-4.5 2-2ZM13 6 4 15v5h5l9-9"/></svg><span>取凭证</span></button>
+      <button class="tab" data-tab="diag"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.5 1.5M16.5 16.5 18 18M18 6l-1.5 1.5M7.5 16.5 6 18"/></svg><span>诊断·设置</span></button>
+    </nav>
+  </header>
+
+  <div class="banner" id="topBanner">
+    <span class="bi">⚠</span>
+    <div><b>当前上游限流中，取凭证暂不可用。</b>移动 App 网关会直接断开机房（GitHub Actions）发出的请求，属于上游风控，不是页面或口令的问题。
+      <br><span class="tiny">页面版本 20261028e（2026-10-28）：读数改走本站同源快照，手机网络下不再依赖跨域访问 GitHub。</span>
+      恢复条件：把取票后端放到家宽网络执行（自托管 runner / 家里常开的机器），或换一个可用的网关档位。
+      状态·签到与令牌登记功能不受影响，照常可用。</div>
+  </div>
+
+  <main id="main">
+
+    <!-- ================= 状态 · 签到 ================= -->
+    <section class="panel" data-panel="sign">
+      <div class="card">
+        <div class="card-h">
+          <h2><span class="no">1</span>今日签到状态</h2>
+          <div class="right">
+            <span class="chip" id="statusTag">未读取</span>
+            <button class="btn ghost sm" id="btnRefresh">刷新</button>
+          </div>
+        </div>
+        <div class="items" id="statusList"><div class="empty">解锁后可读取每日签到结果（只显示脱敏号码）。</div></div>
+        <div class="msg idle hidden" id="statusMsg"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2><span class="no">2</span>登记统一令牌</h2><div class="right"><span class="chip">CMCC1</span></div></div>
+        <label class="field"><span>粘贴统一令牌（CMCC1）或旧格式令牌</span>
+          <textarea id="tokenIn" placeholder="CMCC1.xxxxx.xxxxx.xxxxx.xxxxx.xxxxx.xxxxx" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></label>
+        <div class="row tight">
+          <button class="btn" id="btnRegister">登记到私有仓</button>
+          <span class="muted tiny">登记后由定时工作流每日换会话签到，状态区只显示脱敏号码。</span>
+        </div>
+        <div class="msg idle hidden" id="regMsg"></div>
+        <div class="hidden" id="regCodeBox" style="margin-top:10px">
+          <div class="field-foot"><span>登记码（密文，可直接发我）</span><button class="btn ghost sm" data-copy="regCode">复制登记码</button></div>
+          <div class="mono" id="regCode" style="font-size:12px;word-break:break-all;max-height:120px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--bg2)"></div>
+        </div>
+      </div>
+
+      <div class="card" id="noticeCard">
+        <div class="card-h"><h2><span class="no">3</span>公告</h2><div class="right"><button class="btn ghost sm" id="btnNoticeClose">不再提示</button></div></div>
+        <div id="noticeBody" class="muted"></div>
+      </div>
+    </section>
+
+    <!-- ================= 取凭证 ================= -->
+    <section class="panel hidden" data-panel="tool">
+      <div class="banner">
+        <span class="bi">⚠</span>
+        <div><b>当前上游限流中，本功能暂不可用。</b>发码与登录在服务端（GitHub Actions）执行，但移动 App 网关会直接断开机房 IP 的请求，
+          页面会如实显示失败原因。恢复条件同上（家宽执行或换网关档位）。解锁、登记、状态查看不受影响。</div>
+      </div>
+      <div class="card">
+        <div class="card-h">
+          <h2><span class="no">1</span>手机号与验证码</h2>
+          <div class="right"><span class="chip" id="sendTag">未下发</span><span class="chip" id="loginTag">未取</span></div>
+        </div>
+        <div class="grid two">
+          <label class="field"><span>手机号</span><input id="phone" type="tel" inputmode="numeric" autocomplete="off" placeholder="11 位手机号"></label>
+          <label class="field"><span>短信验证码</span><input id="code" type="tel" inputmode="numeric" autocomplete="off" placeholder="收到的验证码"></label>
+        </div>
+        <div class="row tight">
+          <button class="btn" id="btnSend">获取验证码</button>
+          <button class="btn ghost" id="btnLogin">获取凭证</button>
+        </div>
+        <ul class="steps" id="stepList"><li><span class="dot"></span><span class="st-main"><span class="st-name">等待操作</span><span class="st-detail">获取验证码 → 获取凭证</span></span></li></ul>
+        <div class="msg idle hidden" id="workMsg"></div>
+      </div>
+
+      <div class="card hidden" id="outCard">
+        <div class="card-h"><h2><span class="no">2</span>本次结果</h2><div class="right">
+          <button class="btn ghost sm" data-copy="vToken">复制令牌</button>
+          <button class="btn ghost sm" id="btnDownload">下载 JSON</button>
+        </div></div>
+        <div class="out">
+          <div class="kv"><div class="k">统一令牌 CMCC1</div><div class="v mono" id="vToken">（本次未取到）</div></div>
+          <div class="kv"><div class="k">App 票据 / Cookie</div><div class="v mono" id="vCookie">（本次未取到）</div></div>
+          <div class="kv"><div class="k">长期 jwt</div><div class="v mono" id="vJwt">（本次未取到）</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 诊断 · 设置 ================= -->
+    <section class="panel hidden" data-panel="diag">
+      <div class="card">
+        <div class="card-h"><h2><span class="no">1</span>页面与缓存</h2><div class="right"><span class="chip" id="verChip2">v20261028e</span></div></div>
+        <div class="row tight">
+          <button class="btn" id="btnReload2">重新载入最新页面</button>
+          <span class="muted tiny">浏览器可能缓存了旧页面，点这个按钮会带上版本号重新拉取。</span>
+        </div>
+        <div class="msg idle hidden" id="diagMsg"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2><span class="no">2</span>连通自检</h2><div class="right"><button class="btn ghost sm" id="btnPing">检查</button></div></div>
+        <p class="muted tiny">解锁后可用页面内的凭据访问目标私有仓，确认读写链路是否正常。</p>
+        <div class="msg idle hidden" id="pingMsg"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2><span class="no">3</span>口令与隐私</h2></div>
+        <ul class="muted" style="padding-left:18px;margin:0;font-size:13.5px;line-height:1.75">
+          <li>只有一把门禁口令，大小写随便打、粘贴带空格或全角字符都会自动纠正。</li>
+          <li>口令只在本机用于解开配置块，配置块里是被口令加密的访问凭据，不会上传。</li>
+          <li>页面内嵌的是最小权限的访问凭据（只针对一个私有仓），仓库里只存密文。</li>
+          <li>状态文件只写脱敏号码（如 172****9953）与结论，不写明文手机号、令牌或验证码。</li>
+          <li>页面全内联、无外部依赖，http 环境（crypto.subtle 不可用）也能正常解密。</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ================= 锁屏 ================= -->
+<div class="lock" id="lockScreen">
+  <div class="lock-card">
+    <div class="logo"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.6"/><path d="M11 18.4h2"/></svg></div>
+    <h2>输入门禁口令</h2>
+    <p class="lock-sub">解锁后本页面可用全部功能：查看每日签到状态、登记统一令牌、派发取凭证、诊断设置。</p>
+    <label class="field"><span>门禁口令</span>
+      <input id="pwd" type="password" inputmode="latin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="粘贴或输入门禁口令"></label>
+    <div class="field-foot"><span id="pwdCount">已输入 0 位</span><span id="pwdExpect">口令应为 21 或 20 位</span></div>
+    <button class="btn block" id="btnUnlock">解锁</button>
+    <div class="msg idle hidden" id="gateMsg"></div>
+    <div class="lock-foot">
+      <span class="chip">页面版本 20261028e</span>
+      <button class="btn ghost sm" id="btnReload">重新载入最新页面</button>
+    </div>
+    <p class="muted tiny" style="margin-top:12px">口令不区分大小写，前后空格与全角字符会自动去掉；以我发你的为准。</p>
+  </div>
+</div>
+
+<script>
+/* ==== 纯 JS ChaCha20-Poly1305（RFC 8439）：http 非安全上下文下也能解密 ==== */
+
+'use strict';
+/* 纯 JS 的 ChaCha20-Poly1305（RFC 8439）——页面不依赖 WebCrypto，
+   因为 http:// 下的普通域名不是安全上下文（crypto.subtle 不可用）。 */
+(function (g) {
+  'use strict';
+  function rotl(v, c) { return ((v << c) | (v >>> (32 - c))) >>> 0; }
+  function qr(s, a, b, c, d) {
+    s[a] = (s[a] + s[b]) >>> 0; s[d] = rotl(s[d] ^ s[a], 16);
+    s[c] = (s[c] + s[d]) >>> 0; s[b] = rotl(s[b] ^ s[c], 12);
+    s[a] = (s[a] + s[b]) >>> 0; s[d] = rotl(s[d] ^ s[a], 8);
+    s[c] = (s[c] + s[d]) >>> 0; s[b] = rotl(s[b] ^ s[c], 7);
+  }
+  function le32(b, i) { return (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0; }
+  function chachaBlock(key, counter, nonce) {
+    const s = new Uint32Array(16);
+    s[0] = 0x61707865; s[1] = 0x3320646e; s[2] = 0x79622d32; s[3] = 0x6b206574;
+    for (let i = 0; i < 8; i++) s[4 + i] = le32(key, i * 4);
+    s[12] = counter >>> 0;
+    for (let i = 0; i < 3; i++) s[13 + i] = le32(nonce, i * 4);
+    const w = new Uint32Array(16); w.set(s);
+    for (let i = 0; i < 10; i++) {
+      qr(w, 0, 4, 8, 12); qr(w, 1, 5, 9, 13); qr(w, 2, 6, 10, 14); qr(w, 3, 7, 11, 15);
+      qr(w, 0, 5, 10, 15); qr(w, 1, 6, 11, 12); qr(w, 2, 7, 8, 13); qr(w, 3, 4, 9, 14);
+    }
+    const out = new Uint8Array(64);
+    for (let i = 0; i < 16; i++) {
+      const v = (w[i] + s[i]) >>> 0;
+      out[i * 4] = v & 255; out[i * 4 + 1] = (v >>> 8) & 255; out[i * 4 + 2] = (v >>> 16) & 255; out[i * 4 + 3] = (v >>> 24) & 255;
+    }
+    return out;
+  }
+  function chacha20Xor(key, counter, nonce, data) {
+    const out = new Uint8Array(data.length);
+    for (let off = 0; off < data.length; off += 64) {
+      const ks = chachaBlock(key, counter + (off / 64), nonce);
+      const n = Math.min(64, data.length - off);
+      for (let i = 0; i < n; i++) out[off + i] = data[off + i] ^ ks[i];
+    }
+    return out;
+  }
+  function beToBig(buf) { let x = 0n; for (let i = 0; i < buf.length; i++) x = (x << 8n) | BigInt(buf[i]); return x; }
+  function leToBig(buf) { let x = 0n; for (let i = buf.length - 1; i >= 0; i--) x = (x << 8n) | BigInt(buf[i]); return x; }
+  function bigToLe(x, len) { const o = new Uint8Array(len); for (let i = 0; i < len; i++) { o[i] = Number(x & 255n); x >>= 8n; } return o; }
+  function poly1305(key, msg) {
+    const P = (1n << 130n) - 5n;
+    const r = leToBig(key.slice(0, 16)) & 0x0ffffffc0ffffffc0ffffffc0fffffffn;
+    const s = leToBig(key.slice(16, 32));
+    let acc = 0n;
+    for (let off = 0; off < msg.length; off += 16) {
+      const chunk = msg.slice(off, Math.min(off + 16, msg.length));
+      const n = leToBig(chunk) | (1n << BigInt(8 * chunk.length));
+      acc = ((acc + n) * r) % P;
+    }
+    return bigToLe((acc + s) % (1n << 128n), 16);
+  }
+  function cat(list) { let n = 0; for (const x of list) n += x.length; const o = new Uint8Array(n); let p = 0; for (const x of list) { o.set(x, p); p += x.length; } return o; }
+  function pad16(x) { return x.length % 16 ? new Uint8Array(16 - (x.length % 16)) : new Uint8Array(0); }
+  function le64(n) { const o = new Uint8Array(8); let v = BigInt(n); for (let i = 0; i < 8; i++) { o[i] = Number(v & 255n); v >>= 8n; } return o; }
+  function macData(aad, ct) {
+    return cat([aad, pad16(aad), ct, pad16(ct), le64(aad.length), le64(ct.length)]);
+  }
+  function encrypt(key, nonce, plaintext, aad) {
+    const otk = chacha20Xor(key, 0, nonce, new Uint8Array(32));
+    const ct = chacha20Xor(key, 1, nonce, plaintext);
+    return cat([ct, poly1305(otk, macData(aad, ct))]);
+  }
+  function decrypt(key, nonce, sealed, aad) {
+    if (sealed.length < 16) throw new Error('密文过短');
+    const ct = sealed.slice(0, sealed.length - 16), tag = sealed.slice(sealed.length - 16);
+    const otk = chacha20Xor(key, 0, nonce, new Uint8Array(32));
+    const want = poly1305(otk, macData(aad, ct));
+    let diff = 0;
+    for (let i = 0; i < 16; i++) diff |= want[i] ^ tag[i];
+    if (diff !== 0) throw new Error('认证标签不匹配');
+    return chacha20Xor(key, 1, nonce, ct);
+  }
+  g.AEAD = { encrypt: encrypt, decrypt: decrypt, chacha20Xor: chacha20Xor };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== 工具 ==== */
+(function () {
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var CFG_BLOBS = ['ATepALwyDMGw8aHox4C-mD--Zh1lSzMyxWvChUhg1xKw2YZ0xGx3aYMx8a-kqxujnugXR8LWMhbBSBdG1pKHaiJEmoaeSlN7AaI-5ewp3wK432C4cacbrAoeYcj6HCmENF3AGnj9ByKHcQ_pa3pgR3Qtf16mlIHTnMDQfWDvh4qLpiu3xaang9arlIXmTc8WtimisjruanRxDuo1xQgXn6qZohDNqF8jpo2oHtsHKzVhJZMX2zOcaazjFByAO2eLpVJg-5pYVtxW2OzEENXSfpG8EcY0bQh9m2Aidzynb5aYwwvU0Yeye4Q0IY8Z9iCqxxR24Bb0x309ruxX2qYMg4NyCfWFPH0ojQpbilWTlycNJrpytSrWBmPKeb4yIcUAiw', 'AeondqremjWFwpbz-Lc8nl5QLAwQLIlOfQp2fuQrOR4Rha9TkLHVUwckV1TSEcn2M4cRqtLTymFfCLOMxlFxkZglwqPX9zHYs1nxtlL2S0EhF5CI17H1FL1nAyNc6gq-lkH_tGXPIvIt5czPSwO9-LBCc1hOhN8A9HV5Rfu6r-dSIHh3exaLfLydPWa4APMP6H6jWc7t-PnY1dH1l_XbuM0kCh1MX_QuwJJOk4jdONxOirYuzXHDQ_jIfVroAgL-7IsOjsNHTvB8UFClgCvbUUu3rvT2tOh_4Khkh-gjZiqXhVQwR4hTGbYgfw0GWc7CehwIEIOu0Q-hJaQEW5YqM2hdO-Sh3G8oN1oHzQXFNxZ7bWpTzVFyfbMVaeXP2WmIRw'];
+var CFG_AAD = 'cmcc-panel-cfg-v1';
+var REG_AAD = 'cmcc-signin-reg-v1';
+var WORKFLOW = 'cmcc-app-cookie.yml';
+var APP_DIR = 'data/appcookie';
+var WAIT_TIMEOUT_MS = 300000, POLL_MS = 4000;
+var VER = '20261028e';
+var NOTICE = { id: '2026-10-28-panel-v2', title: '读数改走同源快照（2026-10-28e）',
+  body: '原来的「签到页」和「取票页」已合并成本页，底部三个标签分别是：状态·签到 / 取凭证 / 诊断·设置。\n口令只有一把，大小写与空格都容错。\n这一版把签到状态改成读本站自己的同源快照（由私有仓的定时工作流发布），不再需要手机浏览器跨域访问 GitHub，5G 下也能正常显示今天的结论。\n取凭证功能目前仍受上游限流影响（App 网关会断开机房 IP 的请求），恢复条件是把取票后端放到家宽网络执行。' };
+
+function b64uBytes(s) { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var bin = atob(s); var o = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) o[i] = bin.charCodeAt(i); return o; }
+function bytesB64u(u8) { var bin = ''; for (var i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]); return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function encUtf8(s) { return new TextEncoder().encode(s); }
+function decUtf8(u8) { return new TextDecoder().decode(u8); }
+function hexToBytes(hex) { var s = String(hex).trim(); var o = new Uint8Array(32); for (var i = 0; i < 32; i++) o[i] = parseInt(s.substr(i * 2, 2), 16) || 0; return o; }
+function passToKey(pw) { var b = encUtf8(String(pw)); var o = new Uint8Array(32); o.set(b.slice(0, 32)); return o; }
+function aeadSealRaw(key, aad, str) { var nonce = new Uint8Array(12); crypto.getRandomValues(nonce); var sealed = AEAD.encrypt(key, nonce, encUtf8(String(str)), encUtf8(aad)); var out = new Uint8Array(13 + sealed.length); out[0] = 1; out.set(nonce, 1); out.set(sealed, 13); return bytesB64u(out); }
+function aeadSeal(key, aad, obj) { var nonce = new Uint8Array(12); crypto.getRandomValues(nonce); var sealed = AEAD.encrypt(key, nonce, encUtf8(JSON.stringify(obj)), encUtf8(aad)); var out = new Uint8Array(13 + sealed.length); out[0] = 1; out.set(nonce, 1); out.set(sealed, 13); return bytesB64u(out); }
+function aeadOpen(blobB64, key, aad) { var raw = b64uBytes(String(blobB64).trim()); if (raw.length < 29 || raw[0] !== 1) throw new Error('信封不正确'); var plain = AEAD.decrypt(key, raw.slice(1, 13), raw.slice(13), encUtf8(aad)); return JSON.parse(decUtf8(plain)); }
+function maskPhone(p) { p = String(p || ''); return p.length >= 7 ? p.slice(0, 3) + '****' + p.slice(-4) : p; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+function showMsg(el, text, kind) { el.className = 'msg ' + (kind || 'idle'); el.textContent = text; el.classList.remove('hidden'); }
+function hideMsg(el) { el.className = 'msg idle hidden'; el.textContent = ''; }
+
+/* ==== 口令归一化：全角→半角、去所有空白、忽略大小写 ==== */
+function normPwd(s) { return String(s == null ? '' : s).normalize('NFKC').replace(/[\s\u00a0\u3000]+/g, '').toLowerCase(); }
+function pwdCandidates(raw) {
+  var base = normPwd(raw), list = [base];
+  var onlyAlnum = base.replace(/[^a-z0-9]/g, '');
+  if (onlyAlnum && onlyAlnum !== base) list.push(onlyAlnum);
+  /* 多打/少打一两个字符的兜底：逐个去掉首尾各两位 */
+  for (var d = 1; d <= 2; d++) {
+    if (base.length - d > 8) list.push(base.slice(d));
+    if (base.length - d > 8) list.push(base.slice(0, base.length - d));
+  }
+  return list;
+}
+function tryUnlock(raw) {
+  var cands = pwdCandidates(raw);
+  for (var ci = 0; ci < cands.length; ci++) {
+    for (var bi = 0; bi < CFG_BLOBS.length; bi++) {
+      try {
+        var c = aeadOpen(CFG_BLOBS[bi], passToKey(cands[ci]), CFG_AAD);
+        if (c && c.pat && c.repo) return c;
+      } catch (e) { /* 换下一个候选 */ }
+    }
+  }
+  return null;
+}
+
+/* ==== 状态 ==== */
+var cfg = null, lastBox = null, tab = 'sign';
+function saveSession(c) { try { sessionStorage.setItem('cmcc_panel_cfg', JSON.stringify(c)); } catch (e) {} }
+function loadSession() { try { var s = sessionStorage.getItem('cmcc_panel_cfg'); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function clearSession() { try { sessionStorage.removeItem('cmcc_panel_cfg'); } catch (e) {} }
+
+/* ==== GitHub API ==== */
+function gh(method, path, body) {
+  var r = fetch('https://api.github.com/repos/' + cfg.repo + (path.charAt(0) === '/' ? path : '/' + path), {
+    method: method,
+    headers: { 'Authorization': 'Bearer ' + cfg.pat, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return r.then(function (resp) {
+    if (resp.status === 204) return null;
+    return resp.text().then(function (t) {
+      var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) { j = null; }
+      if (!resp.ok) { var e = new Error((j && j.message) ? String(j.message).slice(0, 160) : ('HTTP ' + resp.status)); e.status = resp.status; throw e; }
+      return j;
+    });
+  });
+}
+function readRepoFile(path) {
+  return gh('GET', '/contents/' + path).then(function (j) {
+    if (!j || j.type !== 'file') throw new Error('文件不存在：' + path);
+    return decUtf8(b64uBytes(String(j.content).replace(/\n/g, '')));
+  });
+}
+function readRepoJson(path) {
+  return gh('GET', '/contents/' + path).then(function (j) {
+    if (!j || !j.content) return { data: null, sha: null };
+    return { data: JSON.parse(decUtf8(b64uBytes(String(j.content).replace(/\n/g, '')))), sha: j.sha };
+  }).catch(function (e) { if (e.status === 404) return { data: null, sha: null }; throw e; });
+}
+function writeRepoJson(path, obj, sha) {
+  var body = { message: 'panel: update ' + path, content: bytesB64u(encUtf8(JSON.stringify(obj, null, 2))), branch: cfg.branch || 'main' };
+  if (sha) body.sha = sha;
+  return gh('PUT', '/contents/' + path, body);
+}
+
+/* ==== 状态区 ==== */
+function stateBadge(it) {
+  var s = String(it.state || '');
+  if (/已签|成功|完成/.test(s)) return { c: 'ok', t: s || '已签到' };
+  if (/需重新|过期|失效/.test(s)) return { c: 'bad', t: s || '需重新取令牌' };
+  if (/失败|错误/.test(s)) return { c: 'bad', t: s || '失败' };
+  if (/跳过|已存在/.test(s)) return { c: 'warn', t: s || '已跳过' };
+  return { c: '', t: s || '未知' };
+}
+/* 读数通道：① 同源快照（本站 /panel/status.json，由私有仓 Actions 发布）② 私有仓直连 */
+function loadStatus() {
+  return fetch('panel/status.json', { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (j) { return { data: j, via: '同源快照' }; })
+    .catch(function (e) {
+      return readRepoJson('data/status.json').then(function (r) { return { data: r.data, via: '私有仓直连' }; });
+    });
+}
+function friendlyErr(e) {
+  var m = String((e && e.message) || e);
+  if (m === 'Failed to fetch' || /network|NetworkError/i.test(m)) return '浏览器连不上 api.github.com（网络层失败，不是口令问题）';
+  return m.slice(0, 160);
+}
+function refreshStatus() {
+  if (!cfg) return;
+  $('statusTag').textContent = '读取中';
+  loadStatus().then(function (r) {
+    var data = r.data || {}, items = Array.isArray(data.items) ? data.items : [];
+    var box = $('statusList'); box.innerHTML = '';
+    if (!items.length) {
+      box.innerHTML = '<div class="empty">暂无号码：登记一个令牌后，等定时工作流跑完，这里会按脱敏号码显示今日状态。</div>';
+      $('statusTag').textContent = '无数据';
+      hideMsg($('statusMsg')); return;
+    }
+    items.forEach(function (it) {
+      var b = stateBadge(it);
+      var d = document.createElement('div'); d.className = 'item';
+      d.innerHTML = '<div class="top"><span class="num">' + esc(it.phoneMasked || '（号码未知）') + '</span><span class="pill ' + b.c + '">' + esc(b.t) + '</span></div>' +
+        '<dl><dt>今日</dt><dd>' + esc(it.today || '-') + '</dd>' +
+        '<dt>上次签到</dt><dd>' + esc(it.lastSignedAt || '暂无记录') + '</dd>' +
+        '<dt>本月累计</dt><dd>' + (it.monthDays == null ? '未知' : esc(it.monthDays) + ' 天') + '</dd>' +
+        '<dt>连续失败</dt><dd>' + (it.failStreak ? esc(it.failStreak) + ' 天' : '无') + '</dd></dl>' +
+        (it.lastError ? '<div style="margin-top:8px"><span class="pill bad">' + esc(String(it.lastError).slice(0, 140)) + '</span></div>' : '') +
+        (b.c === 'bad' ? '<div class="muted tiny" style="margin-top:8px">这个号的凭证需要重新取一串令牌再登记，状态区不会显示成功。</div>' : '');
+      box.appendChild(d);
+    });
+    $('statusTag').textContent = items.length + ' 个号码';
+    $('statusTag').className = 'chip';
+    showMsg($('statusMsg'), (data.updatedAt ? ('状态更新于 ' + data.updatedAt) : '已读取状态。') + '（读取通道：' + r.via + '）', 'idle');
+  }).catch(function (e) {
+    $('statusTag').textContent = '读取失败';
+    showMsg($('statusMsg'), '读取状态失败：' + friendlyErr(e), 'err');
+  });
+}
+
+/* ==== 登记 ==== */
+function inspectToken(raw) {
+  var t = String(raw || '').trim();
+  if (!t) return { kind: 'bad', reason: '请先粘贴令牌' };
+  if (/^CMCC1\./.test(t)) {
+    var seg = t.split('.');
+    if (seg.length !== 6) return { kind: 'bad', reason: 'CMCC1 令牌应为六段，实际 ' + seg.length + ' 段' };
+    var bad = seg.some(function (s, i) { return i > 0 && !/^[A-Za-z0-9_-]+$/.test(s); });
+    if (bad) return { kind: 'bad', reason: 'CMCC1 令牌含非法字符' };
+    return { kind: 'CMCC1' };
+  }
+  if (/^[A-Za-z0-9_-]{16,}$/.test(t)) {
+    try {
+      var j = JSON.parse(decUtf8(b64uBytes(t)));
+      if (j && typeof j === 'object' && (j.jwt || j.token || j.ticket)) return { kind: 'legacy', phoneMasked: maskPhone(j.phone || (j.device && j.device.tel) || '') };
+    } catch (e) {}
+  }
+  return { kind: 'bad', reason: '看不懂这段内容：既不是 CMCC1 令牌，也不是旧格式令牌' };
+}
+function registerToken() {
+  var token = $('tokenIn').value.trim();
+  var info = inspectToken(token);
+  if (info.kind === 'bad') { showMsg($('regMsg'), info.reason, 'err'); return; }
+  if (!cfg.dataKey) { showMsg($('regMsg'), '配置里缺少登记密钥，无法登记。', 'err'); return; }
+  var blob = aeadSealRaw(hexToBytes(cfg.dataKey), REG_AAD, token);
+  var item = {
+    id: 'r' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 16) : Math.random().toString(36).slice(2, 18)),
+    phoneMasked: info.phoneMasked || '',
+    ts: new Date().toISOString(),
+    blob: blob
+  };
+  var attempt = 0;
+  function loop() {
+    return readRepoJson('data/registrations.json').then(function (cur) {
+      var file = (cur.data && typeof cur.data === 'object') ? cur.data : { v: 1, items: [] };
+      file.v = 1; file.items = Array.isArray(file.items) ? file.items : [];
+      if (item.phoneMasked) file.items = file.items.filter(function (x) { return x.phoneMasked !== item.phoneMasked; });
+      file.items.push(item);
+      return writeRepoJson('data/registrations.json', file, cur.sha);
+    }).catch(function (e) {
+      if ((e.status === 409 || e.status === 422) && attempt < 2) { attempt++; return loop(); }
+      throw e;
+    });
+  }
+  showMsg($('regMsg'), '正在写入私有仓…', 'wait');
+  loop().then(function () {
+    showMsg($('regMsg'), '已登记' + (item.phoneMasked ? (' ' + item.phoneMasked) : '') + '，号码会在下一轮签到后显示在状态区。', 'ok');
+    $('tokenIn').value = '';
+    refreshStatus();
+  }).catch(function (e) {
+    showMsg($('regMsg'), '没能直接写进私有仓：' + friendlyErr(e) + '\n如果你的网络连不上 GitHub，请把下面这串「登记码」发给我，我帮你登记（里面只有密文，不是明文令牌）。', 'err');
+    showRegCode(item.blob);
+  });
+}
+function showRegCode(blob) {
+  var box = $('regCodeBox');
+  if (!box) return;
+  box.classList.remove('hidden');
+  $('regCode').textContent = blob;
+  $('regCodeBox').querySelector('[data-copy="regCode"]').onclick = function () {
+    var t = $('regCode').textContent || '';
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t);
+    this.textContent = '已复制';
+    var b = this;
+    setTimeout(function () { b.textContent = '复制登记码'; }, 1200);
+  };
+}
+
+/* ==== 取凭证 ==== */
+function rid() { var a = new Uint8Array(12); crypto.getRandomValues(a); var s = ''; for (var i = 0; i < a.length; i++) s += a[i].toString(16).padStart(2, '0'); return s; }
+function setSteps(list) {
+  var ul = $('stepList');
+  if (!list || !list.length) { ul.innerHTML = '<li><span class="dot"></span><span class="st-main"><span class="st-name">等待操作</span><span class="st-detail">获取验证码 → 获取凭证</span></span></li>'; return; }
+  ul.innerHTML = list.map(function (s) {
+    var cls = s.ok ? 'ok' : (s.error ? 'err' : 'run');
+    var bits = [];
+    if (s.interface) bits.push(s.interface);
+    if (s.http) bits.push('HTTP ' + s.http);
+    if (s.retCode) bits.push('retCode=' + s.retCode);
+    if (s.retDesc) bits.push(s.retDesc);
+    if (s.error) bits.push(s.error);
+    return '<li><span class="dot ' + cls + '"></span><span class="st-main"><span class="st-name">' + esc(s.step) + '</span><span class="st-detail">' + esc(bits.join(' · ')) + '</span></span></li>';
+  }).join('');
+}
+function dispatch(step, payloadObj) {
+  var r = rid();
+  var payload = aeadSeal(hexToBytes(cfg.boxKey), 'cmcc-appcookie-payload-v1', payloadObj);
+  return gh('POST', '/actions/workflows/' + WORKFLOW + '/dispatches', { ref: cfg.branch || 'main', inputs: { step: step, rid: r, payload: payload } }).then(function () { return r; });
+}
+function waitForRun(r, stepLabel) {
+  var t0 = Date.now();
+  return new Promise(function (resolve, reject) {
+    function tick() {
+      if (Date.now() - t0 > WAIT_TIMEOUT_MS) { reject(new Error('等待超时仍未拿到结果')); return; }
+      showMsg($('workMsg'), '服务端正在执行「' + stepLabel + '」，已等待 ' + Math.round((Date.now() - t0) / 1000) + ' 秒…', 'wait');
+      setTimeout(function () {
+        readRepoJson(APP_DIR + '/status.json').then(function (rj) {
+          var st = rj.data || {}, run = st.runs ? st.runs[r] : null;
+          if (run) {
+            setSteps((run.steps || []).map(function (s) { return { step: s.step, interface: s.interface, http: s.http, retCode: s.retCode, retDesc: s.retDesc, ok: s.ok }; }));
+            if (run.state === 'done' || run.state === 'failed') { resolve(run); return; }
+          }
+          tick();
+        }).catch(function () { tick(); });
+      }, POLL_MS);
+    }
+    tick();
+  });
+}
+function fetchBox(r) { return readRepoFile(APP_DIR + '/box/' + r + '.box').then(function (raw) { return aeadOpen(raw, hexToBytes(cfg.boxKey), 'cmcc-appcookie-box-v1'); }); }
+function renderBox(box) {
+  $('vCookie').textContent = box.cookie || '（本次未取到）';
+  $('vJwt').textContent = box.jwt || '（本次未取到）';
+  $('vToken').textContent = box.cmcc1 || '（本次未取到）';
+  $('outCard').classList.remove('hidden');
+  lastBox = box;
+}
+function sendCode() {
+  var phone = $('phone').value.trim();
+  if (!/^1[3-9]\d{9}$/.test(phone)) { showMsg($('workMsg'), '请输入正确的 11 位手机号', 'err'); return; }
+  $('btnSend').disabled = true; $('sendTag').textContent = '已派发';
+  setSteps([{ step: '发码（服务端执行）' }]);
+  dispatch('send-code', { phone: phone }).then(function (r) { return waitForRun(r, '获取验证码'); }).then(function (run) {
+    if (run.state === 'done') { showMsg($('workMsg'), '验证码已下发（' + (run.phoneMasked || '') + '），请填写短信验证码。', 'ok'); $('sendTag').textContent = '已下发'; }
+    else { showMsg($('workMsg'), '发码未成功：' + (run.error || '服务端返回失败') + '（' + (run.phoneMasked || '') + '）', 'err'); $('sendTag').textContent = '失败'; }
+  }).catch(function (e) { showMsg($('workMsg'), '发码失败：' + friendlyErr(e) + (String(e && e.message) === 'Failed to fetch' ? '\n（浏览器没连上 api.github.com；派发需要直连 GitHub，可在能连 GitHub 的网络下打开本页）' : ''), 'err'); $('sendTag').textContent = '失败'; })
+    .then(function () { $('btnSend').disabled = false; });
+}
+function loginAndGet() {
+  var phone = $('phone').value.trim(), code = $('code').value.trim();
+  if (!/^1[3-9]\d{9}$/.test(phone)) { showMsg($('workMsg'), '请输入正确的 11 位手机号', 'err'); return; }
+  if (!/^\d{4,8}$/.test(code)) { showMsg($('workMsg'), '请输入收到的验证码', 'err'); return; }
+  $('btnLogin').disabled = true; $('loginTag').textContent = '已派发';
+  setSteps([{ step: '登录并换凭证（服务端执行）' }]);
+  dispatch('login', { phone: phone, code: code }).then(function (r) { return waitForRun(r, '获取凭证'); }).then(function (run) {
+    if (run.state === 'done') {
+      return fetchBox(r).then(function (box) { renderBox(box); showMsg($('workMsg'), '已取到凭证（' + (box.phoneMasked || '') + '）。统一令牌可直接粘到「状态·签到」里登记。', 'ok'); $('loginTag').textContent = '已取'; });
+    }
+    showMsg($('workMsg'), '获取凭证失败：' + (run.error || '服务端返回失败'), 'err'); $('loginTag').textContent = '失败';
+  }).catch(function (e) { showMsg($('workMsg'), '获取凭证失败：' + friendlyErr(e) + (String(e && e.message) === 'Failed to fetch' ? '\n（浏览器没连上 api.github.com；派发需要直连 GitHub，可在能连 GitHub 的网络下打开本页）' : ''), 'err'); $('loginTag').textContent = '失败'; })
+    .then(function () { $('btnLogin').disabled = false; });
+}
+
+/* ==== 标签切换 ==== */
+function setTab(t) {
+  tab = t;
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === t); });
+  Array.prototype.forEach.call(document.querySelectorAll('.panel'), function (p) { p.classList.toggle('hidden', p.getAttribute('data-panel') !== t); });
+  if (t === 'sign') refreshStatus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ==== 解锁 / 上锁 ==== */
+function unlockFlow() {
+  var raw = $('pwd').value;
+  if (!raw || !raw.trim()) { showMsg($('gateMsg'), '请输入门禁口令', 'err'); return; }
+  $('btnUnlock').disabled = true;
+  var c = tryUnlock(raw);
+  if (!c) {
+    $('btnUnlock').disabled = false;
+    showMsg($('gateMsg'), '口令不对，或这个页面是旧版。请点「重新载入最新页面」再试。', 'err');
+    return;
+  }
+  cfg = c; saveSession(cfg);
+  $('pwd').value = '';
+  $('btnUnlock').disabled = false;
+  $('lockScreen').classList.add('hidden');
+  $('btnLock').hidden = false;
+  hideMsg($('gateMsg'));
+  setTab('sign');
+}
+function lock() {
+  cfg = null; lastBox = null; clearSession();
+  $('lockScreen').classList.remove('hidden');
+  $('btnLock').hidden = true;
+  $('btnUnlock').disabled = false;
+  $('outCard').classList.add('hidden');
+  showMsg($('gateMsg'), '已上锁，内存中的凭据已清除。', 'ok');
+}
+
+/* ==== 公告（每设备只弹一次）== */
+function showNotice() {
+  var key = 'cmcc_panel_notice_' + NOTICE.id;
+  var seen = null;
+  try { seen = localStorage.getItem(key); } catch (e) {}
+  if (seen) { $('noticeCard').classList.add('hidden'); return; }
+  $('noticeBody').innerHTML = '<b>' + esc(NOTICE.title) + '</b><br>' + esc(NOTICE.body).replace(/\n/g, '<br>');
+  $('btnNoticeClose').onclick = function () { try { localStorage.setItem(key, '1'); } catch (e) {} $('noticeCard').classList.add('hidden'); };
+}
+
+/* ==== 事件绑定 ==== */
+$('btnUnlock').onclick = unlockFlow;
+$('pwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') unlockFlow(); });
+$('pwd').addEventListener('input', function () {
+  var n = normPwd($('pwd').value).length;
+  $('pwdCount').textContent = '已输入 ' + n + ' 位';
+});
+$('pwd').addEventListener('focus', function () { setTimeout(function () { $('pwd').scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 220); });
+$('btnLock').onclick = lock;
+$('btnRefresh').onclick = refreshStatus;
+$('btnRegister').onclick = registerToken;
+$('btnSend').onclick = sendCode;
+$('btnLogin').onclick = loginAndGet;
+function pingDirect() {
+  var ctl = null;
+  try { ctl = new AbortController(); } catch (e) { ctl = null; }
+  var to = setTimeout(function () { try { ctl && ctl.abort(); } catch (e) { } }, 6000);
+  var opt = { cache: 'no-store' };
+  if (ctl) opt.signal = ctl.signal;
+  return fetch('https://api.github.com/rate_limit', opt).then(function (r) {
+    clearTimeout(to);
+    return 'ℹ️ 浏览器直连 api.github.com：通（HTTP ' + r.status + '）——登记令牌可以走直连。';
+  }).catch(function (e) {
+    clearTimeout(to);
+    var why = (e && e.name === 'AbortError') ? '超时' : '网络层失败';
+    return 'ℹ️ 浏览器直连 api.github.com：不通（' + why + '）。这是当前网络到 GitHub 的连通问题，与口令、页面无关；\n   面板读数走本站同源快照，不受影响。';
+  });
+}
+$('btnPing').onclick = function () {
+  if (!cfg) { showMsg($('pingMsg'), '请先解锁。', 'err'); return; }
+  showMsg($('pingMsg'), '检查中…', 'wait');
+  var lines = [];
+  fetch('panel/status.json', { cache: 'no-store' }).then(function (r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function (j) {
+    lines.push('✅ 站点同源快照可读（HTTP 200）：面板读数通道正常。');
+    lines.push('✅ 服务端取数：' + (j.server && j.server.api === 'ok' ? ('正常，最近一次由私有仓 Actions 写入于 ' + (j.server.at || j.updatedAt || '未知')) : '状态未知'));
+    lines.push('ℹ️ 快照内容：' + (Array.isArray(j.items) && j.items.length ? (j.items.length + ' 个号码，' + (j.items[0].state || '未知')) : '暂无号码'));
+    return pingDirect();
+  }).then(function (direct) {
+    lines.push(direct);
+    showMsg($('pingMsg'), lines.join('\n'), 'ok');
+  }).catch(function (e) {
+    lines.push('❌ 同源快照读取失败：' + friendlyErr(e));
+    showMsg($('pingMsg'), lines.join('\n'), 'err');
+  });
+};
+function reloadPage() { location.replace(location.pathname + '?v=' + VER); }
+$('btnReload').onclick = reloadPage;
+$('btnReload2').onclick = reloadPage;
+$('btnDownload').onclick = function () {
+  var box = lastBox || {};
+  var data = { phoneMasked: box.phoneMasked, cmcc1: box.cmcc1, cookie: box.cookie, jwt: box.jwt, at: box.at };
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cmcc_app_credential.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+};
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button[data-copy]');
+  if (!b) return;
+  var t = ($(b.getAttribute('data-copy')) || {}).textContent || '';
+  var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制令牌'; }, 1200); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, function () { fallbackCopy(t, done); });
+  else fallbackCopy(t, done);
+});
+function fallbackCopy(text, cb) {
+  var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); cb(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) { b.onclick = function () { setTab(b.getAttribute('data-tab')); }; });
+$('verChip').textContent = 'v' + VER;
+$('verChip2').textContent = 'v' + VER;
+
+/* ==== 启动 ==== */
+showNotice();
+try {
+  var q = new URLSearchParams(location.search);
+  var t0 = q.get('tab');
+  if (t0 === 'sign' || t0 === 'tool' || t0 === 'diag') setTab(t0);
+} catch (e) {}
+var saved = loadSession();
+if (saved && saved.pat && saved.repo) { cfg = saved; $('lockScreen').classList.add('hidden'); $('btnLock').hidden = false; setTab('sign'); }
+})();
+</script>
+</body>
+</html>
