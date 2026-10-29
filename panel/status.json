@@ -1,10 +1,10 @@
 {
   "v": 1,
-  "updatedAt": "2026-10-29",
+  "updatedAt": "2026-10-30",
   "source": "private-repo-actions",
   "server": {
     "api": "ok",
-    "at": "2026-10-29",
+    "at": "2026-10-30",
     "node": "v20.20.2",
     "publishRepo": "WoShiYiGeManHuaJia/hunan-tariff-site"
   },
@@ -12,11 +12,11 @@
     {
       "phoneMasked": "172****9953",
       "state": "失败",
-      "today": "2026-10-29",
+      "today": "2026-10-30",
       "lastSignedAt": "",
       "monthDays": null,
       "failStreak": 0,
-      "lastError": "距上次换票仅 72 分钟，间隔不足"
+      "lastError": "当前接口不可用"
     }
   ]
 }
