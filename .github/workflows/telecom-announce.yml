@@ -1,0 +1,33 @@
+name: TelecomAnnounce
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 1,13 * * *'   # 北京时间 09:17 / 21:17
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pycryptodome -q
+      - name: 抓取湖南电信公告（含正文）
+        env:
+          TC_PROV: '600203'
+          TC_KEEP: '15'
+        run: |
+          mkdir -p telecom/data
+          python3 -u scripts/announce_telecom.py telecom/data/announce.json 2>&1 | tee _tcann_live.txt
+      - name: 提交
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git config user.name "tariff-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add telecom/data/announce.json _tcann_live.txt
+          git commit -q -m "telecom announce $(date -u +%F' '%T) UTC" || echo "no change"
+          for i in 1 2 3 4 5; do git pull --rebase -q origin main && git push -q origin main && break; sleep 6; done
