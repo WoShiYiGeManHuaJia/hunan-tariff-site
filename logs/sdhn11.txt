@@ -1,0 +1,8 @@
+IPLOC: {"code":"E_Y121043101_0001","data":null,"message":"IP定位失败","sessionId":"c3dc7286c89424259c57a2808a57c008"}
+REC prov='600203' -> 200 :: {"code":"S_COMMON_0000","data":[{"colorValue":null,"contentOne":null,"customAmountFlag":null,"externalOfferCode":"372416200001","flagSelected":null,"floorItems":[],"iconUrl":"https://w.189.cn/bigdata/2026/5/12/111778572635775372.png","imageRatio":null,"imageUrl":"https://w.189.cn/bigdata/2026/5/12/1
+REC prov='43' -> 200 :: {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+REC prov='hunan' -> 200 :: {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+REC prov='HN' -> 200 :: {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+REC prov='' -> 200 :: {"code":"S_COMMON_0000","data":[{"colorValue":null,"contentOne":null,"customAmountFlag":null,"externalOfferCode":"372416200001","flagSelected":null,"floorItems":[],"iconUrl":"https://w.189.cn/bigdata/2026/5/12/111778572635775372.png","imageRatio":null,"imageUrl":"https://w.189.cn/bigdata/2026/5/12/1
+REC prov='074' -> 200 :: {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
+REC prov='CN43' -> 200 :: {"code":"S_WEB_0104","data":null,"message":"系统繁忙，请稍后重试"}
