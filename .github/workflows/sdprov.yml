@@ -1,0 +1,73 @@
+name: SDPROV
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Scan provCode for 山东/河南
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, time, base64, os
+          from Crypto.Cipher import AES
+          from Crypto.Util.Padding import pad
+          KEY=b"telecom_wap_2018"
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode()
+          def call(fn,rc,to=30):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode(),method="POST",headers={
+                  "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
+                  "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              for a in range(2):
+                  try:
+                      with urllib.request.urlopen(req,timeout=to) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      last=e; time.sleep(1.5)
+              return {"__err":str(last)}
+          cands=[]
+          for g in (600407,600408,600409,600410,600411,600412,600413,600414,600415,600416,
+                    600417,600418,600419,600420,600421,600422,600423,600424,600425,600426,
+                    600501,600502,600503,600504,600505,600506,600507,600508,600509,600510,
+                    600511,600512,600513,600514,600515,600516,600517,600518,600519,600520,
+                    600001,600002,600003,600004,600005,600006,600007,600008,600009,600010,
+                    600601,600602,600603,600604,600605,600606,600701,600702,600703,600704):
+              cands.append(str(g))
+          # 集团段: 1000000001..1000000040
+          for i in range(1,41): cands.append("10000000%02d"%i)
+          out=[]
+          for p in cands:
+              d=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":p})
+              rc=d.get("responseContent") or {}
+              code=d.get("code") or d.get("__err") or ""
+              labs=rc.get("lableList") or rc.get("labelList") or []
+              if not labs:
+                  out.append("%s :: NONE :: %s"%(p,str(code)[:40])); continue
+              names=[]
+              for L in labs[:8]:
+                  names.append(str(L.get("lableName") or L.get("labelName") or L.get("name") or ""))
+              ns=" | ".join([n for n in names if n])
+              out.append("%s :: BOARDS=%d :: %s"%(p,len(labs),ns[:200]))
+              time.sleep(0.25)
+          txt="\n".join(out)
+          print(txt[:15000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdprov.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              dd=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=dd.get("sha")
+          except Exception: pass
+          payload={"message":"sdprov scan","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read(); print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
