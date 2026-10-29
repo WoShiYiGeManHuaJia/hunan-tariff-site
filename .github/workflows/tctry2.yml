@@ -1,0 +1,100 @@
+name: TCTRY2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  try:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pycryptodome -q
+      - name: Multi-probe
+        run: |
+          python3 - << 'PYEOF' > /tmp/tcout.txt 2>&1
+          import urllib.request, json, base64, os, time, uuid, traceback
+          from Crypto.Cipher import AES, PKCS1_v1_5
+          from Crypto.PublicKey import RSA
+          from Crypto.Util.Padding import pad
+          from Crypto.Random import get_random_bytes
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          PUB="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIvCpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mif5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+ip2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlbKZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5KLF/30wIDAQAB"
+          rsa=PKCS1_v1_5.new(RSA.import_key(base64.b64decode(PUB)))
+          BASE="https://www.189.cn"
+          def spost(path,obj,extra=None,to=35):
+              ak=get_random_bytes(16); iv=get_random_bytes(16)
+              ct=AES.new(ak,AES.MODE_CBC,iv).encrypt(pad(json.dumps(obj,ensure_ascii=False).encode(),16))
+              k=base64.b64encode(rsa.encrypt(json.dumps({"key":base64.b64encode(ak).decode(),"iv":base64.b64encode(iv).decode()}).encode())).decode()
+              body=json.dumps({"param":base64.b64encode(ct).decode(),"key":k}).encode()
+              h={"User-Agent":UA,"Referer":"https://www.189.cn/web/notice","Accept":"application/json, text/plain, */*",
+                 "Content-Type":"application/json;charset=UTF-8","Origin":"https://www.189.cn",
+                 "Fcode":"Y121043001","TransactionId":uuid.uuid4().hex}
+              if extra: h.update(extra)
+              req=urllib.request.Request(BASE+path,data=body,method="POST",headers=h)
+              try:
+                  with urllib.request.urlopen(req,timeout=to) as r: return r.status, r.read().decode("utf-8","replace")
+              except Exception as e: return 0, "ERR "+str(e)[:150]
+          print("=== A. recPos/getRecPosInfo.do ===")
+          for p in ["/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do","/wtBusiness/wtservice/nc/search/list.do"]:
+              for pc,cc in [("600203","hn"),("600203",""),("43","431"),("600203","600203")]:
+                  s,t=spost(p,{"shopId":"20001","type":"wt_sy_bzzx","floorType":"1","provinceCode":pc,"cityCode":cc})
+                  print(p[-25:],pc,cc,"->",s,t[:220])
+                  time.sleep(0.6)
+          print("=== B. main chunk export h ===")
+          def fetch(u):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(u,headers={"User-Agent":UA,"Accept":"*/*"}),timeout=30) as r: return r.read().decode("utf-8","replace")
+              except Exception as e: return "ERR "+str(e)[:100]
+          js=fetch("https://www.189.cn/web/assets/index-xdZ1yBwq.js")
+          import re
+          m=re.search(r'export\{([^}]*)\}', js)
+          if m:
+              ex=m.group(1)
+              for part in ex.split(","):
+                  if part.strip().endswith(" as h") or part.strip()=="h":
+                      print("EXPORT h ->", part.strip())
+              print("EXPORT_ALL head:", ex[:600])
+          print("=== C. 资费 609903/609904 ===")
+          KEY=b"telecom_wap_2018"; API="https://www.189.cn/wapportalweb/wapportalweb/tariffSection.do"
+          def enc(m): return base64.b64encode(AES.new(KEY,AES.MODE_ECB).encrypt(pad(m.encode("utf-8"),16))).decode()
+          def call(fn,rc):
+              body=enc(json.dumps({"headerInfo":{"functionCode":fn},"requestContent":rc},ensure_ascii=False))
+              req=urllib.request.Request(API,data=body.encode(),method="POST",headers={
+                  "User-Agent":UA,"Referer":"https://www.189.cn/wapportalweb/rateZone/index.html",
+                  "Accept":"application/json, text/plain, */*","Content-Type":"text/plain;charset=UTF-8",
+                  "Origin":"https://www.189.cn","x-qd-reqtime":str(int(time.time()*1000))})
+              for a in range(3):
+                  try:
+                      with urllib.request.urlopen(req,timeout=40) as r: return json.loads(r.read().decode("utf-8"))
+                  except Exception as e: last=e; time.sleep(3)
+              return {"__err":str(last)}
+          for p,nm in [("600203","湖南"),("609903","山东"),("609904","河南"),("600101","广东")]:
+              d=call("tariffSectionHome",{"ticket":"","sessionid":"","provCode":p})
+              rc=d.get("responseContent") or {}
+              labs=rc.get("lableList") or rc.get("labelList") or []
+              names=[str(L.get("lableName") or L.get("labelName") or L.get("name") or "") for L in labs[:5]]
+              print("TARIFF",p,nm,"boards=%d"%len(labs),"::"," | ".join([x for x in names if x])[:150])
+              print("  raw:",json.dumps(d,ensure_ascii=False)[:260])
+              time.sleep(3)
+          PYEOF
+          cat /tmp/tcout.txt
+      - name: Write result
+        run: |
+          python3 - << 'PYEOF'
+          import os, json, base64, urllib.request
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/tctry2.txt"
+          try: txt=open("/tmp/tcout.txt",encoding="utf-8").read()
+          except Exception as e: txt="no stdout: %s"%e
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"tctry2","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+          print("WROTE_OK")
+          PYEOF
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
