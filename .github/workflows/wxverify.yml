@@ -1,0 +1,33 @@
+name: wxverify
+on:
+  workflow_dispatch:
+jobs:
+  v:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: probe
+        run: |
+          F=9a0c6a0cba595feb5a29661d1450e9bf.txt
+          OUT=/tmp/probe.txt
+          : > $OUT
+          echo "TIME: $(date -u)" >> $OUT
+          for H in http https; do
+            echo "=== $H://hnvip.qd.je/$F ===" >> $OUT
+            curl -sS -m 25 -o /tmp/o.txt -w "code=%{http_code} size=%{size_download}\n" "$H://hnvip.qd.je/$F" >> $OUT 2>&1 || echo "curl_fail" >> $OUT
+            echo "BODY:[$(tr -d '\n' < /tmp/o.txt 2>/dev/null | head -c 120)]" >> $OUT
+          done
+          echo "=== github.io ===" >> $OUT
+          curl -sS -m 25 -o /tmp/g.txt -w "code=%{http_code}\n" "https://woshiyigemanhuajia.github.io/hunan-tariff-site/$F" >> $OUT 2>&1 || echo fail >> $OUT
+          echo "BODY:[$(tr -d '\n' < /tmp/g.txt 2>/dev/null | head -c 120)]" >> $OUT
+          echo "=== cert ===" >> $OUT
+          echo | timeout 20 openssl s_client -connect hnvip.qd.je:443 -servername hnvip.qd.je 2>/dev/null | openssl x509 -noout -subject -issuer -enddate 2>/dev/null >> $OUT || echo "no_cert" >> $OUT
+          cat $OUT
+          B64=$(base64 -w0 < $OUT)
+          curl -sS -X PUT \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/_wxprobe.txt" \
+            -d "{\"message\":\"probe\",\"content\":\"$B64\"}" -o /tmp/put.json -w "put_code=%{http_code}\n"
+          head -c 200 /tmp/put.json
