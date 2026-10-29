@@ -1,0 +1,35 @@
+name: verify-netscope
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  v:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm i --no-audit --no-fund playwright@1.63.0
+      - run: npx playwright install chromium
+      - run: node _pv2.js > net_verify.txt 2>&1 || echo "脚本异常" >> net_verify.txt
+      - name: 回写
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: |
+          python3 - <<'PYEOF'
+          import base64,json,urllib.request,os
+          tok=os.environ['GH_TOKEN']; repo="${{ github.repository }}"
+          Hf={'Authorization':'token '+tok,'User-Agent':'x','Accept':'application/vnd.github+json'}
+          def up(path, local):
+              b=base64.b64encode(open(local,'rb').read()).decode(); sha=None
+              try:
+                  d=json.load(urllib.request.urlopen(urllib.request.Request('https://api.github.com/repos/%s/contents/%s?ref=main'%(repo,path),headers=Hf),timeout=60)); sha=d.get('sha')
+              except Exception: pass
+              pl={'message':'verify netscope','content':b,'branch':'main'}
+              if sha: pl['sha']=sha
+              urllib.request.urlopen(urllib.request.Request('https://api.github.com/repos/%s/contents/%s'%(repo,path),data=json.dumps(pl).encode(),method='PUT',headers=Hf),timeout=180)
+              print('uploaded', path)
+          up('net_verify.txt','net_verify.txt')
+          for src,dst in [('/tmp/s_grid.png','net_preview_grid.png'),('/tmp/s_deep.png','net_preview_deep.png')]:
+              if os.path.exists(src): up(dst,src)
+          PYEOF
