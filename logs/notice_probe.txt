@@ -1,0 +1,10 @@
+PAGE https://www.189.cn/web/notice -> 0 len=45
+PAGE https://www.189.cn/web/notice/ -> 0 len=45
+PAGE https://www.189.cn/hn/notice -> 0 len=45
+PAGE https://hn.189.cn/web/notice -> 202 len=1805
+GUESS https://www.189.cn/portal/service/queryNoticeList -> 0 :: HTTPError HTTP Error 412: Precondition Failed
+GUESS https://www.189.cn/web/notice/queryNoticeList -> 0 :: HTTPError HTTP Error 412: Precondition Failed
+GUESS https://www.189.cn/interface/notice/queryNoticeList.do -> 0 :: HTTPError HTTP Error 412: Precondition Failed
+GUESS https://www.189.cn/portal/notice/queryNoticeList.do -> 0 :: HTTPError HTTP Error 412: Precondition Failed
+GUESS https://www.189.cn/webapi/notice/list -> 0 :: HTTPError HTTP Error 412: Precondition Failed
+GUESS https://www.189.cn/wapportalweb/wapportalweb/notice.do -> 0 :: HTTPError HTTP Error 412: Precondition Failed
