@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>网络诊断 · NetScope</title>
+<meta name="theme-color" content="#0f766e">
+<style>
+:root{
+  --bg:#f2f7f6; --card:#fff; --pri:#0f766e; --pri2:#14b8a6;
+  --txt:#12211f; --sub:#6b7f7c; --bd:#e2ecea;
+  --g:#16a34a; --gl:#4ade80; --y:#eab308; --o:#f97316; --r:#dc2626; --gray:#94a3b8;
+  --shadow:0 1px 3px rgba(15,118,110,.08);
+}
+[data-theme="dark"]{
+  --bg:#0d1514; --card:#162221; --txt:#e6f2f0; --sub:#8ba5a1; --bd:#223331;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  padding:0 0 30px;max-width:520px;margin:0 auto}
+.top{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;padding:16px 16px 20px;
+  border-radius:0 0 20px 20px;position:relative}
+.top h1{margin:0;font-size:18px;font-weight:700;display:flex;align-items:center;gap:7px}
+.top .sub{font-size:12px;opacity:.85;margin-top:3px}
+.iprow{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:12.5px;
+  background:rgba(255,255,255,.16);border-radius:10px;padding:8px 11px}
+.iprow b{font-weight:600;letter-spacing:.3px}
+.sp{flex:1}
+.btn{border:0;border-radius:10px;padding:12px 16px;font-size:15px;font-weight:600;
+  background:var(--pri);color:#fff;cursor:pointer}
+.btn:disabled{opacity:.55}
+.btn.full{width:100%}
+.btn.ghost{background:rgba(255,255,255,.2);color:#fff;font-weight:500;padding:8px 13px;font-size:13px}
+.tabs{display:flex;gap:6px;padding:12px 12px 0;position:sticky;top:0;z-index:20;background:var(--bg)}
+.tab{flex:1;text-align:center;padding:9px 4px;font-size:13px;border-radius:10px;
+  background:var(--card);color:var(--sub);border:1px solid var(--bd);cursor:pointer}
+.tab.on{background:var(--pri);color:#fff;border-color:var(--pri);font-weight:600}
+.wrap{padding:12px}
+.card{background:var(--card);border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:6px}
+.hint{font-size:12px;color:var(--sub);line-height:1.7}
+.pane{display:none}.pane.on{display:block}
+
+/* 概览统计条 */
+.stats{display:flex;gap:8px;margin-top:11px}
+.stats>div{flex:1;background:rgba(255,255,255,.16);border-radius:10px;
+  padding:7px 4px;text-align:center;overflow:hidden}
+.stats b{display:block;font-size:15px;font-weight:700;line-height:1.25;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats span{display:block;font-size:10.5px;opacity:.85;margin-top:1px}
+.rowline{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 0;
+  border-bottom:1px solid var(--bd)}
+.rowline:last-child{border-bottom:0}
+.rowline .rn{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rowline .rv{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+
+/* 深度诊断 */
+.big{display:flex;align-items:baseline;gap:8px;margin:6px 0 2px}
+.bignum{font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px}
+.bigunit{font-size:14px;color:var(--sub)}
+.badge{font-size:12px;padding:3px 9px;border-radius:20px;color:#fff;font-weight:600}
+.bar{display:flex;height:26px;border-radius:7px;overflow:hidden;background:var(--bd);margin:12px 0 6px}
+.seg{height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:#fff;font-weight:600;overflow:hidden;white-space:nowrap;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:9px;font-size:11.5px;color:var(--sub);margin-bottom:4px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+table.kv{width:100%;border-collapse:collapse;font-size:13.5px}
+table.kv td{padding:7px 0;border-bottom:1px solid var(--bd)}
+table.kv td:first-child{color:var(--sub);width:44%}
+table.kv td:last-child{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+table.kv tr:last-child td{border-bottom:0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* 网格 */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gcell{border-radius:11px;padding:9px 6px;text-align:center;border:1.5px solid var(--bd);
+  background:var(--card);cursor:pointer;position:relative;overflow:hidden}
+.gcell .nm{font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;margin-bottom:3px}
+.gcell .ms{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.gcell .st{font-size:10px;margin-top:2px;opacity:.9}
+.gcell.fail{opacity:.75}
+.gcell.running{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.gcat{font-size:12px;color:var(--sub);margin:14px 2px 7px;font-weight:600}
+
+/* 排行 */
+.rank{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.rank .rn{font-size:12.5px;width:78px;flex-shrink:0;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rank .rb{flex:1;height:19px;background:var(--bd);border-radius:5px;overflow:hidden}
+.rank .rf{height:100%;border-radius:5px;transition:width .35s}
+.rank .rv{font-size:12px;width:58px;text-align:right;flex-shrink:0;
+  font-variant-numeric:tabular-nums;font-weight:600}
+
+select,input[type=text],input[type=url]{width:100%;padding:11px 12px;border:1px solid var(--bd);
+  border-radius:10px;font-size:15px;background:var(--card);color:var(--txt);outline:none}
+select:focus,input:focus{border-color:var(--pri)}
+label.lb{display:block;font-size:12.5px;color:var(--sub);margin:11px 0 5px}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+.row input{flex:2}
+.mini{font-size:12px;padding:9px 12px;border-radius:9px;border:1px solid var(--bd);
+  background:var(--card);color:var(--txt);cursor:pointer}
+.mini.del{color:var(--r);border-color:#f5c6c6}
+.sitelist{margin-top:8px}
+.si{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.si:last-child{border-bottom:0}
+.si .sn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.si .su{font-size:11px;color:var(--sub);font-family:ui-monospace,monospace}
+#log{background:#0f1a19;color:#cfe6e2;border-radius:10px;padding:11px;font-size:11.5px;
+  line-height:1.8;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto;
+  font-family:ui-monospace,Menlo,monospace;display:none;margin-top:10px}
+#log.on{display:block}
+.ok{color:#7ee787}.er{color:#ff9b9b}.wn{color:#ffd479}
+.foot{text-align:center;font-size:11.5px;color:var(--sub);padding:6px 0 0}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🩺 网络诊断 <span style="font-size:11px;opacity:.7;font-weight:400">NetScope</span></h1>
+  <div class="sub">分段耗时 · 站点热力 · 延迟排行</div>
+  <div class="iprow">
+    <span>客户端 IP</span>
+    <b id="myip" class="mono">检测中…</b>
+    <span class="sp"></span>
+    <button class="btn ghost" id="btn_theme">🌓</button>
+    <button class="btn ghost" id="btn_run">开始诊断</button>
+  </div>
+  <div class="stats">
+    <div><b id="s_online">—</b><span>在线 / 总数</span></div>
+    <div><b id="s_avg">—</b><span>平均延迟</span></div>
+    <div><b id="s_net">—</b><span>网络类型</span></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" data-p="p1">深度诊断</div>
+  <div class="tab" data-p="p2">站点网格</div>
+  <div class="tab" data-p="p3">延迟排行</div>
+  <div class="tab" data-p="p4">自定义</div>
+</div>
+
+<div class="wrap">
+  <!-- 深度诊断 -->
+  <div class="pane on" id="p1">
+    <div class="card">
+      <label class="lb" style="margin-top:0">诊断目标</label>
+      <select id="target"></select>
+      <div style="margin-top:12px" class="row">
+        <button class="btn" id="btn_deep">诊断这个站点</button>
+        <button class="mini" id="btn_copy">复制报告</button>
+      </div>
+      <div id="deep"></div>
+    </div>
+    <div class="card">
+      <h3>🧭 DNS 服务器对比</h3>
+      <div class="hint" style="margin-bottom:10px">用 DNS-over-HTTPS 直接问各家公共 DNS，看谁解析快、结果是否一致</div>
+      <div class="row">
+        <input type="text" id="dns_host" value="www.baidu.com" style="flex:2">
+        <button class="btn" id="btn_dns">测 DNS</button>
+      </div>
+      <div id="dnsout" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h3>🚀 下载带宽</h3>
+      <div class="hint" style="margin-bottom:10px">从 CDN 真实下载一段数据算速率（最多约 5 秒 / 5 MB，走流量的注意下）</div>
+      <div class="row">
+        <select id="sp_src"></select>
+        <button class="btn" id="btn_speed">开始测速</button>
+      </div>
+      <div id="spout" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h3>📖 指标怎么看</h3>
+      <div class="hint">
+        <b>DNS 解析</b>：域名 → IP，慢说明 DNS 服务器差<br>
+        <b>TCP 建连</b>：三次握手，反映链路质量<br>
+        <b>首包时间</b>：发出到收到第一个字节（含 TLS）<br>
+        <b>内容传输</b>：下载正文耗时，反映带宽<br>
+        <span style="color:var(--sub)">※ 跨域站点若未开放 Timing-Allow-Origin，分段数据会被浏览器屏蔽，此时只显示总耗时。</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 站点网格 -->
+  <div class="pane" id="p2">
+    <div class="card">
+      <h3>🎯 站点热力图</h3>
+      <div class="hint" style="margin-bottom:10px">点任意格子可把它设为深度诊断目标</div>
+      <div class="row" style="margin-bottom:10px">
+        <select id="auto_refresh">
+          <option value="0">自动刷新：关</option>
+          <option value="30">每 30 秒</option>
+          <option value="60">每 60 秒</option>
+          <option value="300">每 5 分钟</option>
+        </select>
+      </div>
+      <div id="grid"></div>
+      <div class="legend" style="margin-top:12px">
+        <span><i style="background:var(--g)"></i>&lt;100ms</span>
+        <span><i style="background:var(--gl)"></i>&lt;300ms</span>
+        <span><i style="background:var(--y)"></i>&lt;600ms</span>
+        <span><i style="background:var(--o)"></i>&lt;1200ms</span>
+        <span><i style="background:var(--r)"></i>更慢</span>
+        <span><i style="background:var(--gray)"></i>不通</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 延迟排行 -->
+  <div class="pane" id="p3">
+    <div class="card">
+      <h3>📊 延迟对比</h3>
+      <div class="hint" style="margin-bottom:12px">从快到慢排序，条越长越慢</div>
+      <div id="rank"></div>
+    </div>
+    <div class="card">
+      <h3>💡 网络评估</h3>
+      <div id="verdict" class="hint">诊断后给出结论</div>
+    </div>
+  </div>
+
+  <!-- 自定义 -->
+  <div class="pane" id="p4">
+    <div class="card">
+      <h3>➕ 添加站点</h3>
+      <label class="lb">名称</label>
+      <input type="text" id="ns_name" placeholder="例如：学校教务">
+      <label class="lb">地址</label>
+      <input type="url" id="ns_url" placeholder="https://example.com">
+      <button class="btn full" id="btn_add" style="margin-top:12px">添加</button>
+      <div class="hint" style="margin-top:8px">
+        ⚠ 本页面是 HTTPS，浏览器会拦截 HTTP 请求（混合内容），自定义站点请填 https。
+      </div>
+    </div>
+    <div class="card">
+      <h3>📋 我的站点</h3>
+      <div class="sitelist" id="mine"></div>
+      <button class="mini" id="btn_reset" style="margin-top:10px;width:100%">恢复默认站点</button>
+    </div>
+  </div>
+
+  <div id="log"></div>
+  <div class="foot">数据来自你的手机当前网络 · 每次结果都会不同</div>
+</div>
+
+<script>
+/* ============ 配置 ============ */
+var DEFAULT_SITES = [
+  {id:"baidu",  n:"百度",     u:"https://www.baidu.com",      c:"国内常用"},
+  {id:"qq",     n:"腾讯QQ",   u:"https://www.qq.com",         c:"国内常用"},
+  {id:"ali",    n:"阿里",     u:"https://www.taobao.com",     c:"国内常用"},
+  {id:"weixin", n:"微信",     u:"https://weixin.qq.com",      c:"国内常用"},
+  {id:"bili",   n:"哔哩哔哩", u:"https://www.bilibili.com",   c:"国内常用"},
+  {id:"douyin", n:"抖音",     u:"https://www.douyin.com",     c:"国内常用"},
+  {id:"jd",     n:"京东",     u:"https://www.jd.com",         c:"国内常用"},
+  {id:"zhihu",  n:"知乎",     u:"https://www.zhihu.com",      c:"国内常用"},
+  {id:"weibo",  n:"微博",     u:"https://weibo.com",          c:"国内常用"},
+  {id:"163",    n:"网易",     u:"https://www.163.com",        c:"国内常用"},
+  {id:"yun139", n:"移动云盘", u:"https://yun.139.com",        c:"我的服务"},
+  {id:"cmcc",   n:"中国移动", u:"https://www.10086.cn",       c:"我的服务"},
+  {id:"jsd",    n:"jsDelivr", u:"https://cdn.jsdelivr.net",   c:"我的服务"},
+  {id:"gh",     n:"GitHub",   u:"https://github.com",         c:"国际/代理"},
+  {id:"google", n:"Google",   u:"https://www.google.com",     c:"国际/代理"},
+  {id:"yt",     n:"YouTube",  u:"https://www.youtube.com",    c:"国际/代理"},
+  {id:"gpt",    n:"ChatGPT",  u:"https://chatgpt.com",        c:"国际/代理"},
+  {id:"nf",     n:"Netflix",  u:"https://www.netflix.com",    c:"国际/代理"},
+  {id:"x",      n:"X(推特)",  u:"https://twitter.com",        c:"国际/代理"},
+  {id:"tg",     n:"Telegram", u:"https://web.telegram.org",   c:"国际/代理"},
+  {id:"wiki",   n:"维基百科", u:"https://zh.wikipedia.org",   c:"国际/代理"},
+  {id:"cf",     n:"Cloudflare",u:"https://1.1.1.1",           c:"国际/代理"}
+];
+/* 分段锚点：这些地址开放了 Timing-Allow-Origin，
+   浏览器才肯吐出 DNS / TCP / 首包 等分段数据 */
+var ANCHORS = [
+  {n:"阿里 CDN",   u:"https://img.alicdn.com/tfs/TB1.gif"},
+  {n:"jsDelivr",   u:"https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js"},
+  {n:"fastly",     u:"https://fastly.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js"},
+  {n:"Google CDN", u:"https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"}
+];
+var LS_KEY = "netscope_sites_v1", LS_THEME = "netscope_theme";
+
+function loadSites(){
+  try{ var s=JSON.parse(localStorage.getItem(LS_KEY));
+       if (Array.isArray(s)&&s.length) return s; }catch(e){}
+  return DEFAULT_SITES.slice();
+}
+function saveSites(a){ try{ localStorage.setItem(LS_KEY,JSON.stringify(a)); }catch(e){} }
+var SITES = loadSites();
+
+/* ============ 工具 ============ */
+var $ = function(i){ return document.getElementById(i); };
+try{ if(performance.setResourceTimingBufferSize) performance.setResourceTimingBufferSize(2000); }catch(e){}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function log(s,c){
+  var d=document.createElement("div"); if(c) d.className=c;
+  d.textContent=(c==="ok"?"✓ ":c==="er"?"✗ ":c==="wn"?"! ":"· ")+s;
+  var e=$("log"); e.appendChild(d); e.className="on"; e.scrollTop=e.scrollHeight;
+}
+function ms(v){ if(v==null) return "—";
+  return v<1000 ? Math.round(v)+" ms" : (v/1000).toFixed(2)+" s"; }
+function msShort(v){ if(v==null) return "—";
+  return v<1000 ? String(Math.round(v)) : (v/1000).toFixed(1)+"s"; }
+function kb(b){ if(b==null) return "—";
+  if(b<1024) return b+" B";
+  if(b<1048576) return (b/1024).toFixed(2)+" KB";
+  return (b/1048576).toFixed(2)+" MB"; }
+function grade(v){
+  if(v==null) return {c:"var(--gray)",t:"不通"};
+  if(v<100)  return {c:"var(--g)",  t:"优秀"};
+  if(v<300)  return {c:"var(--gl)", t:"良好"};
+  if(v<600)  return {c:"var(--y)",  t:"一般"};
+  if(v<1200) return {c:"var(--o)",  t:"较慢"};
+  return {c:"var(--r)", t:"很慢"};
+}
+function origin(u){ try{ return new URL(u).origin; }catch(e){ return u; } }
+
+/* ============ 探测 ============ */
+async function doFetch(url, timeout, cors){
+  var ac=new AbortController();
+  var tid=setTimeout(function(){ ac.abort(); }, timeout);
+  var opt={ method:"GET", cache:"no-store", credentials:"omit",
+            referrerPolicy:"no-referrer", signal:ac.signal, redirect:"follow" };
+  opt.mode = cors ? "cors" : "no-cors";
+  try{
+    var r=await fetch(url,opt); clearTimeout(tid);
+    return { ok:true, res:r, status:r.status, opaque:(r.type==="opaque") };
+  }catch(e){
+    clearTimeout(tid);
+    return { ok:false, err:(e&&e.name==="AbortError")?"timeout":String((e&&e.message)||"error") };
+  }
+}
+
+/* 按 origin 前缀找本次请求的 ResourceTiming（重定向后 name 会变，不能用精确匹配） */
+function pickTiming(originStr, afterTs){
+  try{
+    var all=performance.getEntriesByType("resource");
+    var best=null;
+    for(var i=0;i<all.length;i++){
+      var e=all[i];
+      if(e.name.indexOf(originStr)!==0) continue;
+      if(afterTs && e.startTime < afterTs) continue;
+      if(!best || e.startTime>best.startTime) best=e;
+    }
+    if(!best) return null;
+    var dns=best.domainLookupEnd-best.domainLookupStart;
+    var tcp=best.connectEnd-best.connectStart;
+    var ttfb=best.responseStart-best.startTime;
+    var wt=(best.responseStart>0&&best.requestStart>0)?(best.responseStart-best.requestStart):0;
+    var tr=(best.responseEnd>0&&best.responseStart>0)?(best.responseEnd-best.responseStart):0;
+    var usable=(best.responseStart>0)||(best.connectEnd>0)||(best.domainLookupEnd>0);
+    if(!usable) return null;
+    return {
+      dns:  dns>0?dns:null,
+      tcp:  tcp>0?tcp:null,
+      wait: wt>0?wt:null,
+      trans:tr>0?tr:null,
+      ttfb: ttfb>0?ttfb:null,
+      total:best.duration>0?best.duration:null,
+      transfer:best.transferSize>0?best.transferSize:null,
+      body:best.decodedBodySize>0?best.decodedBodySize:(best.encodedBodySize>0?best.encodedBodySize:null),
+      limited:(dns===0&&tcp===0&&best.responseStart===0)
+    };
+  }catch(err){ return null; }
+}
+
+var _seq=0;
+async function probeOnce(site, timeout, deep){
+  var base=site.u.replace(/[?#].*$/,"");
+  var url=base+(base.indexOf("?")>=0?"&":"?")+"_ns="+Date.now()+"_"+String(++_seq);
+  var og=origin(site.u);
+  var out={ ok:false };
+  var t0=performance.now();
+  var r1=null, mode1="no-cors";
+  if(deep){
+    var rc=await doFetch(url,timeout,true);
+    if(rc.ok && !rc.opaque){ r1=rc; mode1="cors"; }
+  }
+  if(!r1) r1=await doFetch(url,timeout,false);
+  var t1=performance.now();
+  out.total=Math.round(t1-t0);
+  out.mode=mode1;
+
+  if(!r1.ok){
+    var fv=og+"/favicon.ico?_ns="+Date.now();
+    var t2=performance.now();
+    var r2=await doFetch(fv,Math.min(timeout,3500),false);
+    if(r2.ok){ out.total=Math.round(performance.now()-t2);
+               out.ok=true; out.via="favicon"; out.status=r2.opaque?null:r2.status;
+               out.probeUrl=fv; }
+    else{ out.ok=false;
+          out.err=(r1.err==="timeout"&&r2.err==="timeout")?"timeout":(r1.err||r2.err||"error"); }
+  }else{
+    out.ok=true; out.via="root";
+    out.status=r1.opaque?null:r1.status; out.probeUrl=url;
+  }
+  if(r1 && r1.res && !r1.opaque){ try{ await r1.res.arrayBuffer(); }catch(e){} }
+  await new Promise(function(s2){ setTimeout(s2,220); });
+  var tm=pickTiming(og,t0-50);
+  if(tm){
+    out.dns=tm.dns; out.tcp=tm.tcp; out.wait=tm.wait; out.trans=tm.trans;
+    out.ttfb=tm.ttfb; out.transfer=tm.transfer; out.body=tm.body;
+    out.limited=tm.limited;
+    if(tm.total) out.rtTotal=Math.round(tm.total);
+  }
+  return out;
+}
+
+/* 多次探测取最优，并给出抖动 */
+async function probeSite(site, timeout, deep, times){
+  times = times || 1;
+  var runs=[], best=null;
+  for(var i=0;i<times;i++){
+    var r=await probeOnce(site,timeout,deep);
+    r.id=site.id; r.n=site.n; r.u=site.u; r.c=site.c; r.ts=Date.now();
+    runs.push(r);
+    if(r.ok && (!best || r.total<best.total)) best=r;
+    if(times>1 && i<times-1) await new Promise(function(s){ setTimeout(s,350); });
+  }
+  if(!best) best=runs[0];
+  best.runs=runs.map(function(x){ return x.ok?x.total:null; });
+  var okv=runs.filter(function(x){ return x.ok; }).map(function(x){ return x.total; });
+  if(okv.length>1){
+    best.min=Math.min.apply(null,okv);
+    best.max=Math.max.apply(null,okv);
+    best.jitter=best.max-best.min;
+  }
+  return best;
+}
+
+/* 找一个能吐出分段数据的锚点，用来反映本机链路质量 */
+async function probeAnchor(){
+  try{ performance.clearResourceTimings(); }catch(e){}
+  var fallback=null;
+  for(var i=0;i<ANCHORS.length;i++){
+    var a=ANCHORS[i];
+    try{ performance.clearResourceTimings(); }catch(e){}
+    var r=await probeOnce({id:"anchor",n:a.n,u:a.u,c:""},5000,true);
+    if(r.ok && r.dns!=null && r.tcp!=null){
+      r.anchorName=a.n; return r;
+    }
+    if(r.ok && r.ttfb!=null && !fallback){ r.anchorName=a.n; r.reused=true; fallback=r; }
+  }
+  return null;
+}
+
+/* ============ 状态 ============ */
+var RESULTS={}, running=false, ANCHOR=null;
+
+/* ============ 深度诊断渲染 ============ */
+function segBar(dns,tcp,wait,trans){
+  var parts=[{k:"DNS",v:dns||0,c:"#0ea5e9"},{k:"TCP",v:tcp||0,c:"#8b5cf6"},
+             {k:"等待",v:wait||0,c:"#f59e0b"},{k:"传输",v:trans||0,c:"#10b981"}];
+  var sum=parts.reduce(function(a,b){ return a+b.v; },0)||1;
+  var h=['<div class="bar">'];
+  parts.forEach(function(p){
+    if(p.v<=0) return;
+    var w=Math.max(p.v/sum*100,7);
+    h.push('<div class="seg" style="width:'+w+'%;background:'+p.c+'">'+(w>12?p.k:"")+'</div>');
+  });
+  h.push('</div><div class="legend">');
+  parts.forEach(function(p){
+    h.push('<span><i style="background:'+p.c+'"></i>'+p.k+' '+ms(p.v>0?p.v:null)+'</span>');
+  });
+  h.push('</div>');
+  return h.join("");
+}
+
+function renderDeep(r){
+  var box=$("deep");
+  if(!r){ box.innerHTML='<div class="hint" style="margin-top:14px">选一个站点，点上面按钮开始诊断。</div>'; return; }
+  var g=grade(r.ok?r.total:null);
+  var h=[];
+  h.push('<div class="big"><span class="bignum" style="color:'+g.c+'">'+
+    (r.ok?msShort(r.total):"—")+'</span>'+
+    '<span class="bigunit">'+(r.ok&&r.total<1000?"ms":"")+'</span>'+
+    '<span class="badge" style="background:'+g.c+'">'+(r.ok?g.t:"失败")+'</span></div>');
+  h.push('<div class="hint" style="margin-top:2px">'+esc(r.n)+' · '+esc(origin(r.u))+'</div>');
+
+  if(!r.ok){
+    h.push('<div style="margin-top:12px;padding:11px;border-radius:10px;background:#fdf0f0;color:#c0392b;font-size:13px">'+
+      (r.err==="timeout"?"连接超时":"连接失败")+'：'+esc(r.err||"")+
+      '<br><span style="font-size:12px;opacity:.85">若填的是 http:// 地址，HTTPS 页面会被浏览器按混合内容拦截。</span></div>');
+    box.innerHTML=h.join(""); return;
+  }
+
+  if(r.runs && r.runs.length>1){
+    var okN=r.runs.filter(function(x){ return x!=null; }).length;
+    h.push('<div class="hint" style="margin-top:8px">'+r.runs.length+' 次探测（成功 '+okN+'）：'+
+      r.runs.map(function(x){ return x==null?"✗":msShort(x); }).join(" / ")+
+      (r.jitter!=null?('　抖动 '+ms(r.jitter)):"")+'</div>');
+  }
+
+  if(r.dns!=null||r.tcp!=null||r.wait!=null||r.trans!=null){
+    h.push('<div style="margin-top:12px">'+segBar(r.dns,r.tcp,r.wait,r.trans)+'</div>');
+  }else{
+    h.push('<div class="bar" style="margin-top:12px"><div class="seg" style="width:100%;background:'+g.c+'">总耗时 '+ms(r.total)+'</div></div>');
+    h.push('<div class="hint">该站点未开放 Timing-Allow-Origin，浏览器屏蔽了分段数据。下面用「链路参考」补上。</div>');
+  }
+
+  h.push('<table class="kv">');
+  function row(k,v){ h.push('<tr><td>'+k+'</td><td>'+v+'</td></tr>'); }
+  row("状态码", r.status?('<span style="color:var(--g)">'+r.status+'</span>'):
+    '<span style="color:var(--sub);font-weight:400">跨域不可读</span>');
+  row("总耗时", ms(r.total));
+  row("首包时间(TTFB)", ms(r.ttfb));
+  row("DNS 解析", ms(r.dns));
+  row("TCP 建连", ms(r.tcp));
+  row("服务器等待", ms(r.wait));
+  row("内容传输", ms(r.trans));
+  row("传输大小", kb(r.transfer));
+  row("页面大小", kb(r.body));
+  row("探测方式", r.via==="favicon"?"favicon 兜底":"根地址直接请求");
+  h.push('</table>');
+
+  if(ANCHOR){
+    h.push('<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--bd)">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:6px">🔗 链路参考 · '+esc(ANCHOR.anchorName)+'</div>'+
+      '<div class="hint" style="margin-bottom:8px">这个地址开放了分段数据，用它反映你当前网络的链路质量'+(ANCHOR.reused?'（本机已缓存 DNS／复用连接，DNS、TCP 会显示为 0）':'')+'</div>'+
+      segBar(ANCHOR.dns,ANCHOR.tcp,ANCHOR.wait,ANCHOR.trans)+
+      '<table class="kv">'+
+      '<tr><td>DNS 解析</td><td>'+ms(ANCHOR.dns)+'</td></tr>'+
+      '<tr><td>TCP 建连</td><td>'+ms(ANCHOR.tcp)+'</td></tr>'+
+      '<tr><td>首包时间</td><td>'+ms(ANCHOR.ttfb)+'</td></tr>'+
+      '<tr><td>内容传输</td><td>'+ms(ANCHOR.trans)+'</td></tr>'+
+      '</table></div>');
+  }
+  box.innerHTML=h.join("");
+}
+
+/* ============ 网格 / 排行 / 自定义 ============ */
+function renderGrid(){
+  var box=$("grid"),h=[],cats=[];
+  SITES.forEach(function(s){ if(cats.indexOf(s.c)<0) cats.push(s.c); });
+  cats.forEach(function(c){
+    h.push('<div class="gcat">'+esc(c)+'</div><div class="grid">');
+    SITES.filter(function(s){ return s.c===c; }).forEach(function(s){
+      var r=RESULTS[s.id];
+      var g=r?grade(r.ok?r.total:null):grade(null);
+      h.push('<div class="gcell'+(r?(r.ok?"":" fail"):"")+'" data-id="'+esc(s.id)+'" style="border-color:'+g.c+'">'+
+        '<div class="nm">'+esc(s.n)+'</div>'+
+        '<div class="ms" style="color:'+g.c+'">'+(r&&r.ok?msShort(r.total):"—")+'</div>'+
+        '<div class="st" style="color:'+g.c+'">'+(r?(r.ok?g.t:(r.err==="timeout"?"超时":"不通")):"未测")+'</div>'+
+        '</div>');
+    });
+    h.push('</div>');
+  });
+  box.innerHTML=h.join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".gcell"),function(el){
+    el.onclick=function(){
+      var id=el.getAttribute("data-id");
+      $("target").value=id; switchPane("p1");
+      var s=SITES.filter(function(x){ return x.id===id; })[0];
+      if(s) runDeep(s);
+    };
+  });
+}
+
+function renderRank(){
+  var box=$("rank"),h=[],arr=[];
+  SITES.forEach(function(s){ var r=RESULTS[s.id]; if(r) arr.push(r); });
+  var okList=arr.filter(function(r){ return r.ok; })
+                .sort(function(a,b){ return a.total-b.total; });
+  var failList=arr.filter(function(r){ return !r.ok; });
+  if(!okList.length){
+    box.innerHTML='<div class="hint">还没有数据，点顶部「开始诊断」。</div>';
+    $("verdict").innerHTML="诊断后给出结论"; return;
+  }
+  var max=Math.max.apply(null,okList.map(function(r){ return r.total; }))||1;
+  okList.forEach(function(r){
+    var g=grade(r.total);
+    h.push('<div class="rank"><div class="rn">'+esc(r.n)+'</div>'+
+      '<div class="rb"><div class="rf" style="width:'+Math.max(r.total/max*100,3)+'%;background:'+g.c+'"></div></div>'+
+      '<div class="rv" style="color:'+g.c+'">'+ms(r.total)+'</div></div>');
+  });
+  if(failList.length){
+    h.push('<div class="hint" style="margin-top:10px">不通：'+
+      failList.map(function(r){ return esc(r.n); }).join("、")+'</div>');
+  }
+  box.innerHTML=h.join("");
+
+  var total=okList.length+failList.length;
+  var avg=Math.round(okList.reduce(function(a,b){ return a+b.total; },0)/okList.length);
+  var fast=okList[0], slow=okList[okList.length-1];
+  var local=okList.filter(function(r){ return r.c==="国内常用"; });
+  var intl =okList.filter(function(r){ return r.c==="国际/代理"; });
+  var lavg=local.length?Math.round(local.reduce(function(a,b){return a+b.total;},0)/local.length):null;
+  var iavg=intl.length?Math.round(intl.reduce(function(a,b){return a+b.total;},0)/intl.length):null;
+  var vg=grade(avg);
+  var t="共测 <b>"+total+"</b> 个站点，通 <b>"+okList.length+"</b> 个"+
+        (failList.length?("，不通 <b>"+failList.length+"</b> 个"):"")+"。<br>";
+  t+="平均延迟 <b style='color:"+vg.c+"'>"+ms(avg)+"</b>，整体 <b style='color:"+vg.c+"'>"+vg.t+"</b><br>";
+  t+="最快："+esc(fast.n)+" "+ms(fast.total)+"　最慢："+esc(slow.n)+" "+ms(slow.total)+"<br>";
+  if(lavg!=null) t+="国内平均 "+ms(lavg)+"　";
+  if(iavg!=null) t+="国际平均 "+ms(iavg)+"<br>";
+  if(lavg!=null&&iavg!=null){
+    t+= (iavg>lavg*2.5) ? "国际站点明显慢很多，多半没走代理或节点不佳。"
+      : (lavg>iavg*2.5 ? "国内站点反而更慢，检查下 DNS 或本地网络。"
+                       : "国内外差距在合理范围。");
+  }
+  $("verdict").innerHTML=t;
+}
+
+function renderMine(){
+  var box=$("mine"),h=[];
+  var custom=SITES.filter(function(s){ return s.c==="自定义"; });
+  if(!custom.length){ box.innerHTML='<div class="hint">还没有自定义站点。</div>'; return; }
+  custom.forEach(function(s){
+    h.push('<div class="si"><div class="sn">'+esc(s.n)+'<br><span class="su">'+esc(s.u)+'</span></div>'+
+      '<button class="mini del" data-id="'+esc(s.id)+'">删除</button></div>');
+  });
+  box.innerHTML=h.join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".del"),function(b){
+    b.onclick=function(){
+      var id=b.getAttribute("data-id");
+      SITES=SITES.filter(function(s){ return s.id!==id; });
+      saveSites(SITES); syncTarget(); renderMine(); renderGrid();
+    };
+  });
+}
+
+function syncTarget(){
+  var sel=$("target"),cur=sel.value,h=[],cats=[];
+  SITES.forEach(function(s){ if(cats.indexOf(s.c)<0) cats.push(s.c); });
+  cats.forEach(function(c){
+    h.push('<optgroup label="'+esc(c)+'">');
+    SITES.filter(function(s){ return s.c===c; }).forEach(function(s){
+      h.push('<option value="'+esc(s.id)+'">'+esc(s.n)+'</option>'); });
+    h.push('</optgroup>');
+  });
+  sel.innerHTML=h.join("");
+  if(cur) sel.value=cur;
+  if(!sel.value&&SITES.length) sel.value=SITES[0].id;
+}
+
+function switchPane(id){
+  Array.prototype.forEach.call(document.querySelectorAll(".pane"),function(p){
+    p.className="pane"+(p.id===id?" on":""); });
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){
+    t.className="tab"+(t.getAttribute("data-p")===id?" on":""); });
+}
+
+/* ============ 流程 ============ */
+async function runDeep(site){
+  $("btn_deep").disabled=true;
+  $("deep").innerHTML='<div class="hint" style="margin-top:14px">诊断中（连测 3 次）…</div>';
+  log("深度诊断 "+site.n+" …");
+  if(!ANCHOR){
+    ANCHOR=await probeAnchor();
+    log(ANCHOR?("链路参考已就绪（"+ANCHOR.anchorName+"）"):"未找到可用的分段锚点", ANCHOR?"ok":"wn");
+  }
+  var r=await probeSite(site,8000,true,3);
+  RESULTS[site.id]=r;
+  renderDeep(r); renderGrid(); renderRank(); renderStats();
+  log(site.n+" "+ms(r.total)+" · "+grade(r.total).t+(r.jitter!=null?(" 抖动"+ms(r.jitter)):""),
+      r.ok?"ok":"er");
+  $("btn_deep").disabled=false;
+}
+
+async function runAll(){
+  if(running){ log("正在跑，请稍候","wn"); return; }
+  running=true; RESULTS={};
+  $("btn_run").disabled=true; $("btn_run").textContent="诊断中…";
+  $("log").innerHTML=""; renderGrid(); renderRank(); renderStats();
+  log("开始扫描 "+SITES.length+" 个站点…");
+  var queue=SITES.slice(), idx=0, CONC=5;
+  async function worker(){
+    while(idx<queue.length){
+      var s=queue[idx++];
+      RESULTS[s.id]=await probeSite(s,6000,false,1);
+      renderGrid(); renderRank(); renderStats();
+    }
+  }
+  var ws=[]; for(var i=0;i<CONC;i++) ws.push(worker());
+  await Promise.all(ws);
+  var okN=0,failN=0;
+  SITES.forEach(function(s){ var r=RESULTS[s.id]; if(r&&r.ok) okN++; else failN++; });
+  log("扫描完成：通 "+okN+" · 不通 "+failN, okN?"ok":"er");
+  $("btn_run").disabled=false; $("btn_run").textContent="开始诊断";
+  running=false;
+}
+
+/* ============ 客户端 IP ============ */
+async function getIP(){
+  var srcs=[
+    {u:"https://api.ipify.org?format=json",   p:function(t){ return JSON.parse(t).ip; }},
+    {u:"https://api64.ipify.org?format=json", p:function(t){ return JSON.parse(t).ip; }},
+    {u:"https://icanhazip.com",               p:function(t){ return t.trim(); }},
+    {u:"https://myip.ipip.net",               p:function(t){ return t.trim().replace(/^[\s\S]*?IP\s*[:：]\s*/i,"").split(/\s+/)[0]; }},
+    {u:"https://api.myip.com",                p:function(t){ return JSON.parse(t).ip; }}
+  ];
+  for(var i=0;i<srcs.length;i++){
+    try{
+      var ac=new AbortController();
+      var tid=setTimeout(function(){ ac.abort(); },4000);
+      var r=await fetch(srcs[i].u,{cache:"no-store",signal:ac.signal});
+      clearTimeout(tid);
+      var ip=srcs[i].p(await r.text());
+      if(ip&&/^\d+\.\d+\.\d+\.\d+$/.test(ip)){ $("myip").textContent=ip; return; }
+    }catch(e){}
+  }
+  $("myip").textContent="获取失败";
+}
+
+/* ============ 概览统计 ============ */
+function renderStats(){
+  var arr=[]; SITES.forEach(function(s){ if(RESULTS[s.id]) arr.push(RESULTS[s.id]); });
+  var ok=arr.filter(function(r){ return r.ok; });
+  $("s_online").textContent = arr.length ? (ok.length+" / "+arr.length) : "—";
+  if(ok.length){
+    var a=Math.round(ok.reduce(function(x,y){ return x+y.total; },0)/ok.length);
+    var g=grade(a);
+    $("s_avg").textContent=ms(a); $("s_avg").style.color="#fff";
+  }else{ $("s_avg").textContent="—"; }
+}
+function netType(){
+  var c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  if(c&&c.effectiveType) return String(c.effectiveType).toUpperCase()+(c.downlink?(" ~"+c.downlink+"M"):"");
+  return navigator.onLine?"在线":"离线";
+}
+
+/* ============ DNS 服务器对比 ============ */
+var DNS_SRV=[
+  {n:"阿里 DNS",   u:"https://dns.alidns.com/resolve?name=__D__&type=1"},
+  {n:"腾讯 DNS",   u:"https://doh.pub/dns-query?name=__D__&type=A",
+                   h:{"Accept":"application/dns-json"}},
+  {n:"360 DNS",    u:"https://doh.360.cn/dns-query?name=__D__&type=A",
+                   h:{"Accept":"application/dns-json"}},
+  {n:"Cloudflare", u:"https://cloudflare-dns.com/dns-query?name=__D__&type=A",
+                   h:{"Accept":"application/dns-json"}},
+  {n:"Google DNS", u:"https://dns.google/dns-query?name=__D__&type=A",
+                   h:{"Accept":"application/dns-json"}}
+];
+function dohParse(t){
+  try{
+    var j=JSON.parse(t), a=j.Answer||[];
+    var rec=a.filter(function(x){ return x.type===1; });
+    if(!rec.length) return null;
+    return {ip:rec.slice(0,2).map(function(x){ return x.data; }).sort().join(" / "), ttl:rec[0].TTL};
+  }catch(e){ return null; }
+}
+async function runDNS(){
+  var host=($("dns_host").value||"").trim()||"www.baidu.com";
+  $("btn_dns").disabled=true;
+  $("dnsout").innerHTML='<div class="hint">解析中…</div>';
+  log("DNS 对比 "+host+" …");
+  var res=[];
+  for(var i=0;i<DNS_SRV.length;i++){
+    var srv=DNS_SRV[i];
+    var url=srv.u.replace("__D__",encodeURIComponent(host))+"&_ns="+Date.now();
+    var t0=performance.now(), item={n:srv.n};
+    try{
+      var ac=new AbortController();
+      var tid=setTimeout(function(){ ac.abort(); },5000);
+      var opt={cache:"no-store",signal:ac.signal};
+      if(srv.h){ opt.headers=srv.h; }
+      var r=await fetch(url,opt);
+      var txt=await r.text();
+      clearTimeout(tid);
+      item.ms=Math.round(performance.now()-t0); item.ok=true;
+      var d=dohParse(txt);
+      item.ip=d?d.ip:(/\d+\.\d+\.\d+\.\d+/.test(txt)?"非标准响应":"无结果");
+    }catch(e){
+      item.ok=false; item.ms=Math.round(performance.now()-t0);
+      var m=String((e&&e.message)||"失败");
+      item.err=(e&&e.name==="AbortError")?"超时":(m==="Failed to fetch"?"被拦截":m.slice(0,18));
+    }
+    res.push(item);
+    $("dnsout").innerHTML=renderDNS(res);
+  }
+  var good=res.filter(function(x){ return x.ok; });
+  if(good.length){
+    good.sort(function(a,b){ return a.ms-b.ms; });
+    log("DNS 最快："+good[0].n+" "+good[0].ms+"ms","ok");
+  }else log("所有 DNS 都不可用","er");
+  $("btn_dns").disabled=false;
+}
+function renderDNS(res){
+  var h=[],ips={};
+  res.forEach(function(x){ if(x.ok&&x.ip&&/\d+\.\d+\.\d+\.\d+/.test(x.ip)) ips[x.ip]=(ips[x.ip]||0)+1; });
+  res.forEach(function(x){
+    var g=x.ok?grade(x.ms):grade(null);
+    h.push('<div class="rowline"><div class="rn">'+esc(x.n)+'</div>'+
+      '<div class="rv" style="color:'+g.c+'">'+(x.ok?ms(x.ms):(x.err||"失败"))+'</div></div>');
+    if(x.ok) h.push('<div class="hint" style="padding:0 0 6px">'+esc(x.ip||"—")+'</div>');
+  });
+  var ks=Object.keys(ips);
+  if(ks.length>1){
+    h.push('<div class="hint" style="margin-top:6px;color:var(--y)">⚠ 各家解析结果不一致，可能有 DNS 污染或调度差异</div>');
+  }else if(ks.length===1){
+    h.push('<div class="hint" style="margin-top:6px">各家解析一致：<b class="mono">'+esc(ks[0])+'</b></div>');
+  }
+  return h.join("");
+}
+
+/* ============ 带宽测速 ============ */
+var SP_SRC=[
+  {n:"TypeScript ~1.4MB", u:"https://cdn.jsdelivr.net/npm/typescript@5.4.5/lib/typescript.js"},
+  {n:"Monaco ~3MB",       u:"https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.js"},
+  {n:"Vue ~0.05MB",       u:"https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.prod.js"}
+];
+async function spOnce(u){
+  var ac=new AbortController();
+  var t0=performance.now(), got=0, last=t0, done=false;
+  var tid=setTimeout(function(){ try{ac.abort();}catch(e){} },9000);
+  try{
+    var r=await fetch(u+"?_ns="+Date.now(),{cache:"no-store",signal:ac.signal,mode:"cors"});
+    if(!r.ok&&r.status) throw new Error("HTTP "+r.status);
+    var rd=r.body.getReader();
+    for(;;){
+      var d=await rd.read();
+      if(d.done){ done=true; break; }
+      got+=d.value.length; last=performance.now();
+      if(last-t0>5000 || (got>8*1024*1024 && last-t0>1200)){
+        try{ await rd.cancel(); }catch(e){}
+        try{ ac.abort(); }catch(e){}
+        break;
+      }
+    }
+    clearTimeout(tid);
+    var sec=(last-t0)/1000;
+    return {got:got, sec:sec, done:done};
+  }catch(e){
+    clearTimeout(tid);
+    return {got:got, sec:(performance.now()-t0)/1000, err:String((e&&e.message)||"失败")};
+  }
+}
+async function runSpeed(){
+  var idx=parseInt($("sp_src").value,10)||0;
+  var order=[idx,0,1,2].filter(function(v,i,a){ return a.indexOf(v)===i; });
+  $("btn_speed").disabled=true;
+  $("spout").innerHTML='<div class="hint">测速中…（最多 5 秒）</div>';
+  log("开始下载测速…");
+  var best=null, used=null;
+  for(var k=0;k<order.length;k++){
+    var src=SP_SRC[order[k]];
+    var r=await spOnce(src.u);
+    log(src.n+" → "+kb(r.got)+(r.err?(" 失败:"+r.err):""), r.err?"wn":"ok");
+    if(!r.err && (!best || r.got>best.got)){ best=r; used=src; }
+    if(best && best.got>=200*1024) break;
+  }
+  if(!best || best.got<1024){
+    $("spout").innerHTML='<div class="hint" style="color:var(--r)">测速失败：所有数据源都没拿到数据，可能被网络或浏览器策略拦了。</div>';
+    log("测速失败","er"); $("btn_speed").disabled=false; return;
+  }
+  var sec=Math.max(best.sec,0.01);
+  var kbs=best.got/1024/sec, mbps=kbs*8/1000;
+  var col = mbps>20?"var(--g)":mbps>5?"var(--gl)":mbps>1?"var(--y)":"var(--o)";
+  $("spout").innerHTML=
+    '<div class="big"><span class="bignum" style="color:'+col+'">'+
+    (mbps>=1?mbps.toFixed(1):kbs.toFixed(0))+'</span>'+
+    '<span class="bigunit">'+(mbps>=1?"Mbps":"KB/s")+'</span></div>'+
+    '<table class="kv" style="margin-top:8px">'+
+    '<tr><td>数据源</td><td>'+esc(used.n)+'</td></tr>'+
+    '<tr><td>已下载</td><td>'+kb(best.got)+'</td></tr>'+
+    '<tr><td>用时</td><td>'+sec.toFixed(2)+' s</td></tr>'+
+    '<tr><td>平均速率</td><td>'+kbs.toFixed(0)+' KB/s</td></tr>'+
+    '<tr><td>是否跑完</td><td>'+(best.done?"完整下载":"到达上限后中断")+'</td></tr>'+
+    '</table>'+
+    (best.got<200*1024?'<div class="hint" style="margin-top:6px;color:var(--y)">样本偏小，结果仅供参考。</div>':'')+
+    (sec<0.3?'<div class="hint" style="margin-top:4px;color:var(--y)">下载太快、采样时间不足 0.3 秒，数值仅供参考。</div>':'');
+  log("测速完成 "+kbs.toFixed(0)+" KB/s","ok");
+  $("btn_speed").disabled=false;
+}
+
+/* ============ 事件 ============ */
+Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){
+  t.onclick=function(){ switchPane(t.getAttribute("data-p")); };
+});
+$("btn_run").onclick=runAll;
+$("btn_dns").onclick=runDNS;
+$("btn_speed").onclick=runSpeed;
+var _autoT=null;
+$("auto_refresh").onchange=function(){
+  var v=parseInt(this.value,10)||0;
+  if(_autoT){ clearInterval(_autoT); _autoT=null; }
+  if(v>0){ _autoT=setInterval(function(){ if(!running) runAll(); },v*1000);
+           log("自动刷新已开启：每 "+v+" 秒","ok"); }
+  else log("自动刷新已关闭");
+};
+$("btn_deep").onclick=function(){
+  var id=$("target").value;
+  var s=SITES.filter(function(x){ return x.id===id; })[0];
+  if(s) runDeep(s);
+};
+$("btn_copy").onclick=function(){
+  var lines=["网络诊断报告 "+new Date().toLocaleString("zh-CN"),
+             "客户端IP "+$("myip").textContent,""];
+  SITES.forEach(function(s){
+    var r=RESULTS[s.id]; if(!r) return;
+    lines.push(s.n+"  "+(r.ok?ms(r.total)+" ("+grade(r.total).t+")":"不通 "+(r.err||"")));
+  });
+  if(ANCHOR) lines.push("","链路参考("+ANCHOR.anchorName+") DNS "+ms(ANCHOR.dns)+
+    " / TCP "+ms(ANCHOR.tcp)+" / 首包 "+ms(ANCHOR.ttfb));
+  var txt=lines.join("\n");
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ log("报告已复制","ok"); },
+      function(){ log("复制失败，请手动截图","wn"); });
+  }else log("浏览器不支持自动复制","wn");
+};
+$("btn_add").onclick=function(){
+  var n=$("ns_name").value.trim(),u=$("ns_url").value.trim();
+  if(!n||!u){ log("名称和地址都要填","er"); return; }
+  if(!/^https?:\/\//i.test(u)) u="https://"+u;
+  SITES.push({id:"u"+Date.now(),n:n,u:u,c:"自定义"});
+  saveSites(SITES); syncTarget(); renderGrid(); renderMine();
+  $("ns_name").value=""; $("ns_url").value=""; log("已添加 "+n,"ok");
+};
+$("btn_reset").onclick=function(){
+  SITES=DEFAULT_SITES.slice(); saveSites(SITES);
+  syncTarget(); renderGrid(); renderMine(); log("已恢复默认站点","ok");
+};
+$("btn_theme").onclick=function(){
+  var d=document.documentElement.getAttribute("data-theme")==="dark"?"":"dark";
+  document.documentElement.setAttribute("data-theme",d);
+  try{ localStorage.setItem(LS_THEME,d); }catch(e){}
+};
+
+/* ============ 启动 ============ */
+try{ if(localStorage.getItem(LS_THEME)==="dark")
+       document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+syncTarget(); renderGrid(); renderMine(); renderDeep(null); getIP();
+$("sp_src").innerHTML=SP_SRC.map(function(x,i){ return '<option value="'+i+'">'+esc(x.n)+'</option>'; }).join("");
+$("s_net").textContent=netType(); renderStats();
+try{ (navigator.connection||{}).addEventListener&&
+  navigator.connection.addEventListener("change",function(){ $("s_net").textContent=netType(); }); }catch(e){}
+setInterval(function(){ $("s_net").textContent=netType(); },10000);
+log("就绪 · 点顶部「开始诊断」扫描全部站点");
+</script>
+</body>
+</html>
