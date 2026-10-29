@@ -1,0 +1,9 @@
+name = "yun139-relay"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+# 注意：GH_TOKEN 不要写在这里，部署后在 Cloudflare 面板用
+# Settings → Variables → Add variable → 类型选 Encrypt(Secret) 添加。
+[vars]
+GH_OWNER = "WoShiYiGeManHuaJia"
+GH_REPO = "yun139-ghpanel"
