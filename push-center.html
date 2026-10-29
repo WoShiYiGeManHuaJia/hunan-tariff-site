@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#F3A04C">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="推送配置">
+<meta name="description" content="运营商资费监控推送配置：钉钉/飞书/企微/邮箱，密钥仅存本地">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<title>推送配置中心 · 运营商资费监控</title>
+<style>
+:root{
+--primary:#F3A04C;--accent:#E58522;--background:#F4F4F6;--panel-bg:#FEFDFC;--card-bg:#fff;
+--tooltip-bg:#454545;--success:#40B43E;--warning:#EBA400;--destructive:#E65C53;
+--destructive-hover:#D14B42;--primary-foreground:#fff;--text-primary:rgba(0,0,0,.8);
+--text-secondary:rgba(0,0,0,.5);--text-tertiary:rgba(0,0,0,.35);--intensity-0:rgba(0,0,0,0);
+--intensity-3:rgba(0,0,0,.03);--intensity-4:rgba(0,0,0,.04);--intensity-6:rgba(0,0,0,.06);
+--intensity-8:rgba(0,0,0,.08);--intensity-12:rgba(0,0,0,.12);--intensity-16:rgba(0,0,0,.16);
+--intensity-20:rgba(0,0,0,.2);--intensity-35:rgba(0,0,0,.35);--intensity-60:rgba(0,0,0,.6);
+--input-shadow:rgba(0,0,0,.08);--bg:#fff;--border:rgba(0,0,0,.12);--accent-4:#E58522;--accent-soft:rgba(229,133,34,.12);--radius-sm:8px;--radius-md:10px;--radius-lg:14px;--radius-xl:18px;
+font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){
+:root{
+--background:#232324;--panel-bg:#332D28;--card-bg:#2E2E2E;--tooltip-bg:#BABABA;
+--primary-foreground:#000;--text-primary:rgba(255,255,255,.8);--text-secondary:rgba(255,255,255,.5);
+--text-tertiary:rgba(255,255,255,.35);--intensity-0:rgba(255,255,255,0);
+--intensity-3:rgba(255,255,255,.03);--intensity-4:rgba(255,255,255,.04);
+--intensity-6:rgba(255,255,255,.06);--intensity-8:rgba(255,255,255,.08);
+--intensity-12:rgba(255,255,255,.12);--intensity-16:rgba(255,255,255,.16);
+--intensity-20:rgba(255,255,255,.2);--intensity-35:rgba(255,255,255,.35);
+--intensity-60:rgba(255,255,255,.6);--input-shadow:rgba(0,0,0,.28);--bg:#2A2A2A;--border:rgba(255,255,255,.14);--accent-4:#F3A04C;--accent-soft:rgba(243,160,76,.18)}}
+*{box-sizing:border-box}
+button,a,[role=button],select,input[type=range]{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.55}
+body{margin:0;background:var(--background);padding:16px;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#app{position:relative;display:block;width:100%;max-width:760px;margin:0 auto;color:var(--text-primary)}
+.frame{background:var(--panel-bg);border:.5px solid var(--intensity-8);border-radius:18px;padding:16px}
+.hide{display:none!important}
+.hrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.title{font-size:17px;font-weight:600;letter-spacing:.2px}
+.sub{font-size:11px;color:var(--text-secondary)}
+.tiny{font-size:10px;color:var(--text-tertiary)}
+.tag{height:20px;padding:0 8px;border-radius:999px;font-size:10px;display:inline-flex;align-items:center;font-weight:500;white-space:nowrap}
+.t-ok{background:color-mix(in srgb,var(--success) 16%,transparent);color:var(--success);border:.5px solid color-mix(in srgb,var(--success) 35%,transparent)}
+.t-loc{background:color-mix(in srgb,var(--primary) 18%,transparent);color:var(--accent);border:.5px solid color-mix(in srgb,var(--primary) 40%,transparent)}
+.t-warn{background:color-mix(in srgb,var(--warning) 18%,transparent);color:var(--warning);border:.5px solid color-mix(in srgb,var(--warning) 40%,transparent)}
+.t-err{background:color-mix(in srgb,var(--destructive) 16%,transparent);color:var(--destructive);border:.5px solid color-mix(in srgb,var(--destructive) 35%,transparent)}
+.btn{height:32px;padding:0 12px;border-radius:10px;border:.5px solid var(--intensity-8);background:var(--intensity-6);color:var(--text-primary);font-size:12px;font-weight:500;transition:background .15s}
+.btn:hover{background:var(--intensity-12)}
+.btn.pri{background:var(--primary);color:var(--primary-foreground);border:0}
+.btn.pri:hover{background:var(--accent)}
+.btn.danger{color:var(--destructive)}
+.sec{margin-top:16px}
+.sect{font-size:14px;font-weight:600;margin-bottom:10px}
+.tabbar{display:flex;gap:8px;margin-bottom:10px;background:var(--intensity-6);padding:4px;border-radius:12px}
+.tabbtn{flex:1;height:36px;border:0;border-radius:9px;background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;transition:background .15s,color .15s}
+.tabbtn.on{background:var(--card-bg);color:var(--text-primary);box-shadow:0 1px 4px var(--input-shadow)}
+.chcard{background:var(--card-bg);border:.5px solid var(--intensity-8);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.chhead{display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer;user-select:none}
+.chhead:hover{background:var(--intensity-4)}
+.logo{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;flex:none}
+.sw{margin-left:auto;width:36px;height:21px;border-radius:999px;background:var(--intensity-20);position:relative;transition:background .15s;flex:none;border:0}
+.sw::after{content:"";position:absolute;top:2.5px;left:3px;width:16px;height:16px;border-radius:999px;background:#fff;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.sw.on{background:var(--success)}
+.sw.on::after{left:17px}
+.chbody{padding:0 12px 12px;border-top:.5px solid var(--intensity-6)}
+.fld{margin-top:10px}
+.fld label{display:block;font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:5px}
+.inp{width:100%;height:34px;border:.5px solid var(--intensity-8);border-radius:10px;background:var(--intensity-4);color:var(--text-primary);padding:0 10px;font-size:12px;outline:none;font-family:inherit}
+.inp:focus{border-color:color-mix(in srgb,var(--primary) 45%,transparent)}
+.inp.err{border-color:color-mix(in srgb,var(--destructive) 60%,transparent)}
+.inp::placeholder{color:var(--text-tertiary)}
+.iwrap{position:relative}
+.eyeb{position:absolute;right:6px;top:50%;transform:translateY(-50%);height:24px;padding:0 8px;border:0;background:var(--intensity-6);border-radius:7px;font-size:10px;color:var(--text-secondary)}
+.testrow{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.status{font-size:11px;line-height:1.5;min-height:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.prev{background:var(--card-bg);border:.5px solid var(--intensity-8);border-radius:14px;padding:14px}
+.bubble{background:var(--intensity-4);border-radius:12px;padding:12px;font-size:12px;line-height:1.8;white-space:pre-wrap;font-variant-numeric:tabular-nums}
+.codebox{width:100%;height:180px;border:.5px solid var(--intensity-8);border-radius:10px;background:var(--intensity-4);color:var(--text-primary);padding:10px;font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace;outline:none;resize:vertical;line-height:1.6}
+.toasts{position:fixed;top:10px;right:10px;width:min(300px,calc(100% - 20px));display:flex;flex-direction:column;gap:8px;z-index:60;pointer-events:none}
+.toast{pointer-events:auto;width:100%;background:var(--card-bg);border:.5px solid var(--intensity-12);border-left:3px solid var(--primary);border-radius:12px;padding:10px 12px;box-shadow:0 10px 25px var(--input-shadow);animation:tin .25s ease;font-size:12px;line-height:1.5;color:var(--text-primary)}
+@keyframes tin{from{transform:translateY(-8px);opacity:0}}
+.toast.ok{border-left-color:var(--success)}
+.toast.err{border-left-color:var(--destructive)}
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.38);display:flex;align-items:flex-start;justify-content:center;z-index:50;padding:16px;overflow:auto}
+.mcard{background:var(--card-bg);border-radius:16px;max-width:460px;width:100%;padding:16px;margin:auto;box-shadow:0 10px 25px var(--input-shadow);color:var(--text-primary)}
+
+.pill{padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:12px;cursor:pointer;white-space:nowrap}
+.pill:hover{border-color:var(--text-tertiary)}
+.pill.on{background:var(--accent-4);border-color:transparent;color:#fff}
+
+/* ===== 选中态：主色实底 + 白字，深浅色都清晰 ===== */
+.pill{
+  padding:7px 14px;border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--bg);
+  color:var(--text-secondary);
+  font-size:12px;font-weight:500;
+  cursor:pointer;white-space:nowrap;
+  transition:background .15s,border-color .15s,color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.pill:hover{border-color:var(--accent-4);color:var(--text-primary)}
+.pill.on{
+  background:var(--accent-4);
+  border-color:var(--accent-4);
+  color:#fff;
+  font-weight:600;
+  box-shadow:0 1px 4px rgba(229,133,34,.35);
+}
+@media (prefers-color-scheme:dark){.pill.on{color:#1a1a1a}}
+
+/* 省份选择：中文标签，可换行铺满 */
+#fp{gap:6px}
+#fp .pill{padding:6px 11px;font-size:12px}
+
+/* 步骤卡 */
+.stepw{
+  background:var(--intensity-4);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  padding:12px;
+}
+.stept{font-size:12.5px;font-weight:600;color:var(--text-primary);margin-bottom:4px}
+.stept b{color:var(--accent-4)}
+
+/* 命令框：等宽、可选中、深色模式下不刺眼 */
+.codebox{
+  width:100%;box-sizing:border-box;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:11.5px;line-height:1.7;resize:vertical;
+  background:var(--bg);color:var(--text-primary);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px;
+}
+textarea.inp{width:100%;box-sizing:border-box;resize:vertical;line-height:1.6}
+
+/* 快捷推送区 */
+.quick{
+  background:linear-gradient(180deg,var(--accent-soft),transparent);
+  border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;
+}
+.quick textarea{width:100%;box-sizing:border-box;resize:vertical;line-height:1.6}
+a{color:var(--accent-4)}
+code{
+  background:var(--intensity-6);padding:1px 5px;border-radius:4px;font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;
+}
+@media(max-width:560px){.inp,.sel,textarea{font-size:16px}}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="frame">
+  <div class="hrow" style="justify-content:space-between">
+    <div style="min-width:0">
+      <div class="hrow"><span class="title">推送配置中心</span><span class="tag t-loc">本地存储</span></div>
+      <div class="sub" style="margin-top:3px">运营商资费监控 · 移动/联通/电信/广电变化推送到钉钉 / 飞书 / 企微 / 邮箱</div>
+    </div>
+    <span class="sub" id="saveState">—</span>
+  </div>
+  <div class="hrow" style="margin-top:12px;gap:6px;background:var(--intensity-4);border-radius:10px;padding:10px 12px">
+    <span class="sub" style="line-height:1.7">🔒 本页无后端、无统计代码。密钥仅写入本设备浏览器 localStorage，不上传任何服务器；测试消息由浏览器直连官方接口发出。</span>
+  </div>
+  <div class="sec">
+    <div class="sect">推送渠道</div>
+    <div id="channels"></div>
+  </div>
+  <div class="sec">
+    <div class="sect">🎯 重点省份（抓取范围）</div>
+    <div class="chcard" style="padding:12px">
+      <div class="tiny" style="line-height:1.85;margin-bottom:10px">
+        点选你想盯的省份，<b>数量不限</b>。四家运营商（移动 / 联通 / 电信 / 广电）<b>通用</b>。<br>
+        「<b>全国</b>」板块<b>默认始终抓取</b>；点最前面的「全国」＝<b>一键选中全部省份</b>。
+      </div>
+      <div class="fld">
+        <label>点选省份（已选 <span id="fpCount">0</span> 个）</label>
+        <div id="fpPick" class="hrow" style="gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+        <button id="fpMore" class="pill" style="border-style:dashed">展开全部省份 ▼</button>
+        <div class="tiny" style="margin-top:8px;line-height:1.8">
+          实际抓取：<b>全国</b> + <span id="fpSel">—</span>
+        </div>
+      </div>
+      <div class="fld">
+        <label>推送模式</label>
+        <div id="nMode" class="hrow" style="gap:6px;flex-wrap:wrap;margin-top:4px"></div>
+        <div class="tiny" id="nModeTip" style="margin-top:8px;line-height:1.8"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sect">⚡ 快捷推送</div>
+    <div class="quick">
+      <div class="tiny" style="line-height:1.85;margin-bottom:10px">
+        <b>怎么用</b>：在<b>上面</b>打开开关、填好对应配置，然后点「<b>📋 复制命令</b>」，<b>粘贴到终端按回车</b>就发出去了。<br>
+        不想开终端？点「<b>浏览器直发</b>」（钉钉 / 飞书支持，点一下消息就到群里）。
+      </div>
+      <div class="fld"><label>标题（可留空）</label><input id="qTitle" class="inp" placeholder="资费变化通知" value="资费变化通知"></div>
+      <div class="fld"><label>内容</label><textarea id="qText" class="inp" rows="4" placeholder="要推送的内容，支持换行。留空则自动用站点最新资费数据。"></textarea></div>
+      <div class="hrow" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <button id="qCopy" class="btn pri">📋 复制命令</button>
+        <button id="qSend" class="btn">浏览器直发</button>
+        <span class="status" id="qStat" style="flex:1;min-width:120px"></span>
+      </div>
+      <textarea id="qCmd" class="codebox" rows="5" readonly style="margin-top:10px"></textarea>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sect">推送内容 · 实时预览</div>
+    <div class="chcard" style="padding:12px">
+      <div class="grid2">
+        <div class="fld"><label>统计时长（小时）</label><input id="sinceHours" class="inp" type="number" min="1" max="168" value="24"></div>
+        <div class="fld"><label>消息格式</label><select id="pushFmt" class="inp"><option value="detail" selected>明细（列关注省份）</option><option value="digest">汇总（只报总数）</option></select></div>
+      </div>
+      <div class="fld"><label>站点链接（消息末尾，可留空）</label><input id="siteUrl" class="inp" placeholder="https://..."></div>
+      <div class="hrow" style="margin-top:12px;gap:16px">
+        <label class="hrow" style="gap:6px;font-size:12px"><input type="checkbox" id="pushSkipEmpty" checked> 四家都无变化时不推送</label>
+      </div>
+      <div class="prev" style="margin-top:14px">
+        <div class="hrow" style="justify-content:space-between;margin-bottom:10px"><span class="sub" id="prevCh">—</span><span class="tiny">示例数据 · 改上面即时刷新</span></div>
+        <div class="bubble" id="prevBody">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sect">⏰ 每天自动定时推送</div>
+    <div class="tabbar">
+      <button id="tabCloud" class="tabbtn on">☁️ GitHub 云端</button>
+      <button id="tabDevice" class="tabbtn">🔧 自己设备</button>
+    </div>
+    <div class="chcard" style="padding:12px" id="panelCloud">
+      <div class="tiny" style="line-height:1.9;margin-bottom:10px">
+        <b>GitHub 云端</b>＝让 GitHub 网站替你 <b>24 小时挂定时任务</b>：电脑关机、手机不开终端，到点照样抓取并推送。<br>
+        本站站长已配好（每天 10:00 / 20:00 自动推）。<b>想自己接一套，三步搞定：</b>
+      </div>
+      <div class="stepw">
+        <div class="stept">第 1 步 · <b>Fork 仓库</b></div>
+        <div class="tiny">打开本站源码仓库 → 右上角点 <b>Fork</b>，复制一份到你自己账号。</div>
+      </div>
+      <div class="stepw" style="margin-top:8px">
+        <div class="stept">第 2 步 · <b>填密钥</b></div>
+        <div class="tiny">进你 Fork 的仓库 → <b>Settings → Secrets and variables → Actions → New repository secret</b>，把你在上方「推送渠道」填的 Webhook 按名添加（<code>DINGTALK_WEBHOOK</code> / <code>FEISHU_WEBHOOK</code> / <code>WECOM_WEBHOOK</code> / SMTP 系列等，只填你要用的）。</div>
+      </div>
+      <div class="stepw" style="margin-top:8px">
+        <div class="stept">第 3 步 · <b>开启自动推送</b></div>
+        <div class="tiny">点 <b>Actions</b> → 左侧选 <b>Tariff Notify</b> → <b>Enable workflow</b> → <b>Run workflow</b>，约 10 秒收到第一条消息，之后每天 10:00 / 20:00 自动推。</div>
+      </div>
+      <div class="tiny" style="margin-top:10px;line-height:1.8;color:var(--text-secondary)">
+        🔒 密钥只存你自己仓库的 Secrets，<b>加密存储、只写不读</b>，作者和其他人都看不到。
+      </div>
+    </div>
+    <div class="chcard" style="padding:12px;display:none" id="panelDevice">
+      <div class="tiny" style="line-height:1.9;margin-bottom:12px;color:var(--text-secondary)">
+        让你自己的设备到点自动推，<b style="color:var(--text-primary)">总共只复制下面「两条」</b>：<br>
+        ① <b>安装命令</b>（粘贴到终端按回车，自动下载脚本+写入你的配置+发一条测试消息）<br>
+        ② <b>定时行</b>（先运行 <code>crontab -e</code>，把生成的内容粘进去保存；每天可设 1~4 个推送时间点）
+      </div>
+      <div class="stepw">
+        <div class="stept">第 1 步（必做）· 复制安装命令 → 终端粘贴回车</div>
+      </div>
+      <button id="dCopy" class="btn pri" style="margin-top:8px">📋 复制「安装」命令</button>
+      <textarea id="dCmd" class="codebox" rows="5" readonly style="margin-top:8px"></textarea>
+      <div class="stepw" style="margin-top:14px">
+        <div class="stept">第 2 步（必做）· 先点下面红按钮复制并运行 <code>crontab -e</code>，再把定时行粘进去保存</div>
+      </div>
+      <button id="cronECopy" class="btn danger" style="margin-top:8px;width:100%;background:color-mix(in srgb,var(--destructive) 14%,transparent);border:1px solid var(--destructive);color:var(--destructive);font-weight:700">❗ 复制并运行 crontab -e（必须先做这一步）</button>
+      <div class="tiny" style="margin-top:6px;line-height:1.7;color:var(--destructive);font-weight:600">⚠ 必须先运行上面这条命令打开定时编辑器，把下面生成的定时行粘进去并保存，定时才会生效；不要跳过。</div>
+      <div class="fld" style="margin-top:8px">
+        <label>每天推送时间（点 ＋ 添加，最多 4 个）</label>
+        <div id="cronTimes"></div>
+        <div class="hrow" style="margin-top:8px;gap:8px">
+          <button id="cronAdd" class="btn">＋ 添加时间点</button>
+          <button id="cronCopy" class="btn pri" style="flex:1">📋 复制定时行</button>
+        </div>
+      </div>
+      <textarea id="cronCmd" class="codebox" rows="6" readonly style="margin-top:8px"></textarea>
+      <div class="tiny" style="margin-top:10px;line-height:1.8;color:var(--text-secondary)">
+        选定几个时间点，上面就会自动生成对应的几行定时命令。<br>
+        <b>OpenWrt 路由器</b>：先 <code>opkg update && opkg install cron</code> 装好定时器（在「系统 → 计划任务」里加同一段也行），再执行上面两步。<br>
+        密钥只写在你自己的设备上，<b>不上传任何服务器</b>。「GitHub 云端」和「自己在设备上」二选一即可，两边都配也行。
+      </div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sect">🛠 自己创建</div>
+    <div class="chcard" style="padding:12px">
+      <div class="tiny" style="line-height:1.9;margin-bottom:12px">
+        下载资费变化抓取的<b>全部源码</b>，自己部署、自己改。<br>
+        包含四家运营商的抓取管线、站点构建、汇总推送脚本，以及云端定时配置。
+      </div>
+      <a id="btnDl" class="btn pri" href="tariff-fetch-source.zip" download
+         style="display:inline-block;text-decoration:none;text-align:center">
+        ⬇ 下载源码压缩包
+      </a>
+      <div class="tiny" style="margin-top:10px;line-height:1.8;color:var(--text-secondary)">
+        约 100 KB · 含「怎么用.txt」说明<br>
+        数据文件不含在内，跑起来后自行生成
+      </div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sect">数据管理（全部本地）</div>
+    <div class="hrow" style="gap:8px">
+      <input id="importFile" type="file" accept=".json" class="hide">
+      <button id="importBtn" class="btn">导入配置</button>
+      <input id="importText" class="inp" style="flex:1;min-width:130px;height:30px" placeholder='粘贴 JSON 后点导入'>
+      <button id="importGo" class="btn">导入</button>
+      <button id="wipe" class="btn danger">清除本地数据</button>
+    </div>
+  </div>
+  <div class="tiny" style="margin-top:14px;line-height:1.9">
+    <b>为什么网页自己不能定时推送</b>：浏览器关掉就没法主动发消息，这是所有网页的安全机制，装成 App、打包成 APK 也绕不过。所以定时那一步交给上面选中的方式，本页负责「配置 + 测试」。
+  </div>
+</div>
+<div id="toasts" class="toasts"></div>
+<div id="modal" class="mbg hide"></div>
+</div>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const LS_KEY='tariffPushCfg.v1';
+let storageOK=true;
+const CH=[
+ {id:'dingtalk',name:'钉钉群机器人',icon:'D',color:'#00AACC',desc:'Webhook + 加签 Secret，浏览器可直连测试',
+  fields:[{k:'webhook',label:'Webhook 地址',ph:'https://oapi.dingtalk.com/robot/send?access_token=...',type:'text',req:1},
+   {k:'secret',label:'加签 Secret（机器人安全设置选「加签」时填）',ph:'SEC 开头，未启用加签可留空',type:'secret'},
+   {k:'keyword',label:'自定义关键词（安全设置选「关键词」时填）',ph:'如：资费，未设置可留空',type:'text'}]},
+ {id:'feishu',name:'飞书群机器人',icon:'F',color:'#3370FF',desc:'Webhook + 可选签名校验，浏览器可直连测试',
+  fields:[{k:'webhook',label:'Webhook 地址',ph:'https://open.feishu.cn/open-apis/bot/v2/hook/...',type:'text',req:1},
+   {k:'secret',label:'签名校验 Secret（未开启可留空）',ph:'开启「签名校验」后填',type:'secret'}]},
+ {id:'wecom',name:'企业微信群机器人',icon:'W',color:'#00B050',desc:'仅 Webhook；官方接口不允许浏览器跨域直连，实际推送由脚本执行',
+  fields:[{k:'webhook',label:'Webhook 地址',ph:'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...',type:'text',req:1}]},
+ {id:'email',name:'邮箱通知（SMTP）',icon:'@',color:'#E98B2A',desc:'发信需 SMTP 协议，浏览器无法直发；配置保存后由脚本发信',
+  fields:[{k:'host',label:'SMTP 服务器',ph:'smtp.qq.com / smtp.139.com',type:'text',req:1},
+   {k:'port',label:'端口',ph:'465（SSL）或 587（STARTTLS）',type:'text',req:1},
+   {k:'user',label:'发件账号',ph:'you@qq.com',type:'text',req:1},
+   {k:'pass',label:'授权码 / 密码',ph:'QQ 邮箱用授权码，非登录密码',type:'secret',req:1},
+   {k:'to',label:'收件邮箱',ph:'target@example.com',type:'text',req:1}]}
+];
+const PROV=[['全国','quanguo'],['北京','beijing'],['天津','tianjin'],['河北','hebei'],['山西','shanxi'],['内蒙古','neimenggu'],['辽宁','liaoning'],['吉林','jilin'],['黑龙江','heilongjiang'],['上海','shanghai'],['江苏','jiangsu'],['浙江','zhejiang'],['安徽','anhui'],['福建','fujian'],['江西','jiangxi'],['山东','shandong'],['河南','henan'],['湖北','hubei'],['湖南','hunan'],['广东','guangdong'],['广西','guangxi'],['海南','hainan'],['重庆','chongqing'],['四川','sichuan'],['贵州','guizhou'],['云南','yunnan'],['西藏','xizang'],['陕西','shaanxi'],['甘肃','gansu'],['青海','qinghai'],['宁夏','ningxia'],['新疆','xinjiang']];
+const DEF={dingtalk:{enabled:false,webhook:'',secret:'',keyword:''},feishu:{enabled:false,webhook:'',secret:''},wecom:{enabled:false,webhook:''},
+ email:{enabled:false,host:'',port:'465',user:'',pass:'',to:''},
+ push:{focus:'hunan',siteUrl:'https://woshiyigemanhuajia.github.io/hunan-tariff-site/',since:'24',fmt:'detail',skipEmpty:true,mode:'local',focusProvs:['hunan','guangdong','zhejiang'],notifyMode:'focus_auto'}};
+let cfg=JSON.parse(JSON.stringify(DEF));
+function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);CH.forEach(function(c){if(d[c.id])Object.assign(cfg[c.id],d[c.id])});if(d.push)Object.assign(cfg.push,d.push)}}catch(e){storageOK=false}}
+let saveTimer=null;
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{localStorage.setItem(LS_KEY,JSON.stringify(cfg));$('saveState').textContent='✓ 已保存到本设备';storageOK=true}catch(e){storageOK=false;$('saveState').textContent='暂存内存（无法写入本地）'}},300)}
+function toast(msg,cls){const box=$('toasts');while(box.children.length>=3)box.removeChild(box.firstChild);const d=document.createElement('div');d.className='toast '+(cls||'');d.textContent=msg;box.appendChild(d);setTimeout(function(){d.style.opacity='0';setTimeout(function(){if(d.parentNode)d.remove()},260)},3600)}
+function valid(ch,f){const v=(cfg[ch.id][f.k]||'').trim();if(!f.req)return true;if(!v)return false;if(f.k==='webhook'&&v.indexOf('https://')!==0)return false;if(f.k==='to'||f.k==='user'){if(v.indexOf('@')<1)return false}if(f.k==='port'&&!/^\d+$/.test(v))return false;return true}
+/* HMAC-SHA256 → Base64。key=keyStr, msg=msgStr
+   ★ 钉钉：key=secret,        msg=ts+"\n"+secret
+   ★ 飞书：key=ts+"\n"+secret, msg=""（两者算法不同，不可混用） */
+function signHmac(keyStr,msgStr){
+ return crypto.subtle.importKey('raw',new TextEncoder().encode(keyStr),{name:'HMAC',hash:'SHA-256'},false,['sign'])
+  .then(function(k){return crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msgStr))})
+  .then(function(buf){let s='';const u8=new Uint8Array(buf);for(let i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s)});
+}
+function setStat(id,cls,msg){const el=document.querySelector('[data-stat="'+id+'"]');if(!el)return;
+ el.className='status '+(cls==='ok'?'':cls==='err'?'':'');
+ el.style.color=cls==='ok'?'var(--success)':cls==='err'?'var(--destructive)':cls==='warn'?'var(--warning)':'var(--text-secondary)';
+ el.textContent=msg;}
+async function testSend(ch){
+ const c=cfg[ch.id];const bad=ch.fields.filter(function(f){return f.req&&!valid(ch,f)});
+ if(bad.length){bad.forEach(function(f){const el=document.querySelector('[data-fld="'+ch.id+'.'+f.k+'"]');if(el)el.classList.add('err')});setStat(ch.id,'err','请先补全必填项（已标红）');return}
+ setStat(ch.id,'run','发送中…');
+ if(ch.id==='email'){setStat(ch.id,'ok','✓ 校验通过。SMTP 由脚本发信（浏览器无 SMTP 协议），配置已存本地。');return}
+ if(ch.id==='wecom'){setStat(ch.id,'warn','企微接口禁止浏览器跨域，无法在此直连测试。配置已保存，导出给脚本后即可推送。');return}
+ const text=buildText(true);
+ try{
+  let url=c.webhook.trim(),body={},headers={'Content-Type':'application/json'};
+  if(ch.id==='dingtalk'){
+   if(c.secret.trim()){const ts=String(Date.now());const sign=await signHmac(c.secret.trim(),ts+'\n'+c.secret.trim());url+='&timestamp='+ts+'&sign='+encodeURIComponent(sign)}
+   body={msgtype:'text',text:{content:(c.keyword.trim()||'')+text}};
+  }else if(ch.id==='feishu'){
+   body={msg_type:'text',content:{text:text}};
+   if(c.secret.trim()){const ts=String(Math.floor(Date.now()/1000));const sign=await signHmac(ts+'\n'+c.secret.trim(),'');headers={'Content-Type':'application/json','X-Lark-Signature':sign,'X-Lark-Request-Timestamp':ts}}
+  }
+  let r;try{r=await fetch(url,{method:'POST',headers:headers,body:JSON.stringify(body)})}catch(e){throw new Error('BLOCKED')}
+  const j=await r.json().catch(function(){return{}});
+  const ok=ch.id==='wecom'?j.errcode===0:(j.errcode===0||j.StatusCode===0||j.code===0||r.ok);
+  if(ok)setStat(ch.id,'ok','✓ 已发出，请到群里查收');
+  else setStat(ch.id,'err','接口返回：'+(j.errmsg||j.msg||JSON.stringify(j)));
+ }catch(e){
+  if(String(e.message)==='BLOCKED')setStat(ch.id,'warn','当前环境禁止外部请求（预览沙箱）或接口不许浏览器直连。用浏览器直接打开本页可测钉钉/飞书。');
+  else setStat(ch.id,'err','失败：'+e.message);
+ }
+}
+function renderChannels(){
+ const box=$('channels');box.innerHTML='';
+ CH.forEach(function(ch){
+  const card=document.createElement('div');card.className='chcard';const c=cfg[ch.id];
+  card.innerHTML='<div class="chhead" data-ch="'+ch.id+'"><div class="logo" style="background:'+ch.color+'">'+ch.icon+'</div><div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:600">'+ch.name+'</div><div class="tiny" style="margin-top:2px">'+ch.desc+'</div></div><button class="sw'+(c.enabled?' on':'')+'" data-sw="'+ch.id+'" aria-label="启用开关"></button></div>'
+  +'<div class="chbody" data-body="'+ch.id+'" style="'+(c.enabled?'':'display:none')+'">'
+  +ch.fields.map(function(f){const v=c[f.k]||'';return '<div class="fld"><label>'+f.label+(f.req?' <span style="color:var(--destructive)">*</span>':'')+'</label><div class="iwrap"><input class="inp" data-fld="'+ch.id+'.'+f.k+'" data-type="'+f.type+'" type="'+(f.type==='secret'?'password':'text')+'" value="'+String(v).replace(/"/g,'&quot;')+'" placeholder="'+f.ph+'" autocomplete="off">'+(f.type==='secret'?'<button class="eyeb" data-eye="'+ch.id+'.'+f.k+'">显形</button>':'')+'</div></div>'}).join('')
+  +'<div class="testrow"><button class="btn pri" data-test="'+ch.id+'">'+(ch.id==='email'?'校验配置':'发送测试')+'</button><span class="status" data-stat="'+ch.id+'" style="flex:1;min-width:120px"></span></div></div>';
+  box.appendChild(card);
+ });
+}
+function bindChannels(){
+ $('channels').addEventListener('click',function(e){
+  const sw=e.target.closest('[data-sw]');
+  if(sw){const id=sw.dataset.sw;cfg[id].enabled=!cfg[id].enabled;sw.classList.toggle('on',cfg[id].enabled);document.querySelector('[data-body="'+id+'"]').style.display=cfg[id].enabled?'':'none';save();renderPrev();return}
+  const eye=e.target.closest('[data-eye]');
+  if(eye){const inp=document.querySelector('[data-fld="'+eye.dataset.eye+'"]');const show=inp.type==='password';inp.type=show?'text':'password';eye.textContent=show?'隐藏':'显形';return}
+  const t=e.target.closest('[data-test]');
+  if(t){testSend(CH.filter(function(c){return c.id===t.dataset.test})[0]);return}
+ });
+ $('channels').addEventListener('input',function(e){
+  const inp=e.target.closest('[data-fld]');if(!inp)return;
+  inp.classList.remove('err');const p=inp.dataset.fld.split('.');cfg[p[0]][p[1]]=inp.value;save();refreshQuick();
+ });
+}
+const SAMPLE=[{k:'移动',c:'🔵',a:340,r:284,m:1196,f:'无变化'},{k:'联通',c:'🟠',a:0,r:0,m:0,f:null},
+ {k:'电信',c:'🟢',a:7,r:8,m:0,f:'新增7 下架8 修改0'},{k:'广电',c:'🟣',a:5,r:1,m:1,f:'无变化'}];
+function provName(code){for(let i=0;i<PROV.length;i++){if(PROV[i][1]===code)return PROV[i][0]}return code}
+function buildText(isTest){
+ const p=cfg.push;const focus=provName((p.focus||'hunan').trim().toLowerCase());
+ if(isTest){
+  return '【资费监控】推送测试 ✓\n渠道连通正常，密钥未离开本设备。\n关注省份：'+focus+'，统计最近 '+(p.since||'24')+' 小时。';
+ }
+ const ta=SAMPLE.reduce(function(s,x){return s+x.a},0),tr=SAMPLE.reduce(function(s,x){return s+x.r},0),tm=SAMPLE.reduce(function(s,x){return s+x.m},0);
+ let body='';
+ if(p.fmt==='digest'){
+  body='四家合计：新增 '+ta+'、下架 '+tr+'、修改 '+tm;
+ }else{
+  body=SAMPLE.map(function(x){
+   const changed=(x.a||x.r||x.m);
+   let line=changed?(x.c+' '+x.k+'：新增 '+x.a+'、下架 '+x.r+'、修改 '+x.m):(x.c+' '+x.k+'：无变化');
+   if(x.f)line+='\n  └ '+focus+'：'+x.f;
+   return line;
+  }).join('\n');
+  body+='\n\n合计：新增 '+ta+'、下架 '+tr+'、修改 '+tm;
+ }
+ if(p.siteUrl&&p.siteUrl.trim())body+='\n\n'+p.siteUrl.trim();
+ return body;
+}
+function renderPrev(){
+ const en=CH.filter(function(c){return cfg[c.id].enabled});
+ $('prevCh').textContent=en.length?('推送至：'+en.map(function(c){return c.name.replace('群机器人','').replace('通知（SMTP）','(SMTP)')}).join('、')):'尚未启用任何渠道';
+ $('prevBody').textContent=buildText(false)+(cfg.push.skipEmpty?'\n\n（四家都无变化的日子里不打扰）':'');
+}
+function safeCfg(){const c=JSON.parse(JSON.stringify(cfg));CH.forEach(function(ch){ch.fields.forEach(function(f){if(f.type==='secret'&&c[ch.id][f.k])c[ch.id][f.k]='***已隐藏***'})});return c}
+function copy(text,okMsg){
+ const done=function(){toast(okMsg,'ok')};
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(function(){fb()})}else fb();
+ function fb(){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){toast('复制失败，请手动选择文本','err')}document.body.removeChild(ta)}
+}
+function envText(){return envPairs().map(function(x){return x[0]+'='+x[1]}).join('\n')}
+function secretsList(){
+ const L=[];const p=cfg.push;
+ if(cfg.dingtalk.enabled){L.push(['DINGTALK_WEBHOOK',cfg.dingtalk.webhook]);if(cfg.dingtalk.secret)L.push(['DINGTALK_SECRET',cfg.dingtalk.secret])}
+ if(cfg.feishu.enabled){L.push(['FEISHU_WEBHOOK',cfg.feishu.webhook]);if(cfg.feishu.secret)L.push(['FEISHU_SECRET',cfg.feishu.secret])}
+ if(cfg.wecom.enabled){L.push(['WECOM_WEBHOOK',cfg.wecom.webhook])}
+ if(cfg.email.enabled){[['SMTP_HOST',cfg.email.host],['SMTP_PORT',cfg.email.port],['SMTP_USER',cfg.email.user],['SMTP_PASS',cfg.email.pass],['MAIL_TO',cfg.email.to]].forEach(function(x){L.push(x)})}
+ L.push(['FOCUS_SEC',(fpList().length?fpList().join(','):(p.focus||'hunan'))]);L.push(['SINCE_HOURS',p.since||'24']);
+ if(p.siteUrl)L.push(['SITE_URL',p.siteUrl]);
+ return L;
+}
+function openModal(title,html,onReady){
+ const m=$('modal');
+ m.innerHTML='<div class="mcard"><div style="font-size:14px;font-weight:600;margin-bottom:10px">'+title+'</div>'+html+'</div>';
+ m.classList.remove('hide');
+ m.onclick=function(e){if(e.target===m)m.classList.add('hide')};
+ if(onReady)onReady(m);
+}
+function importCfg(text){
+ try{const d=JSON.parse(text);let n=0;CH.forEach(function(ch){if(d[ch.id]){Object.keys(cfg[ch.id]).forEach(function(k){if(typeof d[ch.id][k]!=='undefined'&&d[ch.id][k]!=='***已隐藏***'){cfg[ch.id][k]=d[ch.id][k];n++}})}});if(d.push)Object.assign(cfg.push,d.push);
+  localStorage.setItem(LS_KEY,JSON.stringify(cfg));renderChannels();renderPrev();syncRules();toast('已导入 '+n+' 项配置','ok')}
+ catch(e){toast('导入失败：JSON 格式错误','err')}
+}
+/* ===== 快捷推送 ===== */
+function qEnv(){
+ const P=envPairs();
+ return P.filter(function(x){return /^(DINGTALK|FEISHU|WECOM|SMTP|MAIL)/.test(x[0])});
+}
+function qCmdText(){
+ const t=($('qTitle').value||'资费变化通知').trim();
+ const body=($('qText').value||'').trim();
+ if(!qEnv().length)return '# 请先在上方「推送渠道」里启用至少一个并填好 Webhook';
+ const envs=qEnv().map(function(x){return shq(x[0]+'='+x[1])}).join(' ');
+ const base='cd ~/tariff-push 2>/dev/null || (mkdir -p ~/tariff-push && cd ~/tariff-push'
+   +' && '+dl('notify.py')+' && '+dl('push_once.py')+'); cd ~/tariff-push';
+ if(body){
+  return base+' && printf '+shq('%s\n')+' '+envs+' > .env'
+   +' && python3 notify.py --title '+shq(t)+' --text '+shq(body);
+ }
+ return base+' && printf '+shq('%s\n')+' '+envs+' > .env'
+  +' && python3 push_once.py';
+}
+function refreshQuick(){if($('qCmd'))$('qCmd').value=qCmdText()}
+$('qCopy').addEventListener('click',function(){refreshQuick();if(!$('qCmd').value.startsWith('#')){copy($('qCmd').value,'已复制，粘贴到终端按回车')}else{$('qStat').textContent='请先启用推送渠道并填好 Webhook';$('qStat').style.color='var(--destructive)'}});
+
+/* ===== 自己在设备上定时（路由器 / 电脑 / NAS）=====
+   第一条命令：装脚本 + 写入上方配置 + 发一条测试
+   第二条：crontab 定时行，由下方选定的 1~4 个时间点生成 */
+function devInstallCmd(){
+ if(!qEnv().length)return '# 请先在上方「推送渠道」里启用至少一个并填好 Webhook';
+ const envs=envPairs().map(function(x){return shq(x[0]+'='+x[1])}).join(' ');
+ const base='cd ~/tariff-push 2>/dev/null || (mkdir -p ~/tariff-push && cd ~/tariff-push'
+   +' && '+dl('notify.py')+' && '+dl('push_once.py')+'); cd ~/tariff-push';
+ return base+' && printf '+shq('%s\n')+' '+envs+' > .env'
+   +' && python3 push_once.py --test';
+}
+/* ===== 每天推送时间点（最多 4 个，自动生成多行 crontab） ===== */
+var cronTimes=['09:00'];
+function timeToCron(t){
+ const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);if(!m)return'';
+ const h=+m[1],mi=+m[2];if(h>23||mi>59)return'';
+ return mi+' '+h+' * * *';
+}
+function devCronLine(){
+ if(!qEnv().length)return '# 请先在上方启用并填好推送渠道';
+ const lines=cronTimes.map(function(t){
+  const c=timeToCron(t);
+  return c?(c+' cd ~/tariff-push && python3 push_once.py >> ~/tariff-push/cron.log 2>&1'):'';
+ }).filter(function(x){return x});
+ return lines.length?lines.join('\n'):'# 请至少选择一个推送时间';
+}
+function renderCronTimes(){
+ const box=$('cronTimes');box.innerHTML='';
+ cronTimes.forEach(function(t,i){
+  const row=document.createElement('div');
+  row.className='hrow';row.style.marginTop=(i?'6px':'0');row.style.gap='8px';
+  const inp=document.createElement('input');
+  inp.type='time';inp.className='inp';inp.style.flex='1';inp.value=t;
+  inp.addEventListener('input',function(){cronTimes[i]=inp.value||'09:00';refreshDevice()});
+  row.appendChild(inp);
+  const del=document.createElement('button');
+  del.className='btn';del.style.flex='none';del.textContent='✕';
+  del.addEventListener('click',function(){
+   if(cronTimes.length<=1){toast('至少保留一个时间点','err');return}
+   cronTimes.splice(i,1);renderCronTimes();refreshDevice();
+  });
+  row.appendChild(del);
+  box.appendChild(row);
+ });
+ if($('cronAdd'))$('cronAdd').disabled=cronTimes.length>=4;
+ $('cronCopy').textContent='📋 复制定时行'+(cronTimes.length>1?('（'+cronTimes.length+' 个时间点）'):'');
+}
+function addCronTime(){
+ if(cronTimes.length>=4){toast('最多 4 个推送时间点','err');return}
+ cronTimes.push('12:00');renderCronTimes();refreshDevice();
+}
+function refreshDevice(){
+ if($('dCmd'))$('dCmd').value=devInstallCmd();
+ if($('cronCmd'))$('cronCmd').value=devCronLine();
+}
+function switchTab(name){
+ const cloud=name==='cloud',dev=name==='device';
+ $('tabCloud').classList.toggle('on',cloud);
+ $('tabDevice').classList.toggle('on',dev);
+ $('panelCloud').style.display=cloud?'':'none';
+ $('panelDevice').style.display=dev?'':'none';
+}
+renderCronTimes();
+refreshDevice();
+$('dCopy').addEventListener('click',function(){refreshDevice();const v=$('dCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制，粘贴到终端执行')}});
+$('cronCopy').addEventListener('click',function(){refreshDevice();const v=$('cronCmd').value;if(v.startsWith('#')){toast('请先启用推送渠道并填好 Webhook','err')}else{copy(v,'已复制定时行，粘贴到 crontab 里')}});
+$('cronECopy').addEventListener('click',function(){copy('crontab -e','已复制 crontab -e，粘贴到终端按回车打开定时编辑器')});
+$('cronAdd').addEventListener('click',addCronTime);
+$('tabCloud').addEventListener('click',function(){switchTab('cloud')});
+$('tabDevice').addEventListener('click',function(){switchTab('device');refreshDevice()});
+$('qTitle').addEventListener('input',refreshQuick);
+$('qText').addEventListener('input',refreshQuick);
+async function qSend(){
+ const t=($('qTitle').value||'资费变化通知').trim();
+ const body=($('qText').value||'').trim()||'(内容为空，这是直发测试)';
+ const on=CH.filter(function(c){return cfg[c.id].enabled&&['dingtalk','feishu'].indexOf(c.id)>=0});
+ if(!on.length){$('qStat').textContent='直发仅支持钉钉/飞书，请先启用其中一个';$('qStat').style.color='var(--destructive)';return}
+ $('qStat').textContent='发送中…';$('qStat').style.color='var(--text-secondary)';
+ const text='【'+t+'】\n'+body;
+ let okc=[],errs=[];
+ for(const ch of on){
+  const c=cfg[ch.id];
+  try{
+   let url=c.webhook.trim(),body2={},headers={'Content-Type':'application/json'};
+   if(ch.id==='dingtalk'){
+    if(c.secret.trim()){const ts=String(Date.now());const sg=await signHmac(c.secret.trim(),ts+'\n'+c.secret.trim());url+='&timestamp='+ts+'&sign='+encodeURIComponent(sg)}
+    body2={msgtype:'text',text:{content:(c.keyword.trim()||'')+text}};
+   }else{
+    body2={msg_type:'text',content:{text:text}};
+    if(c.secret.trim()){const ts=String(Math.floor(Date.now()/1000));const sg=await signHmac(ts+'\n'+c.secret.trim(),'');headers={'Content-Type':'application/json','X-Lark-Signature':sg,'X-Lark-Request-Timestamp':ts}}
+   }
+   let r;try{r=await fetch(url,{method:'POST',headers:headers,body:JSON.stringify(body2)})}catch(e){throw new Error('BLOCKED')}
+   const j=await r.json().catch(function(){return{}});
+   if(j.errcode===0||j.StatusCode===0||j.code===0||r.ok)okc.push(ch.name);
+   else errs.push(ch.name+'：'+(j.errmsg||j.msg||'未知错误'));
+  }catch(e){
+   errs.push(ch.name+'：'+(String(e.message)==='BLOCKED'?'当前环境禁止外部请求，请用「生成命令」走终端':'发送失败'));
+  }
+ }
+ if(okc.length){$('qStat').textContent='✓ 已发给 '+okc.join('、');$('qStat').style.color='var(--success)'}
+ else{$('qStat').textContent=errs.join(' | ');$('qStat').style.color='var(--destructive)'}
+}
+$('qSend').addEventListener('click',qSend);
+
+/* ===== 生成可直接粘贴执行的命令 ===== */
+const CDN='https://cdn.jsdelivr.net/gh/WoShiYiGeManHuaJia/hunan-tariff-site@main/scripts/';
+const REPO_API='https://api.github.com/repos/WoShiYiGeManHuaJia/hunan-tariff-site/contents/scripts/';
+/* CDN 优先（不限速、国内快），失败自动回退 GitHub API */
+function dl(name){return '(curl -sS -m 60 -o '+name+' '+CDN+name+' || curl -sS -m 60 -H "Accept: application/vnd.github.raw" -H "User-Agent: pc" -o '+name+' '+REPO_API+name+')'}
+function shq(x){return "'"+String(x).replace(/'/g,"'\\''")+"'"}
+function envPairs(){
+ const L=[];const p=cfg.push;
+ if(cfg.dingtalk.enabled){if(cfg.dingtalk.webhook)L.push(['DINGTALK_WEBHOOK',cfg.dingtalk.webhook]);if(cfg.dingtalk.secret)L.push(['DINGTALK_SECRET',cfg.dingtalk.secret]);if(cfg.dingtalk.keyword)L.push(['DINGTALK_KEYWORD',cfg.dingtalk.keyword])}
+ if(cfg.feishu.enabled){if(cfg.feishu.webhook)L.push(['FEISHU_WEBHOOK',cfg.feishu.webhook]);if(cfg.feishu.secret)L.push(['FEISHU_SECRET',cfg.feishu.secret])}
+ if(cfg.wecom.enabled&&cfg.wecom.webhook){L.push(['WECOM_WEBHOOK',cfg.wecom.webhook])}
+ if(cfg.email.enabled){['host','port','user','pass','to'].forEach(function(k){const m={host:'SMTP_HOST',port:'SMTP_PORT',user:'SMTP_USER',pass:'SMTP_PASS',to:'MAIL_TO'};if(cfg.email[k])L.push([m[k],cfg.email[k]])})}
+ L.push(['FOCUS_SEC',(fpList().length?fpList().join(','):(p.focus||'hunan'))]);L.push(['SINCE_HOURS',p.since||'24']);
+ L.push(['SITE_URL',(p.siteUrl||'https://woshiyigemanhuajia.github.io/hunan-tariff-site/').trim()]);
+ return L;
+}
+function hasChannel(){return envPairs().some(function(x){return /^(DINGTALK|FEISHU|WECOM|SMTP|MAIL)/.test(x[0])})}
+function syncRules(){$('siteUrl').value=cfg.push.siteUrl||'';$('sinceHours').value=cfg.push.since||'24';$('pushFmt').value=cfg.push.fmt;$('pushSkipEmpty').checked=!!cfg.push.skipEmpty}
+load();
+renderChannels();bindChannels();syncRules();renderPrev();
+refreshQuick();
+$('saveState').textContent=storageOK?'✓ 已加载本地配置':'暂存内存（无法写入本地）';
+$('siteUrl').addEventListener('input',function(){cfg.push.siteUrl=this.value;save();renderPrev()});
+
+/* ===== 重点省份（抓取范围）=====
+   数量不限，四家通用。「全国」默认始终抓取；
+   面板最前的「全国」按钮＝一键全选所有省份。 */
+const NMODES=[
+ {k:'full_auto',  t:'(a) 全量定时推送',     tip:'每天 10:00 / 20:00 自动推送，抓取范围为<b>全部省份</b>。联通全量约 70 分钟，因此推送时间需排在抓取之后。'},
+ {k:'focus_auto', t:'(b) 重点省份定时推送', tip:'每天 10:00 / 20:00 自动推送，抓取<b>只跑你选的省份 + 全国</b>（约 7 分钟）。适合日常盯盘。'}
+];
+const FP_COMMON=['quanguo','hunan','guangdong','beijing','shanghai','zhejiang','jiangsu','sichuan'];
+let fpExpanded=false;
+function fpList(){return (cfg.push.focusProvs||[]).filter(function(c){return c&&c!=='quanguo'})}
+function fpNames(){return fpList().map(provName)}
+function fpAllCodes(){return PROV.filter(function(x){return x[1]!=='quanguo'}).map(function(x){return x[1]})}
+function fpRender(){
+ const box=$('fpPick');box.innerHTML='';
+ const all=fpAllCodes();
+ const isAll=all.length&&all.every(function(c){return fpList().indexOf(c)>=0});
+ const bAll=document.createElement('button');
+ bAll.className='pill'+(isAll?' on':'');bAll.style.borderStyle='solid';
+ bAll.textContent=isAll?'全国 ✓（已全选）':'全国（全选）';
+ bAll.onclick=function(){cfg.push.focusProvs=isAll?[]:all.slice();save();fpRender()};
+ box.appendChild(bAll);
+ PROV.forEach(function(x){
+  if(x[1]==='quanguo')return;
+  if(!fpExpanded && FP_COMMON.indexOf(x[1])<0 && fpList().indexOf(x[1])<0)return;
+  const b=document.createElement('button');
+  b.className='pill'+(fpList().indexOf(x[1])>=0?' on':'');
+  b.textContent=x[0];b.dataset.fp=x[1];
+  b.onclick=function(){const L=fpList();const i=L.indexOf(x[1]);if(i>=0){L.splice(i,1)}else{L.push(x[1])}cfg.push.focusProvs=L;save();fpRender()};
+  box.appendChild(b);
+ });
+ const n=fpList().length;
+ $('fpCount').textContent=n;
+ $('fpSel').textContent=n?fpNames().join('、'):'（未选，只抓全国）';
+ const more=$('fpMore');
+ more.textContent=fpExpanded?('收起 ▲'):('展开全部省份 ▼（共 '+all.length+' 个）');
+ more.onclick=function(){fpExpanded=!fpExpanded;fpRender()};
+ try{renderPrev()}catch(e){}
+ try{refreshQuick()}catch(e){}
+}
+function renderNMode(){
+ const box=$('nMode');box.innerHTML='';
+ NMODES.forEach(function(m){
+  const b=document.createElement('button');
+  b.className='pill'+(cfg.push.notifyMode===m.k?' on':'');
+  b.textContent=m.t;b.dataset.nm=m.k;
+  b.onclick=function(){cfg.push.notifyMode=m.k;save();renderNMode()};
+  box.appendChild(b);
+ });
+ const cur=NMODES.filter(function(m){return m.k===cfg.push.notifyMode})[0];
+ $('nModeTip').innerHTML=cur?cur.tip:'';
+}
+function syncFp(){
+ if(!cfg.push.notifyMode)cfg.push.notifyMode='focus_auto';
+ if(!Array.isArray(cfg.push.focusProvs))cfg.push.focusProvs=['hunan','guangdong','zhejiang'];
+ if(!cfg.push.focusProvs.length&&cfg.push.focus)cfg.push.focusProvs=[cfg.push.focus];
+ fpRender();renderNMode();
+}
+syncFp();
+$('sinceHours').addEventListener('input',function(){cfg.push.since=this.value;save();renderPrev()});
+$('pushFmt').addEventListener('change',function(){cfg.push.fmt=this.value;save();renderPrev()});
+$('pushSkipEmpty').addEventListener('change',function(){cfg.push.skipEmpty=this.checked;save();renderPrev()});
+$('wipe').addEventListener('click',function(){cfg=JSON.parse(JSON.stringify(DEF));try{localStorage.removeItem(LS_KEY)}catch(e){}renderChannels();syncRules();renderPrev();$('saveState').textContent='已清除';toast('本地数据已全部清除','ok')});
+$('importBtn').addEventListener('click',function(){$('importFile').click()});
+$('importFile').addEventListener('change',function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=function(){importCfg(r.result)};r.readAsText(f);this.value=''});
+$('importGo').addEventListener('click',function(){if($('importText').value.trim())importCfg($('importText').value)});
+
+/* 离线缓存（无安装引导，装不装由用户在浏览器菜单里决定） */
+if('serviceWorker' in navigator){
+ window.addEventListener('load',function(){
+  navigator.serviceWorker.register('./sw.js').catch(function(){/* 不支持则忽略 */});
+ });
+}
+})();
+</script>
+</body>
+</html>
