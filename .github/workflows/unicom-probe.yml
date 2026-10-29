@@ -1,0 +1,28 @@
+name: Unicom API Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Probe
+        run: python3 tools/probe.py
+      - name: Show
+        run: cat tools/probe_out.txt
+      - name: Commit
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git pull --rebase origin main || true
+          git add -f tools/probe_out.txt
+          git diff --cached --quiet || git commit -m "probe result $(date -u +%F_%H%M)"
+          for i in 1 2 3 4 5; do git push && break || (git pull --rebase origin main; sleep 3); done
