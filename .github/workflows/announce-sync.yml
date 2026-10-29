@@ -1,0 +1,172 @@
+name: Announce Sync
+
+# 公告单独同步 —— 与重量级 mobile-build 解耦。
+# 背景：公告挂在 mobile-build 里，随 32 板块全量抓取走（约 40 分钟），
+# 一天只有两轮，源站上午发的公告经常要等到晚上才同步。
+# 本流程只抓公告（60 条列表 + 15 条详情），1~2 分钟跑完，可高频执行。
+
+on:
+  schedule:
+    # 2026-10-19 实测：GitHub 定时任务整体延迟约 8 小时，且积压后会被
+    # 集中放行（当天 08:07~08:25 UTC 一口气补跑 4 次），整个上午的新增
+    # 公告要到下午才同步。改为每小时两个覆盖点，缩短最坏同步间隔。
+    - cron: "17 * * * *"
+    - cron: "47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 独立并发组：不被 mobile-build 的大抓取堵住
+concurrency:
+  group: announce-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 抓取公告（移动 + 联通）
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          # 记录抓取前的 id 集合，用于判断是否有新增
+          python3 - <<'PY'
+          import json, os
+          old = []
+          for p in ("data/announce.json", "unicom/data/announce.json"):
+              try:
+                  d = json.load(open(p, encoding="utf-8"))
+                  old += [x.get("id") for x in (d.get("items") or [])]
+              except Exception:
+                  pass
+          json.dump(sorted(set(str(x) for x in old if x)),
+                    open("/tmp/ann_old.json", "w"))
+          print("抓取前已有公告 id 数:", len(set(old)))
+          PY
+
+          # ★ 必须写仓库根 data/：announce_fetch.py 的 root 解析为 pipelines/，
+          #   传相对路径会写到 pipelines/site/data/ 下，该目录从不参与同步。
+          mkdir -p probe
+          python3 pipelines/scripts/announce_fetch.py \
+            --move-dir "$GITHUB_WORKSPACE/data" \
+            --uni-dir  "$GITHUB_WORKSPACE/unicom/data" \
+            2>&1 | tee probe/ann_fetch.log
+          echo "[抓取时刻] $(date -u +%FT%TZ)" >> probe/ann_fetch.log
+          echo "[文件状态] $(ls -l data/announce.json 2>&1)" >> probe/ann_fetch.log
+          echo "[git 状态] $(git status --porcelain 2>&1 | head -10)" >> probe/ann_fetch.log
+
+      - name: 日志回传（用 contents API，绕开 git 静默跳过）
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          F="probe/ann_fetch.log"
+          [ -f "$F" ] || printf 'LOG_MISSING\n' > "$F"
+          python3 - "$F" <<'PY'
+          import base64, json, os, sys, urllib.request
+          path = sys.argv[1]
+          tok = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          rid = os.environ.get("RUN_ID", "x")
+          target = "probe/ann_fetch_%s.log" % rid
+          content = base64.b64encode(open(path, "rb").read()).decode()
+          data = json.dumps({"message": "ann log %s" % target,
+                             "content": content}).encode()
+          req = urllib.request.Request(
+              "https://api.github.com/repos/%s/contents/%s" % (repo, target),
+              data=data, method="PUT",
+              headers={"Authorization": "token " + tok,
+                       "Accept": "application/vnd.github+json",
+                       "User-Agent": "ann-bot"})
+          try:
+              print("日志回传 HTTP", urllib.request.urlopen(req, timeout=60).status)
+          except Exception as e:
+              print("回传失败:", str(e)[:200])
+          PY
+
+      - name: 对比是否有新增公告
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          python3 - <<'PY'
+          import json, os
+          old = set(json.load(open("/tmp/ann_old.json")))
+          news = []
+          for prov, p in (("移动", "data/announce.json"),
+                          ("联通", "unicom/data/announce.json")):
+              try:
+                  d = json.load(open(p, encoding="utf-8"))
+              except Exception:
+                  continue
+              print("[%s] updated=%s count=%s" % (prov, d.get("updated"), d.get("count")))
+              for x in (d.get("items") or []):
+                  if str(x.get("id")) not in old:
+                      news.append("%s | %s | %s" % (
+                          prov, x.get("date"), str(x.get("title"))[:50]))
+          print("\n[新增公告] %d 条" % len(news))
+          for n in news[:12]:
+              print("  +", n)
+          if news:
+              lines = ["### 资费公告更新（%d 条）" % len(news), ""]
+              lines += ["- " + n for n in news[:12]]
+              if len(news) > 12:
+                  lines.append("- ...等共 %d 条" % len(news))
+              open("/tmp/ann_msg.md", "w").write("\n".join(lines))
+          PY
+
+      # 2026-10-19 用户要求：公告不再推送钉钉，只在页面公告栏内呈现，
+      # 由页面上的「刷新」按钮自助拉取最新公告。
+      - name: 提交（用 contents API，避免 git rebase 冲突导致静默丢失）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          python3 - <<'PY'
+          import base64, json, os, urllib.request
+          tok = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          HDR = {"Authorization": "token " + tok,
+                 "Accept": "application/vnd.github+json",
+                 "User-Agent": "ann-bot"}
+
+          def api_put(path, content_bytes, msg):
+              url = "https://api.github.com/repos/%s/contents/%s" % (repo, path)
+              sha = None
+              try:
+                  d = json.load(urllib.request.urlopen(
+                      urllib.request.Request(url, headers=HDR), timeout=60))
+                  sha = d.get("sha")
+              except Exception:
+                  pass
+              payload = {"message": msg,
+                         "content": base64.b64encode(content_bytes).decode()}
+              if sha:
+                  payload["sha"] = sha
+              req = urllib.request.Request(
+                  url, data=json.dumps(payload).encode(), method="PUT",
+                  headers=dict(HDR, **{"Content-Type": "application/json"}))
+              return urllib.request.urlopen(req, timeout=90).status
+
+          for path in ("data/announce.json", "unicom/data/announce.json"):
+              if not os.path.exists(path):
+                  print("跳过（不存在）", path)
+                  continue
+              raw = open(path, "rb").read()
+              try:
+                  st = api_put(path, raw, "announce: 同步公告数据")
+                  print("已写入 %s (HTTP %s, %d 字节)" % (path, st, len(raw)))
+              except Exception as e:
+                  print("写入失败 %s: %s" % (path, str(e)[:200]))
+          PY
