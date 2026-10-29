@@ -1,0 +1,74 @@
+name: SDHN11
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - run: pip install pycryptodome -q
+      - name: Encrypted call test
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, json, base64, os, re, time, gzip
+          from Crypto.Cipher import AES, PKCS1_v1_5
+          from Crypto.PublicKey import RSA
+          from Crypto.Util.Padding import pad
+          UA="Mozilla/5.0 (Linux; Android 13; SM-S9110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+          QP="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmUa6oMSBZrhfOjXCaYYIE9Lvj+r8nBIvCpydQmeG5CbeK5Qlwor+kFCrrPtcoYSowuUCB7YYsLYF6HVvf3Utw9FdLq7T8uNnfz2wxvp3N3Mif5Rbhs7skrMvfy83zl7g9a1Xgz4OxmYbrm70E08F4Hu5K+86x9Qo+k8hSnJ4mkfb/fFL1/Im1n+ip2dBJ+vZt6mq8GykuAxQm4pb1UZw37HtdSR3WnU9Li0gDvXdJ87DAP0r7xF2DfTAQiAKP+3mdwlbKZ8hM0W7Do/7w+fBaOi+GCFJKvNDNVuH7G1OaEUuQH1xr3hoYAgqMdKOZWlZH+wbNqyAOxPL9V5KLF/30wIDAQAB"
+          PUB=RSA.import_key(base64.b64decode(QP))
+          def gen_req_id():
+              import random
+              h=""; 
+              for i in range(32): h+="%x"%random.randint(0,15)
+              return h
+          def enc_body(obj):
+              key=os.urandom(16); iv=os.urandom(16)
+              ct=AES.new(key,AES.MODE_CBC,iv).encrypt(pad(json.dumps(obj,ensure_ascii=False).encode(),16))
+              inner=json.dumps({"key":base64.b64encode(key).decode(),"iv":base64.b64encode(iv).decode()},separators=(",",":"))
+              ek=PKCS1_v1_5.new(PUB).encrypt(inner.encode())
+              return {"param":base64.b64encode(ct).decode(),"key":base64.b64encode(ek).decode()}
+          def post(url,obj,timeout=25):
+              body=json.dumps(enc_body(obj),separators=(",",":")).encode()
+              h={"User-Agent":UA,"Content-Type":"application/json;charset=UTF-8","Accept":"application/json, text/plain, */*",
+                 "Origin":"https://www.189.cn","Referer":"https://www.189.cn/web/notice/index.html",
+                 "Fcode":"Y121043001","TransactionId":gen_req_id(),"Accept-Language":"zh-CN,zh;q=0.9"}
+              req=urllib.request.Request(url,data=body,headers=h,method="POST")
+              with urllib.request.urlopen(req,timeout=timeout) as r:
+                  raw=r.read()
+                  if r.headers.get("Content-Encoding")=="gzip": raw=gzip.decompress(raw)
+                  return r.status, raw.decode("utf-8","replace")
+          out=[]
+          # 1. ipLocation to learn provinceCode format
+          try:
+              req=urllib.request.Request("https://www.189.cn/wtBusiness/wtservice/nc/location/ipLocation.do",
+                  headers={"User-Agent":UA,"Accept":"application/json","Referer":"https://www.189.cn/web/notice/index.html","Fcode":"Y121043001","TransactionId":gen_req_id()})
+              with urllib.request.urlopen(req,timeout=20) as r: t=r.read().decode("utf-8","replace")
+              out.append("IPLOC: "+t[:400])
+          except Exception as e: out.append("IPLOC_ERR "+str(e))
+          REC="https://www.189.cn/wtBusiness/wtservice/nc/recPos/getRecPosInfo.do"
+          for pc in ["600203","43","hunan","HN","","074","CN43"]:
+              try:
+                  s,t=post(REC,{"shopId":"20001","type":"wt_sy_bzzx","floorType":"1","provinceCode":pc,"cityCode":""})
+                  out.append("REC prov=%r -> %s :: %s"%(pc,s,re.sub(r'\s+',' ',t[:300])))
+              except Exception as e: out.append("REC prov=%r ERR %s"%(pc,e))
+          # detail probe with a dummy offerCode later
+          txt="\n".join(out)
+          print(txt[:12000])
+          tok=os.environ.get("GH_TOKEN"); repo="WoShiYiGeManHuaJia/hunan-tariff-site"; path="logs/sdhn11.txt"
+          H={"Authorization":"token "+tok,"User-Agent":"x","Accept":"application/vnd.github+json"}
+          sha=None
+          try:
+              d=json.loads(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),headers=H),timeout=30).read()); sha=d.get("sha")
+          except Exception: pass
+          payload={"message":"sdhn11","content":base64.b64encode(txt.encode()).decode()}
+          if sha: payload["sha"]=sha
+          try:
+              urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/contents/%s"%(repo,path),data=json.dumps(payload).encode(),headers=H,method="PUT"),timeout=60).read()
+              print("WROTE_OK")
+          except Exception as e: print("WROTE_FAIL",e)
+          PYEOF
