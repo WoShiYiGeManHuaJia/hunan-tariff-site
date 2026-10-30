@@ -1,0 +1,60 @@
+name: dns-diag2
+on:
+  workflow_dispatch:
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 诊断并写结果
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          OUT=/tmp/result.txt
+          exec > >(tee -a $OUT) 2>&1
+          echo "===== Cloudflare zones ====="
+          curl -sS -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones?per_page=50" > /tmp/z.json
+          python3 - <<'PY'
+          import json,os,subprocess
+          CF=os.environ['CF']
+          zj=json.load(open('/tmp/z.json'))
+          if not zj.get('success'):
+              print('zone查询失败:', json.dumps(zj.get('errors'),ensure_ascii=False))
+              raise SystemExit
+          for z in zj['result']:
+              print(f"ZONE: {z['name']} | id={z['id']} | status={z['status']}")
+          print("===== hnvip 相关 DNS 记录 =====")
+          for z in zj['result']:
+              r=subprocess.run(['curl','-sS','-H',f'Authorization: Bearer {CF}','-H','Content-Type: application/json',
+                  f"https://api.cloudflare.com/client/v4/zones/{z['id']}/dns_records?per_page=300"],capture_output=True,text=True)
+              try: d=json.loads(r.stdout)
+              except: continue
+              if not d.get('success'): continue
+              for rec in d['result']:
+                  if 'hnvip' in rec['name'] or rec['name'].endswith('qd.je'):
+                      print(f"REC: zone={z['name']} type={rec['type']} name={rec['name']} content={rec['content']} proxied={rec.get('proxied')} id={rec['id']}")
+          PY
+          echo "===== 公网 dig ====="
+          echo "A: $(dig +short hnvip.qd.je A)"
+          echo "CNAME: $(dig +short hnvip.qd.je CNAME)"
+          echo "NS(qd.je): $(dig +short qd.je NS)"
+          echo "HTTP: $(curl -sS -o /dev/null -w '%{http_code} %{remote_ip}' -L --max-time 20 http://hnvip.qd.je)"
+      - name: 提交结果到仓库
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          cd /tmp && cp result.txt /tmp/res_out.txt
+          B64=$(base64 -w0 /tmp/res_out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/dns-result.txt" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('sha',''))")
+          if [ -z "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
+              -d "{\"message\":\"dns diag result\",\"content\":\"$B64\"}" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/dns-result.txt"
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
+              -d "{\"message\":\"dns diag result\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/dns-result.txt"
+          fi
+          echo "done"
