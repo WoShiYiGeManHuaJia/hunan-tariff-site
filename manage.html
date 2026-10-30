@@ -1395,37 +1395,7 @@ async function testPush(){
 }
 
 /* ---------- 一次性公告：每个版本只在每台设备弹一次 ---------- */
-var SITE_NOTICE = {
-  ver: "2026-10-28-push2",
-  badge: "重要提醒",
-  date: "2026-10-28",
-  title: "没配推送的号码，之后会被自动清理",
-  body:
-    '<span class="ntv">' + "重要提醒" + '</span>' +
-    '<div class="ntd">' + "2026-10-28" + '</div>' +
-    '<div class="ntwarn">' +
-      '<b>说明</b>：托管是免费的，但每个号码每天都要占后台资源去跑。' +
-      '<b>没配推送消息的号码，后台联系不上你</b>——签到出了问题也没法通知你。' +
-      '为防占用资源，这类号码<b>之后会自动清理</b>，现在说清楚，不搞突然袭击。' +
-    '</div>' +
-    '<div class="ntsec">有问题的号码（看看有没有你的）</div>' +
-    '<ul class="ntul">' +
-      "<li><b>157****51</b>、<b>136****72</b>：令牌已失效（每天续期失败 4006），结果也推不达——请<b>重新抓令牌提交</b></li>" +
-      "<li><b>198****05</b>：签到正常，但从没配过推送，结果没人收得到——请<b>配置推送</b></li>" +
-      "<li><b>152****57</b>、<b>147****57</b>、<b>175****65</b>：配的邮箱推送一直发不出去（163 邮箱 550，授权码不对）——请去 <b>163 邮箱网页版重新生成 SMTP 授权码</b>，再更新推送配置</li>" +
-    "</ul>" +
-    '<div class="ntsec">什么算"配好了推送"</div>' +
-    '<ul class="ntul">' +
-      "<li>在下面第 ④ 块「每日结果推送」里配好钉钉或邮箱</li>" +
-      "<li>点一次<b>测试推送</b>，真的收到一条，才算配好</li>" +
-    "</ul>" +
-    '<div class="ntsec">该怎么办</div>' +
-    '<ul class="ntul">' +
-      "<li>想继续托管的，<b>这几天尽快</b>把推送配好、测通</li>" +
-      "<li>配过但一直收不到的（尤其是邮箱），重新配一次；邮箱收不到多半是<b>授权码不对</b>，去邮箱网页版重新生成一个再填</li>" +
-      "<li>号码真被清了也不慌：重新抓令牌提交，随时能回来</li>" +
-    "</ul>"
-};
+var SITE_NOTICE = null;
 
 function ntKey(){ return "siteNotice__" + SITE_NOTICE.ver; }
 function ntClose(){
@@ -1434,6 +1404,7 @@ function ntClose(){
   try{ localStorage.setItem(ntKey(), "1"); }catch(e){}
 }
 function ntShow(){
+  if(!SITE_NOTICE){ return; }
   var m = document.getElementById("ntMask");
   if(!m){ return; }
   var t = document.getElementById("ntTitle");
