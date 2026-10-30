@@ -1,0 +1,43 @@
+name: dp-api2
+on:
+  workflow_dispatch:
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 用浏览器UA探 DigitalPlat API
+        env:
+          DP: ${{ secrets.DP_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+          for ep in \
+            "https://dash.domain.digitalplat.org/api/v1/domains" \
+            "https://dash.domain.digitalplat.org/api/domain/list" \
+            "https://dash.domain.digitalplat.org/api/v1/domain/list" \
+            "https://dash.domain.digitalplat.org/api/dns/list?domain=hnvip.qd.je" \
+            "https://dash.domain.digitalplat.org/api/v1/dns" ; do
+            echo "=== UA+Bearer GET $ep"
+            curl -sS -m 15 -A "$UA" -H "Authorization: Bearer $DP" \
+              -H "Accept: application/json" -H "Referer: https://dash.domain.digitalplat.org/" "$ep" 2>&1 | head -c 250
+            echo ""
+          done
+          echo "=== 试 token 作为 query/body ==="
+          curl -sS -m 15 -A "$UA" "https://dash.domain.digitalplat.org/api/v1/domains?api_key=$DP" 2>&1 | head -c 250
+          echo ""
+          echo "=== 试 POST ==="
+          curl -sS -m 15 -A "$UA" -X POST -H "Authorization: Bearer $DP" -H "Content-Type: application/json" \
+            -d '{"domain":"hnvip.qd.je"}' "https://dash.domain.digitalplat.org/api/v1/dns/list" 2>&1 | head -c 250
+          echo ""
+          echo "=== vip 子域当前解析 ==="
+          echo "vip.hnvip.qd.je -> [$(dig +short vip.hnvip.qd.je A | tr '\n' ' ')]"
+          echo "CNAME -> [$(dig +short vip.hnvip.qd.je CNAME | tr '\n' ' ')]"
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/dp2-result.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"dp2\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/dp2-result.txt" \
+          || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"dp2\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/dp2-result.txt"
+          echo done
