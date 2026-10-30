@@ -3463,24 +3463,24 @@ function psClose(){
   /* ---------- 站点一次性公告：每个版本只在每台设备弹一次 ---------- */
 var SITE_NOTICE = null; var SITE_NOTICES = [
   {
-    ver: "2026-10-27-signin-dev",
-    badge: "开发中",
-    date: "2026-10-27",
-    title: "正在开发：中国移动每日托管签到",
+    ver: "2026-10-30-shortlink-migration",
+    badge: "重要通知",
+    date: "2026-10-30",
+    title: "短链已更换，云盘配置需重新设置",
     body:
-      '<div class="nth">当前进度</div>' +
+      '<div class="nth">发生了什么</div>' +
       '<ul class="ntul">' +
-      "<li>正在开发<b>中国移动每日托管签到</b>功能</li>" +
-      "<li>目前处于<b>测试验证阶段</b>：主要验证能不能长期稳定运行，以及是否存在其他 bug</li>" +
-      "<li>测试完成就会正式上线</li>" +
+      "<li>之前的短链服务器<b>被封停</b>，已更换为新的短链</li>" +
+      "<li>由于数据做了<b>加密处理</b>，历史记录无法恢复</li>" +
+      "<li>需要你<b>重新配置云盘</b>才能继续使用</li>" +
       "</ul>" +
-      '<div class="nth">对你的影响</div>' +
+      '<div class="nth">你需要做的</div>' +
       '<ul class="ntul">' +
-      "<li>测试期间功能<b>可能随时调整</b>，请多包涵</li>" +
-      "<li>如遇到异常，可随时反馈</li>" +
+      "<li>重新打开云盘配置页，按提示<b>重新配置一次</b></li>" +
+      "<li>之后请改用<b>新的短链</b>访问，旧短链已失效</li>" +
       "</ul>"
   }
-];
+]
 
 function ntKey(n){ return "siteNotice__" + n.ver; }
 function ntRead(n){ try{ return localStorage.getItem(ntKey(n)) === "1"; }catch(e){ return false; } }
