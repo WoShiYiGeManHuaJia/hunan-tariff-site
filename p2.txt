@@ -1,0 +1,17 @@
+===== 部署验证 =====
+  https://hnvip.pages.dev/bm.js -> 200 7323
+    v2特征: 3
+  https://hnvip.pages.dev/manage.html -> 308 0
+    pages.dev引用: 0
+  https://hnvip.pages.dev/ -> 200 209303
+  https://hnvip.pages.dev/data/latest.json -> 200 13740
+    quanguo_total= 1548 prov_total= 44199 hunan_total= 1540
+===== Cloudflare Pages =====
+  account: 9156c2cae565fdf42d208827b523e47e
+    project: hnvip | hnvip.pages.dev | WoShiYiGeManHuaJia hunan-tariff-site main
+      build: {'build_command': '', 'destination_dir': '', 'root_dir': '', 'web_analytics_tag': None, 'web_analytics_token': None}
+    project: kebiao | kebiao-50p.pages.dev | WoShiYiGeManHuaJia kebiao-page main
+      build: {'build_command': '', 'destination_dir': '', 'root_dir': '', 'web_analytics_tag': None, 'web_analytics_token': None}
+    project: changes-in-carrier-pricing | hunan-tariff-site.pages.dev | WoShiYiGeManHuaJia hunan-tariff-site main
+      build: {'build_command': '', 'destination_dir': '', 'root_dir': '', 'web_analytics_tag': None, 'web_analytics_token': None}
+DONE
