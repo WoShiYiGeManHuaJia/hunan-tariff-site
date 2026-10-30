@@ -1,0 +1,57 @@
+name: zz-shortname
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 试短名 + Workers 能力
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          echo "===== 试建 Pages 短名 ====="
+          for N in hn66 hn99 hnnb hnvip2 hn-tariff; do
+            R=$(curl -sS -m 25 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+              -d "{\"name\":\"$N\",\"production_branch\":\"main\"}" \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects")
+            echo "$N -> $(echo $R | python3 -c "
+          import json,sys
+          try:
+            d=json.load(sys.stdin)
+            print('OK subdomain='+str(d['result'].get('subdomain')) if d.get('success') else 'FAIL '+json.dumps(d.get('errors'),ensure_ascii=False)[:150])
+          except Exception as e: print('parse err')
+          ")")
+          done
+          echo "===== Workers subdomain ====="
+          curl -sS -m 25 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/subdomain" | head -c 300
+          echo ""
+          echo "===== 试建 Worker (反代) ====="
+          cat > /tmp/w.js <<'JS'
+          export default {
+            async fetch(request) {
+              const url = new URL(request.url);
+              const target = "https://hunan-tariff-site.pages.dev" + url.pathname + url.search;
+              const r = await fetch(target, { method: request.method, headers: request.headers, body: request.body });
+              return new Response(r.body, { status: r.status, headers: r.headers });
+            }
+          };
+          JS
+          curl -sS -m 30 -X PUT -H "Authorization: Bearer $CF" \
+            -H "Content-Type: application/javascript" --data-binary @/tmp/w.js \
+            "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/hn66" | head -c 400
+          echo ""
+          echo "===== 试启用 workers.dev ====="
+          curl -sS -m 25 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            -d '{"enabled":true}' "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/hn66/subdomain" | head -c 300
+          echo ""
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/short.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"short\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/short.txt" \
+          || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"short\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/short.txt"
+          echo done
