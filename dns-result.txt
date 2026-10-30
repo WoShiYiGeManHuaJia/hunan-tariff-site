@@ -1,13 +1,13 @@
 ===== Cloudflare zones =====
 ===== hnvip 相关 DNS 记录 =====
 ===== 公网 dig =====
-A: 185.199.110.153
-185.199.109.153
-185.199.108.153
+A: 185.199.109.153
 185.199.111.153
+185.199.110.153
+185.199.108.153
 CNAME: 
-NS(qd.je): ns2.digitalplat.org.
-ns1.digitalplat.org.
+NS(qd.je): ns3.digitalplat.org.
 ns4.digitalplat.org.
-ns3.digitalplat.org.
-HTTP: 404 185.199.111.153
+ns1.digitalplat.org.
+ns2.digitalplat.org.
+HTTP: 404 185.199.108.153
