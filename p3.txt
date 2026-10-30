@@ -1,0 +1,53 @@
+online / size: 209303
+online head:
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-op="mobile">
+<head>
+<!-- SW-KILL: 注销旧 Service Worker 并清空本地缓存（旧 SW 缓存优先会把旧页面锁死） -->
+<script>
+(function(){
+  try{
+    if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
+===== 线上是否读 quanguo_total =====
+  quanguo_total : 2
+  prov_total : 1
+  hunan_total : 4
+  prov_stats : 5
+  def_dist : 0
+  sections : 5
+  latest.json : 3
+  announce.json : 3
+===== 仓库 main 的 index.html =====
+repo index size: 209303
+md5 online: a1c7faf20471ce847dfd0d9f40185f93
+md5 repo  : a1c7faf20471ce847dfd0d9f40185f93
+===== _headers =====
+# 2026-10-19 修正：此前把 *.json 设成 no-store，导致浏览器完全不缓存，
+# 切一次省份就要重新下载 2~5MB（data/ 合计 52.5MB），页面严重卡顿。
+# 现改为分级：
+#   HTML  —— no-cache：每次向服务器验证，页面本身永远拿最新（304 时几乎零流量）
+#   大 JSON —— 允许浏览器缓存 1 天；更新靠 URL 上的「按天版本号」_d=YYYYMMDD 触发
+#   小 JSON —— 由前端用 _t=时间戳 请求并 no-store，不依赖此处
+/*.html
+  Cache-Control: no-cache
+
+/*.json
+  Cache-Control: public, max-age=86400
+
+/
+  Cache-Control: no-cache
+
+# 2026-10-20 补：APK 之前没匹配任何规则，Pages 按默认 10 分钟缓存静态资源，
+# 导致仓库里已是新包、用户下载的却是旧包。这里让 APK 每次都向源站验证。
+/*.apk
+  Cache-Control: no-cache, must-revalidate, max-age=0
+
+# 2026-10-22 补：网络诊断探针必须每次真实走网络，否则命中缓存就拿不到
+# DNS / TCP / 首包 这些分段耗时了。
+/probe.txt
+  Cache-Control: no-store, must-revalidate, max-age=0
+
+===== manage.html 跳转 =====
+manage: 308 -> https://hnvip.pages.dev/manage
+bm.js: 200
+DONE
