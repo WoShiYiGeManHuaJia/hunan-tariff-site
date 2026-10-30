@@ -1,0 +1,20 @@
+=== 部署详情 ===
+ id: eadcc3bd | url: https://eadcc3bd.hnvip.pages.dev
+  stage: {"name": "deploy", "started_on": null, "ended_on": "2026-10-30T03:55:57.950509Z", "status": "success"}
+  stages: ['queued:active', 'initialize:idle', 'clone_repo:idle', 'build:idle', 'deploy:success']
+ id: a1ecd048 | url: https://a1ecd048.hnvip.pages.dev
+  stage: {"name": "deploy", "started_on": null, "ended_on": "2026-10-30T03:49:34.860831Z", "status": "success"}
+  stages: ['queued:active', 'initialize:idle', 'clone_repo:idle', 'build:idle', 'deploy:success']
+=== 访问 deployment url ===
+eadcc3bd -> 500
+=== 完整响应头 ===
+HTTP/2 500 
+date: Fri, 30 Oct 2026 03:59:34 GMT
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=TqD%2Bvwmuf6vxX%2BYvlkPTxYzNYVVmyFjnaXW9kkSokMzG15ChKaJr18wyhJ7bqojL1tnXsX2Jhd0znEnkDbRvpsth3A5siCJpGpzIKNtlLIjc0PaMapwQmkBo5WaPFGqLsAQ%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: a527820dec1d6a29-LAX
+alt-svc: h3=":443"; ma=86400
+
+=== 对比 hunan-tariff-site ===
+old -> 200
