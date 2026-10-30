@@ -3484,7 +3484,11 @@ var SITE_NOTICE = null; var SITE_NOTICES = [
       "<li>打开新地址后，进入云盘配置页<b>重新配置一次</b></li>" +
       "</ul>"
   }
-] for(var i=0;i<SITE_NOTICES.length;i++){ if(!ntRead(SITE_NOTICES[i])) out.push(SITE_NOTICES[i]); } return out; }
+];
+
+function ntKey(n){ return "siteNotice__" + n.ver; }
+function ntRead(n){ try{ return localStorage.getItem(ntKey(n)) === "1"; }catch(e){ return false; } }
+function ntPending(){ var out=[]; for(var i=0;i<SITE_NOTICES.length;i++){ if(!ntRead(SITE_NOTICES[i])) out.push(SITE_NOTICES[i]); } return out; }
 function ntClose(){
   var m = document.getElementById("ntMask");
   if(m){ m.classList.remove("on"); }
