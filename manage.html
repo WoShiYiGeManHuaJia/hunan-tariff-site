@@ -526,21 +526,23 @@ async function getResult(){
 }
 var _t0=0;
 async function run(type,payload,timeoutMs,label){
-  log("① 提交「"+label+"」到后台…","i");
+  log("① 提交「"+label+"」到后台…（通常 10~20 秒）","i");
   var ok=await dispatch(type,payload);
   if(!ok){ log("✗ 提交失败（网络或仓库配置问题）","e"); return null; }
   var before=null,r0=await getResult(); if(r0) before=r0.ts+"|"+r0.type;
-  var t0=Date.now(),limitMs=timeoutMs||150000,tick=null;
+  var t0=Date.now(),limitMs=timeoutMs||60000,tick=null;
   waitStart(t0);
-  tick=setInterval(waitUpd,1000);
+  tick=setInterval(waitUpd,500);
   try{
+    var first=true;
     while(Date.now()-t0<limitMs){
-      await sleep(5000);
+      await sleep(first?1200:1800); first=false;
       var r=await getResult();
       if(r&&(r.ts+"|"+r.type)!==before&&r.type===type){ waitEnd(); clearInterval(tick); return r; }
     }
     waitEnd(); clearInterval(tick);
-    log("✗ 超时未拿到结果（后台可能仍在跑，稍后刷新查看）","e"); return null;
+    log("✗ 超时未拿到结果（后台可能仍在跑）","e");
+    log("  提示：点上方「刷新」确认是否已生效，或稍后重试","i"); return null;
   } catch(e){ waitEnd(); clearInterval(tick); throw e; }
 }
 
