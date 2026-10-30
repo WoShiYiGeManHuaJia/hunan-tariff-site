@@ -1,0 +1,31 @@
+name: zz-final
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 全站验证
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          echo "=== 页面 ==="
+          for p in "" index.html manage.html cmcc.html t.html termux.html xmwallet.py; do
+            echo "/$p -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/$p 2>&1)"
+          done
+          echo "=== 数据 ==="
+          for p in data/summary.json data/latest.json; do
+            echo "/$p -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/$p 2>&1)"
+          done
+          echo "=== 标题 ==="
+          curl -sS -L --max-time 30 https://hnvip.pages.dev/ 2>&1 | grep -o '<title>[^<]*</title>' | head -1
+          echo "=== 资费数据新鲜度 ==="
+          curl -sS -L --max-time 30 https://hnvip.pages.dev/data/latest.json 2>&1 | head -c 200
+          echo ""
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/final.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"final\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/final.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"final\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/final.txt"
+          echo done
