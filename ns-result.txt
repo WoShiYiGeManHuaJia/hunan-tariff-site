@@ -1,0 +1,41 @@
+===== hnvip.qd.je NS =====
+dns2.digitalplat.org.
+dns1.digitalplat.org.
+===== qd.je SOA =====
+ns1.dpdns.org. admin.dpdns.org. 2026154599 600 180 1209600 300
+===== dig +trace hnvip.qd.je =====
+je.			172800	IN	NS	dns4.nominetdns.uk.
+je.			86400	IN	DS	19054 8 2 051F21016E36C0DC46DA9437C9F5975A95BF6B0B85E9E8BF53F49930 EB65E90D
+je.			86400	IN	RRSIG	DS 8 1 86400 20261111210000 20261029200000 8763 . ufLqVDxHQQJHV5XmYrs+awav2g6qZBYPLUra4OuJqGQbR2uxOEqfkwg/ YToVwBS1IokyIRQHw/zq3IOXzP2q+YEuSEi074oxz56ObFmnuAyN79Oy Wb6FBD4RnL8U5ot+BgDq8heacnllN48cKPZA7zWHNbXz/TR9jKscDi5J RJN3F0XaZ9R9X630EplCEa8gB+DvpuUWrNHSq8mDRCS2LlbG05HuZDqh dZ8oBn68ec7VYg4RDT6byAaCcmTfwW8JEyp2Q4EOLlTMstkMeBLA3qdr M0KHI7h3GdI5joMjAt9+dp9UNR3zPf53zcBdrOVwesyh3PlHQChBeCHi e2HvRg==
+;; Received 788 bytes from 192.203.230.10#53(e.root-servers.net) in 3 ms
+
+qd.je.			86400	IN	NS	ns1.digitalplat.org.
+qd.je.			86400	IN	NS	ns2.digitalplat.org.
+qd.je.			86400	IN	NS	ns3.digitalplat.org.
+qd.je.			86400	IN	NS	ns4.digitalplat.org.
+bn313d12bbv2dqb2sobt9vqevkoq3p62.je. 86400 IN NSEC3 1 1 0 - BP0DSDNQB9BI81AMF85LMPAG2APR62HS NS SOA TXT RRSIG DNSKEY NSEC3PARAM CDS CDNSKEY TYPE65534
+bn313d12bbv2dqb2sobt9vqevkoq3p62.je. 86400 IN RRSIG NSEC3 8 2 86400 20261128201842 20261024195356 24063 je. KxjDXLU6WPJlaHhLJ15XNx3sAouo4N/tcPzqGqaeG9LBxURfdyurqHSd HxO/1DfBqnPmGxldBQGHXyWURiDVTudPue1COtxl1C2O4RN2JHI/KJTQ FLI2b9omuNrU1/lNqyKlEE+Io547MmTZ8L//QAumVBVXVsf2vW8cdJoC 3UUmOVmsNSKPgQmUsNhBLgUSD0tQI3iOPbIiXnxWppxoHpsD4zHdqydu ep4onIlyhQMQPrRXdIgIxAwo9xL3uyn5TUQmqtUBVBCMCVeyWrvivS3J 0hAuzIGmgS99K8B+bc0L9VOUN5nNHJJDl7s3WNlT77SWbILz9g+Y7h7K 0OryPA==
+de7d0vr1lp3hmt3bc97fuhu3f69o940m.je. 86400 IN NSEC3 1 1 0 - DEF08HQ8SOO8RP5T2413KTJ68L9UEVVU NS DS RRSIG
+de7d0vr1lp3hmt3bc97fuhu3f69o940m.je. 86400 IN RRSIG NSEC3 8 2 86400 20261128174856 20261024172251 24063 je. JPjwK6i/Or25gVoib8KtSeTzThD8jCNfYAIbgsj7b0kpaHm4Mk9cE+zw OWiOhwp6I70d+cj66w0rD+8cSZ3aFZ+f6oL9HS0AWDj0ba51r9S7FEN4 UE9lnIJFRVP3YF9Rh6A2NvKL8UDBxtjxgsQ6FAjQNrevYvWJrHanMkcR O6XtXRysRHziAn9+o7t6aYxkxTqwg2X3YEXiCKlXct86fO5hSsGTor7T FRQke15c5zTh2XoppPFDiULM1ukvikOMu5lhivu3S+wINGScmN6Sy25h qH+5wxIpBs0PYmaATEJJXT20Le0wid7oy9sf/QDGytigboHlN/qlxjXU 9gyxuA==
+;; Received 901 bytes from 103.49.83.254#53(dns2.nominetdns.uk) in 200 ms
+
+hnvip.qd.je.		3600	IN	NS	dns1.digitalplat.org.
+hnvip.qd.je.		3600	IN	NS	dns2.digitalplat.org.
+;; Received 121 bytes from 104.168.62.90#53(ns2.digitalplat.org) in 19 ms
+
+hnvip.qd.je.		300	IN	A	185.199.111.153
+hnvip.qd.je.		300	IN	A	185.199.110.153
+hnvip.qd.je.		300	IN	A	185.199.109.153
+hnvip.qd.je.		300	IN	A	185.199.108.153
+;; Received 104 bytes from 192.9.243.240#53(dns1.digitalplat.org) in 68 ms
+
+===== 子域探测(是否已解析) =====
+www.hnvip.qd.je -> []
+vip.hnvip.qd.je -> []
+panel.hnvip.qd.je -> []
+t.hnvip.qd.je -> []
+cmcc.hnvip.qd.je -> []
+===== Cloudflare zones =====
+success: True
+===== CF user/token verify =====
+{"result":{"id":"a04d27a3db7245d205abd17d67ad8eb7","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
