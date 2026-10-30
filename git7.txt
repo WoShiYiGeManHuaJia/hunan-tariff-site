@@ -1,0 +1,48 @@
+=== 删除 hnvip ===
+{
+  "result": null,
+  "success": true,
+  "errors": [],
+  "messages": []
+}
+
+=== 重建 hnvip (GitHub 源) ===
+{
+  "result": {
+    "id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "name": "hnvip",
+    "subdomain": "hnvip.pages.dev",
+    "domains": [
+      "hnvip.pages.dev"
+    ],
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "WoShiYiGeManHuaJia",
+        "owner_id": "317776016",
+        "repo_name": "hunan-tariff-site",
+        "repo_id": "1438392194",
+        "production_branch": "main",
+        "pr_comments_enabled": true,
+        "deployments_enabled": true,
+        "production_deployments_enabled": true,
+        "preview_deployment_setting": "all",
+        "preview_branch_includes": [
+          "*"
+        ],
+        "preview_branch_excludes": [],
+        "path_inclu
+=== 触发部署 ===
+{
+  "result": {
+    "id": "15636011-1aa6-4a5f-97a5-8cb920622304",
+    "short_id": "15636011",
+    "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "project_name": "hnvip",
+    "environment": "production",
+    "url": "https://15636011.hnvip.pages.dev",
+    "created_on": "2026-10-30T04:05:45.709068Z",
+    "modified_on": "2026-10-30T04:05:45.709068Z",
+    "latest_stage": {
+      "name": "que
+hnvip -> 200
