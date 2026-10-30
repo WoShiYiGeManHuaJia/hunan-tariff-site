@@ -1,0 +1,27 @@
+name: zz-chk3
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 最终验证
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          echo "hnvip -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/ 2>&1)"
+          echo "index -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/index.html 2>&1)"
+          echo "manage -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/manage.html 2>&1)"
+          echo "cmcc -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/cmcc.html 2>&1)"
+          echo "t -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/t.html 2>&1)"
+          echo "termux -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/termux.html 2>&1)"
+          echo "data -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/data/summary.json 2>&1)"
+          echo "--- title ---"
+          curl -sS -L --max-time 30 https://hnvip.pages.dev/ 2>&1 | grep -o '<title>[^<]*</title>' | head -1
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/chk3.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"chk3\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk3.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"chk3\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk3.txt"
+          echo done
