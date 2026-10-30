@@ -1,0 +1,41 @@
+name: zz-short3
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 试建短名 Pages 项目
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          echo "=== token verify ==="
+          curl -sS -m 20 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/user/tokens/verify" | head -c 400
+          echo ""
+          echo "=== permission groups ==="
+          curl -sS -m 20 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/user/tokens/verify" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          try:
+            for k,v in (d.get('result',{}).get('policies') or [{}])[0].get('permission_groups',{}).items() if isinstance(d.get('result',{}).get('policies'),list) else {}: pass
+            print(json.dumps(d.get('result',{}),ensure_ascii=False)[:600])
+          except Exception as e: print('err',e)
+          "
+          echo ""
+          for N in hn66 hn99 hnnb hnvip hn8 hn01; do
+            echo "--- try $N"
+            curl -sS -m 25 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+              -d "{\"name\":\"$N\",\"production_branch\":\"main\"}" \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects" | head -c 350
+            echo ""
+          done
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/short3.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"short3\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/short3.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"short3\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/short3.txt"
+          echo done
