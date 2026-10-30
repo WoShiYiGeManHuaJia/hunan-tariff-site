@@ -1,0 +1,38 @@
+name: dp-dns
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 探 DigitalPlat DNS API
+        env:
+          DP: ${{ secrets.DP_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          echo "===== 探端点 ====="
+          for ep in \
+            "https://dash.domain.digitalplat.org/api/v1/domains" \
+            "https://dash.domain.digitalplat.org/api/domains" \
+            "https://dash.domain.digitalplat.org/api/dns" \
+            "https://api.digitalplat.org/v1/domains" \
+            "https://dash.domain.digitalplat.org/api/user/domains" ; do
+            echo "--- GET $ep"
+            curl -sS -m 15 -H "Authorization: Bearer $DP" -H "Accept: application/json" "$ep" 2>&1 | head -c 300
+            echo ""
+          done
+          echo "===== 带 apikey 头 ====="
+          for ep in "https://dash.domain.digitalplat.org/api/v1/domains" "https://dash.domain.digitalplat.org/api/dns/records?domain=hnvip.qd.je"; do
+            echo "--- X-API-Key: $ep"
+            curl -sS -m 15 -H "X-API-Key: $DP" -H "Accept: application/json" "$ep" 2>&1 | head -c 300
+            echo ""
+          done
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/dp-result.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"dp result\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/dp-result.txt" \
+          || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"dp result\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/dp-result.txt"
+          echo done
