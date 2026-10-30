@@ -3463,28 +3463,25 @@ function psClose(){
   /* ---------- 站点一次性公告：每个版本只在每台设备弹一次 ---------- */
 var SITE_NOTICE = null; var SITE_NOTICES = [
   {
-    ver: "2026-10-30-shortlink-migration-v2",
+    ver: "2026-10-30-service-migration-v3",
     badge: "重要通知",
     date: "2026-10-30",
-    title: "网址已更换，云盘配置需重新设置",
+    title: "服务已迁移，云盘配置需重新设置",
     body:
       '<div class="nth">发生了什么</div>' +
       '<ul class="ntul">' +
-      "<li>之前的服务器<b>被封停</b>，已更换为新的网址</li>" +
+      "<li>之前的服务器<b>被封停</b>，已迁移到新的服务</li>" +
       "<li>由于数据做了<b>加密处理</b>，历史记录救不回来</li>" +
       "<li>需要你<b>重新配置云盘</b>才能继续使用</li>" +
       "</ul>" +
-      '<div class="nth">新的访问地址</div>' +
+      '<div class="nth">对你的影响</div>' +
       '<ul class="ntul">' +
-      '<li><a href="https://hnvip.pages.dev" target="_blank" rel="noopener" style="font-weight:700;word-break:break-all;color:#06c">https://hnvip.pages.dev</a></li>' +
-      "<li>请<b>收藏这个新地址</b>，旧地址已失效</li>" +
-      "</ul>" +
-      '<div class="nth">你需要做的</div>' +
-      '<ul class="ntul">' +
-      "<li>打开新地址后，进入云盘配置页<b>重新配置一次</b></li>" +
+      "<li>之前的配置和数据<b>已失效</b></li>" +
+      "<li>进入云盘配置页<b>重新配置一次</b>即可恢复使用</li>" +
+      "<li>给各位带来不便，非常抱歉</li>" +
       "</ul>"
   }
-];
+]
 
 function ntKey(n){ return "siteNotice__" + n.ver; }
 function ntRead(n){ try{ return localStorage.getItem(ntKey(n)) === "1"; }catch(e){ return false; } }
