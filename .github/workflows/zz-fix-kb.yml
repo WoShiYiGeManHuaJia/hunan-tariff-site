@@ -1,0 +1,50 @@
+name: zz-fix-kb
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 清理多余项目 + 重建 kebiao
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          echo "=== 清理多余 ==="
+          for N in hn66 hn99 hnnb; do
+            echo "$N: $(curl -sS -m 20 -X DELETE -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/$N" | python3 -c "import json,sys;print(json.load(sys.stdin).get('success'))" 2>&1)"
+          done
+          echo "=== 删除 kebiao ==="
+          curl -sS -m 20 -X DELETE -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/kebiao" | python3 -c "import json,sys;print('del:',json.load(sys.stdin).get('success'))"
+          sleep 8
+          echo "=== 重建 kebiao (GitHub 源 kebiao-page) ==="
+          curl -sS -m 30 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" -d '{
+            "name":"kebiao",
+            "production_branch":"main",
+            "source":{"type":"github","config":{"owner":"WoShiYiGeManHuaJia","repo_name":"kebiao-page","production_branch":"main","pr_comments_enabled":true,"deployments_enabled":true,"production_deployments_enabled":true,"preview_deployment_setting":"all","preview_branch_includes":["*"],"preview_branch_excludes":[],"path_includes":["*"],"path_excludes":[]}},
+            "build_config":{"build_command":"","destination_dir":"","root_dir":""}
+          }' "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if d.get('success'): print('created, subdomain:', d['result'].get('subdomain'))
+          else: print('err:', json.dumps(d.get('errors'),ensure_ascii=False)[:300])
+          "
+          sleep 5
+          curl -sS -m 30 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" -d '{"branch":"main"}' "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/kebiao/deployments" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          print('deploy trigger:', d.get('success'), d.get('result',{}).get('url') if d.get('success') else json.dumps(d.get('errors'),ensure_ascii=False)[:200])
+          "
+      - name: 验证
+        run: |
+          sleep 75
+          echo "kebiao-50p.pages.dev -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://kebiao-50p.pages.dev/ 2>&1)" >> /tmp/o/out.txt
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/fixkb.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"fixkb\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/fixkb.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"fixkb\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/fixkb.txt"
+          echo done
