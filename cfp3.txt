@@ -1,0 +1,27 @@
+===== 项目 changes-in-carrier-pricing =====
+ name: changes-in-carrier-pricing
+ subdomain: hunan-tariff-site.pages.dev
+ domains: ['hunan-tariff-site.pages.dev']
+ canonical: https://96355dd9.hunan-tariff-site.pages.dev
+ source: {"type": "github", "config": {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "hunan-tariff-site", "repo_id": "1356207966", "production_branch": "main", "pr_comments_enabled": tru
+ latest: {"id": "ad7ed32f-a716-489d-9f1e-8ca8f5b47752", "short_id": "ad7ed32f", "project_id": "3f43e8a8-36ab-4902-a630-fb7c4086b63c", "project_name": "changes-in-carrier-pricing", "environment": "production", "url": "https://ad7ed32f.hunan-tariff-site.pages.dev", "created_on": "2026-10-29T10:27:37.170816Z", 
+--- deployments ---
+   ad7ed32f-a716-489d-9f1e-8ca8f5b47752 | env: production | status: null | url: https://ad7ed32f.hunan-tariff-site.pages.dev
+   c6aa6285-4ead-4110-a0bd-0935da874ac3 | env: production | status: null | url: https://c6aa6285.hunan-tariff-site.pages.dev
+   6dd3127c-a356-4548-8584-2bda41f64ab6 | env: production | status: null | url: https://6dd3127c.hunan-tariff-site.pages.dev
+   9c7c7caa-6011-4876-a54b-208fbbb9b6b4 | env: production | status: null | url: https://9c7c7caa.hunan-tariff-site.pages.dev
+   12853f22-62a0-4c01-9e8d-c7034ee32f1f | env: production | status: null | url: https://12853f22.hunan-tariff-site.pages.dev
+===== 项目 kebiao =====
+ name: kebiao
+ subdomain: kebiao-50p.pages.dev
+ domains: ['kebiao-50p.pages.dev']
+ canonical: https://ce65335b.kebiao-50p.pages.dev
+ source: null
+ latest: {"id": "ce65335b-5c6d-4314-9cc6-0be8bfb1f679", "short_id": "ce65335b", "project_id": "953a9afd-b596-4778-ac59-2aa193d5c900", "project_name": "kebiao", "environment": "production", "url": "https://ce65335b.kebiao-50p.pages.dev", "created_on": "2026-09-11T07:19:42.995476Z", "modified_on": "2026-09-11T
+--- deployments ---
+   ce65335b-5c6d-4314-9cc6-0be8bfb1f679 | env: production | status: null | url: https://ce65335b.kebiao-50p.pages.dev
+   d975164c-d215-4550-be12-7853b0e12bc9 | env: production | status: null | url: https://d975164c.kebiao-50p.pages.dev
+===== 探测站点是否可访问 =====
+https://hunan-tariff-site.pages.dev -> 200
+curl: (6) Could not resolve host: changes-in-carrier-pricing.pages.dev
+https://changes-in-carrier-pricing.pages.dev -> 000
