@@ -1,0 +1,44 @@
+name: ns-probe
+on:
+  workflow_dispatch:
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 查 DNS 归属 + 子域可用性
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          echo "===== hnvip.qd.je NS ====="
+          dig +short hnvip.qd.je NS
+          echo "===== qd.je SOA ====="
+          dig +short qd.je SOA
+          echo "===== dig +trace hnvip.qd.je ====="
+          dig +trace hnvip.qd.je A 2>&1 | tail -25
+          echo "===== 子域探测(是否已解析) ====="
+          for s in www vip panel t cmcc; do
+            echo "$s.hnvip.qd.je -> [$(dig +short $s.hnvip.qd.je A | tr '\n' ' ')]"
+          done
+          echo "===== Cloudflare zones ====="
+          curl -sS -m 20 -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones?per_page=100" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          print('success:',d.get('success'))
+          if d.get('success'):
+              for z in d['result']: print(' ZONE:',z['name'],'| id:',z['id'],'| status:',z['status'])
+          else: print(' errors:',json.dumps(d.get('errors'),ensure_ascii=False)[:300])
+          "
+          echo "===== CF user/token verify ====="
+          curl -sS -m 20 -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/user/tokens/verify" | head -c 400
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/ns-result.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"ns result\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/ns-result.txt" \
+          || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"ns result\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/ns-result.txt"
+          echo done
