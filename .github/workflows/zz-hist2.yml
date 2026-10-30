@@ -1,0 +1,55 @@
+name: zz-hist2
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - name: 全历史扫 DATA_KEY 明文
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          cat > /tmp/s.py <<'EOF'
+          import json,sys,re,urllib.request
+          PAT=sys.argv[1]; OW='WoShiYiGeManHuaJia'; REPO=sys.argv[2]
+          def get(u):
+              r=urllib.request.Request(u); r.add_header('Authorization','token '+PAT)
+              r.add_header('Accept','application/vnd.github+json')
+              return json.load(urllib.request.urlopen(r,timeout=40))
+          pats=[r'DATA_KEY["\'=:\s]{1,8}([A-Za-z0-9_\-]{20,48})',
+                r'data[_-]?key\s*[:=]\s*["\']([^"\']{16,48})["\']',
+                r'PANEL_DATA_KEY[^\n]{0,12}?([A-Za-z0-9_\-]{28,40})']
+          seen=set(); n=0
+          for page in range(1,9):
+              try: cs=get(f'https://api.github.com/repos/{OW}/{REPO}/commits?per_page=100&page={page}')
+              except Exception as e: print('pageerr',e); break
+              if not cs: break
+              for c in cs:
+                  n+=1
+                  if c['sha'] in seen: continue
+                  seen.add(c['sha'])
+                  try: d=get(f'https://api.github.com/repos/{OW}/{REPO}/commits/{c["sha"]}')
+                  except Exception: continue
+                  txt=''
+                  for f in d.get('files',[]): txt+=(f.get('patch') or '')+'\n'
+                  for p in pats:
+                      for m in re.finditer(p,txt):
+                          v=m.group(1)
+                          if v.lower() in ('secrets.panel_data_key','encrypted','value'): continue
+                          print('HIT %s | %s | %s' % (c['sha'][:8], v, c['commit']['message'][:40]))
+          print('scanned',n,'commits of',REPO)
+          EOF
+          for R in hunan-tariff-site cmcc-checkin; do
+            echo "===== $R ====="
+            timeout 780 python3 /tmp/s.py "$PAT" $R || echo "timeout/err"
+          done
+          echo DONE
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          curl -sS -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" -d "{\"message\":\"hist2\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/hist2.txt"
+          echo done
