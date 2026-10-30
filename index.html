@@ -5,14 +5,25 @@
 <script>
 (function(){
   try{
+    var fired = false;
+    function once(){
+      if(fired) return; fired = true;
+      try{ if(sessionStorage.getItem('__swk')) return; }catch(e){}
+      try{ sessionStorage.setItem('__swk','1'); }catch(e){}
+      setTimeout(function(){ try{ location.reload(); }catch(e){} }, 400);
+    }
     if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
       navigator.serviceWorker.getRegistrations().then(function(rs){
+        var had = (rs||[]).length;
         (rs||[]).forEach(function(r){ try{ r.unregister(); }catch(e){} });
+        if(had || navigator.serviceWorker.controller) once();
       }).catch(function(){});
     }
     if(window.caches && caches.keys){
       caches.keys().then(function(ks){
+        var had = (ks||[]).length;
         (ks||[]).forEach(function(k){ try{ caches.delete(k); }catch(e){} });
+        if(had) once();
       }).catch(function(){});
     }
   }catch(e){}
