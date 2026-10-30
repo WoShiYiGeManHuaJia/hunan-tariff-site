@@ -293,7 +293,7 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}
 
   <details>
     <summary>手动粘贴令牌</summary>
-    <label>云盘令牌（以 cGM6 开头）</label>
+    <label>云盘令牌（pc:/app: 开头，或 base64）</label>
     <textarea id="tok" rows="3" placeholder="粘贴到这里，自动识别" oninput="onTok()"></textarea>
     <div id="cnt2" class="cnt2"></div>
     <div id="parseBox"></div>
@@ -782,7 +782,7 @@ function parseTok(){
   document.getElementById("cnt2").textContent=s.length+" 字符";
   var dec="";
   // 书签抓到的可能是明文 pc:手机号:token（未 base64），这里统一归一化成 base64 再提交
-  if(/^pc:1\d{10}:/.test(s)){
+  if(/^[a-z]{2,6}:1\d{10}:/i.test(s)){
     s = btoa(s); el.value = s; _lastParsed = s;
     document.getElementById("cnt2").textContent = s.length+" 字符";
     log("（已把明文令牌转为 base64）","i");
@@ -1455,7 +1455,7 @@ try{ setTimeout(function(){ if(!document.body.classList.contains("gated")) ntAut
 
 /* ---------- 短书签（外部脚本，复制更短更方便） ---------- */
 function bmShortUrl(back){
-  return "https://hnvip.qd.je/bm.js#back=" + encodeURIComponent(back);
+  return "https://hnvip.pages.dev/bm.js#back=" + encodeURIComponent(back);
 }
 
 /* ---------- 高级配置区默认隐藏（#admin 才显示） ---------- */
