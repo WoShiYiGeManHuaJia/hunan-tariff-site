@@ -3463,29 +3463,6 @@ function psClose(){
   /* ---------- 站点一次性公告：每个版本只在每台设备弹一次 ---------- */
 var SITE_NOTICE = null; var SITE_NOTICES = [
   {
-    ver: "2026-10-24-attack",
-    badge: "安全事件",
-    date: "2026-10-24 20:00 左右",
-    title: "遭恶意攻击，已修复，请重新配置推送",
-    body:
-      '<div class="nth">发生了什么</div>' +
-      '<ul class="ntul">' +
-      "<li>今天 20:00 左右，云盘签到服务<b>遭他人恶意攻击</b></li>" +
-      "<li>紧急防护已自动触发，<b>推送配置被全部清除</b>，现已修复</li>" +
-      "</ul>" +
-      '<div class="nth">现在的状态</div>' +
-      '<ul class="ntul">' +
-      "<li>攻击已阻断，服务恢复正常</li>" +
-      "<li>推送改为<b>每人独立保管箱</b>，云端只存<b>密文</b>，互不可见</li>" +
-      "<li><b>托管账号未受影响</b>，签到一直在正常运行</li>" +
-      "</ul>" +
-      '<div class="nth">需要你做一件事</div>' +
-      '<ul class="ntul">' +
-      "<li>进入「\u2601\ufe0f 云盘自动签到」，展开第 <b>4</b> 块「每日结果推送」</li>" +
-      "<li><b>重新填一次</b>邮箱 / webhook，之后每天照常推送</li>" +
-      "</ul>"
-  },
-  {
     ver: "2026-10-27-signin-dev",
     badge: "开发中",
     date: "2026-10-27",
