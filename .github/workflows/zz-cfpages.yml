@@ -1,0 +1,65 @@
+name: cf-pages-deploy
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取仓库
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git clone --depth 1 https://x-access-token:$PAT@github.com/${{ github.repository }}.git /tmp/site
+          cd /tmp/site && ls -la | head -30
+          du -sh /tmp/site
+      - name: 取 Account ID
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          curl -sS -m 20 -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/accounts?per_page=50" > /tmp/acc.json
+          python3 -c "
+          import json
+          d=json.load(open('/tmp/acc.json'))
+          if d.get('success') and d['result']:
+              print(d['result'][0]['id'])
+              open('/tmp/accid.txt','w').write(d['result'][0]['id'])
+          else:
+              print('ERR', json.dumps(d.get('errors'),ensure_ascii=False)[:300])
+          "
+      - name: 创建 Pages 项目 hnvip
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          ACC=$(cat /tmp/accid.txt)
+          echo "account=$ACC"
+          echo "--- 尝试创建 hnvip ---"
+          curl -sS -m 30 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            -d '{"name":"hnvip","production_branch":"main"}' \
+            "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if d.get('success'):
+              r=d['result']
+              print('CREATED:', r.get('name'), '| subdomain:', r.get('subdomain'), '| url:', r.get('canonical_deployment',{}).get('url'))
+          else:
+              print('RESULT:', json.dumps(d.get('errors'),ensure_ascii=False)[:400])
+          "
+          echo "--- 列出已有项目 ---"
+          curl -sS -m 30 -H "Authorization: Bearer $CF" \
+            "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if d.get('success'):
+              for p in d['result']: print(' PROJECT:',p['name'],'| subdomain:',p.get('subdomain'))
+          else: print(' err:',json.dumps(d.get('errors'),ensure_ascii=False)[:200])
+          "
+      - name: 提交结果
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/accid.txt 2>/dev/null || echo 'bnVsbA==')
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/cfpages.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"cfpages\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/cfpages.txt" \
+          || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"cfpages\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/cfpages.txt"
+          echo done
