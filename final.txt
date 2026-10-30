@@ -1,0 +1,23 @@
+=== 页面 ===
+/ -> 200
+/index.html -> 200
+/manage.html -> 200
+/cmcc.html -> 200
+/t.html -> 200
+/termux.html -> 200
+/xmwallet.py -> 200
+=== 数据 ===
+/data/summary.json -> 200
+/data/latest.json -> 200
+=== 标题 ===
+<title>中国移动资费监控 · 数据一览</title>
+=== 资费数据新鲜度 ===
+{
+  "updated": "2026-10-29 19:11:01",
+  "default": "hunan",
+  "sections": [
+    {
+      "section": "quanguo",
+      "name": "全网(全国)",
+      "total": 1548,
+      "updated": "2026-10-29 18:40:11
