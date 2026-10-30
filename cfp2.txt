@@ -1,0 +1,10 @@
+===== 创建项目 hnvip =====
+ FAIL: [{"code": 10000, "message": "Authentication error", "documentation_url": "https://developers.cloudflare.com/api/resources/pages"}]
+===== 创建项目 hnvip-tariff =====
+ FAIL: [{"code": 10000, "message": "Authentication error", "documentation_url": "https://developers.cloudflare.com/api/resources/pages"}]
+===== 创建项目 hnvip-site =====
+ FAIL: [{"code": 10000, "message": "Authentication error", "documentation_url": "https://developers.cloudflare.com/api/resources/pages"}]
+===== 已有项目列表 =====
+ total: 2
+   changes-in-carrier-pricing | subdomain: hunan-tariff-site.pages.dev
+   kebiao | subdomain: kebiao-50p.pages.dev
