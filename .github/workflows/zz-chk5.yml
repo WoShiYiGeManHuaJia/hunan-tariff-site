@@ -1,0 +1,63 @@
+name: zz-chk5
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 多项目对比探测
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          echo "=== DNS 解析 ==="
+          for h in hnvip.pages.dev hn66.pages.dev hunan-tariff-site.pages.dev; do
+            echo "$h -> [$(dig +short $h A | tr '\n' ' ')] [$(dig +short $h CNAME | tr '\n' ' ')]"
+          done
+          echo "=== 访问 ==="
+          for h in hnvip.pages.dev hn66.pages.dev hn99.pages.dev hnnb.pages.dev; do
+            echo "$h -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://$h/ 2>&1)"
+          done
+          echo "=== 用 wrangler 风格重传一个最小站到 hn66 ==="
+          mkdir -p /tmp/min && cd /tmp/min
+          printf '<!doctype html><html><head><title>ok</title></head><body>hello</body></html>' > index.html
+          python3 - <<'PY'
+          import os,json,hashlib,uuid,urllib.request
+          root='/tmp/min'; files={}
+          for dp,dn,fn in os.walk(root):
+              for f in fn:
+                  p=os.path.join(dp,f); rel='/'+os.path.relpath(p,root).replace(os.sep,'/')
+                  files[rel]={"hash":hashlib.sha1(open(p,'rb').read()).hexdigest(),"size":os.path.getsize(p)}
+          token=os.environ['CF']; acc='9156c2cae565fdf42d208827b523e47e'
+          boundary='----x'+uuid.uuid4().hex; body=b''
+          def field(name,val,ctype=None,fname=None):
+              b=('--%s\r\n'%boundary).encode()
+              b+=(('Content-Disposition: form-data; name="%s"; filename="%s"\r\n'%(name,fname)) if fname else ('Content-Disposition: form-data; name="%s"\r\n'%name)).encode()
+              if ctype: b+=('Content-Type: %s\r\n'%ctype).encode()
+              return b+b'\r\n'+val+b'\r\n'
+          body+=field('manifest',json.dumps(files).encode(),'application/json')
+          for path,info in files.items():
+              body+=field(info['hash'],open('/tmp/min'+path,'rb').read(),'application/octet-stream',info['hash'])
+          body+=('--%s--\r\n'%boundary).encode()
+          req=urllib.request.Request(f'https://api.cloudflare.com/client/v4/accounts/{acc}/pages/projects/hn66/deployments',data=body,method='POST')
+          req.add_header('Authorization','Bearer '+token)
+          req.add_header('Content-Type','multipart/form-data; boundary='+boundary)
+          try:
+              r=urllib.request.urlopen(req,timeout=300); print('upload HTTP',r.status)
+          except Exception as e:
+              print('ERR',e)
+              try: print(e.read().decode()[:300])
+              except: pass
+          PY
+          sleep 25
+          echo "hn66 after min -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hn66.pages.dev/ 2>&1)"
+          curl -sS -L --max-time 25 https://hn66.pages.dev/ 2>&1 | head -c 200
+          echo ""
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/chk5.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"chk5\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk5.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"chk5\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk5.txt"
+          echo done
