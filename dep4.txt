@@ -1,0 +1,33 @@
+files: 560
+HTTP 200
+{
+  "result": {
+    "id": "a1ecd048-49e0-40ac-8064-aa75c844beb9",
+    "short_id": "a1ecd048",
+    "project_id": "8a0203b8-7b1a-4f3d-adbc-3f9a40fbab6d",
+    "project_name": "hnvip",
+    "environment": "production",
+    "url": "https://a1ecd048.hnvip.pages.dev",
+    "created_on": "2026-10-30T03:49:33.634979Z",
+    "modified_on": "2026-10-30T03:49:33.634979Z",
+    "latest_stage": {
+      "name": "queued",
+      "started_on": null,
+      "ended_on": null,
+      "status": "idle"
+    },
+    "deployment_trigger": {
+      "type": "ad_hoc",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "",
+        "commit_message": "",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": null,
+        "ended_on": null,
+        "s
