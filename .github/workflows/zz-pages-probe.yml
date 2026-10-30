@@ -1,0 +1,31 @@
+name: zz-pages-probe
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: 检测线上数据
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          for H in hnvip.pages.dev hunan-tariff-site.pages.dev; do
+            echo "===== $H ====="
+            for P in / /data/latest.json /data/hunan.json /data/quanguo.json /data/summary.json; do
+              R=$(curl -sS -m 25 -o /tmp/b -w "%{http_code} %{size_download}" "https://$H$P" 2>&1)
+              echo "  $P -> $R"
+              if [ "$P" = "/data/latest.json" ]; then
+                echo "    head: $(head -c 200 /tmp/b 2>/dev/null)"
+              fi
+            done
+          done
+          echo DONE
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          curl -sS -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" -d "{\"message\":\"probe\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/pagesprobe.txt"
+          echo done
