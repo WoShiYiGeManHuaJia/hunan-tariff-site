@@ -1,0 +1,53 @@
+name: dns-diag
+on:
+  workflow_dispatch:
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 查 Cloudflare zone
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          echo "=== zones ==="
+          curl -sS -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones?per_page=50" \
+            | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if not d.get('success'):
+              print('ERR:', json.dumps(d.get('errors'),ensure_ascii=False)); sys.exit()
+          for z in d['result']:
+              print(' zone:', z['name'], '| id:', z['id'], '| status:', z['status'], '| account:', z['account']['name'])
+          "
+      - name: 查 hnvip.qd.je 的 DNS 记录
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          echo "=== 在所有 zone 找 hnvip ==="
+          curl -sS -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones?per_page=50" > /tmp/z.json
+          python3 - <<'PY'
+          import json,subprocess,os
+          CF=os.environ['CF']
+          zj=json.load(open('/tmp/z.json'))
+          if not zj.get('success'):
+              print('zone查询失败:', zj.get('errors')); raise SystemExit
+          for z in zj['result']:
+              zid=z['id']
+              r=subprocess.run(['curl','-sS','-H',f'Authorization: Bearer {CF}','-H','Content-Type: application/json',
+                  f'https://api.cloudflare.com/client/v4/zones/{zid}/dns_records?per_page=200'],capture_output=True,text=True)
+              try:
+                  d=json.loads(r.stdout)
+              except: continue
+              if not d.get('success'): continue
+              for rec in d['result']:
+                  if 'hnvip' in rec['name']:
+                      print(f" ZONE {z['name']} | {rec['type']:6s} | {rec['name']:25s} | {rec['content'][:60]} | proxied={rec.get('proxied')} | id={rec['id']}")
+          PY
+      - name: 公网 DNS 现状
+        run: |
+          echo "=== dig A ==="; dig +short hnvip.qd.je A || true
+          echo "=== dig CNAME ==="; dig +short hnvip.qd.je CNAME || true
+          echo "=== dig NS ==="; dig +short qd.je NS || true
+          echo "=== HTTP ==="; curl -sS -o /dev/null -w "code=%{http_code} ip=%{remote_ip}\n" -L --max-time 20 http://hnvip.qd.je || true
