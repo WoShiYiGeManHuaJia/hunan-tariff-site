@@ -1,0 +1,31 @@
+name: zz-chk
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 验证 + 清理多余项目
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          echo "hnvip.pages.dev -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/ 2>&1)"
+          echo "manage -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/manage.html 2>&1)"
+          echo "cmcc -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/cmcc.html 2>&1)"
+          echo "summary.json -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hnvip.pages.dev/data/summary.json 2>&1)"
+          echo "--- 首页标题 ---"
+          curl -sS -L --max-time 30 https://hnvip.pages.dev/ 2>&1 | grep -o '<title>[^<]*</title>' | head -2
+          ACC=9156c2cae565fdf42d208827b523e47e
+          echo "--- 删除多余项目 ---"
+          for N in hn8 hn01; do
+            echo "$N: $(curl -sS -m 20 -X DELETE -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/$N" | head -c 150)"
+          done
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/chk.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"chk\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"chk\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk.txt"
+          echo done
