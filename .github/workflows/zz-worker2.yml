@@ -1,0 +1,32 @@
+name: zz-worker2
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 试建 Worker 反代
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o
+          O=/tmp/o/out.txt
+          exec > >(tee -a $O) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          printf '%s\n' "export default { async fetch(request){ const u=new URL(request.url); const t=\"https://hunan-tariff-site.pages.dev\"+u.pathname+u.search; const r=await fetch(t,{method:request.method,headers:request.headers,body:request.body}); return new Response(r.body,{status:r.status,headers:r.headers}); } };" > /tmp/w.js
+          echo "--- create worker hn66"
+          curl -sS -m 30 -X PUT -H "Authorization: Bearer $CF" -H "Content-Type: application/javascript" --data-binary @/tmp/w.js "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/hn66" | head -c 400
+          echo ""
+          echo "--- enable subdomain"
+          curl -sS -m 25 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" -d '{"enabled":true}' "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/hn66/subdomain" | head -c 400
+          echo ""
+          echo "--- probe"
+          echo "hn66.wispy-hill-817a.workers.dev -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 https://hn66.wispy-hill-817a.workers.dev/ 2>&1)"
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/w2.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"w2\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/w2.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"w2\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/w2.txt"
+          echo done
