@@ -1,0 +1,39 @@
+name: zz-chk2
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 查部署状态并重试验证
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          echo "=== hnvip 部署状态 ==="
+          curl -sS -m 25 -H "Authorization: Bearer $CF" \
+            "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if d.get('success'):
+              for x in d['result'][:3]:
+                  print(' id:',x.get('short_id'),'| stage:',json.dumps(x.get('latest_stage'),ensure_ascii=False))
+          else: print(' err:',json.dumps(d.get('errors'),ensure_ascii=False)[:300])
+          "
+          echo "=== 重试访问 ==="
+          for i in 1 2 3; do
+            echo "try$i: $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/ 2>&1)"
+            sleep 5
+          done
+          echo "=== 内容 ==="
+          curl -sS -L --max-time 30 https://hnvip.pages.dev/ 2>&1 | head -c 500
+          echo ""
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/chk2.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"chk2\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk2.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"chk2\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/chk2.txt"
+          echo done
