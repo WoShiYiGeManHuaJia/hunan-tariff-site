@@ -731,7 +731,7 @@ function fromHash(){
     flash('<div class="t"><span class="ic">✓</span>已抓到令牌</div>'
       + '<div class="d">号码 <b>' + mask(CUR.phone) + '</b>'
       + (CUR.days!==null && CUR.days!==undefined ? (' · 剩余 ' + CUR.days + ' 天') : '')
-      + '<br>令牌已自动填入并复制，点右边按钮完成托管即可。</div>'
+      + '<br>令牌已自动填入并复制，点下方左侧的「提交托管」即可。</div>'
       + '<div class="row"><button class="ok" onclick="flashSubmit()">提交托管</button>'
       + '<button class="gh" onclick="flashOff()">先不提交</button></div>');
   } else {
@@ -958,7 +958,7 @@ async function loadList(){
         var last=s[s.length-1], prev=s[s.length-2];
         line="云豆 "+last.val;
         if(prev && last.val>prev.val) line+=' · <span style="color:#1e7e34">+'+ (last.val-prev.val) +'</span>';
-        if(last.day!==latest) line+=" ("+last.day+")";
+        line+=' <span style="opacity:.6">(' + last.day + ')</span>';
       }
       return '<li><div><div class="ph">'+mask(full)+'</div><div class="bal">'+line+'</div>'+stLine(key,stInfo)+'</div>'+
         '<div class="ops"><button class="sm dan" onclick="delAcc(\''+full+'\')">移除</button></div></li>';
