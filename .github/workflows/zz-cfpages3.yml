@@ -1,0 +1,53 @@
+name: zz-cfpages3
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 查已有 Pages 项目与部署
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          for P in changes-in-carrier-pricing kebiao; do
+            echo "===== 项目 $P ====="
+            curl -sS -m 30 -H "Authorization: Bearer $CF" \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/$P" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if d.get('success'):
+              r=d['result']
+              print(' name:',r.get('name'))
+              print(' subdomain:',r.get('subdomain'))
+              print(' domains:',r.get('domains'))
+              print(' canonical:',r.get('canonical_deployment',{}).get('url'))
+              print(' source:',json.dumps(r.get('source'),ensure_ascii=False)[:200])
+              print(' latest:',json.dumps(r.get('latest_deployment'),ensure_ascii=False)[:300])
+          else: print(' err:',json.dumps(d.get('errors'),ensure_ascii=False)[:300])
+          "
+            echo "--- deployments ---"
+            curl -sS -m 30 -H "Authorization: Bearer $CF" \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/$P/deployments" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if d.get('success'):
+              for x in d['result'][:5]:
+                  print('  ',x.get('id'),'| env:',x.get('environment'),'| status:',json.dumps(x.get('status'),ensure_ascii=False)[:80],'| url:',x.get('url'))
+          else: print('  err:',json.dumps(d.get('errors'),ensure_ascii=False)[:200])
+          "
+          done
+          echo "===== 探测站点是否可访问 ====="
+          for U in https://hunan-tariff-site.pages.dev https://changes-in-carrier-pricing.pages.dev; do
+            echo "$U -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 25 $U)"
+          done
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/cfp3.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"cfp3\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/cfp3.txt" \
+          || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"cfp3\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/cfp3.txt"
+          echo done
