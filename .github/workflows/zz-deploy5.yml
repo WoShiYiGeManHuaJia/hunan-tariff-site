@@ -1,0 +1,68 @@
+name: zz-deploy5
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 克隆
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git clone --depth 1 https://x-access-token:$PAT@github.com/${{ github.repository }}.git /tmp/site
+          cd /tmp/site && rm -rf .git .github
+          echo "size: $(du -sh /tmp/site|cut -f1) files: $(find /tmp/site -type f|wc -l)"
+      - name: 用对象格式 manifest 重新部署
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          cd /tmp/site
+          python3 - <<'PY'
+          import os, json, hashlib, uuid, urllib.request
+          root='/tmp/site'
+          files={}
+          for dp,dn,fn in os.walk(root):
+              dn[:] = [d for d in dn if d not in ('.git','.github')]
+              for f in fn:
+                  p=os.path.join(dp,f)
+                  rel='/'+os.path.relpath(p,root).replace(os.sep,'/')
+                  sz=os.path.getsize(p)
+                  if sz > 24*1024*1024: continue
+                  files[rel]={"hash":hashlib.sha1(open(p,'rb').read()).hexdigest(),"size":sz}
+          # 确保 index.html 存在
+          print('files:',len(files),'| has index:', '/index.html' in files)
+          token=os.environ['CF']; acc='9156c2cae565fdf42d208827b523e47e'
+          boundary='----x'+uuid.uuid4().hex
+          body=b''
+          def field(name, val, ctype=None, fname=None):
+              b=('--%s\r\n'%boundary).encode()
+              b+=(('Content-Disposition: form-data; name="%s"; filename="%s"\r\n'%(name,fname)) if fname else ('Content-Disposition: form-data; name="%s"\r\n'%name)).encode()
+              if ctype: b+=('Content-Type: %s\r\n'%ctype).encode()
+              return b+b'\r\n'+val+b'\r\n'
+          body+=field('manifest', json.dumps(files).encode(), 'application/json')
+          for path,info in files.items():
+              body+=field(info['hash'], open('/tmp/site'+path,'rb').read(), 'application/octet-stream', info['hash'])
+          body+=('--%s--\r\n'%boundary).encode()
+          req=urllib.request.Request(f'https://api.cloudflare.com/client/v4/accounts/{acc}/pages/projects/hnvip/deployments', data=body, method='POST')
+          req.add_header('Authorization','Bearer '+token)
+          req.add_header('Content-Type','multipart/form-data; boundary='+boundary)
+          try:
+              r=urllib.request.urlopen(req, timeout=900); print('HTTP',r.status); print(r.read().decode()[:400])
+          except Exception as e:
+              print('ERR:',e)
+              try: print(e.read().decode()[:400])
+              except: pass
+          PY
+      - name: 验证
+        run: |
+          sleep 40
+          echo "hnvip -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/ 2>&1)"
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/dep5.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"dep5\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/dep5.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"dep5\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/dep5.txt"
+          echo done
