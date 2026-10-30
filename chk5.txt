@@ -1,0 +1,13 @@
+=== DNS 解析 ===
+hnvip.pages.dev -> [172.66.45.45 172.66.46.211 ] []
+hn66.pages.dev -> [172.66.44.205 172.66.47.51 ] []
+hunan-tariff-site.pages.dev -> [172.66.44.156 172.66.47.100 ] []
+=== 访问 ===
+hnvip.pages.dev -> 500
+hn66.pages.dev -> 522
+hn99.pages.dev -> 522
+hnnb.pages.dev -> 522
+=== 用 wrangler 风格重传一个最小站到 hn66 ===
+upload HTTP 200
+hn66 after min -> 500
+
