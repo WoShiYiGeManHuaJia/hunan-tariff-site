@@ -1,0 +1,54 @@
+name: zz-hist-scan
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: 遍历历史提交找 DATA_KEY 明文
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          mkdir -p /tmp/o; O=/tmp/o/out.txt; exec > >(tee -a $O) 2>&1
+          OW=WoShiYiGeManHuaJia
+          REPOS="yun139-ghpanel yun139-panel yun139-checkin cmcc-checkin kebiao-page kebiao-live WoShiYiGeManHuaJia.github.io shortlinks orion-forge-mirror hunan-tariff-site"
+          for R in $REPOS; do
+            echo "===== $R ====="
+            # 只取最近 120 个提交
+            for P in 1 2; do
+              SHAS=$(curl -sS -m 30 -H "Authorization: token $PAT" "https://api.github.com/repos/$OW/$R/commits?per_page=60&page=$P" | python3 -c "
+          import json,sys
+          try:
+            d=json.load(sys.stdin)
+            print(' '.join(c['sha'] for c in d))
+          except: print('')")
+              [ -z "$SHAS" ] && break
+              for S in $SHAS; do
+                HIT=$(curl -sS -m 25 -H "Authorization: token $PAT" "https://api.github.com/repos/$OW/$R/commits/$S" | python3 -c "
+          import json,sys,re
+          try: d=json.load(sys.stdin)
+          except: raise SystemExit
+          txt=''
+          for f in d.get('files',[]):
+            txt += (f.get('patch') or '') + '\n'
+          pats=[r'(?i)data[_-]?key\s*[:=]\s*[\"\\']([^\"\\']{12,})[\"\\']', r'(?i)panel[_-]?data[_-]?key[^A-Za-z0-9]{0,4}([A-Za-z0-9_\-]{16,})']
+          out=[]
+          for p in pats:
+            for m in re.finditer(p, txt):
+              out.append(m.group(1))
+          if out:
+            print(' | '.join(sorted(set(out))[:6]))
+          ")
+                if [ -n "$HIT" ]; then echo "  >>> $S : $HIT"; fi
+              done
+            done
+          done
+          echo "扫描结束"
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 /tmp/o/out.txt)
+          curl -sS -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" -d "{\"message\":\"hist\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/hist.txt"
+          echo done
