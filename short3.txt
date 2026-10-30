@@ -1,0 +1,107 @@
+=== token verify ===
+{"result":{"id":"70328c64c39244503c9c72f3896b8692","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
+=== permission groups ===
+{"id": "70328c64c39244503c9c72f3896b8692", "status": "active"}
+
+--- try hn66
+{
+  "result": {
+    "id": "a4a225a5-a315-42ea-9a75-4c3cc781ed9a",
+    "name": "hn66",
+    "subdomain": "hn66.pages.dev",
+    "domains": [
+      "hn66.pages.dev"
+    ],
+    "build_config": {
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "deployment_configs": {
+      "preview": {
+        "env_vars": null,
+        "fail
+--- try hn99
+{
+  "result": {
+    "id": "b7d71013-9a01-4bba-ad6c-ce4bf2549837",
+    "name": "hn99",
+    "subdomain": "hn99.pages.dev",
+    "domains": [
+      "hn99.pages.dev"
+    ],
+    "build_config": {
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "deployment_configs": {
+      "preview": {
+        "env_vars": null,
+        "fail
+--- try hnnb
+{
+  "result": {
+    "id": "ee375155-1e2f-4956-ab0a-a2fd1720536a",
+    "name": "hnnb",
+    "subdomain": "hnnb.pages.dev",
+    "domains": [
+      "hnnb.pages.dev"
+    ],
+    "build_config": {
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "deployment_configs": {
+      "preview": {
+        "env_vars": null,
+        "fail
+--- try hnvip
+{
+  "result": {
+    "id": "8a0203b8-7b1a-4f3d-adbc-3f9a40fbab6d",
+    "name": "hnvip",
+    "subdomain": "hnvip.pages.dev",
+    "domains": [
+      "hnvip.pages.dev"
+    ],
+    "build_config": {
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "deployment_configs": {
+      "preview": {
+        "env_vars": null,
+        "f
+--- try hn8
+{
+  "result": {
+    "id": "df59a6c2-2cfb-4a59-baa2-f2ab8d9df426",
+    "name": "hn8",
+    "subdomain": "hn8.pages.dev",
+    "domains": [
+      "hn8.pages.dev"
+    ],
+    "build_config": {
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "deployment_configs": {
+      "preview": {
+        "env_vars": null,
+        "fail_op
+--- try hn01
+{
+  "result": {
+    "id": "dace23a0-e499-46ff-8cc8-2d66637cd514",
+    "name": "hn01",
+    "subdomain": "hn01.pages.dev",
+    "domains": [
+      "hn01.pages.dev"
+    ],
+    "build_config": {
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "deployment_configs": {
+      "preview": {
+        "env_vars": null,
+        "fail
