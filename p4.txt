@@ -1,0 +1,16 @@
+===== hnvip.pages.dev =====
+  / -> 200
+  /manage -> 200
+  /manage.html -> 308
+  /bm.js -> 200
+  /data/latest.json -> 200
+  /cmcc.html -> 308
+===== 首页是否已含自动重载 =====
+  __swk : 2
+  size  : 209748
+===== manage 页书签地址 =====
+  pages.dev/bm.js : 1
+  旧域名残留     : 0
+===== bm.js 版本 =====
+  v2 : 3  size: 7323
+DONE
