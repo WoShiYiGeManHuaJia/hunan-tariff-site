@@ -1,0 +1,26 @@
+--- create worker hn66
+{
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "message": "No access to the specified resource."
+    }
+  ],
+  "messages": []
+}
+
+--- enable subdomain
+{
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "message": "No access to the specified resource."
+    }
+  ],
+  "messages": []
+}
+
+--- probe
+hn66.wispy-hill-817a.workers.dev -> 404
