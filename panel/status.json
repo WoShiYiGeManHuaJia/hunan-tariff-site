@@ -1,10 +1,10 @@
 {
   "v": 1,
-  "updatedAt": "2026-10-30",
+  "updatedAt": "2026-10-31",
   "source": "private-repo-actions",
   "server": {
     "api": "ok",
-    "at": "2026-10-30",
+    "at": "2026-10-31",
     "node": "v20.20.2",
     "publishRepo": "WoShiYiGeManHuaJia/hunan-tariff-site"
   },
@@ -12,7 +12,7 @@
     {
       "phoneMasked": "172****9953",
       "state": "失败",
-      "today": "2026-10-30",
+      "today": "2026-10-31",
       "lastSignedAt": "",
       "monthDays": null,
       "failStreak": 0,
