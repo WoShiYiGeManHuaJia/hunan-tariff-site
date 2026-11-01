@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>云盘令牌提取器</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f5f6f8;color:#111;
+       font:15px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
+       padding:14px 14px 40px;max-width:640px;margin:0 auto}
+  h1{font-size:19px;margin:6px 0 4px}
+  .sub{color:#666;font-size:13px;margin-bottom:16px}
+  .card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;
+        box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .card h2{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .tag{font-size:11px;padding:2px 7px;border-radius:20px;background:#e6f4ff;color:#1677ff;font-weight:600}
+  .tag.g{background:#e8f8ee;color:#16a34a}
+  button{font-family:inherit;cursor:pointer;border:0;border-radius:10px}
+  .btn{display:block;width:100%;padding:13px;background:#1677ff;color:#fff;font-size:16px;font-weight:600;margin-top:10px}
+  .btn.gh{background:#f0f2f5;color:#111}
+  .btn:active{opacity:.75}
+  .row{display:flex;gap:10px}
+  .row .btn{flex:1}
+  textarea{width:100%;height:120px;padding:10px;border:1px solid #ddd;border-radius:10px;
+           font:12px/1.6 ui-monospace,Menlo,Consolas,monospace;resize:vertical;background:#fafbfc;color:#111}
+  input[type=text]{width:100%;padding:11px;border:1px solid #ddd;border-radius:10px;font-size:15px;background:#fff;color:#111}
+  .hint{color:#777;font-size:12px;margin-top:8px;line-height:1.6}
+  .ok{background:#e8f8ee;color:#0f6b34;padding:11px 13px;border-radius:10px;font-size:14px;margin-top:10px}
+  .err{background:#fdecec;color:#b02020;padding:11px 13px;border-radius:10px;font-size:14px;margin-top:10px}
+  .mono{font:12px/1.6 ui-monospace,Menlo,Consolas,monospace;word-break:break-all;
+        background:#f6f8fa;padding:11px;border-radius:9px;margin-top:8px;max-height:180px;overflow:auto}
+  .meta{font-size:13px;color:#555;margin-top:6px}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
+        border-radius:50%;background:#1677ff;color:#fff;font-size:12px;font-weight:700;flex:none}
+  ol{margin:8px 0 0;padding-left:0;list-style:none}
+  ol li{display:flex;gap:9px;margin-bottom:7px;font-size:13.5px;color:#333;align-items:flex-start}
+  .foot{text-align:center;color:#999;font-size:12px;margin-top:22px;line-height:1.8}
+  .foot a{color:#1677ff;text-decoration:none}
+</style>
+</head>
+<body>
+
+<h1>云盘令牌提取器</h1>
+<div class="sub">三种方式，取到令牌后自动复制 · 免费非商业 · 仅用于本人账号</div>
+
+<!-- 结果区（URL 带回令牌时显示） -->
+<div class="card" id="resCard" style="display:none">
+  <h2><span class="tag g">已获取</span> <span id="resTitle">令牌</span></h2>
+  <div class="meta" id="resMeta"></div>
+  <div class="mono" id="resTok"></div>
+  <div class="row">
+    <button class="btn" id="btnCopy">复制令牌</button>
+    <button class="btn gh" id="btnManage">去托管页</button>
+  </div>
+  <div class="hint">已自动尝试复制。若失败，点上面按钮或长按选中文本。</div>
+</div>
+
+<!-- 方式 A：书签 -->
+<div class="card">
+  <h2><span class="step">A</span> 书签一键取 <span class="tag">推荐</span></h2>
+  <ol>
+    <li><span class="step">1</span><span>点下面「复制书签代码」，把它存成一个书签（名称随意）。</span></li>
+    <li><span class="step">2</span><span>点「打开云盘」→ 登录 yun.139.com。</span></li>
+    <li><span class="step">3</span><span>点一下刚存的书签 → 自动抓令牌、自动复制、弹出结果卡。</span></li>
+  </ol>
+  <div class="row">
+    <button class="btn" id="btnBm">复制书签代码</button>
+    <button class="btn gh" id="btnOpen">打开云盘</button>
+  </div>
+  <div class="hint">书签只需存一次。之后每次取令牌，都是「打开云盘 → 点书签」两步。</div>
+  <div id="bmMsg"></div>
+  <details style="margin-top:10px">
+    <summary style="font-size:13px;color:#1677ff;cursor:pointer">书签代码看一眼 / 手动复制</summary>
+    <div class="mono" id="bmCode" style="max-height:none"></div>
+  </details>
+</div>
+
+<!-- 方式 B：粘贴 Cookie -->
+<div class="card">
+  <h2><span class="step">B</span> 粘贴 Cookie 自动解析 <span class="tag g">无需书签</span></h2>
+  <div class="hint" style="margin:0 0 8px">
+    如果你能导出云盘的 Cookie（浏览器扩展 / 开发者工具），整段粘进来，
+    点「解析」会自动找出里面的 authorization。
+  </div>
+  <textarea id="ckBox" placeholder='支持三种格式：
+① Cookie 导出 JSON（数组，含 name/value）
+② 浏览器地址栏那种 "name=value; name=value" 字符串
+③ 直接就是 pc:13800138000:xxx 这一串'></textarea>
+  <button class="btn" id="btnParse">解析</button>
+  <div id="ckMsg"></div>
+</div>
+
+<!-- 方式 C：手动 -->
+<div class="card">
+  <h2><span class="step">C</span> 手动粘贴令牌</h2>
+  <input type="text" id="manBox" placeholder="pc: 开头，或一整串 base64">
+  <button class="btn gh" id="btnMan">解析</button>
+  <div id="manMsg"></div>
+</div>
+
+<div class="foot">
+  云盘令牌提取器 · 免费非商业<br>
+  请遵守中国移动服务协议 · 仅用于本人账号<br>
+  <a href="https://hnvip.pages.dev/manage.html">← 回到托管页</a>
+</div>
+
+<script>
+(function(){
+  var BMURL = 'https://hnvip.pages.dev/bm.js';
+  var BACK  = location.origin + location.pathname;
+
+  var BMCODE = "javascript:(function(){var s=document.createElement('script');"
+    + "s.src='" + BMURL + "#back=" + encodeURIComponent(BACK) + "';"
+    + "document.body.appendChild(s);})();";
+
+  // ---------- 工具 ----------
+  function copy(t){
+    try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);return true;} }catch(e){}
+    try{
+      var ta=document.createElement('textarea');ta.value=t;
+      ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta);ta.focus();ta.select();
+      ta.setSelectionRange(0,t.length);
+      var ok=document.execCommand('copy');
+      try{ta.parentNode.removeChild(ta);}catch(e2){}
+      return ok;
+    }catch(e){return false;}
+  }
+  function b64e(s){ try{ return btoa(unescape(encodeURIComponent(s))); }catch(e){ return ''; } }
+  function b64d(s){
+    try{ return decodeURIComponent(escape(atob(String(s).trim().replace(/^\s*Basic\s+/i,'')))); }
+    catch(e){ return ''; }
+  }
+  function isB64(s){
+    s=String(s||'').trim().replace(/^\s*Basic\s+/i,'');
+    return /^[A-Za-z0-9+/]+={0,2}$/.test(s) && s.length%4===0 && s.length>20;
+  }
+  // 明文 pc:手机号:token → 结构化信息
+  function info(plain){
+    var o={prefix:'',phone:'',days:null};
+    var seg=String(plain).split(':');
+    o.prefix=(seg[0]||'').trim();
+    var ph=(seg[1]||'').trim();
+    o.phone=ph.length>7?ph.slice(0,3)+'****'+ph.slice(-4):ph;
+    var pipes=String(plain).split('|');
+    if(pipes.length>=4){
+      var exp=parseInt(pipes[3],10);
+      if(exp>0) o.days=Math.round((exp-Date.now())/86400000*10)/10;
+    }
+    return o;
+  }
+  // 把一个候选值规范化成 {b64, plain}
+  // 候选值可能被 URL 编码过（Cookie 导出常见），所以原值与解码后的值都要试
+  function normalize(v){
+    v=String(v||'').trim();
+    if(!v) return null;
+    var cands=[v], i;
+    try{ var d=decodeURIComponent(v); if(d!==v) cands.push(d); }catch(e){}
+    for(i=0;i<cands.length;i++){
+      var c=cands[i];
+      if(isB64(c)){
+        var b=String(c).trim().replace(/^\s*Basic\s+/i,'');
+        var p=b64d(b);
+        if(/^(pc|app|h5|web|wap|android|ios|pad|win|mac):1\d{10}:/i.test(p)) return {b64:b,plain:p};
+      }
+      if(/^(pc|app|h5|web|wap|android|ios|pad|win|mac):1\d{10}:/i.test(c)){
+        var e=b64e(c);
+        if(e) return {b64:e,plain:c};
+      }
+    }
+    return null;
+  }
+  // 从任意文本里扫令牌
+  function scan(text){
+    // 0) 整段本身就是令牌（裸 base64 / 明文 pc:... ）
+    var r0=normalize(String(text||'').trim());
+    if(r0) return r0;
+    // 1) JSON 数组（Cookie 导出格式）
+    try{
+      var j=JSON.parse(text);
+      if(Array.isArray(j)){
+        for(var i=0;i<j.length;i++){
+          var it=j[i];
+          if(!it||typeof it!=='object') continue;
+          var nm=String(it.name||'');
+          if(/authorization/i.test(nm)||/^token$/i.test(nm)){
+            var r=normalize(it.value);
+            if(r) return r;
+          }
+        }
+        // 退而求其次：扫所有 value
+        for(var k=0;k<j.length;k++){
+          var r2=normalize(j[k]&&j[k].value);
+          if(r2) return r2;
+        }
+      }
+    }catch(e){}
+    // 2) cookie 字符串 "a=1; b=2"
+    var parts=String(text).split(/[;\n]/);
+    for(var p=0;p<parts.length;p++){
+      var s=parts[p].trim(); if(!s) continue;
+      var eq=s.indexOf('='); if(eq<0) continue;
+      var nm2=s.slice(0,eq).trim(), vv=s.slice(eq+1).trim();
+      if(/authorization/i.test(nm2)||/^token$/i.test(nm2)){
+        var r3=normalize(vv); if(r3) return r3;
+      }
+    }
+    // 3) 全文正则
+    var m=String(text).match(/(?:pc|app|h5|web|wap|android|ios|pad|win|mac):1\d{10}:[A-Za-z0-9|._\-]+/i);
+    if(m){ var r4=normalize(m[0]); if(r4) return r4; }
+    var m2=String(text).match(/Basic\s+([A-Za-z0-9+/=]{40,})/i);
+    if(m2){ var r5=normalize(m2[1]); if(r5) return r5; }
+    return null;
+  }
+
+  // ---------- 显示结果 ----------
+  var current='';
+  function showResult(b64,plain,quiet){
+    current=b64;
+    var inf=info(plain||b64d(b64));
+    document.getElementById('resCard').style.display='block';
+    document.getElementById('resTitle').textContent='令牌已就绪';
+    var meta=[];
+    if(inf.prefix) meta.push('类型 '+inf.prefix.toUpperCase());
+    if(inf.phone)  meta.push('号码 '+inf.phone);
+    if(inf.days!=null) meta.push('剩余 '+inf.days+' 天');
+    document.getElementById('resMeta').textContent=meta.join(' · ');
+    document.getElementById('resTok').textContent=b64;
+    if(!quiet){
+      var ok=copy(b64);
+      document.getElementById('btnCopy').textContent=ok?'✓ 已复制':'复制令牌';
+      if(!ok) setTimeout(function(){document.getElementById('btnCopy').textContent='复制令牌';},2000);
+    }
+    document.getElementById('resCard').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  // ---------- URL 带回 ----------
+  var h=location.hash||'';
+  var mt=h.match(/[#&]tok=([^&]+)/);
+  if(mt){
+    try{
+      var tok=decodeURIComponent(mt[1]);
+      var r=normalize(tok)||{b64:tok,plain:b64d(tok)};
+      showResult(r.b64,r.plain,false);
+      history.replaceState(null,'',location.pathname);
+    }catch(e){}
+  }
+
+  // ---------- 方式 A ----------
+  document.getElementById('bmCode').textContent=BMCODE;
+  document.getElementById('btnBm').onclick=function(){
+    var ok=copy(BMCODE);
+    document.getElementById('bmMsg').innerHTML = ok
+      ? '<div class="ok">✓ 已复制书签代码。去浏览器「书签 → 新建书签」，名称随便填，网址粘贴这串即可。</div>'
+      : '<div class="err">复制失败，请展开下方代码长按手动复制。</div>';
+  };
+  document.getElementById('btnOpen').onclick=function(){
+    window.open('https://yun.139.com/','_blank');
+  };
+
+  // ---------- 方式 B ----------
+  document.getElementById('btnParse').onclick=function(){
+    var t=document.getElementById('ckBox').value.trim();
+    var box=document.getElementById('ckMsg');
+    if(!t){ box.innerHTML='<div class="err">先粘贴内容</div>'; return; }
+    var r=scan(t);
+    if(!r){
+      box.innerHTML='<div class="err">没找到有效令牌。确认粘贴的是 <b>yun.139.com</b> 的 Cookie，且已登录。</div>';
+      return;
+    }
+    showResult(r.b64,r.plain,false);
+    box.innerHTML='<div class="ok">✓ 解析成功，令牌已复制到剪贴板</div>';
+  };
+
+  // ---------- 方式 C ----------
+  document.getElementById('btnMan').onclick=function(){
+    var t=document.getElementById('manBox').value.trim();
+    var box=document.getElementById('manMsg');
+    if(!t){ box.innerHTML='<div class="err">先填令牌</div>'; return; }
+    var r=normalize(t);
+    if(!r){ box.innerHTML='<div class="err">格式不对。应是一串 base64，或 pc:手机号:token 明文。</div>'; return; }
+    showResult(r.b64,r.plain,false);
+    box.innerHTML='<div class="ok">✓ 已解析并复制</div>';
+  };
+
+  // ---------- 结果区按钮 ----------
+  document.getElementById('btnCopy').onclick=function(){
+    var ok=copy(current);
+    this.textContent= ok?'✓ 已复制':'失败，请长按选中';
+    var b=this;
+    setTimeout(function(){b.textContent='复制令牌';},1800);
+  };
+  document.getElementById('btnManage').onclick=function(){
+    window.location.href='https://hnvip.pages.dev/manage.html#tok='+encodeURIComponent(current);
+  };
+})();
+</script>
+</body>
+</html>
