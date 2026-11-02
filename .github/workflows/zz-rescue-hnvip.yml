@@ -5,7 +5,7 @@ jobs:
   r:
     runs-on: ubuntu-latest
     steps:
-      - name: diagnose 500
+      - name: rollback to older good deployments
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
           PAT: ${{ secrets.GH_PAT }}
@@ -14,54 +14,64 @@ jobs:
           ACC=9156c2cae565fdf42d208827b523e47e
           O=/tmp/rescue.txt
           exec > >(tee -a $O) 2>&1
-          echo "=== [1] raw 500 response ==="
-          curl -sS -i -m 30 "https://hnvip.pages.dev/?diag=1" | head -c 2000; echo
-          echo "=== [2] canonical deployment stages ==="
-          curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/0b74e23a-aecc-4088-9deb-cc32b0920be3" -o /tmp/dep.json
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/dep.json'));r=d.get('result') or {}
-          print('trigger=',str(r.get('deployment_trigger'))[:200])
-          for s in r.get('stages') or []:
-              print('stage',s.get('name'),s.get('status'),str(s.get('message'))[:200])
-          PY
-          echo "=== [3] repo root special entries ==="
-          curl -sS -m 30 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/" -o /tmp/root.json
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/root.json'))
-          keys=('function','worker','redirect','package.json','package-lock','node_modules','.npm','wrangler','toml')
-          for x in d:
-              n=x['name'].lower()
-              if any(k in n for k in keys) or x['type']=='dir':
-                  print(x['type'],x['name'])
-          PY
-          echo "=== [4] try patch source to ad_hoc ==="
-          for BODY in '{"source":{"type":"ad_hoc"}}' '{"source":null}' '{"production_branch":"main","source":{"type":"ad_hoc"}}'; do
-            echo "-- $BODY"
-            curl -sS -m 30 -X PATCH -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
-              -d "$BODY" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" | head -c 350; echo
+          echo "=== [1] list all success deployments ==="
+          rm -f /tmp/deps*.json
+          for P in 1 2 3 4 5 6 7 8 9 10; do
+            curl -sS -m 40 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments?page=$P&per_page=25" -o /tmp/deps$P.json
           done
-          echo "=== [5] project source now ==="
-          curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" -o /tmp/p5.json
           python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/p5.json'));r=d.get('result') or {}
-          print('source=',json.dumps(r.get('source'),ensure_ascii=False)[:400])
-          cd=r.get('canonical_deployment') or {}
-          print('canonical=',cd.get('short_id'),(cd.get('latest_stage') or {}).get('status'))
+          import json,glob
+          rs=[]
+          for f in sorted(glob.glob('/tmp/deps*.json')):
+              try:
+                  d=json.load(open(f))
+                  if d.get('success'): rs+=d.get('result') or []
+              except Exception as e: pass
+          print('total=',len(rs))
+          out=[]
+          for x in rs:
+              ls=(x.get('latest_stage') or {}).get('status')
+              if x.get('environment')=='production' and ls=='success':
+                  t=(x.get('deployment_trigger') or {}).get('type','?')
+                  out.append(x['id'])
+                  print(x['id'], x.get('created_on'), t, x.get('url'))
+          open('/tmp/goodlist','w').write('\n'.join(out))
+          print('success_count=',len(out))
           PY
-          echo "=== [6] verify ==="
-          for i in 1 2 3; do
+          echo "=== [2] try rollback each older success ==="
+          N=$(wc -l < /tmp/goodlist); N=$((N+1))
+          DONE=0
+          for K in $(seq 3 12); do
+            ID=$(sed -n "${K}p" /tmp/goodlist)
+            [ -z "$ID" ] && break
+            echo "--- rollback #$K -> $ID"
+            R=$(curl -sS -m 60 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$ID/rollback")
+            echo "$R" | head -c 220; echo
+            sleep 18
+            CODE=$(curl -sS -m 30 -o /dev/null -w "%{http_code}" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1)
+            echo "verify -> $CODE"
+            if [ "$CODE" = "200" ]; then echo "RECOVERED with $ID"; DONE=1; break; fi
+          done
+          echo "DONE=$DONE"
+          echo "=== [3] try add hnvip.pages.dev as domain on working project ==="
+          if [ "$DONE" = "0" ]; then
+            curl -sS -m 40 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+              -d '{"name":"hnvip.pages.dev"}' \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/changes-in-carrier-pricing/domains" | head -c 500; echo
+            sleep 10
+            curl -sS -m 30 -o /dev/null -w "after domain -> %{http_code}\n" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1
+          fi
+          echo "=== [4] final verify ==="
+          for i in 1 2 3 4; do
             curl -sS -m 30 -o /dev/null -w "hnvip.pages.dev -> %{http_code}\n" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1
-            sleep 5
+            sleep 6
           done
-          echo "=== [7] save log ==="
+          echo "=== [5] save log ==="
           B64=$(base64 -w0 /tmp/rescue.txt)
           SHA=$(curl -sS -m 20 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
           curl -sS -m 30 -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            -d "{\"message\":\"rescue5\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" \
+            -d "{\"message\":\"rescue6\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" \
             "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | head -c 120; echo
