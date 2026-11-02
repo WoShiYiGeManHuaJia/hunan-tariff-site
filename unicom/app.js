@@ -1273,6 +1273,7 @@ btnRefresh.addEventListener("click", () => { if (btnRefreshGuard()) doCheck(); }
 /* ========== 更新公告弹窗（每个设备仅显示一次，几大站共用同一标记） ========== */
 (function () {
   var KEY = "marvis_site_notice_20260913v4";
+  return;  /* 一次性公告已停用（2026-11-02）：不再自动弹出 */
   var done = false;
   try { done = !!localStorage.getItem(KEY); } catch (e) {}
   if (done) return;

@@ -3414,7 +3414,7 @@ function ntAuto(){
   try{ ntShow(); }catch(e){}
 }
 psLoad();
-try{ setTimeout(ntAuto, 700); }catch(e){}   // 一次性公告：延后弹，避免跟首屏加载抢资源
+/* 一次性公告已停用（2026-11-02）：不再自动弹出 */
 // 最新检测卡片：页面载入即渲染所选省份最近一次变化
 try{ ldProvInit(); ldRefresh(); }catch(e){}
 try{ ckProvInit(); }catch(e){}   // 载入即绑定省份按钮，不必等检测弹窗打开
