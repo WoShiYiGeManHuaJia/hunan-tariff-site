@@ -1,0 +1,16 @@
+=== [1] CF token verify ===
+{"result":{"id":"70328c64c39244503c9c72f3896b8692","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
+=== [2] project info ===
+api_success= True errors= []
+name= hnvip subdomain= hnvip.pages.dev source= {'type': 'github', 'config': {'owner': 'WoShiYiGeManHuaJia', 'owner_id': '317776016', 'repo_name': 'hunan-tariff-site', 'repo_id': '1438392194', 'production_branch': 'main', 'pr_comments_enabled': True, 'deployments_enabled': True, 'production_deployments_enabled': True, 'preview_deployment_setting'
+=== [3] list deployments ===
+api_success= False errors= [{'code': 8000024, 'message': 'Invalid list options provided. Review the `page` or `per_page` parameter.'}]
+count= 0
+GOOD= NONE good_count= 0
+=== [4] NO SUCCESS DEPLOYMENT, skip rollback ===
+=== [5] verify ===
+hnvip.pages.dev -> 500
+hnvip.pages.dev -> 500
+hnvip.pages.dev -> 500
+hnvip.pages.dev -> 500
+=== [6] save log ===
