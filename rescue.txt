@@ -1,4 +1,46 @@
-=== [1] try disable github auto-build ===
+=== [1] raw 500 response ===
+HTTP/2 500 
+date: Mon, 02 Nov 2026 05:59:52 GMT
+content-length: 0
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=0maQUS9shG5qd%2F8P7fYkGofbR06IsTY5JP4h4%2BRIGzg7rk2XgWKgDmw04CHf3b%2BCuRcymZsLZQbiH9Cn6D1el%2Bpwq3L4icduEnX0ao6fb8kzeegxzjx369nZ5H0SPc5gjj4%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: a540ea692a0ce02b-MSP
+alt-svc: h3=":443"; ma=86400
+
+
+=== [2] canonical deployment stages ===
+trigger= {'type': 'ad_hoc', 'metadata': {'branch': 'main', 'commit_hash': '', 'commit_message': '', 'commit_dirty': False}}
+stage queued active None
+stage initialize idle None
+stage clone_repo idle None
+stage build idle None
+stage deploy success None
+=== [3] repo root special entries ===
+dir .github
+dir _probe
+dir data
+dir gb
+dir icons
+dir kbout
+dir logs
+dir mlog
+dir n
+dir panel
+dir pipelines
+dir probe
+dir relay
+dir scripts
+dir site
+dir telecom
+dir termux
+dir tests
+dir tools
+dir unicom
+dir visitor
+dir vlog
+=== [4] try patch source to ad_hoc ===
+-- {"source":{"type":"ad_hoc"}}
 {
   "result": {
     "id": "95cc5a36-e730-4878-9070-51e47d7013b4",
@@ -13,123 +55,44 @@
         "owner": "WoShiYiGeManHuaJia",
         "owner_id": "317776016",
         "repo_name": "hunan-tariff-site",
-        "repo_id": "1438392194",
-        "production_branch": "main",
-        "pr_comments_enabled": false,
-        "deployments_enabled": false,
-        "pr
-=== [2] check source after patch ===
-source_type= github
-deployments_enabled= False
-production_deployments_enabled= False
-=== [3] delete + recreate as direct upload ===
+       
+-- {"source":null}
 {
-  "result": null,
-  "success": false,
-  "errors": [
-    {
-      "code": 8000076,
-      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.re/3CXesln"
-    }
-  ],
-  "messages": []
-}
-
-create try 1: {
-  "result": null,
-  "success": false,
-  "errors": [
-    {
-      "code": 8000002,
-      "message": "A project with this name already exists. Choose a different project name."
-    }
-  ],
-  "messages": []
-}
-create try 2: {
-  "result": null,
-  "success": false,
-  "errors": [
-    {
-      "code": 8000002,
-      "message": "A project with this name already exists. Choose a different project name."
-    }
-  ],
-  "messages": []
-}
-create try 3: {
-  "result": null,
-  "success": false,
-  "errors": [
-    {
-      "code": 8000002,
-      "message": "A project with this name already exists. Choose a different project name."
-    }
-  ],
-  "messages": []
-}
-create try 4: {
-  "result": null,
-  "success": false,
-  "errors": [
-    {
-      "code": 8000002,
-      "message": "A project with this name already exists. Choose a different project name."
-    }
-  ],
-  "messages": []
-}
-create try 5: {
-  "result": null,
-  "success": false,
-  "errors": [
-    {
-      "code": 8000002,
-      "message": "A project with this name already exists. Choose a different project name."
-    }
-  ],
-  "messages": []
-}
-create try 6: {
-  "result": null,
-  "success": false,
-  "errors": [
-    {
-      "code": 8000002,
-      "message": "A project with this name already exists. Choose a different project name."
-    }
-  ],
-  "messages": []
-}
-=== [4] clone site ===
-Cloning into '/tmp/site'...
-files: 602  size: 214M
-=== [5] direct upload ===
-SKIP big unicom/data/_pool.json 45145779
-manifest files= 601
-HTTP 200 {
   "result": {
-    "id": "0b74e23a-aecc-4088-9deb-cc32b0920be3",
-    "short_id": "0b74e23a",
-    "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
-    "project_name": "hnvip",
-    "environment": "production",
-    "url": "https://0b74e23a.hnvip.pages.dev",
-    "created_on": "2026-11-02T05:54:47.217767Z",
-    "modified_on": "2026-11-02T05:54:47.217767Z",
-    "latest_stage": {
-      "name": "que
-DEPLOY_ID= 0b74e23a-aecc-4088-9deb-cc32b0920be3
-=== [6] poll deployment 0b74e23a-aecc-4088-9deb-cc32b0920be3 ===
-poll 1 -> success
-=== [7] verify ===
-hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-=== [8] final project ===
-success= True subdomain= hnvip.pages.dev source_type= github
+    "id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "name": "hnvip",
+    "subdomain": "hnvip.pages.dev",
+    "domains": [
+      "hnvip.pages.dev"
+    ],
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "WoShiYiGeManHuaJia",
+        "owner_id": "317776016",
+        "repo_name": "hunan-tariff-site",
+       
+-- {"production_branch":"main","source":{"type":"ad_hoc"}}
+{
+  "result": {
+    "id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "name": "hnvip",
+    "subdomain": "hnvip.pages.dev",
+    "domains": [
+      "hnvip.pages.dev"
+    ],
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "WoShiYiGeManHuaJia",
+        "owner_id": "317776016",
+        "repo_name": "hunan-tariff-site",
+       
+=== [5] project source now ===
+source= {"type": "github", "config": {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "hunan-tariff-site", "repo_id": "1438392194", "production_branch": "main", "pr_comments_enabled": false, "deployments_enabled": false, "production_deployments_enabled": false, "preview_deployment_setting": "none", "preview_branch_includes": [], "preview_branch_excludes": [], "path_includes": [], "pat
 canonical= 0b74e23a success
-=== [9] save log ===
+=== [6] verify ===
+hnvip.pages.dev -> 500
+hnvip.pages.dev -> 500
+hnvip.pages.dev -> 500
+=== [7] save log ===
