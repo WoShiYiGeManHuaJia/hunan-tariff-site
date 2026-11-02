@@ -14,20 +14,19 @@
 === [2] trigger fresh build from main ===
 {
   "result": {
-    "id": "3ed23bb0-4874-4e36-b972-2794e0199149",
-    "short_id": "3ed23bb0",
+    "id": "d3922099-753f-4725-bd37-7e67d8f1df9f",
+    "short_id": "d3922099",
     "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
     "project_name": "hnvip",
     "environment": "production",
-    "url": "https://3ed23bb0.hnvip.pages.dev",
-    "created_on": "2026-11-02T06:12:26.281879Z",
-    "modified_on": "2026-11-02T06:12:26.
-deploy_id=3ed23bb0-4874-4e36-b972-2794e0199149
+    "url": "https://d3922099.hnvip.pages.dev",
+    "created_on": "2026-11-02T06:40:37.671879Z",
+    "modified_on": "2026-11-02T06:40:37.
+deploy_id=d3922099-753f-4725-bd37-7e67d8f1df9f
 === [3] poll ===
 poll 1 -> active
 poll 2 -> active
-poll 3 -> active
-poll 4 -> success
+poll 3 -> success
 === [4] verify ===
 code -> 200
 === [5] check new popup content ===
