@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>云盘签到 · 本地部署</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e293b);color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;display:flex;align-items:center;justify-content:center;padding:16px}
+.mask{position:fixed;inset:0;background:rgba(2,6,23,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
+.mask.on{display:flex;animation:fi .25s ease}@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.modal{width:100%;max-width:420px;background:linear-gradient(160deg,#1e293b,#0f172a);border:1px solid rgba(148,163,184,.25);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(148,163,184,.18)}
+.hd h3{margin:0;font-size:16px;font-weight:700}.x{background:none;border:0;color:#94a3b8;font-size:22px;cursor:pointer;line-height:1}
+.bd{padding:18px;font-size:14px;line-height:1.9}.bd p{margin:0 0 10px}.bd b{color:#7dd3fc}
+a.lnk{display:block;word-break:break-all;color:#38bdf8;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;padding:10px 12px;text-decoration:none;margin-top:4px;font-size:13px}
+.ft{display:flex;gap:10px;padding:0 18px 18px}.ft button{flex:1;padding:11px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:rgba(148,163,184,.1);color:#e2e8f0;font-size:14px;cursor:pointer}
+.ft button.pri{background:linear-gradient(135deg,#6366f1,#8b5cf6);border-color:transparent;color:#fff;font-weight:600}
+.tip{text-align:center;font-size:12px;color:#64748b;margin-top:10px}
+</style></head><body>
+<div class="mask on" id="m"><div class="modal">
+<div class="hd"><h3>☁️ 云盘签到</h3><button class="x" id="x" aria-label="关闭">×</button></div>
+<div class="bd">
+<p>云盘签到已做成本地部署，所有云端数据均清除，数据存本地，保护隐私安全，禁止违法犯罪，提取码在</p>
+<p><b>［HNYD①家人］群内@我获取</b></p>
+<p>下载链接</p>
+<a class="lnk" href="https://yun.139.com/shareweb/#/w/i/2yA8A0WzCYZr3" target="_blank" rel="noopener">https://yun.139.com/shareweb/#/w/i/2yA8A0WzCYZr3</a>
+</div>
+<div class="ft"><button id="cp">复制下载链接</button><button class="pri" id="cl">关闭</button></div>
+</div></div>
+<div class="tip">本页面不再提供任何云端签到 / 令牌抓取功能</div>
+<script>
+var U='https://yun.139.com/shareweb/#/w/i/2yA8A0WzCYZr3',m=document.getElementById('m');
+function close(){m.classList.remove('on')}
+document.getElementById('x').onclick=close;document.getElementById('cl').onclick=close;
+m.onclick=function(e){if(e.target===m)close()};
+document.getElementById('cp').onclick=function(){var b=this,t=document.createElement('textarea');t.value=U;document.body.appendChild(t);t.select();try{document.execCommand('copy');b.textContent='已复制 ✓'}catch(e){b.textContent='请长按链接复制'}document.body.removeChild(t);setTimeout(function(){b.textContent='复制下载链接'},1600)};
+</script></body></html>
