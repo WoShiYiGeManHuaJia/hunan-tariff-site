@@ -5,7 +5,7 @@ jobs:
   r:
     runs-on: ubuntu-latest
     steps:
-      - name: rollback and verify
+      - name: rollback to previous success
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
           PAT: ${{ secrets.GH_PAT }}
@@ -14,19 +14,23 @@ jobs:
           ACC=9156c2cae565fdf42d208827b523e47e
           O=/tmp/rescue.txt
           exec > >(tee -a $O) 2>&1
-          echo "=== [1] CF token verify ==="
-          curl -sS -m 30 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/user/tokens/verify | head -c 200; echo
-          echo "=== [2] project info ==="
+          echo "=== [1] project deployment pointers ==="
           curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" -o /tmp/proj.json
           python3 - <<'PY'
           import json
           d=json.load(open('/tmp/proj.json'))
           r=d.get('result') or {}
-          print('success=',d.get('success'),'subdomain=',r.get('subdomain'),'source_type=',(r.get('source') or {}).get('type'))
-          print('repo=',(r.get('source') or {}).get('config',{}).get('repo_name'))
+          for k,v in r.items():
+              if 'deploy' in k.lower() or 'stage' in k.lower():
+                  print(k,'=',str(v)[:400])
+          src=(r.get('source') or {}).get('config') or {}
+          print('source.config=',json.dumps(src,ensure_ascii=False)[:800])
+          print('build_config=',json.dumps(r.get('build_config'),ensure_ascii=False)[:400])
+          print('deployment_configs=',json.dumps(r.get('deployment_configs'),ensure_ascii=False)[:600])
           PY
-          echo "=== [3] list deployments (paged) ==="
-          for P in 1 2 3 4; do
+          echo "=== [2] collect success deployments (8 pages) ==="
+          rm -f /tmp/deps*.json
+          for P in 1 2 3 4 5 6 7 8; do
             curl -sS -m 40 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments?page=$P&per_page=25" -o /tmp/deps$P.json
           done
           python3 - <<'PY'
@@ -35,54 +39,51 @@ jobs:
           for f in sorted(glob.glob('/tmp/deps*.json')):
               try:
                   d=json.load(open(f))
-                  if d.get('success'):
-                      rs+=d.get('result') or []
-                  else:
-                      print('list err',f,str(d.get('errors'))[:150])
+                  if d.get('success'): rs+=d.get('result') or []
               except Exception as e: print('parse err',f,e)
-          print('count=',len(rs))
-          for x in rs[:60]:
+          print('total=',len(rs))
+          good=[x['id'] for x in rs if x.get('environment')=='production' and ((x.get('latest_stage') or {}).get('status')=='success')]
+          print('success_ids=',good[:10])
+          open('/tmp/goodlist','w').write('\n'.join(good))
+          # 打印每个 success 的详情
+          for x in rs[:15]:
               ls=x.get('latest_stage') or {}
-              print(x['id'][:12], x.get('environment'), str(ls.get('status')), x.get('created_on'), x.get('url'))
-          good=[]
-          for x in rs:
-              ls=x.get('latest_stage') or {}
-              if x.get('environment')=='production' and ls.get('status')=='success':
-                  good.append(x['id'])
-          open('/tmp/good','w').write(good[0] if good else '')
-          print('GOOD=',good[0] if good else 'NONE','good_count=',len(good))
+              print(x['id'][:12], x.get('environment'), ls.get('status'), x.get('created_on'))
           PY
-          GOOD=$(cat /tmp/good)
-          if [ -n "$GOOD" ]; then
-            echo "=== [4] rollback -> $GOOD ==="
+          echo "=== [3] rollback to 2nd success (skip current production) ==="
+          ID=$(sed -n '2p' /tmp/goodlist)
+          echo "target=$ID"
+          if [ -n "$ID" ]; then
             curl -sS -m 60 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
-              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$GOOD/rollback" | head -c 500; echo
-          else
-            echo "=== [4] trigger fresh build from GitHub (branch main) ==="
-            curl -sS -m 60 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
-              -d '{"branch":"main"}' \
-              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments" | head -c 700; echo
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$ID/rollback" | head -c 600; echo
           fi
-          echo "=== [5] wait + verify ==="
-          sleep 45
-          for i in 1 2 3 4 5 6; do
+          echo "=== [4] verify ==="
+          sleep 30
+          for i in 1 2 3 4 5 6 7 8; do
             curl -sS -m 30 -o /dev/null -w "hnvip.pages.dev -> %{http_code}\n" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1
-            sleep 12
+            sleep 10
           done
-          echo "=== [6] final project state ==="
-          curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments?page=1&per_page=5" -o /tmp/final.json
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/final.json'))
-          for x in (d.get('result') or [])[:5]:
-              ls=x.get('latest_stage') or {}
-              print(x['id'][:12], x.get('environment'), ls.get('status'), x.get('url'))
+          echo "=== [5] one failed deployment logs ==="
+          FAILID=$(python3 - <<'PY'
+          import json,glob
+          for f in sorted(glob.glob('/tmp/deps*.json')):
+              d=json.load(open(f))
+              for x in (d.get('result') or []):
+                  ls=x.get('latest_stage') or {}
+                  if ls.get('status')=='failure':
+                      print(x['id']); raise SystemExit
+          print('')
           PY
-          echo "=== [7] save log ==="
+          )
+          echo "fail_id=$FAILID"
+          if [ -n "$FAILID" ]; then
+            curl -sS -m 40 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$FAILID/logs" | head -c 1500; echo
+          fi
+          echo "=== [6] save log ==="
           B64=$(base64 -w0 /tmp/rescue.txt)
           SHA=$(curl -sS -m 20 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
           curl -sS -m 30 -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            -d "{\"message\":\"rescue2\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | head -c 150; echo
+            -d "{\"message\":\"rescue3\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | head -c 120; echo
