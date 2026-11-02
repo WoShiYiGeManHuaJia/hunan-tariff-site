@@ -1,108 +1,135 @@
-=== [1] project deployment pointers ===
-deployment_configs = {'preview': {'env_vars': None, 'fail_open': True, 'always_use_latest_compatibility_date': False, 'compatibility_date': '2026-10-30', 'compatibility_flags': [], 'build_image_major_version': 3, 'usage_model': 'standard'}, 'production': {'env_vars': None, 'fail_open': True, 'always_use_latest_compatibility_date': False, 'compatibility_date': '2026-10-30', 'compatibility_flags': [], 'build_image_major
-latest_deployment = {'id': '5ef2911c-4415-4bc0-81a1-eb1d4c935e34', 'short_id': '5ef2911c', 'project_id': '95cc5a36-e730-4878-9070-51e47d7013b4', 'project_name': 'hnvip', 'environment': 'production', 'url': 'https://5ef2911c.hnvip.pages.dev', 'created_on': '2026-11-02T05:49:35.934048Z', 'modified_on': '2026-11-02T05:49:36.093146Z', 'latest_stage': {'name': 'queued', 'started_on': '2026-11-02T05:49:36.079654Z', 'ended_
-canonical_deployment = {'id': 'f9c6b2e1-9c77-4ed4-b5a2-2869948ef7e0', 'short_id': 'f9c6b2e1', 'project_id': '95cc5a36-e730-4878-9070-51e47d7013b4', 'project_name': 'hnvip', 'environment': 'production', 'url': 'https://f9c6b2e1.hnvip.pages.dev', 'created_on': '2026-11-02T04:36:28.951291Z', 'modified_on': '2026-11-02T04:36:30.577232Z', 'latest_stage': {'name': 'deploy', 'started_on': None, 'ended_on': '2026-11-02T04:36:30
-source.config= {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "hunan-tariff-site", "repo_id": "1438392194", "production_branch": "main", "pr_comments_enabled": true, "deployments_enabled": true, "production_deployments_enabled": true, "preview_deployment_setting": "all", "preview_branch_includes": ["*"], "preview_branch_excludes": [], "path_includes": ["*"], "path_excludes": []}
-build_config= {"build_command": "", "destination_dir": "", "root_dir": "", "web_analytics_tag": null, "web_analytics_token": null}
-deployment_configs= {"preview": {"env_vars": null, "fail_open": true, "always_use_latest_compatibility_date": false, "compatibility_date": "2026-10-30", "compatibility_flags": [], "build_image_major_version": 3, "usage_model": "standard"}, "production": {"env_vars": null, "fail_open": true, "always_use_latest_compatibility_date": false, "compatibility_date": "2026-10-30", "compatibility_flags": [], "build_image_major_version": 3, "usage_model": "standard"}}
-=== [2] collect success deployments (8 pages) ===
-total= 200
-success_ids= ['f9c6b2e1-9c77-4ed4-b5a2-2869948ef7e0', '532e94cd-2ae9-4aa2-b8a6-e26588dd5b88', '6a3142d4-155e-4955-ac92-0feb2c98e8d5', '95ba41b3-df5c-4907-bde5-2e2e079d8ef5', 'b4f2fda0-f729-4a17-806d-47e2dd91b158', '26bd17c7-f2b1-4492-90e4-be9766a51eb8', 'ccca2db8-9fd7-4e77-80da-1eca1208808b', 'ef05a7d3-e515-433a-8f85-3ac688e3e4dc', 'db64acd5-2b1d-439b-8eeb-78539d8db4cc', '2d219ad8-cb2f-49fb-b7a0-dabb5efbac08']
-5ef2911c-441 production active 2026-11-02T05:49:35.934048Z
-60d53aff-747 production active 2026-11-02T05:49:23.039235Z
-b147ad0e-2bb production failure 2026-11-02T05:47:56.494468Z
-9b41076b-ee5 production failure 2026-11-02T05:45:59.737971Z
-d525dfd0-97f production failure 2026-11-02T05:45:40.61578Z
-51de09ea-eed production failure 2026-11-02T05:44:28.712084Z
-d868c2da-dfc production failure 2026-11-02T05:43:22.25735Z
-39e3f1be-ca7 production failure 2026-11-02T05:43:02.652942Z
-c4c15ad7-534 production failure 2026-11-02T04:36:32.062569Z
-f9c6b2e1-9c7 production success 2026-11-02T04:36:28.951291Z
-51adfd31-150 production failure 2026-11-02T04:21:15.298366Z
-532e94cd-2ae production success 2026-11-02T04:21:12.277967Z
-0d081c8a-32f production failure 2026-11-02T04:18:48.034913Z
-51125f7b-716 production failure 2026-11-02T04:18:43.277502Z
-507df489-d76 production failure 2026-11-02T04:17:03.981959Z
-=== [3] rollback to 2nd success (skip current production) ===
-target=532e94cd-2ae9-4aa2-b8a6-e26588dd5b88
+=== [1] try disable github auto-build ===
 {
   "result": {
-    "id": "532e94cd-2ae9-4aa2-b8a6-e26588dd5b88",
-    "short_id": "532e94cd",
+    "id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "name": "hnvip",
+    "subdomain": "hnvip.pages.dev",
+    "domains": [
+      "hnvip.pages.dev"
+    ],
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "WoShiYiGeManHuaJia",
+        "owner_id": "317776016",
+        "repo_name": "hunan-tariff-site",
+        "repo_id": "1438392194",
+        "production_branch": "main",
+        "pr_comments_enabled": false,
+        "deployments_enabled": false,
+        "pr
+=== [2] check source after patch ===
+source_type= github
+deployments_enabled= False
+production_deployments_enabled= False
+=== [3] delete + recreate as direct upload ===
+{
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.re/3CXesln"
+    }
+  ],
+  "messages": []
+}
+
+create try 1: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000002,
+      "message": "A project with this name already exists. Choose a different project name."
+    }
+  ],
+  "messages": []
+}
+create try 2: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000002,
+      "message": "A project with this name already exists. Choose a different project name."
+    }
+  ],
+  "messages": []
+}
+create try 3: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000002,
+      "message": "A project with this name already exists. Choose a different project name."
+    }
+  ],
+  "messages": []
+}
+create try 4: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000002,
+      "message": "A project with this name already exists. Choose a different project name."
+    }
+  ],
+  "messages": []
+}
+create try 5: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000002,
+      "message": "A project with this name already exists. Choose a different project name."
+    }
+  ],
+  "messages": []
+}
+create try 6: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000002,
+      "message": "A project with this name already exists. Choose a different project name."
+    }
+  ],
+  "messages": []
+}
+=== [4] clone site ===
+Cloning into '/tmp/site'...
+files: 602  size: 214M
+=== [5] direct upload ===
+SKIP big unicom/data/_pool.json 45145779
+manifest files= 601
+HTTP 200 {
+  "result": {
+    "id": "0b74e23a-aecc-4088-9deb-cc32b0920be3",
+    "short_id": "0b74e23a",
     "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
     "project_name": "hnvip",
     "environment": "production",
-    "url": "https://532e94cd.hnvip.pages.dev",
-    "created_on": "2026-11-02T04:21:12.277967Z",
-    "modified_on": "2026-11-02T05:49:39.428766Z",
+    "url": "https://0b74e23a.hnvip.pages.dev",
+    "created_on": "2026-11-02T05:54:47.217767Z",
+    "modified_on": "2026-11-02T05:54:47.217767Z",
     "latest_stage": {
-      "name": "deploy",
-      "started_on": null,
-      "ended_on": "2026-11-02T04:21:13.81025Z",
-      "status": "success"
-    },
-    "deployment_trigger": {
-      "type": "ad_hoc",
-      "metadata": {
-        "branch
-=== [4] verify ===
+      "name": "que
+DEPLOY_ID= 0b74e23a-aecc-4088-9deb-cc32b0920be3
+=== [6] poll deployment 0b74e23a-aecc-4088-9deb-cc32b0920be3 ===
+poll 1 -> success
+=== [7] verify ===
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-=== [5] one failed deployment logs ===
-fail_id=b147ad0e-2bb0-4b41-ba43-ed1a312a3e9d
-{
-  "result": {
-    "id": "b147ad0e-2bb0-4b41-ba43-ed1a312a3e9d",
-    "short_id": "b147ad0e",
-    "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
-    "project_name": "hnvip",
-    "environment": "production",
-    "url": "https://b147ad0e.hnvip.pages.dev",
-    "created_on": "2026-11-02T05:47:56.494468Z",
-    "modified_on": "2026-11-02T05:48:05.922238Z",
-    "latest_stage": {
-      "name": "build",
-      "started_on": "2026-11-02T05:48:01.931314Z",
-      "ended_on": "2026-11-02T05:48:05.922238Z",
-      "status": "failure"
-    },
-    "deployment_trigger": {
-      "type": "github:push",
-      "metadata": {
-        "branch": "main",
-        "commit_hash": "4c1cd18b4846927eda76397d28825a9c33f9260d",
-        "commit_message": "rescue2",
-        "commit_dirty": false
-      }
-    },
-    "stages": [
-      {
-        "name": "queued",
-        "started_on": "2026-11-02T05:47:56.612783Z",
-        "ended_on": "2026-11-02T05:47:56.613851Z",
-        "status": "success"
-      },
-      {
-        "name": "initialize",
-        "started_on": "2026-11-02T05:47:56.613851Z",
-        "ended_on": "2026-11-02T05:47:58.088737Z",
-        "status": "success"
-      },
-      {
-        "name": "clone_repo",
-        "started_on": "2026-11-02T05:47:58.088737Z",
-        "ended_on": "2026-11-02T05:48:01.931314Z",
-        "status": "success"
-      },
-      {
-        "name": "build",
-        "started_on": "2026-11-02T05:48:01.931314Z",
-        "ended_on": "2026-11-02T05:48:05.922238Z",
-        "status": "failu
-=== [6] save log ===
+=== [8] final project ===
+success= True subdomain= hnvip.pages.dev source_type= github
+canonical= 0b74e23a success
+=== [9] save log ===
