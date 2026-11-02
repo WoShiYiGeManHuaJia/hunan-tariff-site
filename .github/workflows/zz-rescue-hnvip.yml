@@ -5,7 +5,7 @@ jobs:
   r:
     runs-on: ubuntu-latest
     steps:
-      - name: rollback to previous success
+      - name: rebuild as direct-upload project
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
           PAT: ${{ secrets.GH_PAT }}
@@ -14,76 +14,106 @@ jobs:
           ACC=9156c2cae565fdf42d208827b523e47e
           O=/tmp/rescue.txt
           exec > >(tee -a $O) 2>&1
-          echo "=== [1] project deployment pointers ==="
-          curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" -o /tmp/proj.json
+          echo "=== [1] try disable github auto-build ==="
+          curl -sS -m 40 -X PATCH -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            -d '{"source":{"type":"github","config":{"owner":"WoShiYiGeManHuaJia","repo_name":"hunan-tariff-site","production_branch":"main","pr_comments_enabled":false,"deployments_enabled":false,"production_deployments_enabled":false,"preview_deployment_setting":"none","preview_branch_includes":[],"preview_branch_excludes":[],"path_includes":[],"path_excludes":[]}}}' \
+            "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" | head -c 500; echo
+          echo "=== [2] check source after patch ==="
+          curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" -o /tmp/p2.json
           python3 - <<'PY'
           import json
-          d=json.load(open('/tmp/proj.json'))
-          r=d.get('result') or {}
-          for k,v in r.items():
-              if 'deploy' in k.lower() or 'stage' in k.lower():
-                  print(k,'=',str(v)[:400])
-          src=(r.get('source') or {}).get('config') or {}
-          print('source.config=',json.dumps(src,ensure_ascii=False)[:800])
-          print('build_config=',json.dumps(r.get('build_config'),ensure_ascii=False)[:400])
-          print('deployment_configs=',json.dumps(r.get('deployment_configs'),ensure_ascii=False)[:600])
+          d=json.load(open('/tmp/p2.json'));r=d.get('result') or {}
+          s=r.get('source') or {}
+          print('source_type=',s.get('type'))
+          print('deployments_enabled=',(s.get('config') or {}).get('deployments_enabled'))
+          print('production_deployments_enabled=',(s.get('config') or {}).get('production_deployments_enabled'))
           PY
-          echo "=== [2] collect success deployments (8 pages) ==="
-          rm -f /tmp/deps*.json
-          for P in 1 2 3 4 5 6 7 8; do
-            curl -sS -m 40 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments?page=$P&per_page=25" -o /tmp/deps$P.json
+          echo "=== [3] delete + recreate as direct upload ==="
+          curl -sS -m 40 -X DELETE -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" | head -c 250; echo
+          for i in 1 2 3 4 5 6; do
+            sleep 5
+            R=$(curl -sS -m 40 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+              -d '{"name":"hnvip","production_branch":"main"}' \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects")
+            echo "create try $i: $(echo "$R" | head -c 220)"
+            if echo "$R" | grep -q '"success":true'; then break; fi
           done
+          echo "=== [4] clone site ==="
+          rm -rf /tmp/site
+          git clone --depth 1 https://x-access-token:$PAT@github.com/WoShiYiGeManHuaJia/hunan-tariff-site.git /tmp/site
+          cd /tmp/site && rm -rf .git .github
+          echo "files: $(find /tmp/site -type f | wc -l)  size: $(du -sh /tmp/site | cut -f1)"
+          echo "=== [5] direct upload ==="
           python3 - <<'PY'
-          import json,glob
-          rs=[]
-          for f in sorted(glob.glob('/tmp/deps*.json')):
-              try:
-                  d=json.load(open(f))
-                  if d.get('success'): rs+=d.get('result') or []
-              except Exception as e: print('parse err',f,e)
-          print('total=',len(rs))
-          good=[x['id'] for x in rs if x.get('environment')=='production' and ((x.get('latest_stage') or {}).get('status')=='success')]
-          print('success_ids=',good[:10])
-          open('/tmp/goodlist','w').write('\n'.join(good))
-          # 打印每个 success 的详情
-          for x in rs[:15]:
-              ls=x.get('latest_stage') or {}
-              print(x['id'][:12], x.get('environment'), ls.get('status'), x.get('created_on'))
+          import os,json,hashlib,uuid,urllib.request,time
+          root='/tmp/site'
+          token=os.environ['CF']; acc='9156c2cae565fdf42d208827b523e47e'
+          files={}
+          for dp,dn,fn in os.walk(root):
+              for f in fn:
+                  p=os.path.join(dp,f); rel=os.path.relpath(p,root).replace(os.sep,'/')
+                  sz=os.path.getsize(p)
+                  if sz>24*1024*1024:
+                      print('SKIP big',rel,sz); continue
+                  files['/'+rel]=[hashlib.sha1(open(p,'rb').read()).hexdigest(),sz]
+          print('manifest files=',len(files))
+          boundary='----x'+uuid.uuid4().hex
+          def field(name,val,ctype=None,fname=None):
+              b=('--%s\r\n'%boundary).encode()
+              if fname: b+=('Content-Disposition: form-data; name="%s"; filename="%s"\r\n'%(name,fname)).encode()
+              else: b+=('Content-Disposition: form-data; name="%s"\r\n'%name).encode()
+              if ctype: b+=('Content-Type: %s\r\n'%ctype).encode()
+              return b+b'\r\n'+val+b'\r\n'
+          body=field('manifest',json.dumps(files).encode(),'application/json')
+          for path,(h,sz) in files.items():
+              body+=field(h,open('/tmp/site'+path,'rb').read(),'application/octet-stream',h)
+          body+=('--%s--\r\n'%boundary).encode()
+          req=urllib.request.Request('https://api.cloudflare.com/client/v4/accounts/%s/pages/projects/hnvip/deployments'%acc,data=body,method='POST')
+          req.add_header('Authorization','Bearer '+token)
+          req.add_header('Content-Type','multipart/form-data; boundary='+boundary)
+          try:
+              r=urllib.request.urlopen(req,timeout=600); t=r.read().decode(); print('HTTP',r.status,t[:400])
+              d=json.loads(t); did=(d.get('result') or {}).get('id')
+              open('/tmp/did','w').write(did or '')
+              print('DEPLOY_ID=',did)
+          except Exception as e:
+              print('UPLOAD ERR',e)
+              try: print(getattr(e,'read',lambda:b'')().decode()[:500])
+              except: pass
+              open('/tmp/did','w').write('')
           PY
-          echo "=== [3] rollback to 2nd success (skip current production) ==="
-          ID=$(sed -n '2p' /tmp/goodlist)
-          echo "target=$ID"
-          if [ -n "$ID" ]; then
-            curl -sS -m 60 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
-              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$ID/rollback" | head -c 600; echo
+          DID=$(cat /tmp/did)
+          echo "=== [6] poll deployment $DID ==="
+          if [ -n "$DID" ]; then
+            for i in $(seq 1 18); do
+              sleep 10
+              S=$(curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$DID")
+              ST=$(echo "$S" | python3 -c "import json,sys;d=json.load(sys.stdin);r=d.get('result') or {};print(((r.get('latest_stage') or {}).get('status') or '?'))" 2>/dev/null)
+              echo "poll $i -> $ST"
+              [ "$ST" = "success" ] && break
+              [ "$ST" = "failure" ] && break
+            done
           fi
-          echo "=== [4] verify ==="
-          sleep 30
-          for i in 1 2 3 4 5 6 7 8; do
+          echo "=== [7] verify ==="
+          sleep 15
+          for i in 1 2 3 4 5 6; do
             curl -sS -m 30 -o /dev/null -w "hnvip.pages.dev -> %{http_code}\n" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1
-            sleep 10
+            sleep 8
           done
-          echo "=== [5] one failed deployment logs ==="
-          FAILID=$(python3 - <<'PY'
-          import json,glob
-          for f in sorted(glob.glob('/tmp/deps*.json')):
-              d=json.load(open(f))
-              for x in (d.get('result') or []):
-                  ls=x.get('latest_stage') or {}
-                  if ls.get('status')=='failure':
-                      print(x['id']); raise SystemExit
-          print('')
+          echo "=== [8] final project ==="
+          curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" -o /tmp/p3.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/p3.json'));r=d.get('result') or {}
+          print('success=',d.get('success'),'subdomain=',r.get('subdomain'),'source_type=',(r.get('source') or {}).get('type'))
+          cd=r.get('canonical_deployment') or {}
+          print('canonical=',cd.get('short_id'),(cd.get('latest_stage') or {}).get('status'))
           PY
-          )
-          echo "fail_id=$FAILID"
-          if [ -n "$FAILID" ]; then
-            curl -sS -m 40 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$FAILID/logs" | head -c 1500; echo
-          fi
-          echo "=== [6] save log ==="
+          echo "=== [9] save log ==="
           B64=$(base64 -w0 /tmp/rescue.txt)
           SHA=$(curl -sS -m 20 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
           curl -sS -m 30 -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            -d "{\"message\":\"rescue3\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" \
+            -d "{\"message\":\"rescue4\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" \
             "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | head -c 120; echo
