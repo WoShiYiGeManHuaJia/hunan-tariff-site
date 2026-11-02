@@ -996,7 +996,7 @@ a.opc{text-decoration:none;display:block}
         <div class="nav-cnt">最近变更 <b id="navChg">—</b></div>
       </div>
       <div class="nav-act">
-        <a class="btn cloud" href="manage.html" title="移动云盘自动签到托管"><span class="ic">☁️</span>云盘自动签到</a>
+        <button class="btn cloud" type="button" onclick="showYun139Notice()" title="云盘签到已改为本地部署"><span class="ic">☁️</span>云盘签到</button>
         <button class="btn pri" data-act="check">检测资费</button>
         <button class="btn" id="opBtn" data-act="op"><span id="opBtnTxt">移动</span> ▾</button>
         <button class="btn" data-act="theme">深色</button>
@@ -1243,6 +1243,28 @@ a.opc{text-decoration:none;display:block}
   </div>
 </div>
 
+<!-- 云盘签到本地部署公告弹窗 -->
+<div class="mask" id="ynMask">
+  <div class="modal">
+    <div class="mh"><h3>☁️ 云盘签到</h3><button class="mx" id="ynX" type="button">×</button></div>
+    <div class="mb"><div class="dv" style="line-height:1.9;font-size:14px">
+      <p>云盘签到已做成本地部署，所有云端数据均清除，数据存本地，保护隐私安全，禁止违法犯罪，提取码在</p>
+      <p><b>［HNYD①家人］群内@我获取</b></p>
+      <p>下载链接<br><a href="https://yun.139.com/shareweb/#/w/i/2yA8A0WzCYZr3" target="_blank" rel="noopener" style="word-break:break-all;color:#38bdf8">https://yun.139.com/shareweb/#/w/i/2yA8A0WzCYZr3</a></p>
+    </div></div>
+    <div class="mf"><button class="btn" id="ynCopy" type="button">复制链接</button><button class="btn pri" id="ynOk" type="button">知道了</button></div>
+  </div>
+</div>
+<script>
+(function(){
+var U='https://yun.139.com/shareweb/#/w/i/2yA8A0WzCYZr3';
+window.showYun139Notice=function(){var m=document.getElementById('ynMask');if(m)m.classList.add('on');};
+function cl(){var m=document.getElementById('ynMask');if(m)m.classList.remove('on');}
+var m=document.getElementById('ynMask'),x=document.getElementById('ynX'),ok=document.getElementById('ynOk'),cp=document.getElementById('ynCopy');
+if(x)x.onclick=cl;if(ok)ok.onclick=cl;if(m)m.onclick=function(e){if(e.target===m)cl();};
+if(cp)cp.onclick=function(){var t=document.createElement('textarea');t.value=U;document.body.appendChild(t);t.select();try{document.execCommand('copy');cp.textContent='已复制 ✓';}catch(e){cp.textContent='请长按链接复制';}document.body.removeChild(t);setTimeout(function(){cp.textContent='复制链接';},1600);};
+})();
+</script>
 <!-- 通用选择弹窗 -->
 <div class="mask" id="pkMask">
   <div class="modal">
