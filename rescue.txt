@@ -1,98 +1,107 @@
-=== [1] raw 500 response ===
-HTTP/2 500 
-date: Mon, 02 Nov 2026 05:59:52 GMT
-content-length: 0
-report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=0maQUS9shG5qd%2F8P7fYkGofbR06IsTY5JP4h4%2BRIGzg7rk2XgWKgDmw04CHf3b%2BCuRcymZsLZQbiH9Cn6D1el%2Bpwq3L4icduEnX0ao6fb8kzeegxzjx369nZ5H0SPc5gjj4%3D"}]}
-nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
-server: cloudflare
-cf-ray: a540ea692a0ce02b-MSP
-alt-svc: h3=":443"; ma=86400
-
-
-=== [2] canonical deployment stages ===
-trigger= {'type': 'ad_hoc', 'metadata': {'branch': 'main', 'commit_hash': '', 'commit_message': '', 'commit_dirty': False}}
-stage queued active None
-stage initialize idle None
-stage clone_repo idle None
-stage build idle None
-stage deploy success None
-=== [3] repo root special entries ===
-dir .github
-dir _probe
-dir data
-dir gb
-dir icons
-dir kbout
-dir logs
-dir mlog
-dir n
-dir panel
-dir pipelines
-dir probe
-dir relay
-dir scripts
-dir site
-dir telecom
-dir termux
-dir tests
-dir tools
-dir unicom
-dir visitor
-dir vlog
-=== [4] try patch source to ad_hoc ===
--- {"source":{"type":"ad_hoc"}}
+=== [1] list all success deployments ===
+total= 203
+0b74e23a-aecc-4088-9deb-cc32b0920be3 2026-11-02T05:54:47.217767Z ad_hoc https://0b74e23a.hnvip.pages.dev
+f9c6b2e1-9c77-4ed4-b5a2-2869948ef7e0 2026-11-02T04:36:28.951291Z ad_hoc https://f9c6b2e1.hnvip.pages.dev
+532e94cd-2ae9-4aa2-b8a6-e26588dd5b88 2026-11-02T04:21:12.277967Z ad_hoc https://532e94cd.hnvip.pages.dev
+6a3142d4-155e-4955-ac92-0feb2c98e8d5 2026-10-30T19:10:53.052256Z github:push https://6a3142d4.hnvip.pages.dev
+95ba41b3-df5c-4907-bde5-2e2e079d8ef5 2026-10-30T18:43:59.526828Z github:push https://95ba41b3.hnvip.pages.dev
+b4f2fda0-f729-4a17-806d-47e2dd91b158 2026-10-30T18:38:30.56033Z github:push https://b4f2fda0.hnvip.pages.dev
+26bd17c7-f2b1-4492-90e4-be9766a51eb8 2026-10-30T16:50:53.395876Z github:push https://26bd17c7.hnvip.pages.dev
+ccca2db8-9fd7-4e77-80da-1eca1208808b 2026-10-30T16:50:52.156817Z github:push https://ccca2db8.hnvip.pages.dev
+ef05a7d3-e515-433a-8f85-3ac688e3e4dc 2026-10-30T16:50:51.060459Z github:push https://ef05a7d3.hnvip.pages.dev
+db64acd5-2b1d-439b-8eeb-78539d8db4cc 2026-10-30T16:43:01.379681Z github:push https://db64acd5.hnvip.pages.dev
+2d219ad8-cb2f-49fb-b7a0-dabb5efbac08 2026-10-30T16:42:58.536247Z github:push https://2d219ad8.hnvip.pages.dev
+476fee4e-f45d-466d-b8c2-f94eba2e9ff7 2026-10-30T10:50:47.109886Z github:push https://476fee4e.hnvip.pages.dev
+979a45d7-9cf4-4f9e-9d8e-5b8dbc939dd0 2026-10-30T10:29:58.957864Z github:push https://979a45d7.hnvip.pages.dev
+854cfd88-abbf-4891-9af0-44d23822bf73 2026-10-30T10:29:58.042395Z github:push https://854cfd88.hnvip.pages.dev
+32408f68-818b-4883-9489-ab5654a9ad71 2026-10-30T10:29:55.70155Z github:push https://32408f68.hnvip.pages.dev
+b9042786-8ea2-48cd-88bb-1833365b7805 2026-10-30T09:58:27.129242Z github:push https://b9042786.hnvip.pages.dev
+1766bc44-859f-484a-b6b5-200814b4127d 2026-10-30T09:58:25.72129Z github:push https://1766bc44.hnvip.pages.dev
+f398b74d-535d-4a0d-a827-34ba2eb4622e 2026-10-30T09:58:24.528287Z github:push https://f398b74d.hnvip.pages.dev
+94a6d697-f811-4e7d-83ed-de85b3733692 2026-10-30T09:20:47.615497Z github:push https://94a6d697.hnvip.pages.dev
+2aab40b9-b3c9-4fe6-9767-f82327a55587 2026-10-30T08:07:05.439739Z github:push https://2aab40b9.hnvip.pages.dev
+c58f6573-0a21-401c-a359-b811b0b8b18d 2026-10-30T07:07:47.758343Z github:push https://c58f6573.hnvip.pages.dev
+bee8534a-0458-4603-8d76-bcb8192bb692 2026-10-30T06:54:01.306216Z github:push https://bee8534a.hnvip.pages.dev
+054e25db-fc31-462a-8fcb-07e2ea16d862 2026-10-30T06:24:23.856516Z github:push https://054e25db.hnvip.pages.dev
+d70b9626-42a5-4231-b8cc-b01a1dfcf36d 2026-10-30T06:13:08.965477Z github:push https://d70b9626.hnvip.pages.dev
+f31e93c9-6e8a-4909-86c7-8166f887726b 2026-10-30T06:13:05.649721Z ad_hoc https://f31e93c9.hnvip.pages.dev
+ce0697a0-c539-468f-bc19-428a37dc3af4 2026-10-30T06:12:20.256408Z github:push https://ce0697a0.hnvip.pages.dev
+4140779a-7e17-4158-a070-ebe22b1e78c2 2026-10-30T06:11:11.460773Z github:push https://4140779a.hnvip.pages.dev
+5651eb7a-38ca-4120-861d-be802d8aebcf 2026-10-30T06:03:24.003543Z github:push https://5651eb7a.hnvip.pages.dev
+6e7838c9-5da9-4d5e-b9eb-4a1796b6da0f 2026-10-30T06:03:05.464097Z github:push https://6e7838c9.hnvip.pages.dev
+bfd05f30-568f-4133-9a2d-6b07f1c17d01 2026-10-30T06:02:47.375417Z github:push https://bfd05f30.hnvip.pages.dev
+15cf773c-a142-430f-b40d-79ac29e20de2 2026-10-30T06:02:46.089122Z github:push https://15cf773c.hnvip.pages.dev
+80ee2335-7c64-467a-bef2-af7dc89ba95e 2026-10-30T06:02:44.866119Z github:push https://80ee2335.hnvip.pages.dev
+b8287f11-cac2-4652-a58c-7cb4553c3b1e 2026-10-30T05:51:19.841366Z github:push https://b8287f11.hnvip.pages.dev
+c79e349d-e6d9-4c88-a935-e7f49507bc5d 2026-10-30T05:41:48.657283Z github:push https://c79e349d.hnvip.pages.dev
+3b3f3078-7580-4e6b-8a1c-5de1830de0b4 2026-10-30T05:41:45.888906Z ad_hoc https://3b3f3078.hnvip.pages.dev
+259dd3bd-5e03-4c49-91b5-cb339c984ab9 2026-10-30T05:40:54.055112Z github:push https://259dd3bd.hnvip.pages.dev
+c8a59a3c-a47d-40e4-8c56-5fdc5bc122a5 2026-10-30T05:31:32.496043Z github:push https://c8a59a3c.hnvip.pages.dev
+eb397d60-6992-424a-bc9f-9de48aee214e 2026-10-30T05:31:30.54087Z github:push https://eb397d60.hnvip.pages.dev
+ab214f0d-d4bf-447d-a302-a5781c9da5d6 2026-10-30T05:31:18.278863Z github:push https://ab214f0d.hnvip.pages.dev
+570134c3-6821-4717-8162-13604ff3d51a 2026-10-30T05:30:56.666307Z github:push https://570134c3.hnvip.pages.dev
+d797bd38-a4d0-4f70-beda-6bc9c422e3bf 2026-10-30T05:27:49.899787Z github:push https://d797bd38.hnvip.pages.dev
+1f82a5c5-cb37-422c-a5a3-5897134278c2 2026-10-30T05:27:46.352961Z github:push https://1f82a5c5.hnvip.pages.dev
+ba7f0020-7038-48e7-b0c3-eef97392d80b 2026-10-30T05:27:33.650248Z github:push https://ba7f0020.hnvip.pages.dev
+deb75b38-a281-4fd8-a8a0-5d4d0776d1ee 2026-10-30T05:25:08.067817Z github:push https://deb75b38.hnvip.pages.dev
+d7b4fe4f-5921-4eed-a525-ec94b180f239 2026-10-30T05:25:04.429622Z github:push https://d7b4fe4f.hnvip.pages.dev
+b8573199-16cb-473c-8746-cb329b11ab56 2026-10-30T05:24:53.022761Z github:push https://b8573199.hnvip.pages.dev
+05ce7107-8743-4d77-bb5e-d56c6720da90 2026-10-30T05:24:22.511785Z github:push https://05ce7107.hnvip.pages.dev
+7890ef98-cbad-46de-9a24-96f828673258 2026-10-30T05:23:37.929353Z github:push https://7890ef98.hnvip.pages.dev
+964f3050-0689-4bd6-b09d-b8ce2d02ff7b 2026-10-30T05:15:42.025551Z github:push https://964f3050.hnvip.pages.dev
+9b61d2ad-a353-42b2-af47-fd15d08ccd5b 2026-10-30T05:15:39.099975Z ad_hoc https://9b61d2ad.hnvip.pages.dev
+9930d606-6113-485c-a9ec-916b037d64a3 2026-10-30T05:12:41.379483Z github:push https://9930d606.hnvip.pages.dev
+7cfc8581-a6ca-437a-889b-49b9bad80cfd 2026-10-30T05:08:59.648796Z github:push https://7cfc8581.hnvip.pages.dev
+957d8399-4bb8-4d2e-87c1-fee7f8e9970e 2026-10-30T05:08:54.845723Z github:push https://957d8399.hnvip.pages.dev
+0198b781-ce36-4fc3-9186-7ee8b5e3e582 2026-10-30T05:08:42.647652Z github:push https://0198b781.hnvip.pages.dev
+bb9541a8-d66f-4e88-8fb6-8ff0f2a6e31f 2026-10-30T05:08:12.645776Z github:push https://bb9541a8.hnvip.pages.dev
+1cf4e285-c089-48c8-adfc-629ed96e7564 2026-10-30T05:03:56.831391Z github:push https://1cf4e285.hnvip.pages.dev
+ac436a1a-b8d9-4066-a8cd-dcac10da95a2 2026-10-30T05:02:19.295961Z github:push https://ac436a1a.hnvip.pages.dev
+dee9d426-2fd9-4e15-bb40-d9240c257d2d 2026-10-30T04:59:24.541276Z github:push https://dee9d426.hnvip.pages.dev
+5375b926-1473-48dd-8142-51bbc55ad667 2026-10-30T04:58:16.056156Z github:push https://5375b926.hnvip.pages.dev
+a52c9eaa-9d8e-4b8c-a051-c110994790a5 2026-10-30T04:58:04.613382Z github:push https://a52c9eaa.hnvip.pages.dev
+18cdb306-44b9-41bb-ba76-9bd1fc42ac3a 2026-10-30T04:51:55.386741Z github:push https://18cdb306.hnvip.pages.dev
+c3648508-fb80-4454-88b6-2be9b11e16db 2026-10-30T04:50:05.946967Z github:push https://c3648508.hnvip.pages.dev
+c8e1fab2-389f-4833-8c15-e228f440db5f 2026-10-30T04:49:53.514277Z github:push https://c8e1fab2.hnvip.pages.dev
+9bd3ed53-84a2-4e77-bc53-596e9bdd2a19 2026-10-30T04:33:33.22458Z github:push https://9bd3ed53.hnvip.pages.dev
+1a5b302b-5081-44b0-aa77-d926e85bd4ed 2026-10-30T04:31:54.498362Z github:push https://1a5b302b.hnvip.pages.dev
+6088ca20-e8a8-414e-bf83-a50b32bb09e8 2026-10-30T04:31:39.670004Z github:push https://6088ca20.hnvip.pages.dev
+f45b82ea-63a9-48cd-89e6-6293fe7b43aa 2026-10-30T04:30:10.860394Z github:push https://f45b82ea.hnvip.pages.dev
+56f18415-f01f-49ad-823e-1b402de1e021 2026-10-30T04:30:07.273968Z github:push https://56f18415.hnvip.pages.dev
+c6e95879-09a3-41f0-ab83-c1f4530acbaa 2026-10-30T04:29:50.939857Z github:push https://c6e95879.hnvip.pages.dev
+52b9efc2-2601-4a59-b889-e8f8a890767f 2026-10-30T04:08:45.002305Z github:push https://52b9efc2.hnvip.pages.dev
+11ff339e-475b-48a9-8f73-79fceac51e4d 2026-10-30T04:08:33.592344Z github:push https://11ff339e.hnvip.pages.dev
+12f0e658-f5da-43d6-b0f8-aa4ece20f34c 2026-10-30T04:08:21.144262Z github:push https://12f0e658.hnvip.pages.dev
+e2771a57-bd80-4d13-be31-a0696facd46a 2026-10-30T04:06:58.584577Z github:push https://e2771a57.hnvip.pages.dev
+15636011-1aa6-4a5f-97a5-8cb920622304 2026-10-30T04:05:45.709068Z ad_hoc https://15636011.hnvip.pages.dev
+success_count= 74
+=== [2] try rollback each older success ===
+--- rollback #3 -> 532e94cd-2ae9-4aa2-b8a6-e26588dd5b88
 {
   "result": {
-    "id": "95cc5a36-e730-4878-9070-51e47d7013b4",
-    "name": "hnvip",
-    "subdomain": "hnvip.pages.dev",
-    "domains": [
-      "hnvip.pages.dev"
-    ],
-    "source": {
-      "type": "github",
-      "config": {
-        "owner": "WoShiYiGeManHuaJia",
-        "owner_id": "317776016",
-        "repo_name": "hunan-tariff-site",
-       
--- {"source":null}
+    "id": "532e94cd-2ae9-4aa2-b8a6-e26588dd5b88",
+    "short_id": "532e94cd",
+    "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "project_name": "hnvip",
+    "environment": "production",
+    "u
+verify -> 500
+--- rollback #4 -> 6a3142d4-155e-4955-ac92-0feb2c98e8d5
 {
   "result": {
-    "id": "95cc5a36-e730-4878-9070-51e47d7013b4",
-    "name": "hnvip",
-    "subdomain": "hnvip.pages.dev",
-    "domains": [
-      "hnvip.pages.dev"
-    ],
-    "source": {
-      "type": "github",
-      "config": {
-        "owner": "WoShiYiGeManHuaJia",
-        "owner_id": "317776016",
-        "repo_name": "hunan-tariff-site",
-       
--- {"production_branch":"main","source":{"type":"ad_hoc"}}
-{
-  "result": {
-    "id": "95cc5a36-e730-4878-9070-51e47d7013b4",
-    "name": "hnvip",
-    "subdomain": "hnvip.pages.dev",
-    "domains": [
-      "hnvip.pages.dev"
-    ],
-    "source": {
-      "type": "github",
-      "config": {
-        "owner": "WoShiYiGeManHuaJia",
-        "owner_id": "317776016",
-        "repo_name": "hunan-tariff-site",
-       
-=== [5] project source now ===
-source= {"type": "github", "config": {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "hunan-tariff-site", "repo_id": "1438392194", "production_branch": "main", "pr_comments_enabled": false, "deployments_enabled": false, "production_deployments_enabled": false, "preview_deployment_setting": "none", "preview_branch_includes": [], "preview_branch_excludes": [], "path_includes": [], "pat
-canonical= 0b74e23a success
-=== [6] verify ===
-hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-hnvip.pages.dev -> 500
-=== [7] save log ===
+    "id": "6a3142d4-155e-4955-ac92-0feb2c98e8d5",
+    "short_id": "6a3142d4",
+    "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "project_name": "hnvip",
+    "environment": "production",
+    "u
+verify -> 200
+RECOVERED with 6a3142d4-155e-4955-ac92-0feb2c98e8d5
+DONE=1
+=== [3] try add hnvip.pages.dev as domain on working project ===
+=== [4] final verify ===
+hnvip.pages.dev -> 200
+hnvip.pages.dev -> 200
+hnvip.pages.dev -> 200
+hnvip.pages.dev -> 200
+=== [5] save log ===
