@@ -1,95 +1,108 @@
-=== [1] CF token verify ===
-{"result":{"id":"70328c64c39244503c9c72f3896b8692","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
-=== [2] project info ===
-success= True subdomain= hnvip.pages.dev source_type= github
-repo= hunan-tariff-site
-=== [3] list deployments (paged) ===
-count= 100
-d525dfd0-97f production active 2026-11-02T05:45:40.61578Z https://d525dfd0.hnvip.pages.dev
-51de09ea-eed production failure 2026-11-02T05:44:28.712084Z https://51de09ea.hnvip.pages.dev
-d868c2da-dfc production failure 2026-11-02T05:43:22.25735Z https://d868c2da.hnvip.pages.dev
-39e3f1be-ca7 production failure 2026-11-02T05:43:02.652942Z https://39e3f1be.hnvip.pages.dev
-c4c15ad7-534 production failure 2026-11-02T04:36:32.062569Z https://c4c15ad7.hnvip.pages.dev
-f9c6b2e1-9c7 production success 2026-11-02T04:36:28.951291Z https://f9c6b2e1.hnvip.pages.dev
-51adfd31-150 production failure 2026-11-02T04:21:15.298366Z https://51adfd31.hnvip.pages.dev
-532e94cd-2ae production success 2026-11-02T04:21:12.277967Z https://532e94cd.hnvip.pages.dev
-0d081c8a-32f production failure 2026-11-02T04:18:48.034913Z https://0d081c8a.hnvip.pages.dev
-51125f7b-716 production failure 2026-11-02T04:18:43.277502Z https://51125f7b.hnvip.pages.dev
-507df489-d76 production failure 2026-11-02T04:17:03.981959Z https://507df489.hnvip.pages.dev
-65ececaa-03a production failure 2026-11-02T04:16:37.283989Z https://65ececaa.hnvip.pages.dev
-27b13938-81c production failure 2026-11-02T04:16:15.198016Z https://27b13938.hnvip.pages.dev
-81c7735d-1ca production skipped 2026-11-02T04:16:13.674509Z https://81c7735d.hnvip.pages.dev
-644976b0-a1c production skipped 2026-11-02T04:16:12.823313Z https://644976b0.hnvip.pages.dev
-9c531dbe-31b production skipped 2026-11-02T04:16:10.627937Z https://9c531dbe.hnvip.pages.dev
-77229dca-a74 production skipped 2026-11-02T04:16:09.176255Z https://77229dca.hnvip.pages.dev
-62c848e3-a2d production skipped 2026-11-02T04:16:07.446491Z https://62c848e3.hnvip.pages.dev
-f707de92-6eb production skipped 2026-11-02T04:16:06.442864Z https://f707de92.hnvip.pages.dev
-0b6ad424-7e1 production skipped 2026-11-02T04:16:04.849858Z https://0b6ad424.hnvip.pages.dev
-6729449d-f28 production skipped 2026-11-02T04:16:02.970135Z https://6729449d.hnvip.pages.dev
-295eeaf6-8ba production skipped 2026-11-02T04:16:01.735667Z https://295eeaf6.hnvip.pages.dev
-13f5fe48-39a production skipped 2026-11-02T04:15:59.635822Z https://13f5fe48.hnvip.pages.dev
-a21c3273-d85 production skipped 2026-11-02T04:15:58.268281Z https://a21c3273.hnvip.pages.dev
-d796059a-c4a production skipped 2026-11-02T04:15:56.51766Z https://d796059a.hnvip.pages.dev
-bf05adfc-5b5 production skipped 2026-11-02T04:15:52.469979Z https://bf05adfc.hnvip.pages.dev
-7b6e9a47-d17 production failure 2026-11-02T04:15:50.619695Z https://7b6e9a47.hnvip.pages.dev
-9a4f96d9-99b production failure 2026-11-02T04:15:48.934271Z https://9a4f96d9.hnvip.pages.dev
-ba9ceb78-35d production failure 2026-11-02T04:15:46.588177Z https://ba9ceb78.hnvip.pages.dev
-9f87802f-e2e production failure 2026-11-02T02:30:09.620394Z https://9f87802f.hnvip.pages.dev
-c1097a77-78b production failure 2026-11-02T02:30:08.47845Z https://c1097a77.hnvip.pages.dev
-95684c1a-d12 production failure 2026-11-02T02:30:06.744522Z https://95684c1a.hnvip.pages.dev
-4048b744-409 production failure 2026-11-02T01:04:37.00373Z https://4048b744.hnvip.pages.dev
-9cf56f8e-8bc production failure 2026-11-02T01:04:35.913205Z https://9cf56f8e.hnvip.pages.dev
-5f7a6f02-595 production failure 2026-11-02T01:04:34.348279Z https://5f7a6f02.hnvip.pages.dev
-fe0ad4fc-b1a production failure 2026-11-01T23:41:43.838092Z https://fe0ad4fc.hnvip.pages.dev
-e55ae8a8-3ef production failure 2026-11-01T22:49:04.901919Z https://e55ae8a8.hnvip.pages.dev
-6d94dd10-b67 production failure 2026-11-01T22:49:03.324341Z https://6d94dd10.hnvip.pages.dev
-25ef9a3d-d55 production failure 2026-11-01T22:49:02.16085Z https://25ef9a3d.hnvip.pages.dev
-68d747a7-c3b production failure 2026-11-01T21:24:45.927122Z https://68d747a7.hnvip.pages.dev
-2c4e1b46-299 production failure 2026-11-01T21:24:44.43558Z https://2c4e1b46.hnvip.pages.dev
-7537c064-985 production failure 2026-11-01T21:24:42.512822Z https://7537c064.hnvip.pages.dev
-d1186d92-40d production failure 2026-11-01T20:12:58.539736Z https://d1186d92.hnvip.pages.dev
-0f3a3054-4ed production failure 2026-11-01T19:11:39.988066Z https://0f3a3054.hnvip.pages.dev
-f0116da8-e9a production failure 2026-11-01T18:56:24.380742Z https://f0116da8.hnvip.pages.dev
-2b2b8cd0-ecf production failure 2026-11-01T18:56:23.374047Z https://2b2b8cd0.hnvip.pages.dev
-60fdc492-508 production failure 2026-11-01T18:56:21.857882Z https://60fdc492.hnvip.pages.dev
-341ef70c-694 production failure 2026-11-01T18:37:33.242794Z https://341ef70c.hnvip.pages.dev
-f6d4cd6b-bda production failure 2026-11-01T18:26:36.253364Z https://f6d4cd6b.hnvip.pages.dev
-5d036101-714 production failure 2026-11-01T16:56:56.008238Z https://5d036101.hnvip.pages.dev
-bbe34753-8c5 production failure 2026-11-01T16:56:54.328201Z https://bbe34753.hnvip.pages.dev
-1bdb29d8-7cc production failure 2026-11-01T16:56:52.397652Z https://1bdb29d8.hnvip.pages.dev
-cc8908a1-d95 production failure 2026-11-01T13:19:01.916671Z https://cc8908a1.hnvip.pages.dev
-7cfdccc4-6d2 production failure 2026-11-01T13:19:00.615363Z https://7cfdccc4.hnvip.pages.dev
-2f1baee0-200 production failure 2026-11-01T13:18:59.415425Z https://2f1baee0.hnvip.pages.dev
-b0eaec0d-b07 production failure 2026-11-01T10:12:38.583526Z https://b0eaec0d.hnvip.pages.dev
-6e5b12a2-877 production failure 2026-11-01T09:48:33.30187Z https://6e5b12a2.hnvip.pages.dev
-41b58d2c-2da production failure 2026-11-01T09:48:31.916712Z https://41b58d2c.hnvip.pages.dev
-77f98610-55c production failure 2026-11-01T09:48:29.903537Z https://77f98610.hnvip.pages.dev
-fa20d4f8-5c7 production failure 2026-11-01T08:15:33.822833Z https://fa20d4f8.hnvip.pages.dev
-GOOD= f9c6b2e1-9c77-4ed4-b5a2-2869948ef7e0 good_count= 2
-=== [4] rollback -> f9c6b2e1-9c77-4ed4-b5a2-2869948ef7e0 ===
+=== [1] project deployment pointers ===
+deployment_configs = {'preview': {'env_vars': None, 'fail_open': True, 'always_use_latest_compatibility_date': False, 'compatibility_date': '2026-10-30', 'compatibility_flags': [], 'build_image_major_version': 3, 'usage_model': 'standard'}, 'production': {'env_vars': None, 'fail_open': True, 'always_use_latest_compatibility_date': False, 'compatibility_date': '2026-10-30', 'compatibility_flags': [], 'build_image_major
+latest_deployment = {'id': '5ef2911c-4415-4bc0-81a1-eb1d4c935e34', 'short_id': '5ef2911c', 'project_id': '95cc5a36-e730-4878-9070-51e47d7013b4', 'project_name': 'hnvip', 'environment': 'production', 'url': 'https://5ef2911c.hnvip.pages.dev', 'created_on': '2026-11-02T05:49:35.934048Z', 'modified_on': '2026-11-02T05:49:36.093146Z', 'latest_stage': {'name': 'queued', 'started_on': '2026-11-02T05:49:36.079654Z', 'ended_
+canonical_deployment = {'id': 'f9c6b2e1-9c77-4ed4-b5a2-2869948ef7e0', 'short_id': 'f9c6b2e1', 'project_id': '95cc5a36-e730-4878-9070-51e47d7013b4', 'project_name': 'hnvip', 'environment': 'production', 'url': 'https://f9c6b2e1.hnvip.pages.dev', 'created_on': '2026-11-02T04:36:28.951291Z', 'modified_on': '2026-11-02T04:36:30.577232Z', 'latest_stage': {'name': 'deploy', 'started_on': None, 'ended_on': '2026-11-02T04:36:30
+source.config= {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "hunan-tariff-site", "repo_id": "1438392194", "production_branch": "main", "pr_comments_enabled": true, "deployments_enabled": true, "production_deployments_enabled": true, "preview_deployment_setting": "all", "preview_branch_includes": ["*"], "preview_branch_excludes": [], "path_includes": ["*"], "path_excludes": []}
+build_config= {"build_command": "", "destination_dir": "", "root_dir": "", "web_analytics_tag": null, "web_analytics_token": null}
+deployment_configs= {"preview": {"env_vars": null, "fail_open": true, "always_use_latest_compatibility_date": false, "compatibility_date": "2026-10-30", "compatibility_flags": [], "build_image_major_version": 3, "usage_model": "standard"}, "production": {"env_vars": null, "fail_open": true, "always_use_latest_compatibility_date": false, "compatibility_date": "2026-10-30", "compatibility_flags": [], "build_image_major_version": 3, "usage_model": "standard"}}
+=== [2] collect success deployments (8 pages) ===
+total= 200
+success_ids= ['f9c6b2e1-9c77-4ed4-b5a2-2869948ef7e0', '532e94cd-2ae9-4aa2-b8a6-e26588dd5b88', '6a3142d4-155e-4955-ac92-0feb2c98e8d5', '95ba41b3-df5c-4907-bde5-2e2e079d8ef5', 'b4f2fda0-f729-4a17-806d-47e2dd91b158', '26bd17c7-f2b1-4492-90e4-be9766a51eb8', 'ccca2db8-9fd7-4e77-80da-1eca1208808b', 'ef05a7d3-e515-433a-8f85-3ac688e3e4dc', 'db64acd5-2b1d-439b-8eeb-78539d8db4cc', '2d219ad8-cb2f-49fb-b7a0-dabb5efbac08']
+5ef2911c-441 production active 2026-11-02T05:49:35.934048Z
+60d53aff-747 production active 2026-11-02T05:49:23.039235Z
+b147ad0e-2bb production failure 2026-11-02T05:47:56.494468Z
+9b41076b-ee5 production failure 2026-11-02T05:45:59.737971Z
+d525dfd0-97f production failure 2026-11-02T05:45:40.61578Z
+51de09ea-eed production failure 2026-11-02T05:44:28.712084Z
+d868c2da-dfc production failure 2026-11-02T05:43:22.25735Z
+39e3f1be-ca7 production failure 2026-11-02T05:43:02.652942Z
+c4c15ad7-534 production failure 2026-11-02T04:36:32.062569Z
+f9c6b2e1-9c7 production success 2026-11-02T04:36:28.951291Z
+51adfd31-150 production failure 2026-11-02T04:21:15.298366Z
+532e94cd-2ae production success 2026-11-02T04:21:12.277967Z
+0d081c8a-32f production failure 2026-11-02T04:18:48.034913Z
+51125f7b-716 production failure 2026-11-02T04:18:43.277502Z
+507df489-d76 production failure 2026-11-02T04:17:03.981959Z
+=== [3] rollback to 2nd success (skip current production) ===
+target=532e94cd-2ae9-4aa2-b8a6-e26588dd5b88
 {
-  "result": null,
-  "success": false,
-  "errors": [
-    {
-      "code": 8000039,
-      "message": "You cannot rollback to the deployment that is currently in production. You must rollback to a previous deployment."
-    }
-  ],
-  "messages": []
-}
-
-=== [5] wait + verify ===
+  "result": {
+    "id": "532e94cd-2ae9-4aa2-b8a6-e26588dd5b88",
+    "short_id": "532e94cd",
+    "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "project_name": "hnvip",
+    "environment": "production",
+    "url": "https://532e94cd.hnvip.pages.dev",
+    "created_on": "2026-11-02T04:21:12.277967Z",
+    "modified_on": "2026-11-02T05:49:39.428766Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": null,
+      "ended_on": "2026-11-02T04:21:13.81025Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "ad_hoc",
+      "metadata": {
+        "branch
+=== [4] verify ===
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
 hnvip.pages.dev -> 500
-=== [6] final project state ===
-9b41076b-ee5 production failure https://9b41076b.hnvip.pages.dev
-d525dfd0-97f production failure https://d525dfd0.hnvip.pages.dev
-51de09ea-eed production failure https://51de09ea.hnvip.pages.dev
-d868c2da-dfc production failure https://d868c2da.hnvip.pages.dev
-39e3f1be-ca7 production failure https://39e3f1be.hnvip.pages.dev
-=== [7] save log ===
+hnvip.pages.dev -> 500
+hnvip.pages.dev -> 500
+=== [5] one failed deployment logs ===
+fail_id=b147ad0e-2bb0-4b41-ba43-ed1a312a3e9d
+{
+  "result": {
+    "id": "b147ad0e-2bb0-4b41-ba43-ed1a312a3e9d",
+    "short_id": "b147ad0e",
+    "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
+    "project_name": "hnvip",
+    "environment": "production",
+    "url": "https://b147ad0e.hnvip.pages.dev",
+    "created_on": "2026-11-02T05:47:56.494468Z",
+    "modified_on": "2026-11-02T05:48:05.922238Z",
+    "latest_stage": {
+      "name": "build",
+      "started_on": "2026-11-02T05:48:01.931314Z",
+      "ended_on": "2026-11-02T05:48:05.922238Z",
+      "status": "failure"
+    },
+    "deployment_trigger": {
+      "type": "github:push",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "4c1cd18b4846927eda76397d28825a9c33f9260d",
+        "commit_message": "rescue2",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-02T05:47:56.612783Z",
+        "ended_on": "2026-11-02T05:47:56.613851Z",
+        "status": "success"
+      },
+      {
+        "name": "initialize",
+        "started_on": "2026-11-02T05:47:56.613851Z",
+        "ended_on": "2026-11-02T05:47:58.088737Z",
+        "status": "success"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": "2026-11-02T05:47:58.088737Z",
+        "ended_on": "2026-11-02T05:48:01.931314Z",
+        "status": "success"
+      },
+      {
+        "name": "build",
+        "started_on": "2026-11-02T05:48:01.931314Z",
+        "ended_on": "2026-11-02T05:48:05.922238Z",
+        "status": "failu
+=== [6] save log ===
