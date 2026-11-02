@@ -5,7 +5,7 @@ jobs:
   r:
     runs-on: ubuntu-latest
     steps:
-      - name: diagnose build failure
+      - name: re-enable auto build and deploy latest
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
           PAT: ${{ secrets.GH_PAT }}
@@ -14,62 +14,56 @@ jobs:
           ACC=9156c2cae565fdf42d208827b523e47e
           O=/tmp/rescue.txt
           exec > >(tee -a $O) 2>&1
-          echo "=== [1] latest failure deployment full stages ==="
-          curl -sS -m 40 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments?page=1&per_page=25" -o /tmp/l.json
-          FID=$(python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/l.json'))
-          for x in (d.get('result') or []):
-              ls=(x.get('latest_stage') or {}).get('status')
-              if ls=='failure':
-                  print(x['id']); break
-          else: print('')
-          PY
-          )
-          echo "fail_id=$FID"
-          if [ -n "$FID" ]; then
-            curl -sS -m 40 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$FID" -o /tmp/fd.json
-            python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/fd.json'));r=d.get('result') or {}
-          print('trigger=',str(r.get('deployment_trigger'))[:250])
-          for s in r.get('stages') or []:
-              print('stage=',s.get('name'),'status=',s.get('status'),'msg=',str(s.get('message'))[:300],'started=',s.get('started_on'),'ended=',s.get('ended_on'))
-          PY
-            echo "--- logs endpoint ---"
-            curl -sS -m 40 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$FID/logs" | head -c 2500; echo
+          echo "=== [1] re-enable github auto deployments ==="
+          curl -sS -m 40 -X PATCH -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            -d '{"source":{"type":"github","config":{"owner":"WoShiYiGeManHuaJia","repo_name":"hunan-tariff-site","production_branch":"main","pr_comments_enabled":false,"deployments_enabled":true,"production_deployments_enabled":true,"preview_deployment_setting":"none","preview_branch_includes":[],"preview_branch_excludes":[],"path_includes":[],"path_excludes":[]}}}' \
+            "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" | head -c 250; echo
+          echo "=== [2] trigger fresh build from main ==="
+          R=$(curl -sS -m 60 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+            -d '{"branch":"main"}' "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments")
+          echo "$R" | head -c 350; echo
+          DID=$(echo "$R" | python3 -c "import json,sys;d=json.load(sys.stdin);print((d.get('result') or {}).get('id',''))" 2>/dev/null)
+          echo "deploy_id=$DID"
+          echo "=== [3] poll ==="
+          ST=?
+          if [ -n "$DID" ]; then
+            for i in $(seq 1 24); do
+              sleep 10
+              ST=$(curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$DID" | python3 -c "import json,sys;d=json.load(sys.stdin);r=d.get('result') or {};print((r.get('latest_stage') or {}).get('status','?'))" 2>/dev/null)
+              echo "poll $i -> $ST"
+              [ "$ST" = "success" ] && break
+              [ "$ST" = "failure" ] && break
+            done
           fi
-          echo "=== [2] repo files over 8MB ==="
-          curl -sS -m 60 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/git/trees/main?recursive=1" -o /tmp/tree.json
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/tree.json'))
-          t=d.get('tree') or []
-          print('tree_count=',len(t),'truncated=',d.get('truncated'))
-          big=[(x.get('path'),x.get('size',0)) for x in t if x.get('type')=='blob' and x.get('size',0)>8*1024*1024]
-          big.sort(key=lambda k:-k[1])
-          for p,s in big[:30]: print(round(s/1024/1024,1),'MB',p)
-          print('big_count=',len(big),'total_MB=',round(sum(s for _,s in big)/1024/1024,1))
-          PY
-          echo "=== [3] root dirs sizes (approx) ==="
-          python3 - <<'PY'
-          import json,collections
-          d=json.load(open('/tmp/tree.json'))
-          agg=collections.Counter()
-          for x in d.get('tree') or []:
-              if x.get('type')=='blob':
-                  top=x.get('path','').split('/')[0]
-                  agg[top]+=x.get('size',0)
-          for k,v in agg.most_common(12): print(round(v/1024/1024,1),'MB',k)
-          PY
-          echo "=== [4] verify site still 200 ==="
-          curl -sS -m 30 -o /dev/null -w "hnvip.pages.dev -> %{http_code}\n" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1
-          echo "=== [5] save log ==="
+          echo "=== [4] verify ==="
+          sleep 12
+          CODE=0
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -sS -m 30 -o /dev/null -w "%{http_code}" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1)
+            echo "code -> $CODE"
+            [ "$CODE" = "200" ] && break
+            sleep 8
+          done
+          echo "=== [5] check new popup content ==="
+          BODY=$(curl -sS -m 30 -L "https://hnvip.pages.dev/?cb=$RANDOM")
+          echo "$BODY" | grep -o '2yA8A0WzCYZr3' | head -1
+          echo "$BODY" | grep -o '云盘签到已做成本地部署' | head -1
+          echo "=== [6] fallback if still broken ==="
+          if [ "$CODE" != "200" ]; then
+            echo "still broken -> disable auto build + rollback to known good 6a3142d4"
+            curl -sS -m 40 -X PATCH -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+              -d '{"source":{"type":"github","config":{"owner":"WoShiYiGeManHuaJia","repo_name":"hunan-tariff-site","production_branch":"main","pr_comments_enabled":false,"deployments_enabled":false,"production_deployments_enabled":false,"preview_deployment_setting":"none","preview_branch_includes":[],"preview_branch_excludes":[],"path_includes":[],"path_excludes":[]}}}' \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" | head -c 150; echo
+            curl -sS -m 60 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/6a3142d4-155e-4955-ac92-0feb2c98e8d5/rollback" | head -c 200; echo
+            sleep 15
+            curl -sS -m 30 -o /dev/null -w "after rollback -> %{http_code}\n" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1
+          fi
+          echo "=== [7] save log ==="
           B64=$(base64 -w0 /tmp/rescue.txt)
-          SHA=$(curl -sS -m 20 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
+          SHAV=$(curl -sS -m 20 -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
           curl -sS -m 30 -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            -d "{\"message\":\"rescue7\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" \
+            -d "{\"message\":\"rescue8\",\"content\":\"$B64\",\"sha\":\"$SHAV\"}" \
             "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | head -c 120; echo
