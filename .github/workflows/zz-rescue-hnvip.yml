@@ -1,0 +1,66 @@
+name: zz-rescue-hnvip
+on:
+  workflow_dispatch:
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: rollback and verify
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          set +e
+          ACC=9156c2cae565fdf42d208827b523e47e
+          O=/tmp/rescue.txt
+          exec > >(tee -a $O) 2>&1
+          echo "=== [1] CF token verify ==="
+          curl -sS -m 30 -H "Authorization: Bearer $CF" https://api.cloudflare.com/client/v4/user/tokens/verify | head -c 300; echo
+          echo "=== [2] project info ==="
+          curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip" -o /tmp/proj.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/proj.json'))
+          r=d.get('result') or {}
+          print('api_success=',d.get('success'),'errors=',str(d.get('errors'))[:200])
+          print('name=',r.get('name'),'subdomain=',r.get('subdomain'),'source=',str(r.get('source'))[:300])
+          PY
+          echo "=== [3] list deployments ==="
+          curl -sS -m 60 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments?per_page=100" -o /tmp/deps.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/deps.json'))
+          print('api_success=',d.get('success'),'errors=',str(d.get('errors'))[:300])
+          rs=d.get('result') or []
+          print('count=',len(rs))
+          for x in rs[:40]:
+              ls=x.get('latest_stage') or {}
+              print(x['id'][:12], x.get('environment'), str(ls.get('status')), x.get('created_on'), x.get('url'))
+          good=[]
+          for x in rs:
+              ls=x.get('latest_stage') or {}
+              if x.get('environment')=='production' and ls.get('status')=='success':
+                  good.append(x['id'])
+          open('/tmp/good','w').write(good[0] if good else '')
+          print('GOOD=',good[0] if good else 'NONE','good_count=',len(good))
+          PY
+          GOOD=$(cat /tmp/good)
+          if [ -n "$GOOD" ]; then
+            echo "=== [4] rollback -> $GOOD ==="
+            curl -sS -m 60 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments/$GOOD/rollback" | head -c 900; echo
+          else
+            echo "=== [4] NO SUCCESS DEPLOYMENT, skip rollback ==="
+          fi
+          echo "=== [5] verify ==="
+          sleep 25
+          for i in 1 2 3 4; do
+            curl -sS -m 30 -o /dev/null -w "hnvip.pages.dev -> %{http_code}\n" -L "https://hnvip.pages.dev/?cb=$RANDOM" 2>&1
+            sleep 8
+          done
+          echo "=== [6] save log ==="
+          B64=$(base64 -w0 /tmp/rescue.txt)
+          curl -sS -m 30 -X PUT -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            -d "{\"message\":\"rescue hnvip\",\"content\":\"$B64\"}" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/rescue.txt" | head -c 200; echo
