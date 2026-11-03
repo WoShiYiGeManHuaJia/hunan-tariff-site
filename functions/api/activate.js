@@ -56,7 +56,7 @@ function cors() {
 
 export async function onRequestPost(context) {
   const { request, url, env } = context;
-  const ghToken = env.GH_TOKEN;
+  const ghToken = getGhToken();
   if (!ghToken) return new Response(JSON.stringify({ ok: false, error: "server_misconfig" }), { status: 500, headers: cors() });
 
   const path = url.pathname;
