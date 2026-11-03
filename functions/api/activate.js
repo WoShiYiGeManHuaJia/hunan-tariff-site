@@ -45,8 +45,10 @@ async function writeState(state, token) {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    return w.ok;
-  } catch { return false; }
+    const wBody = await w.text();
+    if (!w.ok) return `PUT_${w.status}: ${wBody.slice(0, 120)}`;
+    return true;
+  } catch (e) { return `ERR: ${e.message}`; }
 }
 
 function cors() {
