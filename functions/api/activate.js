@@ -1,8 +1,8 @@
 /**
  * 云盘签到管家·分享版 激活服务（Pages Function）
  * 存储后端 = GitHub 仓库 JSON 文件
- * POST /api/activate  {code, deviceId}  激活码+设备绑定
- * POST /api/verify    {deviceId}        验证设备是否已激活
+ * POST /api/activate  {code, deviceId}
+ * POST /api/verify    {deviceId}
  */
 const REPO = "WoShiYiGeManHuaJia/yun139-announce";
 const STATE_PATH = "activate-state.json";
@@ -12,39 +12,33 @@ function getGhToken() {
   catch { return ""; }
 }
 
-// 安全的 UTF-8 base64 编解码（替代裸 btoa/atob，防止 Unicode 崩溃）
-function b64encode(str) {
-  const bytes = new TextEncoder().encode(str);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-function b64decode(b64) {
-  const clean = b64.replace(/\s/g, '');  // GitHub API 返回的 base64 含换行符，需清除
-  const bin = atob(clean);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
-}
-
+// 用 raw 接口读文件（返回纯文本 JSON，不需要 base64 解码）
 async function readState(token) {
   try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" }
-    });
+    const r = await fetch(
+      `https://raw.githubusercontent.com/${REPO}/main/${STATE_PATH}`,
+      { headers: { "Cache-Control": "no-cache" } }
+    );
     if (!r.ok) return { codes: {}, devices: {} };
-    const j = await r.json();
-    return JSON.parse(b64decode(j.content));
+    return await r.json();
   } catch { return { codes: {}, devices: {} }; }
 }
 
+// 用 GitHub API 写文件（需要 base64）
 async function writeState(state, token) {
   try {
+    const content = JSON.stringify(state, null, 2);
+    // 安全 UTF-8 → base64
+    const bytes = new TextEncoder().encode(content);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    const b64 = btoa(bin);
+
     const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" }
     });
     const sha = r.ok ? (await r.json()).sha : null;
-    const body = { message: "update activation state", content: b64encode(JSON.stringify(state, null, 2)) };
+    const body = { message: "update activation state", content: b64 };
     if (sha) body.sha = sha;
     const w = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
       method: "PUT",
@@ -63,7 +57,6 @@ function cors() {
     "Content-Type": "application/json",
   };
 }
-
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: cors() });
 }
@@ -75,16 +68,16 @@ export async function onRequestPost(context) {
     const ghToken = getGhToken();
     if (!ghToken) return json({ ok: false, error: "server_misconfig" }, 500);
 
-    const path = url.pathname;
     let body;
     try { body = await request.json(); } catch { return json({ ok: false, error: "bad_request" }, 400); }
 
+    const path = url.pathname;
     const state = await readState(ghToken);
 
     if (path.endsWith("/verify")) {
       const deviceId = (body.deviceId || "").trim();
       if (!deviceId) return json({ ok: false, error: "missing_params" }, 400);
-      const dev = state.devices[deviceId];
+      const dev = state.devices?.[deviceId];
       return json({ ok: !!dev, code: dev?.code });
     }
 
@@ -92,14 +85,20 @@ export async function onRequestPost(context) {
       const code = (body.code || "").trim().toUpperCase();
       const deviceId = (body.deviceId || "").trim();
       if (!code || !deviceId) return json({ ok: false, error: "missing_params" }, 400);
-      if (state.devices[deviceId]) return json({ ok: true, msg: "already_activated", code: state.devices[deviceId].code });
-      if (!(code in state.codes)) return json({ ok: false, error: "invalid_code" }, 403);
-      const bind = state.codes[code];
+
+      if (state.devices?.[deviceId]) return json({ ok: true, msg: "already_activated", code: state.devices[deviceId].code });
+
+      const codes = state.codes || {};
+      if (!(code in codes)) return json({ ok: false, error: "invalid_code", debug: `codes=${Object.keys(codes).length}` }, 403);
+
+      const bind = codes[code];
       if (bind.deviceId && bind.deviceId !== deviceId) return json({ ok: false, error: "code_used" }, 403);
 
       const now = new Date().toISOString();
-      state.codes[code] = { deviceId, activatedAt: now };
+      codes[code] = { deviceId, activatedAt: now };
+      state.devices = state.devices || {};
       state.devices[deviceId] = { code, activatedAt: now };
+      state.codes = codes;
       const saved = await writeState(state, ghToken);
       return json({ ok: true, msg: saved ? "activated" : "activated_pending_sync" });
     }
