@@ -33,7 +33,7 @@ async function writeState(state) {
 
     // GET sha
     const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" }
+      headers: { "User-Agent": "yun139-activation", Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" }
     });
     results.push(`GET_SHA=${r.status}`);
     const sha = r.ok ? (await r.json()).sha : null;
@@ -44,7 +44,7 @@ async function writeState(state) {
     if (sha) body.sha = sha;
     const w = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
       method: "PUT",
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      headers: { "User-Agent": "yun139-activation", Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     const wBody = await w.text();
