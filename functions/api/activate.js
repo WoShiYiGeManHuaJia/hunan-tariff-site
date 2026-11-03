@@ -1,42 +1,45 @@
 /**
  * 云盘签到管家·分享版 激活服务（Pages Function）
- * 存储后端 = GitHub 仓库 JSON 文件
  * POST /api/activate  {code, deviceId}
  * POST /api/verify    {deviceId}
  */
 const REPO = "WoShiYiGeManHuaJia/yun139-announce";
 const STATE_PATH = "activate-state.json";
 
-// token 拆分存储防 Secret Scanning
 function getGhToken() {
   return ["ghp_","LJRi","Wg45","aXms","XdkC","0M3q","bQqQ","TGRB","Sa0c","XXPH"].join("");
 }
 
-// 读状态：raw 接口免鉴权
 async function readState() {
   try {
     const r = await fetch(
       `https://raw.githubusercontent.com/${REPO}/main/${STATE_PATH}`,
       { headers: { "Cache-Control": "no-cache" } }
     );
-    if (!r.ok) return { codes: {}, devices: {} };
+    if (!r.ok) return { codes: {}, devices: {}, _readErr: `HTTP ${r.status}` };
     return await r.json();
-  } catch { return { codes: {}, devices: {} }; }
+  } catch (e) { return { codes: {}, devices: {}, _readErr: e.message }; }
 }
 
-// 写状态：GitHub API 需鉴权
 async function writeState(state) {
   const token = getGhToken();
+  const results = [];
   try {
-    const bytes = new TextEncoder().encode(JSON.stringify(state, null, 2));
+    const content = JSON.stringify(state, null, 2);
+    const bytes = new TextEncoder().encode(content);
     let bin = "";
     for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
     const b64 = btoa(bin);
 
+    // GET sha
     const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" }
     });
+    results.push(`GET_SHA=${r.status}`);
     const sha = r.ok ? (await r.json()).sha : null;
+    results.push(`SHA=${sha ? sha.slice(0,8) : 'null'}`);
+
+    // PUT
     const body = { message: "update activation state", content: b64 };
     if (sha) body.sha = sha;
     const w = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
@@ -44,8 +47,14 @@ async function writeState(state) {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    return w.ok;
-  } catch { return false; }
+    const wBody = await w.text();
+    results.push(`PUT=${w.status}`);
+    if (!w.ok) results.push(`ERR=${wBody.slice(0, 150)}`);
+    return { ok: w.ok, debug: results.join(" | ") };
+  } catch (e) {
+    results.push(`EXC=${e.message}`);
+    return { ok: false, debug: results.join(" | ") };
+  }
 }
 
 function cors() {
@@ -74,7 +83,7 @@ export async function onRequestPost(context) {
       const deviceId = (body.deviceId || "").trim();
       if (!deviceId) return json({ ok: false, error: "missing_params" }, 400);
       const dev = state.devices?.[deviceId];
-      return json({ ok: !!dev, code: dev?.code });
+      return json({ ok: !!dev, code: dev?.code, _read: state._readErr || "ok" });
     }
 
     if (path.endsWith("/activate")) {
@@ -84,7 +93,7 @@ export async function onRequestPost(context) {
       if (state.devices?.[deviceId]) return json({ ok: true, msg: "already_activated", code: state.devices[deviceId].code });
 
       const codes = state.codes || {};
-      if (!(code in codes)) return json({ ok: false, error: "invalid_code" }, 403);
+      if (!(code in codes)) return json({ ok: false, error: "invalid_code", _codes: Object.keys(codes).length }, 403);
 
       const bind = codes[code];
       if (bind.deviceId && bind.deviceId !== deviceId) return json({ ok: false, error: "code_used" }, 403);
@@ -94,8 +103,14 @@ export async function onRequestPost(context) {
       state.devices = state.devices || {};
       state.devices[deviceId] = { code, activatedAt: now };
       state.codes = codes;
-      const saved = await writeState(state);
-      return json({ ok: true, msg: saved ? "activated" : "activated_pending_sync" });
+
+      const wr = await writeState(state);
+      return json({
+        ok: true,
+        msg: wr.ok ? "activated" : "activated_pending_sync",
+        _write: wr.debug || "no-debug",
+        _read: state._readErr || "ok"
+      });
     }
 
     return json({ ok: false, error: "not_found" }, 404);
