@@ -1,41 +1,91 @@
-export async function onRequestPost(context) {
-  const { request, env } = context;
-  const cors = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+/**
+ * 云盘签到管家·分享版 激活服务（Pages Function）
+ * 存储后端 = GitHub 仓库 JSON 文件（不依赖 KV 绑定）
+ * POST /api/activate  {code, deviceId}  激活码+设备绑定
+ * POST /api/verify    {deviceId}        验证设备是否已激活
+ * Token 从 Cloudflare Pages 环境变量 GH_TOKEN 读取（不硬编码）
+ */
+const REPO = "WoShiYiGeManHuaJia/yun139-announce";
+const STATE_PATH = "activate-state.json";
+
+async function readState(ghToken) {
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
+      headers: { Authorization: `Bearer ${ghToken}`, Accept: "application/vnd.github+json" }
+    });
+    if (!r.ok) return { codes: {}, devices: {} };
+    const j = await r.json();
+    return JSON.parse(atob(j.content));
+  } catch { return { codes: {}, devices: {} }; }
+}
+
+async function writeState(state, ghToken) {
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
+      headers: { Authorization: `Bearer ${ghToken}`, Accept: "application/vnd.github+json" }
+    });
+    const sha = r.ok ? (await r.json()).sha : null;
+    const body = {
+      message: "update activation state",
+      content: btoa(JSON.stringify(state, null, 2)),
+    };
+    if (sha) body.sha = sha;
+    await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${ghToken}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return true;
+  } catch { return false; }
+}
+
+function cors() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json",
   };
+}
+
+export async function onRequestPost(context) {
+  const { request, url, env } = context;
+  const ghToken = env.GH_TOKEN;
+  if (!ghToken) return new Response(JSON.stringify({ ok: false, error: "server_misconfig" }), { status: 500, headers: cors() });
+
+  const path = url.pathname;
   let body;
   try { body = await request.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: 'bad_request' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: false, error: "bad_request" }), { status: 400, headers: cors() });
   }
 
-  const code = (body.code || '').trim().toUpperCase();
-  const deviceId = (body.deviceId || '').trim();
-  if (!code || !deviceId) {
-    return new Response(JSON.stringify({ ok: false, error: 'missing_params' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
+  const state = await readState(ghToken);
+
+  if (path.endsWith("/verify")) {
+    const deviceId = (body.deviceId || "").trim();
+    if (!deviceId) return new Response(JSON.stringify({ ok: false, error: "missing_params" }), { status: 400, headers: cors() });
+    const dev = state.devices[deviceId];
+    return new Response(JSON.stringify({ ok: !!dev, code: dev?.code }), { headers: cors() });
   }
 
-  // 1. 该设备是否已激活
-  const devBind = await env.ACTIVATE_KV.get(`device:${deviceId}`, 'json');
-  if (devBind) {
-    return new Response(JSON.stringify({ ok: true, msg: 'already_activated', code: devBind.code }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (path.endsWith("/activate")) {
+    const code = (body.code || "").trim().toUpperCase();
+    const deviceId = (body.deviceId || "").trim();
+    if (!code || !deviceId) return new Response(JSON.stringify({ ok: false, error: "missing_params" }), { status: 400, headers: cors() });
+
+    if (state.devices[deviceId]) return new Response(JSON.stringify({ ok: true, msg: "already_activated", code: state.devices[deviceId].code }), { headers: cors() });
+
+    if (!(code in state.codes)) return new Response(JSON.stringify({ ok: false, error: "invalid_code" }), { status: 403, headers: cors() });
+
+    const bind = state.codes[code];
+    if (bind.deviceId && bind.deviceId !== deviceId) return new Response(JSON.stringify({ ok: false, error: "code_used" }), { status: 403, headers: cors() });
+
+    const now = new Date().toISOString();
+    state.codes[code] = { deviceId, activatedAt: now };
+    state.devices[deviceId] = { code, activatedAt: now };
+    await writeState(state, ghToken);
+    return new Response(JSON.stringify({ ok: true, msg: "activated" }), { headers: cors() });
   }
 
-  // 2. 密码是否存在
-  const codeBind = await env.ACTIVATE_KV.get(`code:${code}`, 'json');
-  if (!codeBind) {
-    return new Response(JSON.stringify({ ok: false, error: 'invalid_code' }), { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } });
-  }
-
-  // 3. 密码是否已被别的设备用过
-  if (codeBind.deviceId && codeBind.deviceId !== deviceId) {
-    return new Response(JSON.stringify({ ok: false, error: 'code_used' }), { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } });
-  }
-
-  // 4. 绑定
-  const now = new Date().toISOString();
-  await env.ACTIVATE_KV.put(`code:${code}`, JSON.stringify({ deviceId, activatedAt: now }));
-  await env.ACTIVATE_KV.put(`device:${deviceId}`, JSON.stringify({ code, activatedAt: now }));
-  return new Response(JSON.stringify({ ok: true, msg: 'activated' }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ ok: false, error: "not_found" }), { status: 404, headers: cors() });
 }
