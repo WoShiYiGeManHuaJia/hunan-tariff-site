@@ -20,7 +20,8 @@ function b64encode(str) {
   return btoa(bin);
 }
 function b64decode(b64) {
-  const bin = atob(b64);
+  const clean = b64.replace(/\s/g, '');  // GitHub API 返回的 base64 含换行符，需清除
+  const bin = atob(clean);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new TextDecoder().decode(bytes);
