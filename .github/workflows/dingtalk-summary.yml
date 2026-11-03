@@ -482,7 +482,7 @@ jobs:
           # 注意：FOCUS_SEC 已不再用于「筛选推送哪些省」——推送一律列全部
           # 有变化的省，与网站变化历史同源同口径。此变量仅为兼容旧配置保留。
           FOCUS_SEC:        ${{ vars.FOCUS_SEC || '' }}
-          SITE_URL:         ${{ vars.SITE_URL || 'https://woshiyigemanhuajia.github.io/hunan-tariff-site/' }}
+          SITE_URL:         ${{ vars.SITE_URL || 'https://hnvip.pages.dev/' }}
           SITE_ROOT:        "."
         run: python3 scripts/dingtalk_summary.py
 

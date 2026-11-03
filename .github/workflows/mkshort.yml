@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: gen shortest link (root)
         run: |
-          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
+          U="https://hnvip.pages.dev/"
           out="SHORT.md"
           echo "# 资费监控 · 直达短链（目标：根路径，站内可切换四家）" > $out
           echo "" >> $out

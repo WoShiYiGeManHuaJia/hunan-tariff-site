@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch({args:['--no-sandbox']});
   const p = await b.newPage();
-  await p.goto('https://woshiyigemanhuajia.github.io/hunan-tariff-site/net.html',{waitUntil:'load',timeout:60000});
+  await p.goto('https://hnvip.pages.dev/net.html',{waitUntil:'load',timeout:60000});
   await p.waitForTimeout(1000);
   const out = await p.evaluate(async ()=>{
     const steps=[];

@@ -22,7 +22,7 @@ push_once.py —— 独立运行一次「拉数据 → 算汇总 → 推送」
     SMTP_HOST=  SMTP_PORT=  SMTP_USER=  SMTP_PASS=  MAIL_TO=
 
     # 数据站点（默认官方站，自建可改）
-    SITE_URL=https://woshiyigemanhuajia.github.io/hunan-tariff-site/
+    SITE_URL=https://hnvip.pages.dev/
     FOCUS_SEC=hunan      # 明细里列哪个省，其余不列
     SINCE_HOURS=24       # 统计最近多少小时
 
@@ -144,7 +144,7 @@ def collect(base, rel, since_h):
 
 
 def build(since_h, focus, site_url):
-    base = site_url or "https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
+    base = site_url or "https://hnvip.pages.dev/"
     now = datetime.now(CST)
     start = now - timedelta(hours=since_h)
 
@@ -179,7 +179,7 @@ def build(since_h, focus, site_url):
 
 def main():
     notify._load_dotenv()
-    site_url = cfg("SITE_URL", "https://woshiyigemanhuajia.github.io/hunan-tariff-site/")
+    site_url = cfg("SITE_URL", "https://hnvip.pages.dev/")
     focus = (cfg("FOCUS_SEC", "hunan") or "hunan").lower()
     try:
         since_h = int(cfg("SINCE_HOURS", "24") or 24)

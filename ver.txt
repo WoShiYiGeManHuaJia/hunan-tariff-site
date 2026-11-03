@@ -1,4 +1,4 @@
-===== 首页 =====
+===== é¦–é¡µ =====
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -6,20 +6,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>中国移动资费监控 · 数据一览</title>
+<title>ä¸­å›½ç§»åŠ¨èµ„è´¹ç›‘æŽ§ Â· æ•°æ®ä¸€è§ˆ</title>
 <link rel="stylesheet" href="./style.css?v=20260913d">
   <link rel="icon" href="logo.png" type="image/png">
-  <meta name="description" content="中国移动资费监控 · 全网及湖南全省公开资费数据一览，支持实时检索、资费对比与变化历史追踪。">
+  <meta name="description" content="ä¸­å›½ç§»åŠ¨èµ„è´¹ç›‘æŽ§ Â· å…¨ç½‘åŠæ¹–å—å…¨çœå…¬å¼€èµ„è´¹æ•°æ®ä¸€è§ˆï¼Œæ”¯æŒå®žæ—¶æ£€ç´¢ã€èµ„è´¹å¯¹æ¯”ä¸Žå˜åŒ–åŽ†å²è¿½è¸ªã€‚">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="资费监控站">
-  <meta property="og:title" content="中国移动资费监控">
-  <meta property="og:description" content="中国移动资费监控 · 全网及湖南全省公开资费数据一览，支持实时检索、资费对比与变化历史追踪。">
-  <meta property="og:url" content="https://woshiyigemanhuajia.github.io/hunan-tariff-site/">
-  <meta property="og:image" content="https://woshiyigemanhuajia.github.io/hunan-tariff-site/logo.png">
+  <meta property="og:site_name" content="èµ„è´¹ç›‘æŽ§ç«™">
+  <meta property="og:title" content="ä¸­å›½ç§»åŠ¨èµ„è´¹ç›‘æŽ§">
+  <meta property="og:description" content="ä¸­å›½ç§»åŠ¨èµ„è´¹ç›‘æŽ§ Â· å…¨ç½‘åŠæ¹–å—å…¨çœå…¬å¼€èµ„è´¹æ•°æ®ä¸€è§ˆï¼Œæ”¯æŒå®žæ—¶æ£€ç´¢ã€èµ„è´¹å¯¹æ¯”ä¸Žå˜åŒ–åŽ†å²è¿½è¸ªã€‚">
+  <meta property="og:url" content="https://hnvip.pages.dev/">
+  <meta property="og:image" content="https://hnvip.pages.dev/logo.png">
   <meta name="twitter:card" content="summary">
   <meta nacurl: (23) Failure writing output to destination, passed 1369 returned 1354
 
-===== 关键资源 =====
+===== å…³é”®èµ„æº =====
 index.html -> 200
 data/summary.json -> 200
 data/latest.json -> 200
@@ -27,7 +27,7 @@ manage.html -> 200
 cmcc.html -> 200
 t.html -> 200
 termux.html -> 200
-===== 数据新鲜度 =====
+===== æ•°æ®æ–°é²œåº¦ =====
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -35,4 +35,4 @@ termux.html -> 200
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>中国移动资费监控 · �
+<title>ä¸­å›½ç§»åŠ¨èµ„è´¹ç›‘æŽ§ Â· æ•

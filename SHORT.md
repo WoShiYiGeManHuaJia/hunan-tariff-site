@@ -1,6 +1,6 @@
 # 总入口短链
 
-目标: https://woshiyigemanhuajia.github.io/hunan-tariff-site/nav.html
+目标: https://hnvip.pages.dev/nav.html
 
 ## 候选短码（按长度排序）
 

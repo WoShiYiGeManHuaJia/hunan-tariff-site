@@ -5,7 +5,7 @@ const fs = require('fs');
   const p = await b.newPage({viewport:{width:420,height:900}, deviceScaleFactor:2});
   const errs=[]; p.on('pageerror',e=>errs.push('PAGEERROR '+e.message));
   p.on('console',m=>{ if(m.type()==='error') errs.push('CONSOLE '+m.text().slice(0,160)); });
-  await p.goto('https://woshiyigemanhuajia.github.io/hunan-tariff-site/net.html',{waitUntil:'load',timeout:60000});
+  await p.goto('https://hnvip.pages.dev/net.html',{waitUntil:'load',timeout:60000});
   await p.waitForTimeout(1500);
 
   console.log('=== 顶部统计 ===');

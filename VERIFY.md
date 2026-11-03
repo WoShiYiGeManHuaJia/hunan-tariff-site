@@ -2,7 +2,7 @@
 
 | 短链 | 地址 | 最终跳转 |
 |---|---|---|
-| da.gd 随机 | `https://da.gd/fS6VH` | 200 https://woshiyigemanhuajia.github.io/hunan-tariff-site/nav.html |
+| da.gd 随机 | `https://da.gd/fS6VH` | 200 https://hnvip.pages.dev/nav.html |
 | 1pt.co/t | `https://1pt.co/t` | 404 https://1pt.co/t |
 | 1pt.co/hn | `https://1pt.co/hn` | 404 https://1pt.co/hn |
 | 1pt.co/tf | `https://1pt.co/tf` | 404 https://1pt.co/tf |

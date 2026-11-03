@@ -19,7 +19,7 @@ from province_table import section_name
 DINGTALK_WEBHOOK = os.getenv("DINGTALK_WEBHOOK", "").strip()
 DINGTALK_SECRET = os.getenv("DINGTALK_SECRET", "").strip()
 # 展示站短链（可点击查看资费数据），由公开短链服务生成，不暴露原始域名与仓库信息
-APP_LINK = "https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
+APP_LINK = "https://hnvip.pages.dev/"
 # ══════════════════════════════════════════════
 
 

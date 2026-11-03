@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: gen shortest
         run: |
-          U="https://woshiyigemanhuajia.github.io/hunan-tariff-site/nav.html"
+          U="https://hnvip.pages.dev/nav.html"
           E=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$U")
           out=SHORT2.md
           echo "# 最短短链候选" > $out

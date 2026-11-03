@@ -12,7 +12,7 @@ jobs:
         run: |
           OUT="# 短链验证结果"
           OUT="$OUT"$'\n'
-          OUT="$OUT"$'\n'"target: https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
+          OUT="$OUT"$'\n'"target: https://hnvip.pages.dev/"
           OUT="$OUT"$'\n'
           for L in https://tinyurl.com/hntf2 https://tinyurl.com/zf2026 https://tinyurl.com/hunan2026 https://tinyurl.com/hntf2026 https://tinyurl.com/23xqwhm7 https://clck.ru/3W4LN5; do
             H=$(curl -s -o /dev/null -m 25 -A "Mozilla/5.0" -w "%{http_code}" -L "$L")

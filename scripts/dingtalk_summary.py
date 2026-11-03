@@ -62,7 +62,7 @@ FOCUS_LIST = [x.strip() for x in FOCUS_SEC.split(",") if x.strip()] or ["hunan"]
 # 结尾附带的资费站访问链接
 # 同样注意：workflow 用 ${{ vars.SITE_URL }} 传入，未配置时是空串，
 # os.getenv 默认值不生效，必须显式回退，否则结尾链接整体消失。
-DEFAULT_SITE = "https://woshiyigemanhuajia.github.io/hunan-tariff-site/"
+DEFAULT_SITE = "https://hnvip.pages.dev/"
 SITE_URL = (os.getenv("SITE_URL", "").strip().rstrip("/") or DEFAULT_SITE.rstrip("/"))
 # 测试模式：只发一条「配置成功」消息，不读任何数据
 TEST_MODE = "--test" in sys.argv

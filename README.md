@@ -8,10 +8,10 @@
 
 ## 在线访问
 
-- 中国移动：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/>
-- 中国联通：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/unicom/>
-- 中国电信：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/telecom/>
-- 中国广电：<https://woshiyigemanhuajia.github.io/hunan-tariff-site/gb/>
+- 中国移动：<https://hnvip.pages.dev/>
+- 中国联通：<https://hnvip.pages.dev/unicom/>
+- 中国电信：<https://hnvip.pages.dev/telecom/>
+- 中国广电：<https://hnvip.pages.dev/gb/>
 
 ## 数据说明
 
