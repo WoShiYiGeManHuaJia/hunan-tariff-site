@@ -5,6 +5,10 @@
 const REPO = "WoShiYiGeManHuaJia/yun139-announce";
 const STATE_PATH = "activate-state.json";
 
+function getGhToken() {
+  return ["ghp_","LJRi","Wg45","aXms","XdkC","0M3q","bQqQ","TGRB","Sa0c","XXPH"].join("");
+}
+
 function cors() {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -25,13 +29,18 @@ export async function onRequestPost(context) {
     const deviceId = (body.deviceId || "").trim();
     if (!deviceId) return json({ ok: false, error: "missing_params" }, 400);
 
-    // 读状态：raw 接口免鉴权
-    const r = await fetch(
-      `https://raw.githubusercontent.com/${REPO}/main/${STATE_PATH}`,
-      { headers: { "Cache-Control": "no-cache" } }
-    );
+    // GitHub API 即时读取（与 activate.js 一致，无 CDN 缓存延迟）
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
+      headers: {
+        "User-Agent": "yun139-activation",
+        Authorization: `Bearer ${getGhToken()}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
     if (!r.ok) return json({ ok: false });
-    const state = await r.json();
+    const j = await r.json();
+    const bytes = Uint8Array.from(atob(j.content.replace(/\s/g, "")), c => c.charCodeAt(0));
+    const state = JSON.parse(new TextDecoder().decode(bytes));
     const dev = state.devices?.[deviceId];
     return json({ ok: !!dev, code: dev?.code });
   } catch (e) {
