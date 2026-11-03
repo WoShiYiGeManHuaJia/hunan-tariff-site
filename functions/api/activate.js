@@ -69,7 +69,8 @@ function json(data, status = 200) {
 
 export async function onRequestPost(context) {
   try {
-    const { request, url } = context;
+    const { request } = context;
+    const url = new URL(request.url);
     const ghToken = getGhToken();
     if (!ghToken) return json({ ok: false, error: "server_misconfig" }, 500);
 
