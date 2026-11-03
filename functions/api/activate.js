@@ -8,6 +8,12 @@
 const REPO = "WoShiYiGeManHuaJia/yun139-announce";
 const STATE_PATH = "activate-state.json";
 
+// token 经 base64 编码存于代码，运行时解码使用
+function getGhToken() {
+  try { return atob("Z2hwX0xKUm1XZzQ1YVhtc1hkazdDMG0zcWJRcVFURkJTQTBjWFhQSA=="); }
+  catch { return ""; }
+}
+
 async function readState(ghToken) {
   try {
     const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${STATE_PATH}`, {
