@@ -1,34 +1,39 @@
 name: zz-online-check
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   c:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: 取线上数据
         run: |
           set +e
-          TS=$(date +%s)
+          TS=$(date +%s%N)
           curl -sS -L --max-time 40 "https://hnvip.pages.dev/data/latest.json?_=$TS" -o /tmp/o.json
+          curl -sS -L --max-time 40 "https://hnvip.pages.dev/version.json?_=$TS" -o /tmp/v.json
           python3 - <<'PY' > online.txt
-          import json,re
+          import json
           try:
               d=json.load(open('/tmp/o.json'))
               print('ONLINE_UPDATED=',d.get('updated'))
-              s=d.get('sections') or []
-              print('SECTIONS=',len(s))
-              print('FIRST=',s[0] if s else '')
+              print('SECTIONS=',len(d.get('sections') or []))
           except Exception as e:
-              print('PARSE_ERR',e)
-              print('HEAD=',open('/tmp/o.json','rb').read()[:300])
+              print('LATEST_PARSE_ERR',e,'HEAD=',open('/tmp/o.json','rb').read()[:250])
+          try:
+              v=json.load(open('/tmp/v.json'))
+              print('ONLINE_VER=',v.get('ver'),v.get('ts'))
+          except Exception as e:
+              print('VER_PARSE_ERR',e,'HEAD=',open('/tmp/v.json','rb').read()[:250])
           PY
           echo "HOME_CODE=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 "https://hnvip.pages.dev/?_=$TS")" >> online.txt
-          echo "VER_CODE=$(curl -sS -L --max-time 30 "https://hnvip.pages.dev/version.json?_=$TS")" >> online.txt
           cat online.txt
       - name: 提交
-        env:
-          PAT: ${{ secrets.GH_PAT }}
         run: |
-          B64=$(base64 -w0 online.txt)
-          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/online.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
-          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{"message":"check","content":"$B64"}" "https://api.github.com/repos/${{ github.repository }}/contents/online.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{"message":"check","content":"$B64","sha":"$SHA"}" "https://api.github.com/repos/${{ github.repository }}/contents/online.txt"
+          git config user.name "tariff-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -f online.txt
+          git commit -m "diag: online check" || echo "无变化"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin main && break; sleep 5; done
