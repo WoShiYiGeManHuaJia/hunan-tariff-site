@@ -1,17 +1,45 @@
 == TIME ==
-Sat Nov  7 02:02:08 UTC 2026
-== CF DEPLOYMENTS ==
+Sat Nov  7 02:04:59 UTC 2026
+== PROJECT CONFIG ==
 success True
-2026-11-07T02:02:00.534933Z f7024a9d https://f7024a9d.hnvip.pages.dev {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T02:01:20.275494Z 02a17e34 https://02a17e34.hnvip.pages.dev {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T02:01:01.627898Z e8d58e8b https://e8d58e8b.hnvip.pages.dev {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T01:57:54.626408Z 23bd504e https://23bd504e.hnvip.pages.dev {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T01:57:34.576136Z 3bba3882 https://3bba3882.hnvip.pages.dev {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T01:56:40.413553Z 80036227 https://80036227.hnvip.pages.dev {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-== ONLINE latest ==
-updated 2026-11-06 20:20:58 quanguo 1540 hunan 1551
+production_branch main
+source {"type": "github", "config": {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "hunan-tariff-site", "repo_id": "1438392194", "production_branch": "main", "pr_comments_enabled": false, "deployments_enabled": true, "production_deployments_enabled": true, "preview_deployment_setting
+build_config {"build_command": "", "destination_dir": "", "root_dir": "", "web_analytics_tag": null, "web_analytics_token": null}
+latest {"id": "db0ec936-6efe-47f9-8b4a-9945da7b0801", "short_id": "db0ec936", "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4", "project_name": "hnvip", "environment": "production", "url": "https://db0ec936.hnvip.pages.dev", "created_on": "2026-11-07T02:04:51.259345Z", "modified_on": "2026-11-07T02:04:51.259345Z", "latest_stage": {"name": "queued", "started_on": null, "ended_on": null, "status": "idl
+== DEPLOYMENTS (20) ==
+success True
+2026-11-07T02:04:51.259345Z db0ec936 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:04:15.527028Z c21ddede {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:04:10.936552Z c50b21b4 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:04:09.364164Z 5d3b4f10 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:04:04.167547Z 1cb1be5d {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:02:28.593036Z 548c86ba {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:02:11.451926Z b550e67e {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:02:00.534933Z f7024a9d {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:01:20.275494Z 02a17e34 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:01:01.627898Z e8d58e8b {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:57:54.626408Z 23bd504e {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:57:34.576136Z 3bba3882 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:56:40.413553Z 80036227 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:47:21.506225Z 103169d5 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:42:23.217998Z fe0670ce {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:34:29.364672Z f3490434 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:34:04.134979Z 323991d9 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:34:02.468852Z ec9d081d {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:33:25.882306Z ce61c383 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T01:33:21.056584Z a7f9d27b {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+== TRIGGER DEPLOY ==
+success True
+id f5f03a63-96f5-44ea-b182-04aec68b32a2 short f5f03a63 stage {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+errors []
+== WAIT 75s ==
 == ONLINE version ==
-{"ver": "20261107a", "ts": "2026-11-07 15:10:00", "note": "恢复 Cloudflare Pages 自动构建，触发端侧缓存自升级"}
+{"ver":"20261107c","ts":"2026-11-07 10:05:00","note":"修复缓存：JSON no-cache + 数据请求带版本号"}
+== ONLINE latest ==
+updated 2026-11-07 01:41:53 quanguo 1540 hunan 1551
 == ONLINE history ==
 count 60 first 2026-10-09 10:25:30 last 2026-11-07 04:22:31
+== ONLINE _headers check ==
+HTTP/2 200
+cache-control: no-cache
 == WRITE BACK ==
