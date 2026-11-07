@@ -13,3 +13,6 @@ tg_run.log
 
 # 诊断输出：移动管线每轮重写，仅供排查用
 _diag.json
+
+# Cloudflare Pages 单文件上限 25MB；联通抓取池缓存不入版本库
+unicom/data/_pool.json
