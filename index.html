@@ -33,39 +33,45 @@
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261107f";
+var BUILD_VER = "20261107g";
 (function(){
-  function base(){
-    var m = location.pathname.match(/^(.*)\/[^\/]*$/);
-    return m ? (m[1] || "") : "";
-  }
-  /* 防死循环：一次会话内最多自动跳 1 次。
-     若版本号与页面不一致但刷新后仍拿到同一个旧页面，就会无限 replace，
-     必须限制次数，宁可停在旧页面也不能把页面跳死。 */
-  var JUMPED = false;
-  function go(){
-    if(JUMPED) return;
-    var u = base() + "/version.json?_t=" + Date.now();
-    fetch(u, {cache:"no-store"})
+  /* 老入口自升级遗留的 ?_v= 参数，加载完立刻抹掉，地址栏保持裸地址 */
+  try{
+    if(/[?&]_v=/.test(location.search)){
+      history.replaceState(null, "", location.pathname + location.hash);
+    }
+  }catch(e){}
+
+  var KEY = "__docswap";
+  var DONE = false;
+
+  /* 即使这个 HTML 是浏览器缓存的旧副本，也把线上最新版整页换进来：
+     地址栏始终是 https://hnvip.pages.dev/，不需要点任何"刷新"入口 */
+  function swap(){
+    if(DONE) return;
+    fetch("/version.json?_t=" + Date.now(), {cache:"no-store"})
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(j){
-        if(!j || !j.ver) return;
-        if(j.ver !== BUILD_VER){
-          if(JUMPED) return;
-          /* 旧版把 __autoup 存成当前页面版本，页面被缓存后判定永远相等 → 自升级死锁。
-             改为对比目标版本，版本号一变就允许再跳一次。 */
-          try{ if(sessionStorage.getItem("__autoup") === j.ver){ JUMPED = true; return; } }catch(e){}
-          JUMPED = true;
-          try{ sessionStorage.setItem("__autoup", j.ver); }catch(e){}
-          var cur = location.href.split("#")[0].split("?")[0];
-          location.replace(cur + "?_v=" + j.ver + "&_t=" + Date.now());
-        }
+        if(!j || !j.ver || j.ver === BUILD_VER) return;
+        try{ if(sessionStorage.getItem(KEY) === j.ver) return; }catch(e){}
+        return fetch("/index.html?_t=" + Date.now(), {cache:"reload"})
+          .then(function(r){ return r.ok ? r.text() : null; })
+          .then(function(html){
+            if(!html || html.indexOf("var BUILD_VER") < 0 || html.length < 50000) throw new Error("stale");
+            DONE = true;
+            try{ sessionStorage.setItem(KEY, j.ver); }catch(e){}
+            document.open(); document.write(html); document.close();
+          });
       })
-      .catch(function(){});
+      .catch(function(){
+        /* 兜底：整页替换不可用时退回带参数跳转，新页加载后会抹掉参数 */
+        try{ if(sessionStorage.getItem(KEY + "_fb")) return; sessionStorage.setItem(KEY + "_fb", "1"); }catch(e){}
+        location.replace("/?_v=" + Date.now());
+      });
   }
-  go();                       // 立即
-  setTimeout(go, 3000);       // 兜底
-  setInterval(go, 60000);     // 每分钟
+  swap();
+  setTimeout(swap, 3000);
+  setInterval(swap, 60000);
 })();
 </script>
 <meta charset="UTF-8">

@@ -1,24 +1,25 @@
-# 2026-10-19 修正：此前把 *.json 设成 no-store，导致浏览器完全不缓存，
-# 切一次省份就要重新下载 2~5MB（data/ 合计 52.5MB），页面严重卡顿。
-# 现改为分级：
-#   HTML  —— no-cache：每次向服务器验证，页面本身永远拿最新（304 时几乎零流量）
-#   大 JSON —— no-cache：每次向源站验证，未变返回 304（几乎零流量），变更即时生效
-#   小 JSON —— 由前端用 _t=时间戳 请求并 no-store，不依赖此处
+# 2026-11-07：裸地址 hnvip.pages.dev 必须永远返回最新界面。
+# 手机 WebView(尤其 X5) 会忽略 meta/query、按路径硬缓存 HTML 与 JSON，
+# 之前 no-cache 仍被 heuristically 缓存，导致连续多天停在旧快照。
+# 现全部 no-store：不落盘、每次回源；切省份的性能由页面内 __secCache 内存缓存兜住。
+/
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
+  Clear-Site-Data: "cache"
+
 /*.html
-  Cache-Control: no-cache
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
 
 /*.json
-  Cache-Control: no-cache
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
 
-/
-  Cache-Control: no-cache
-
-# 2026-10-20 补：APK 之前没匹配任何规则，Pages 按默认 10 分钟缓存静态资源，
-# 导致仓库里已是新包、用户下载的却是旧包。这里让 APK 每次都向源站验证。
 /*.apk
   Cache-Control: no-cache, must-revalidate, max-age=0
 
-# 2026-10-22 补：网络诊断探针必须每次真实走网络，否则命中缓存就拿不到
-# DNS / TCP / 首包 这些分段耗时了。
 /probe.txt
   Cache-Control: no-store, must-revalidate, max-age=0
