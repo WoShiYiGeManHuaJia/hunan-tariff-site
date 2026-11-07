@@ -1,0 +1,35 @@
+name: zz-live
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 部署并核验裸地址
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          exec > >(tee /tmp/o.txt) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          API="https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip"
+          echo "== TIME =="; date -u
+          curl -sS -m 25 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" -d '{"branch":"main"}' "$API/deployments" -o /tmp/n.json
+          python3 -c 'import json;d=json.load(open("/tmp/n.json"));print("deploy",d.get("success"),d.get("result",{}).get("short_id"))'
+          echo "== WAIT 100s =="; sleep 100
+          echo "== 裸地址 https://hnvip.pages.dev/ =="
+          curl -sS -m 45 -D /tmp/h.txt "https://hnvip.pages.dev/" -o /tmp/i.html
+          grep -iE "^(HTTP/|cache-control|pragma|expires|clear-site-data)" /tmp/h.txt
+          python3 -c 't=open("/tmp/i.html",encoding="utf8",errors="replace").read();print("bytes",len(t));print("BUILD_VER_g",("BUILD_VER = \"20261107g\"" in t));print("has_docswap",("__docswap" in t));print("popup_text",("云盘签到已做成本地部署" in t));print("new_139_link",("2yA8A0WzCYZr3" in t));print("old_lanzou",("lanzouv" in t));print("extract_hint",("提取码在" in t));print("old_daily_key",("q = \"_d=\"" in t))'
+          echo "== version / data =="
+          curl -sS -m 25 "https://hnvip.pages.dev/version.json?_t=$(date +%s)"; echo
+          curl -sS -m 30 "https://hnvip.pages.dev/data/latest.json?_t=$(date +%s)" | python3 -c 'import json,sys;d=json.load(sys.stdin);print("latest.updated",d.get("updated"))'
+          curl -sS -m 60 "https://hnvip.pages.dev/data/history.json?_t=$(date +%s)" | python3 -c 'import json,sys;h=json.load(sys.stdin);print("history.last",h[-1].get("ts"))'
+          echo "== WRITE =="
+          B64=$(base64 -w0 /tmp/o.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/zz-live.txt" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("sha",""))')
+          if [ -n "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"l\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-live.txt" -o /dev/null -w "write=%{http_code}\n"
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"l\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-live.txt" -o /dev/null -w "write=%{http_code}\n"
+          fi
