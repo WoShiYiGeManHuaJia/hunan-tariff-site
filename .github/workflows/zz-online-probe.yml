@@ -8,7 +8,9 @@ jobs:
       - name: probe
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
         run: |
+          exec > >(tee /tmp/probe.txt) 2>&1
           ACC=9156c2cae565fdf42d208827b523e47e
           echo "== TIME =="; date -u
           echo "== CF DEPLOYMENTS =="
@@ -23,3 +25,11 @@ jobs:
           echo "== ONLINE history =="
           curl -sS -m 45 "https://hnvip.pages.dev/data/history.json?_t=$(date +%s)" -o /tmp/oh.json
           python3 -c "import json;h=json.load(open('/tmp/oh.json'));print('count',len(h),'first',h[0].get('ts'),'last',h[-1].get('ts'))"
+          echo "== WRITE BACK =="
+          B64=$(base64 -w0 /tmp/probe.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/zz-online-probe.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          if [ -n "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"probe\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-online-probe.txt" -o /dev/null -w "write=%{http_code}\n"
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"probe\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-online-probe.txt" -o /dev/null -w "write=%{http_code}\n"
+          fi
