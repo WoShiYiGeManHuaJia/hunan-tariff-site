@@ -1,0 +1,34 @@
+name: zz-online-check
+on:
+  workflow_dispatch:
+jobs:
+  c:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取线上数据
+        run: |
+          set +e
+          TS=$(date +%s)
+          curl -sS -L --max-time 40 "https://hnvip.pages.dev/data/latest.json?_=$TS" -o /tmp/o.json
+          python3 - <<'PY' > online.txt
+          import json,re
+          try:
+              d=json.load(open('/tmp/o.json'))
+              print('ONLINE_UPDATED=',d.get('updated'))
+              s=d.get('sections') or []
+              print('SECTIONS=',len(s))
+              print('FIRST=',s[0] if s else '')
+          except Exception as e:
+              print('PARSE_ERR',e)
+              print('HEAD=',open('/tmp/o.json','rb').read()[:300])
+          PY
+          echo "HOME_CODE=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 "https://hnvip.pages.dev/?_=$TS")" >> online.txt
+          echo "VER_CODE=$(curl -sS -L --max-time 30 "https://hnvip.pages.dev/version.json?_=$TS")" >> online.txt
+          cat online.txt
+      - name: 提交
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          B64=$(base64 -w0 online.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/online.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          [ -z "$SHA" ] && curl -sS -X PUT -H "Authorization: token $PAT" -d "{"message":"check","content":"$B64"}" "https://api.github.com/repos/${{ github.repository }}/contents/online.txt" || curl -sS -X PUT -H "Authorization: token $PAT" -d "{"message":"check","content":"$B64","sha":"$SHA"}" "https://api.github.com/repos/${{ github.repository }}/contents/online.txt"
