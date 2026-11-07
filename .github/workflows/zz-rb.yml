@@ -1,0 +1,37 @@
+name: zz-rb
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 部署并核验公告
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          exec > >(tee /tmp/o.txt) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          API="https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip"
+          curl -sS -m 25 -X POST -H "Authorization: Bearer $CF" -H "Content-Type: application/json" -d '{"branch":"main"}' "$API/deployments" -o /tmp/n.json
+          python3 -c 'import json;d=json.load(open("/tmp/n.json"));print("deploy",d.get("success"),d.get("result",{}).get("short_id"))'
+          sleep 100
+          echo "== 裸地址 =="
+          curl -sS -m 45 -D /tmp/h.txt "https://hnvip.pages.dev/" -o /tmp/i.html
+          grep -iE "^(HTTP/|cache-control)" /tmp/h.txt
+          python3 -c 't=open("/tmp/i.html",encoding="utf8",errors="replace").read();print("bytes",len(t));print("popup",("云盘签到已做成本地部署" in t));print("lanzou_idxl",("itzZm4eh5kde" in t));print("pwd_6w01",("下载密码：<b>6w01</b>" in t));print("group_hint",("群内@我获取" in t));print("old_139link",("2yA8A0WzCYZr3" in t));print("docswap",("__docswap" in t))'
+          echo "== 四个入口 =="
+          for p in t.html cookie.html token.html yun139-notice.html manage.html; do
+            printf "%s " "$p"; curl -sS -m 25 "https://hnvip.pages.dev/$p?_t=$(date +%s)" | python3 -c 'import sys;t=sys.stdin.read();print("idx",("itzZm4eh5kde" in t),"ent",("i5jUK4eem0di" in t),"139",("2yA8A0WzCYZr3" in t),"group",("群内@我获取" in t))'
+          done
+          echo "== 公告库 =="
+          curl -sS -m 25 "https://raw.githubusercontent.com/WoShiYiGeManHuaJia/yun139-announce/main/zifei.json?_t=$(date +%s)"
+          echo
+          echo "== WRITE =="
+          B64=$(base64 -w0 /tmp/o.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/zz-rb.txt" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("sha",""))')
+          if [ -n "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"r\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-rb.txt" -o /dev/null -w "write=%{http_code}\n"
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"r\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-rb.txt" -o /dev/null -w "write=%{http_code}\n"
+          fi
