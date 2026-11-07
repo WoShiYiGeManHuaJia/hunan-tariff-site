@@ -33,7 +33,7 @@
 /* ===== 老入口自升级（2026-10-19）=====
    旧 HTML 被 CDN 缓存时，靠它自己跳到最新版：
    请求 version.json 带时间戳（CDN 必回源），版本号不同则 replace 到带时间戳的新 URL。 */
-var BUILD_VER = "20261107b";
+var BUILD_VER = "20261107f";
 (function(){
   function base(){
     var m = location.pathname.match(/^(.*)\/[^\/]*$/);
@@ -43,7 +43,6 @@ var BUILD_VER = "20261107b";
      若版本号与页面不一致但刷新后仍拿到同一个旧页面，就会无限 replace，
      必须限制次数，宁可停在旧页面也不能把页面跳死。 */
   var JUMPED = false;
-  try{ if(sessionStorage.getItem("__autoup") === BUILD_VER) JUMPED = true; }catch(e){}
   function go(){
     if(JUMPED) return;
     var u = base() + "/version.json?_t=" + Date.now();
@@ -52,8 +51,12 @@ var BUILD_VER = "20261107b";
       .then(function(j){
         if(!j || !j.ver) return;
         if(j.ver !== BUILD_VER){
+          if(JUMPED) return;
+          /* 旧版把 __autoup 存成当前页面版本，页面被缓存后判定永远相等 → 自升级死锁。
+             改为对比目标版本，版本号一变就允许再跳一次。 */
+          try{ if(sessionStorage.getItem("__autoup") === j.ver){ JUMPED = true; return; } }catch(e){}
           JUMPED = true;
-          try{ sessionStorage.setItem("__autoup", BUILD_VER); }catch(e){}
+          try{ sessionStorage.setItem("__autoup", j.ver); }catch(e){}
           var cur = location.href.split("#")[0].split("?")[0];
           location.replace(cur + "?_v=" + j.ver + "&_t=" + Date.now());
         }
@@ -1303,28 +1306,25 @@ var DATA_BASE = "./data/";
 var CK_WF = "mobile-build.yml";
 var REAL_OK = false;
 function __j(u){
-  // 2026-10-19 分级缓存（此前一刀切加时间戳，导致每次切省份都重下 2~5MB，页面卡顿）
-  //   小文件（latest/announce/version，几十 KB 内）→ _t=时间戳 + no-store，保证实时
-  //   大文件（省份快照、历史分片，1~5MB）        → _d=按天版本号 + 允许浏览器缓存，
-  //     当天内复用缓存（秒开），跨天自动取新，不再每次重下几 MB
-  var small = /latest\.json|announce\.json|version\.json/.test(u);
+  /* 2026-11-07 修复：WebView(尤其 X5 内核) 会忽略按天参数、直接按路径缓存大 JSON，
+     导致「变化历史」连续多天停在旧快照（11-03）。改为所有数据请求带唯一时间戳 + no-store。
+     切换省份的性能由 __loadSec 的内存缓存兜住，不会重复下载几 MB。 */
+  var V = (typeof BUILD_VER !== "undefined") ? BUILD_VER : "v1";
   var sep = (u.indexOf("?") >= 0) ? "&" : "?";
-  var q, opt;
-  if(small){
-    q = "_t=" + Date.now();
-    opt = {cache:"no-store"};
-  }else{
-    var d = new Date();
-    q = "_d=" + d.getFullYear() + (d.getMonth() + 1) + d.getDate();
-    opt = {};
-  }
-  return fetch(u + sep + q, opt).then(function(r){
+  var q = "_v=" + V + "&_t=" + Date.now();
+  return fetch(u + sep + q, {cache:"no-store"}).then(function(r){
     if(!r.ok){ throw new Error(u + " HTTP " + r.status); }
     return r.json();
   });
 }
+var __secCache = {};
 function __loadSec(sec){
-  return __j(DATA_BASE + sec + ".json").then(function(j){ return (j && j.items) ? j.items : []; });
+  if(__secCache[sec]) return Promise.resolve(__secCache[sec]);
+  return __j(DATA_BASE + sec + ".json").then(function(j){
+    var items = (j && j.items) ? j.items : [];
+    __secCache[sec] = items;
+    return items;
+  });
 }
 function __tag(arr){
   if(!arr){ return; }
