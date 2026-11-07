@@ -1,0 +1,31 @@
+== TIME ==
+Sat Nov  7 02:32:52 UTC 2026
+== FORCE DEPLOY ==
+success True id da147886
+== WAIT 110s ==
+== DEPLOY STATE ==
+6ff5682c 2026-11-07T02:32:54.545815Z ['initialize:idle', 'clone_repo:idle', 'build:idle', 'deploy:idle']
+da147886 2026-11-07T02:32:53.271036Z ['initialize:success', 'clone_repo:success', 'build:success', 'deploy:success']
+01cb7f37 2026-11-07T02:32:37.301747Z ['initialize:idle', 'clone_repo:idle', 'build:idle', 'deploy:idle']
+f3eb8e53 2026-11-07T02:32:11.420257Z ['initialize:idle', 'clone_repo:idle', 'build:idle', 'deploy:idle']
+5ed6059e 2026-11-07T02:27:15.703635Z ['initialize:idle', 'clone_repo:idle', 'build:idle', 'deploy:idle']
+== 裸地址 https://hnvip.pages.dev/ （不带任何参数）==
+-- response headers --
+HTTP/2 200 
+cache-control: no-store, no-cache, must-revalidate, max-age=0
+expires: 0
+pragma: no-cache
+clear-site-data: "cache"
+-- body checks --
+bytes 194509
+BUILD_VER_g True
+has_docswap True
+has_seccache True
+old_daily_key False
+popup_text True
+new_link False
+== version / latest / history ==
+{"ver":"20261107g","ts":"2026-11-07 10:25:00","note":"修复 WebView 忽略 query 导致变化历史停在旧快照"}
+latest.updated 2026-11-07 01:41:53 hunan 1551
+history.count 60 last 2026-11-07 04:22:31
+== WRITE ==
