@@ -1,0 +1,17 @@
+== TIME ==
+Sat Nov  7 02:21:12 UTC 2026
+== version.json ==
+{"ver":"20261107c","ts":"2026-11-07 10:05:00","note":"修复缓存：JSON no-cache + 数据请求带版本号"}
+== index.html ==
+bytes 194154
+BUILD_VER_f False
+has___secCache False
+old_daily_key_active True
+no_store_all True
+== fresh.html ==
+HTTP=200
+== history ==
+count 60 last 2026-11-07 04:22:31
+== latest ==
+updated 2026-11-07 01:41:53 hunan 1551
+== WRITE ==
