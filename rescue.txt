@@ -14,23 +14,21 @@
 === [2] trigger fresh build from main ===
 {
   "result": {
-    "id": "d3922099-753f-4725-bd37-7e67d8f1df9f",
-    "short_id": "d3922099",
+    "id": "fc66fe90-5300-4491-93c6-16e80749dc63",
+    "short_id": "fc66fe90",
     "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
     "project_name": "hnvip",
     "environment": "production",
-    "url": "https://d3922099.hnvip.pages.dev",
-    "created_on": "2026-11-02T06:40:37.671879Z",
-    "modified_on": "2026-11-02T06:40:37.
-deploy_id=d3922099-753f-4725-bd37-7e67d8f1df9f
+    "url": "https://fc66fe90.hnvip.pages.dev",
+    "created_on": "2026-11-07T01:25:54.426158Z",
+    "modified_on": "2026-11-07T01:25:54.
+deploy_id=fc66fe90-5300-4491-93c6-16e80749dc63
 === [3] poll ===
 poll 1 -> active
-poll 2 -> active
-poll 3 -> success
+poll 2 -> failure
 === [4] verify ===
 code -> 200
 === [5] check new popup content ===
-2yA8A0WzCYZr3
 云盘签到已做成本地部署
 === [6] fallback if still broken ===
 === [7] save log ===
