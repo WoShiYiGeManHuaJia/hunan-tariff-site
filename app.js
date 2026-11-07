@@ -137,7 +137,10 @@ const FETCH_TIMEOUT = 20000; // 20s 超时，避免弱网下无限“加载中�
 function fetchTimeout(url, init) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
-  return fetch(url, Object.assign({}, init || {}, { signal: ctrl.signal }))
+  const V = (typeof BUILD_VER !== "undefined") ? BUILD_VER : "v1";
+  const U = (typeof DATA !== "undefined" && url.indexOf(DATA) === 0)
+    ? url + (url.indexOf("?") >= 0 ? "&" : "?") + "_v=" + V : url;
+  return fetch(U, Object.assign({}, init || {}, { signal: ctrl.signal }))
     .catch((e) => {
       if (e && e.name === "AbortError") throw new Error("加载超时，请检查网络后重试");
       throw e;
