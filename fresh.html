@@ -1,0 +1,19 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>正在刷新…</title></head><body style="font:16px/1.6 system-ui;padding:24px;color:#333">
+正在清理缓存并跳转…
+<script>
+(function(){
+  try{
+    if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+      navigator.serviceWorker.getRegistrations().then(function(rs){(rs||[]).forEach(function(r){try{r.unregister();}catch(e){}});});
+    }
+    if(window.caches && caches.keys){
+      caches.keys().then(function(ks){(ks||[]).forEach(function(k){try{caches.delete(k);}catch(e){}});});
+    }
+    try{ sessionStorage.removeItem("__autoup"); sessionStorage.removeItem("__swk"); }catch(e){}
+  }catch(e){}
+  var t = Date.now();
+  setTimeout(function(){ location.replace("/?_v=20261107g&_t=" + t); }, 350);
+})();
+</script></body></html>
