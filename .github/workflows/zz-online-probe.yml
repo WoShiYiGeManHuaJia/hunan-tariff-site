@@ -1,0 +1,51 @@
+name: zz-online-probe
+on:
+  workflow_dispatch:
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - name: probe
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          O=/tmp/probe.txt; : > $O
+          echo "== TIME ==" >> $O; date -u >> $O
+          echo "== CF DEPLOYMENTS ==" >> $O
+          ACC=9156c2cae565fdf42d208827b523e47e
+          curl -sS -m 25 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip/deployments?per_page=6" > /tmp/dep.json
+          python3 -c "
+import json
+d=json.load(open('/tmp/dep.json'))
+if not d.get('success'): print('ERR', json.dumps(d.get('errors'),ensure_ascii=False)[:400])
+for x in d.get('result',[])[:6]:
+    print(x.get('created_on'),'|',x.get('short_id'),'|',x.get('url'),'|',json.dumps(x.get('latest_stage'),ensure_ascii=False)[:220])
+" >> $O 2>&1
+          echo "== ONLINE latest.json ==" >> $O
+          curl -sS -m 30 "https://hnvip.pages.dev/data/latest.json?_t=$(date +%s)" -o /tmp/ol.json
+          python3 -c "
+import json
+try:
+    d=json.load(open('/tmp/ol.json')); print('updated=',d.get('updated'),'quanguo_total=',d.get('quanguo_total'),'hunan_total=',d.get('hunan_total'))
+except Exception as e: print('parse fail',e,open('/tmp/ol.json').read()[:250])
+" >> $O 2>&1
+          echo "== ONLINE version.json ==" >> $O
+          curl -sS -m 30 "https://hnvip.pages.dev/version.json?_t=$(date +%s)" >> $O 2>&1
+          echo >> $O
+          echo "== ONLINE history ==" >> $O
+          curl -sS -m 45 "https://hnvip.pages.dev/data/history.json?_t=$(date +%s)" -o /tmp/oh.json
+          python3 -c "
+import json
+try:
+    h=json.load(open('/tmp/oh.json')); print('count=',len(h),'first=',h[0].get('ts'),'last=',h[-1].get('ts'))
+except Exception as e: print('parse fail',e,open('/tmp/oh.json').read()[:250])
+" >> $O 2>&1
+          cat $O
+          B64=$(base64 -w0 $O)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/zz-online-probe.txt" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))")
+          if [ -n "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"probe\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-online-probe.txt" >/dev/null
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"probe\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-online-probe.txt" >/dev/null
+          fi
