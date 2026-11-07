@@ -1,0 +1,23 @@
+== TIME ==
+Sat Nov  7 02:37:50 UTC 2026
+deploy True 7e675b7e
+== WAIT 100s ==
+== 裸地址 https://hnvip.pages.dev/ ==
+HTTP/2 200 
+cache-control: no-store, no-cache, must-revalidate, max-age=0
+expires: 0
+pragma: no-cache
+clear-site-data: "cache"
+bytes 194557
+BUILD_VER_g True
+has_docswap True
+popup_text True
+new_139_link True
+old_lanzou False
+extract_hint True
+old_daily_key False
+== version / data ==
+{"ver":"20261107g","ts":"2026-11-07 10:25:00","note":"修复 WebView 忽略 query 导致变化历史停在旧快照"}
+latest.updated 2026-11-07 01:41:53
+history.last 2026-11-07 04:22:31
+== WRITE ==
