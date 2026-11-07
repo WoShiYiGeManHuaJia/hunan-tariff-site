@@ -1,13 +1,17 @@
 == TIME ==
-Sat Nov  7 02:04:59 UTC 2026
+Sat Nov  7 02:08:00 UTC 2026
 == PROJECT CONFIG ==
 success True
 production_branch main
 source {"type": "github", "config": {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "hunan-tariff-site", "repo_id": "1438392194", "production_branch": "main", "pr_comments_enabled": false, "deployments_enabled": true, "production_deployments_enabled": true, "preview_deployment_setting
 build_config {"build_command": "", "destination_dir": "", "root_dir": "", "web_analytics_tag": null, "web_analytics_token": null}
-latest {"id": "db0ec936-6efe-47f9-8b4a-9945da7b0801", "short_id": "db0ec936", "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4", "project_name": "hnvip", "environment": "production", "url": "https://db0ec936.hnvip.pages.dev", "created_on": "2026-11-07T02:04:51.259345Z", "modified_on": "2026-11-07T02:04:51.259345Z", "latest_stage": {"name": "queued", "started_on": null, "ended_on": null, "status": "idl
+latest {"id": "63ea575f-4295-4cd6-8ec2-4783508a7bd3", "short_id": "63ea575f", "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4", "project_name": "hnvip", "environment": "production", "url": "https://63ea575f.hnvip.pages.dev", "created_on": "2026-11-07T02:07:51.827632Z", "modified_on": "2026-11-07T02:07:53.593237Z", "latest_stage": {"name": "clone_repo", "started_on": "2026-11-07T02:07:53.593237Z", "en
 == DEPLOYMENTS (20) ==
 success True
+2026-11-07T02:07:51.827632Z 63ea575f {"name": "clone_repo", "started_on": "2026-11-07T02:07:53.593237Z", "ended_on": null, "status": "active"}
+2026-11-07T02:06:17.807272Z df511922 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:05:08.95637Z 600d376a {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+2026-11-07T02:05:00.122451Z f5f03a63 {"name": "deploy", "started_on": "2026-11-07T02:05:22.705091Z", "ended_on": "2026-11-07T02:05:35.208263Z", "status": "success"}
 2026-11-07T02:04:51.259345Z db0ec936 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
 2026-11-07T02:04:15.527028Z c21ddede {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
 2026-11-07T02:04:10.936552Z c50b21b4 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
@@ -24,13 +28,9 @@ success True
 2026-11-07T01:47:21.506225Z 103169d5 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
 2026-11-07T01:42:23.217998Z fe0670ce {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
 2026-11-07T01:34:29.364672Z f3490434 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T01:34:04.134979Z 323991d9 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T01:34:02.468852Z ec9d081d {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T01:33:25.882306Z ce61c383 {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
-2026-11-07T01:33:21.056584Z a7f9d27b {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
 == TRIGGER DEPLOY ==
 success True
-id f5f03a63-96f5-44ea-b182-04aec68b32a2 short f5f03a63 stage {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
+id aca72021-2925-4416-b393-a33916adc46c short aca72021 stage {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}
 errors []
 == WAIT 75s ==
 == ONLINE version ==
