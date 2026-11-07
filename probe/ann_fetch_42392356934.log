@@ -1,0 +1,67 @@
+[移动] 拉取公告列表 ...
+    [重试 1/5] <urlopen error [Errno 101] Network is unreachable>
+    [重试 2/5] <urlopen error [Errno 101] Network is unreachable>
+    [重试 3/5] <urlopen error [Errno 101] Network is unreachable>
+    [重试 4/5] <urlopen error [Errno 101] Network is unreachable>
+    [重试 5/5] <urlopen error [Errno 101] Network is unreachable>
+Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/urllib/request.py", line 1361, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/http/client.py", line 1351, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/http/client.py", line 1397, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/http/client.py", line 1346, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/http/client.py", line 1106, in _send_output
+    self.send(msg)
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/http/client.py", line 1044, in send
+    self.connect()
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/http/client.py", line 1516, in connect
+    super().connect()
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/http/client.py", line 1010, in connect
+    self.sock = self._create_connection(
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/socket.py", line 863, in create_connection
+    raise exceptions[0]
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/socket.py", line 848, in create_connection
+    sock.connect(sa)
+OSError: [Errno 101] Network is unreachable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/pipelines/scripts/announce_fetch.py", line 315, in <module>
+    main()
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/pipelines/scripts/announce_fetch.py", line 307, in main
+    write_json(fetch_move(), os.path.join(move_dir, "announce.json"))
+               ^^^^^^^^^^^^
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/pipelines/scripts/announce_fetch.py", line 201, in fetch_move
+    raw = _http_get(MOVE_LIST_URL)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/pipelines/scripts/announce_fetch.py", line 77, in _http_get
+    raise last
+  File "/home/runner/work/hunan-tariff-site/hunan-tariff-site/pipelines/scripts/announce_fetch.py", line 72, in _http_get
+    return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "ignore")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/urllib/request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/urllib/request.py", line 519, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/urllib/request.py", line 536, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/urllib/request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/urllib/request.py", line 1404, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/urllib/request.py", line 1364, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>
+[抓取时刻] 2026-11-07T16:42:10Z
+[文件状态] -rw-r--r-- 1 runner runner 77652 Nov  7 16:39 data/announce.json
+[git 状态] ?? probe/ann_fetch.log
