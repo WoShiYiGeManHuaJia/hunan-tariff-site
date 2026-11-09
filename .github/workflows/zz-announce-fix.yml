@@ -1,0 +1,45 @@
+name: zz-announce-fix
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: deploy and verify
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          ACC=9156c2cae565fdf42d208827b523e47e
+          API="https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip"
+          H="Authorization: Bearer $CF"
+          echo "TIME $(date -u '+%F %T UTC')"
+          echo "== 触发 main 干净部署 =="
+          curl -sS -m 30 -X POST -H "$H" -H "Content-Type: application/json" -d '{"branch":"main"}' "$API/deployments" -o /tmp/nd.json -w "new_http=%{http_code}\n"
+          ID=$(python3 -c 'import json;d=json.load(open("/tmp/nd.json"));print((d.get("result") or {}).get("id",""))')
+          echo "id=$ID"
+          if [ -z "$ID" ]; then head -c 400 /tmp/nd.json; echo; exit 1; fi
+          echo "== 等待构建完成 =="
+          S=""
+          for i in $(seq 1 34); do
+            sleep 15
+            curl -sS -m 30 -H "$H" "$API/deployments/$ID" -o /tmp/one.json
+            S=$(python3 -c 'import json;d=json.load(open("/tmp/one.json"));r=d.get("result") or {};print(((r.get("latest_stage") or {}).get("status") or ""))')
+            N=$(python3 -c 'import json;d=json.load(open("/tmp/one.json"));r=d.get("result") or {};print(((r.get("latest_stage") or {}).get("name") or ""))')
+            echo "  [$i] stage=$N status=$S"
+            if [ "$S" = "success" ] || [ "$S" = "failure" ] || [ "$S" = "canceled" ]; then break; fi
+          done
+          echo "final=$S"
+          echo "== 验证裸地址 HTML =="
+          curl -sS -m 30 "https://hnvip.pages.dev/?_v=$(date +%s)" -o /tmp/home.html -w "home_code=%{http_code} size=%{size_download}\n"
+          grep -o 'id="snMask"' /tmp/home.html || echo "MISS snMask"
+          grep -o '知道了' /tmp/home.html || echo "MISS 知道了"
+          grep -o 'wwasg.lanzouv.com/itzZm4eh5kde' /tmp/home.html || echo "MISS 云盘链接"
+          echo "== 验证线上公告数据 =="
+          curl -sS -m 30 "https://hnvip.pages.dev/data/announce.json?_v=$(date +%s)" -o /tmp/ann.json -w "ann_code=%{http_code}\n"
+          python3 -c 'import json;d=json.load(open("/tmp/ann.json"));print("updated",d.get("updated"),"count",d.get("count"),"first",(d.get("items") or [{}])[0].get("date"),(d.get("items") or [{}])[0].get("title","")[:24])' 2>&1 || head -c 200 /tmp/ann.json
+          echo "== 验证线上 notice.json =="
+          curl -sS -m 30 "https://hnvip.pages.dev/data/notice.json?_v=$(date +%s)" -o /tmp/nt.json -w "notice_code=%{http_code}\n"
+          head -c 300 /tmp/nt.json; echo
+          echo "== 最近部署 =="
+          curl -sS -m 30 -H "$H" "$API/deployments" -o /tmp/dep.json
+          python3 -c 'import json;d=json.load(open("/tmp/dep.json"));[print(" ",x.get("created_on"),x.get("short_id"),(x.get("latest_stage") or {}).get("name"),(x.get("latest_stage") or {}).get("status")) for x in (d.get("result") or [])[:6]]'
