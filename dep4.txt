@@ -2,14 +2,14 @@ files: 672
 HTTP 200
 {
   "result": {
-    "id": "31f46eed-d9c9-4940-8ef0-092629bd14ad",
-    "short_id": "31f46eed",
+    "id": "227deea4-48d3-4b47-a7d9-6c8b575c1f57",
+    "short_id": "227deea4",
     "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
     "project_name": "hnvip",
     "environment": "production",
-    "url": "https://31f46eed.hnvip.pages.dev",
-    "created_on": "2026-11-09T10:41:32.831746Z",
-    "modified_on": "2026-11-09T10:41:32.831746Z",
+    "url": "https://227deea4.hnvip.pages.dev",
+    "created_on": "2026-11-09T11:22:48.566574Z",
+    "modified_on": "2026-11-09T11:22:48.566574Z",
     "latest_stage": {
       "name": "queued",
       "started_on": null,
@@ -31,3 +31,41 @@ HTTP 200
         "started_on": null,
         "ended_on": null,
         "s
+DEP_ID 227deea4-48d3-4b47-a7d9-6c8b575c1f57
+RETRY ERR: name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
+poll ERR name 'CF' is not defined
