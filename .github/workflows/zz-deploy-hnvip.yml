@@ -76,7 +76,7 @@ jobs:
                   q=urllib.request.Request(
                       f'https://api.cloudflare.com/client/v4/accounts/{acc}/pages/projects/hnvip/deployments/{dep_id}/retry',
                       data=b'', method='POST')
-                  q.add_header('Authorization','Bearer '+CF)
+                  q.add_header('Authorization','Bearer '+os.environ['CF'])
                   qr=urllib.request.urlopen(q, timeout=120)
                   print('RETRY HTTP', qr.status)
               except Exception as e:
@@ -89,7 +89,7 @@ jobs:
                       q=urllib.request.Request(
                           f'https://api.cloudflare.com/client/v4/accounts/{acc}/pages/projects/hnvip/deployments/{dep_id}',
                           method='GET')
-                      q.add_header('Authorization','Bearer '+CF)
+                      q.add_header('Authorization','Bearer '+os.environ['CF'])
                       st=json.loads(urllib.request.urlopen(q, timeout=60).read())['result']['latest_stage']['status']
                       print('stage['+str(i)+']', st)
                       if st in ('success','failure','cancelled'):
