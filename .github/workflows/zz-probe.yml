@@ -1,0 +1,41 @@
+name: zz-probe
+on:
+  workflow_dispatch:
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 公网探测
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          exec > >(tee /tmp/o.txt) 2>&1
+          echo "TIME $(date -u '+%F %T UTC')"
+          echo "== 裸地址 =="
+          for U in "https://hnvip.pages.dev/" "https://hnvip.pages.dev/?_t=$(date +%s)" "https://hnvip.pages.dev/index.html" "https://hnvip.pages.dev/manage" "https://hnvip.pages.dev/version.json"; do
+            echo "--- $U"
+            curl -sS -m 30 -D /tmp/h.txt "$U" -o /tmp/b.html -w "code=%{http_code} size=%{size_download}\n" || echo "curl-fail"
+            grep -iE "^(HTTP/|location|content-type|cache-control|cf-|server)" /tmp/h.txt | head -12
+            head -c 260 /tmp/b.html; echo
+          done
+          echo "== 备用 pages.dev =="
+          curl -sS -m 30 -o /tmp/alt.html -w "hunan-tariff-site.pages.dev code=%{http_code} size=%{size_download}\n" "https://hunan-tariff-site.pages.dev/" || true
+          echo "== Cloudflare API =="
+          ACC=9156c2cae565fdf42d208827b523e47e
+          API="https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip"
+          curl -sS -m 30 -H "Authorization: Bearer $CF" "https://api.cloudflare.com/client/v4/user/tokens/verify" -w " verify_http=%{http_code}\n" | head -c 400; echo
+          curl -sS -m 30 -H "Authorization: Bearer $CF" "$API" -o /tmp/proj.json -w " project_http=%{http_code}\n"
+          python3 -c "import json;d=json.load(open('/tmp/proj.json'));r=d.get('result') or {};print('success',d.get('success'),'name',r.get('name'),'domains',r.get('domains'),'subdomain',r.get('subdomain'));print('latest',json.dumps(r.get('latest_deployment') or {},ensure_ascii=False)[:500]);print('errors',d.get('errors'))" 2>&1 || cat /tmp/proj.json
+          curl -sS -m 30 -H "Authorization: Bearer $CF" "$API/deployments" -o /tmp/dep.json -w " deployments_http=%{http_code}\n"
+          python3 -c "import json;d=json.load(open('/tmp/dep.json'));print('success',d.get('success'));[print(' ',x.get('created_on'),x.get('short_id'),(x.get('latest_stage') or {}).get('name'),(x.get('latest_stage') or {}).get('status'),(x.get('deployment_trigger') or {}).get('metadata',{}).get('commit_hash','')[:8]) for x in (d.get('result') or [])[:10]];print('errors',d.get('errors'))" 2>&1 || cat /tmp/dep.json
+          echo "== GitHub 仓库最近提交 =="
+          curl -sS -m 30 -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/commits?per_page=5" | python3 -c "import sys,json;[print(' ',x['sha'][:8],x['commit']['author']['date'],x['commit']['message'][:60]) for x in json.load(sys.stdin)]"
+          echo "== WRITE =="
+          B64=$(base64 -w0 /tmp/o.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/zz-probe.txt" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("sha",""))')
+          if [ -n "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"probe\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-probe.txt" -o /dev/null -w "write=%{http_code}\n"
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"probe\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-probe.txt" -o /dev/null -w "write=%{http_code}\n"
+          fi
