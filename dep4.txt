@@ -2,14 +2,14 @@ files: 672
 HTTP 200
 {
   "result": {
-    "id": "227deea4-48d3-4b47-a7d9-6c8b575c1f57",
-    "short_id": "227deea4",
+    "id": "94ffcb82-3d14-4aa5-8d43-1f6d2f20ac36",
+    "short_id": "94ffcb82",
     "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4",
     "project_name": "hnvip",
     "environment": "production",
-    "url": "https://227deea4.hnvip.pages.dev",
-    "created_on": "2026-11-09T11:22:48.566574Z",
-    "modified_on": "2026-11-09T11:22:48.566574Z",
+    "url": "https://94ffcb82.hnvip.pages.dev",
+    "created_on": "2026-11-09T11:31:54.810671Z",
+    "modified_on": "2026-11-09T11:31:54.810671Z",
     "latest_stage": {
       "name": "queued",
       "started_on": null,
@@ -31,41 +31,7 @@ HTTP 200
         "started_on": null,
         "ended_on": null,
         "s
-DEP_ID 227deea4-48d3-4b47-a7d9-6c8b575c1f57
-RETRY ERR: name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
-poll ERR name 'CF' is not defined
+DEP_ID 94ffcb82-3d14-4aa5-8d43-1f6d2f20ac36
+RETRY HTTP 200
+stage[0] success
+FINAL_STAGE success
