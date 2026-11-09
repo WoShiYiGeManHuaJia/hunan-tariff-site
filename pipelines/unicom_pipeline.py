@@ -10,7 +10,7 @@
 用法:
   python3 unicom_pipeline.py --prev-dir PATH --out-dir PATH [--scopes hunan,quanguo]
 """
-import json, time, os, sys, urllib.request, http.cookiejar, hashlib, argparse, math
+import json, time, os, sys, urllib.request, http.cookiejar, hashlib, argparse, math, gzip, zlib
 
 from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
                              modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key)
@@ -18,6 +18,7 @@ from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
 PROG_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_API = "https://m.client.10010.com/servicequerybusiness/queryTariffNew/"
 HDRS = {
+    "Accept-Encoding": "gzip, deflate",
     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 MicroMessenger/8.0.47",
     "Referer": "http://img.client.10010.com/zifeizhuanquwt/index.html",
     "Accept": "application/json, text/plain, */*",
@@ -49,11 +50,37 @@ FIRST_LEVELS = ["套餐", "加装包", "营销活动", "标准资费", "港澳�
 HIST_MAX_BYTES = int(os.getenv("UNICOM_HIST_MAX_BYTES") or str(3 * 1024 * 1024))
 
 
+def _maybe_gunzip(raw, enc):
+    """按 Content-Encoding 解压响应体。
+
+    运营商接口的资费 JSON 单次可达数百 KB，开 gzip 后实测降到约 1/7，
+    对联通这种单板块要跑上百轮采样的管线，流量与耗时都显著下降。
+    """
+    enc = (enc or "").lower()
+    if enc == "gzip" or raw[:2] == b"\x1f\x8b":
+        try:
+            return gzip.decompress(raw)
+        except Exception:
+            return raw
+    if enc == "deflate":
+        try:
+            return zlib.decompress(raw)
+        except Exception:
+            try:
+                return zlib.decompress(raw, -zlib.MAX_WBITS)
+            except Exception:
+                return raw
+    return raw
+
+
 def _get(path, q=""):
     url = BASE_API + path + ("?" + q if q else "")
     req = urllib.request.Request(url, headers=HDRS)
     with _op.open(req, timeout=30) as r:
-        return json.loads(r.read().decode("utf-8"))
+        raw = r.read()
+        enc = (r.headers.get("Content-Encoding") or "")
+    raw = _maybe_gunzip(raw, enc)
+    return json.loads(raw.decode("utf-8"))
 
 
 def api(path, q="", retries=5):
@@ -125,8 +152,13 @@ def fetch_pool(province_id, city_id, attr, pages=20, passes=12, min_rounds=60, e
             lst = (d.get("data") or {}).get("tariffList") or []
             before = len(seen)
             for x in lst:
-                seen[x["id"]] = {
-                    "id": x["id"], "title": x.get("title", ""), "fee": x.get("fee", ""),
+                _k = x.get("id")
+                if _k in (None, ""):
+                    _k = "fp:" + "|".join([str(x.get("title") or ""),
+                                           str(x.get("firstLevel") or ""),
+                                           str(x.get("secondLevel") or "")])
+                seen[_k] = {
+                    "id": x.get("id") or _k, "title": x.get("title", ""), "fee": x.get("fee", ""),
                     "firstLevel": x.get("firstLevel", ""), "secondLevel": x.get("secondLevel", ""),
                 }
             added = len(seen) - before
