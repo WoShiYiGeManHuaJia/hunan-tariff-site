@@ -1,0 +1,89 @@
+name: zz-fix-site
+on:
+  workflow_dispatch:
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 诊断并修复
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          exec > >(tee /tmp/o.txt) 2>&1
+          ACC=9156c2cae565fdf42d208827b523e47e
+          API="https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip"
+          H="Authorization: Bearer $CF"
+          echo "TIME $(date -u '+%F %T UTC')"
+
+          echo "== 项目配置 =="
+          curl -sS -m 30 -H "$H" "$API" -o /tmp/proj.json
+          python3 -c "
+import json;d=json.load(open('/tmp/proj.json'));r=d.get('result',{})
+print('subdomain',r.get('subdomain'),'domains',r.get('domains'))
+print('production_branch',(r.get('source') or {}).get('config',{}).get('production_branch'))
+print('build_config',json.dumps(r.get('build_config') or {},ensure_ascii=False)[:600])
+print('deployment_configs',json.dumps(r.get('deployment_configs') or {},ensure_ascii=False)[:600])
+print('latest',json.dumps(r.get('latest_deployment') or {},ensure_ascii=False)[:400])
+"
+          echo "== 具体部署 URL 探测 =="
+          GOOD=""
+          for ID in 56a73d25 8a18f682 836d11e3 d95d8a6c 1c39a81c 6d185efc; do
+            printf "%s " "$ID"
+            C=$(curl -sS -m 30 -o /tmp/b.html -w "%{http_code}" "https://$ID.hnvip.pages.dev/")
+            echo "code=$C size=$(wc -c < /tmp/b.html)"
+            if [ "$C" = "200" ] && [ -z "$GOOD" ]; then GOOD="$ID"; fi
+          done
+          echo "GOOD=$GOOD"
+
+          echo "== 成功部署详情 =="
+          for ID in 56a73d25 8a18f682; do
+            echo "--- $ID"
+            curl -sS -m 30 -H "$H" "$API/deployments/$ID" -o /tmp/one.json
+            python3 -c "
+import json;d=json.load(open('/tmp/one.json'));r=d.get('result',{})
+print(' success',d.get('success'),'url',r.get('url'),'env',r.get('environment'))
+print(' stages',json.dumps(r.get('stages') or [],ensure_ascii=False)[:800])
+print(' trigger',json.dumps(r.get('deployment_trigger') or {},ensure_ascii=False)[:300])
+" 2>&1 | head -20
+          done
+
+          if [ -n "$GOOD" ]; then
+            echo "== 回滚到可用部署 $GOOD =="
+            FULL=$(curl -sS -m 30 -H "$H" "$API/deployments" | python3 -c "
+import sys,json;d=json.load(sys.stdin)
+for x in d.get('result',[]):
+    if (x.get('short_id') or '')[:8]=='$GOOD': print(x.get('id',''));break
+")
+            echo "full_id=$FULL"
+            if [ -n "$FULL" ]; then
+              curl -sS -m 30 -X POST -H "$H" -H "Content-Type: application/json" -d '{}' "$API/deployments/$FULL/rollback" -o /tmp/rb.json -w "rollback_http=%{http_code}\n"
+              head -c 500 /tmp/rb.json; echo
+            fi
+          else
+            echo "== 无可用部署，触发全新部署 =="
+            curl -sS -m 30 -X POST -H "$H" -H "Content-Type: application/json" -d '{"branch":"main"}' "$API/deployments" -o /tmp/nd.json -w "new_http=%{http_code}\n"
+            head -c 400 /tmp/nd.json; echo
+          fi
+
+          echo "== 等待后复测裸地址 =="
+          sleep 75
+          for U in "https://hnvip.pages.dev/" "https://hnvip.pages.dev/version.json" "https://hnvip.pages.dev/manage"; do
+            printf "%s " "$U"
+            curl -sS -m 30 -o /tmp/b2.html -w "code=%{http_code} size=%{size_download}\n" "$U"
+            head -c 120 /tmp/b2.html; echo
+          done
+          echo "== 最新部署列表 =="
+          curl -sS -m 30 -H "$H" "$API/deployments" -o /tmp/d2.json
+          python3 -c "
+import json;d=json.load(open('/tmp/d2.json'))
+for x in d.get('result',[])[:6]: print(' ',x.get('created_on'),x.get('short_id'),(x.get('latest_stage') or {}).get('name'),(x.get('latest_stage') or {}).get('status'))
+"
+          echo "== WRITE =="
+          B64=$(base64 -w0 /tmp/o.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/zz-probe.txt" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("sha",""))')
+          if [ -n "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"probe\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-probe.txt" -o /dev/null -w "write=%{http_code}\n"
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"probe\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-probe.txt" -o /dev/null -w "write=%{http_code}\n"
+          fi
