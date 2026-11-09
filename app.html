@@ -3642,6 +3642,7 @@ document.addEventListener("click", function(e){
           D.items = __normItems(it);
           __tag(D.items);
           state.p.search = ""; state.p.own = ""; state.p.type = ""; state.p.page = 1;
+          __saveFilter("p");
           var _ps = document.getElementById("pSearch"); if(_ps){ _ps.value = ""; }
           var _po = document.querySelector('.pick[data-scope="p"][data-pick="own"]'); if(_po){ setPickText(_po, "全部归属", ""); }
           var _pt = document.querySelector('.pick[data-scope="p"][data-pick="type"]'); if(_pt){ setPickText(_pt, "全部类型", ""); }
@@ -3666,6 +3667,7 @@ document.addEventListener("click", function(e){
       openPicker({ title:isOwn ? "选择归属" : "选择类型", value:state[sc][kind], options:simpleOptions(opts), onPick:function(v){
         state[sc][kind] = (v === "全部归属" || v === "全部类型") ? "" : v;
         state[sc].page = 1;
+        __saveFilter(sc);
         setPickText(pk, v || (isOwn ? "全部归属" : "全部类型"), "");
         renderList(sc);
       }});
@@ -3694,6 +3696,7 @@ document.addEventListener("click", function(e){
     var dbtn = seg.parentNode.querySelector('[data-f="dir"]');
     if(dbtn){ dbtn.setAttribute("data-dir", state[scope].dir); dbtn.textContent = dirLabel(state[scope].sort, state[scope].dir); }
     state[scope].page = 1;
+    __saveFilter(scope);
     renderList(scope);
     return;
   }
@@ -3705,6 +3708,7 @@ document.addEventListener("click", function(e){
     el.setAttribute("data-dir", state[sc2].dir);
     el.textContent = dirLabel(state[sc2].sort, state[sc2].dir);
     state[sc2].page = 1;
+    __saveFilter(sc2);
     renderList(sc2);
     return;
   }
@@ -3713,6 +3717,7 @@ document.addEventListener("click", function(e){
   if(cf === "clearf"){
     var sc3 = el.getAttribute("data-scope") || "p";
     state[sc3].search = ""; state[sc3].own = ""; state[sc3].type = ""; state[sc3].page = 1;
+    __saveFilter(sc3);
     var tb = document.querySelector('#' + (sc3 === "q" ? "v-quanguo" : "v-prov") + ' .tool');
     if(tb){
       var inp = tb.querySelector('input[data-f="search"]');
@@ -3761,6 +3766,7 @@ document.addEventListener("input", function(e){
     state[sc].search = t.value;
     state[sc].page = 1;
     if(t.__db){ clearTimeout(t.__db); }
+    __saveFilter(sc);
     t.__db = setTimeout(function(){ renderList(sc); }, 120);
   }
 });
@@ -3775,6 +3781,7 @@ document.getElementById("tabs").addEventListener("scroll", function(){ updateEdg
 
 /* ---------- 启动 ---------- */
 function boot(){
+  __restoreFilter();
   D.items.forEach(function(x,n){ x.__i = n; });
   if(D.qitems){ D.qitems.forEach(function(x,n){ x.__i = n; }); }
   document.getElementById("updTxt").textContent = "更新于 " + (D.updated || "—");
@@ -3805,6 +3812,29 @@ function boot(){
 
 /* ---------- 公告未读红点 ---------- */
 function annItems(){ return (D.announce && D.announce.items) ? D.announce.items : []; }
+/* 筛选/搜索/排序状态：localStorage 记住，刷新后保持 */
+function __saveFilter(scope){
+  var sp = scope === "q" ? "q" : "p", s = state[sp] || {};
+  __ls("st_" + sp, JSON.stringify({
+    search: s.search || "", own: s.own || "", type: s.type || "",
+    sort: s.sort || "time", dir: s.dir || "desc"
+  }));
+}
+function __restoreFilter(){
+  try{
+    ["q","p"].forEach(function(sp){
+      var j = __ls("st_" + sp); if(!j){ return; }
+      var o = JSON.parse(j) || {};
+      if(state[sp]){
+        state[sp].search = o.search || "";
+        state[sp].own = o.own || "";
+        state[sp].type = o.type || "";
+        state[sp].sort = o.sort || "time";
+        state[sp].dir = o.dir || "desc";
+      }
+    });
+  }catch(e){}
+}
 function __ls(k, v){
   try{
     if(v === undefined){ return localStorage.getItem(k); }
