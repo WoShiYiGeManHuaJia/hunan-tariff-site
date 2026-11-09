@@ -1571,14 +1571,14 @@ function filtered(scope){
       if(pa === null && pb === null){ r = 0; }
       else if(pa === null){ r = 1; }
       else if(pb === null){ r = -1; }
-      else { r = pa - pb; }
+      else { r = (pa - pb) * dir; }
     } else if(s.sort === "zero"){
       r = (priceOf(a) === 0 ? 0 : 1) - (priceOf(b) === 0 ? 0 : 1);
-      if(r === 0){ r = dateKey(b) > dateKey(a) ? -1 : 1; }
+      if(r === 0){ r = (dateKey(b) > dateKey(a) ? -1 : 1) * dir; }
     } else {
-      r = dateKey(b) > dateKey(a) ? -1 : (dateKey(b) < dateKey(a) ? 1 : 0);
+      r = (dateKey(b) > dateKey(a) ? -1 : (dateKey(b) < dateKey(a) ? 1 : 0)) * dir;
     }
-    return r * dir;
+    return r;
   });
   return arr;
 }
@@ -3775,6 +3775,7 @@ document.getElementById("tabs").addEventListener("scroll", function(){ updateEdg
 /* ---------- 启动 ---------- */
 function boot(){
   D.items.forEach(function(x,n){ x.__i = n; });
+  if(D.qitems){ D.qitems.forEach(function(x,n){ x.__i = n; }); }
   document.getElementById("updTxt").textContent = "更新于 " + (D.updated || "—");
   updNavChg();
   (function(){
