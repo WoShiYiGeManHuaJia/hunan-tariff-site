@@ -1697,16 +1697,16 @@ function filtered(scope){
     if(s.sort === "price"){
       var pa = priceOf(a), pb = priceOf(b);
       if(pa === null && pb === null){ r = 0; }
-      else if(pa === null){ r = 1; }
+      else if(pa === null){ r = 1; }         /* 无价格恒排最后，不随升降序翻转 */
       else if(pb === null){ r = -1; }
-      else { r = pa - pb; }
+      else { r = (pa - pb) * dir; }
     } else if(s.sort === "zero"){
       r = (priceOf(a) === 0 ? 0 : 1) - (priceOf(b) === 0 ? 0 : 1);
-      if(r === 0){ r = dateKey(b) > dateKey(a) ? -1 : 1; }
+      if(r === 0){ r = (dateKey(b) > dateKey(a) ? -1 : 1) * dir; }  /* 0元组内时间跟随升降序 */
     } else {
-      r = dateKey(b) > dateKey(a) ? -1 : (dateKey(b) < dateKey(a) ? 1 : 0);
+      r = (dateKey(b) > dateKey(a) ? -1 : (dateKey(b) < dateKey(a) ? 1 : 0)) * dir;
     }
-    return r * dir;
+    return r;
   });
   return arr;
 }
@@ -3821,8 +3821,13 @@ document.addEventListener("click", function(e){
     else if(pg === "last"){ state[ps].page = 2147483647; }
     else { state[ps].page = parseInt(pg, 10); }
     renderList(ps);
-    var top = pbox.getBoundingClientRect().top + window.scrollY - 140;
-    window.scrollTo({ top:top, behavior:"smooth" });
+    /* 翻页后滚到【列表顶部】，而不是分页条位置。
+       旧写法以 pbox（分页条）为基准：用户在列表底部点页码时，
+       页面只会向上挪 140px，列表内容仍在下方，还得手动往上滑。
+       改用列表容器(qList/pList)作基准，翻页后直接回到该页第一条。 */
+    var __lst = document.getElementById(ps === "q" ? "qList" : "pList") || pbox;
+    var top = __lst.getBoundingClientRect().top + window.scrollY - 140;
+    window.scrollTo({ top: (top < 0 ? 0 : top), behavior:"smooth" });
     return;
   }
 });
@@ -3851,6 +3856,7 @@ document.getElementById("tabs").addEventListener("scroll", function(){ updateEdg
 /* ---------- 启动 ---------- */
 function boot(){
   D.items.forEach(function(x,n){ x.__i = n; });
+  if(D.qitems){ D.qitems.forEach(function(x,n){ x.__i = n; }); }
   document.getElementById("updTxt").textContent = "更新于 " + (D.updated || "—");
   updNavChg();
   (function(){
