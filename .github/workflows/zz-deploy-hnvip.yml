@@ -67,7 +67,36 @@ jobs:
           try:
               r=urllib.request.urlopen(req, timeout=600)
               print('HTTP', r.status)
-              print(r.read().decode()[:800])
+              body = r.read().decode()
+              print(body[:800])
+              dep_id = json.loads(body)['result']['id']
+              print('DEP_ID', dep_id)
+              # 激活：直传创建的 deployment 卡在 queued，必须调 retry 才生效
+              try:
+                  q=urllib.request.Request(
+                      f'https://api.cloudflare.com/client/v4/accounts/{acc}/pages/projects/hnvip/deployments/{dep_id}/retry',
+                      data=b'', method='POST')
+                  q.add_header('Authorization','Bearer '+CF)
+                  qr=urllib.request.urlopen(q, timeout=120)
+                  print('RETRY HTTP', qr.status)
+              except Exception as e:
+                  print('RETRY ERR:', str(e)[:200])
+              # 轮询直到 success/failure
+              import time
+              for i in range(36):
+                  time.sleep(10)
+                  try:
+                      q=urllib.request.Request(
+                          f'https://api.cloudflare.com/client/v4/accounts/{acc}/pages/projects/hnvip/deployments/{dep_id}',
+                          method='GET')
+                      q.add_header('Authorization','Bearer '+CF)
+                      st=json.loads(urllib.request.urlopen(q, timeout=60).read())['result']['latest_stage']['status']
+                      print('stage['+str(i)+']', st)
+                      if st in ('success','failure','cancelled'):
+                          print('FINAL_STAGE', st)
+                          break
+                  except Exception as e:
+                      print('poll ERR', str(e)[:120])
           except Exception as e:
               print('ERR:', e)
               try: print(e.read().decode()[:600])
