@@ -981,17 +981,10 @@ a.opc{text-decoration:none;display:block}
   z-index:260;display:none;padding:10px 14px;border-radius:12px;background:#0b7a3f;color:#fff;
   font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer}
 #newTip.on{display:block}
-/* 一次性站点公告横幅（数据源 data/notice.json，独立于官网公告 announce.json） */
-#siteNotice{margin:10px 14px 0}
-#siteNotice .sn-banner{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:12px;
-  background:linear-gradient(120deg,#2F6BFF,#5B8DFF);color:#fff;font-size:13px;line-height:1.55;
-  box-shadow:0 4px 16px rgba(47,107,255,.18)}
-#siteNotice .sn-ic{font-size:16px;flex:0 0 auto;margin-top:1px}
-#siteNotice .sn-t{font-weight:700;flex:0 0 auto}
-#siteNotice .sn-x{opacity:.94;word-break:break-all}
-#siteNotice .sn-close{flex:0 0 auto;margin-left:auto;background:rgba(255,255,255,.22);border:none;color:#fff;
-  width:22px;height:22px;border-radius:50%;font-size:14px;line-height:1;cursor:pointer}
-#siteNotice .sn-close:hover{background:rgba(255,255,255,.38)}
+/* 一次性站点公告弹窗（数据源 data/notice.json，独立于官网公告 announce.json） */
+#snMask .modal{width:min(440px,100%)}
+#snBody{font-size:13.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+#snDate{margin-top:12px;color:var(--tx3);font-size:12px}
 </style>
 </head>
 <body>
@@ -999,7 +992,7 @@ a.opc{text-decoration:none;display:block}
 <div class="grain"></div>
 
 <div class="wrap">
-  <div id="siteNotice" style="display:none"></div>
+  <!-- 站点公告已改为一次性弹窗（见文末 snMask） -->
   <header class="nav glass">
     <div class="nav-in">
       <div class="brand">
@@ -1255,7 +1248,14 @@ a.opc{text-decoration:none;display:block}
   </div>
 </div>
 
-<!-- 站点一次性公告已移除（2026-11-02） -->
+<!-- 站点一次性公告弹窗：数据源 data/notice.json，按 date 只弹一次 -->
+<div class="mask" id="snMask">
+  <div class="modal">
+    <div class="mh"><h3 id="snTitle">📢 更新公告</h3><button class="mx" id="snX" type="button">×</button></div>
+    <div class="mb"><div id="snBody"></div><div id="snDate"></div></div>
+    <div class="mf"><button class="btn pri" id="snOk" type="button">知道了</button></div>
+  </div>
+</div>
 
 <!-- 云盘签到本地部署公告弹窗 -->
 <div class="mask" id="ynMask">
@@ -2099,24 +2099,30 @@ function histToggleAll(){
   if(tg2){ tg2.textContent = HIST_ALL ? "全部收起" : "全部展开"; }
 }
 function loadNotice(){
-  /* 一次性站点公告：读 data/notice.json，显示顶部横幅；可关闭（localStorage 记住）。
+  /* 一次性站点公告弹窗：读 data/notice.json，按 date 只弹一次；
+     点「知道了」/×/遮罩关闭后 localStorage 记住，之后不再自动弹。
      与官网公告(announce.json)完全独立，不会被抓取管线覆盖。 */
   __j(DATA_BASE + "notice.json").then(function(n){
     if(!n || !n.text){ return; }
     var k = "sn_hidden_" + (n.date || "");
     try{ if(localStorage.getItem(k)){ return; } }catch(e){}
-    var el = document.getElementById("siteNotice");
-    if(!el){ return; }
-    el.innerHTML = '<div class="sn-banner"><span class="sn-ic">\uD83D\uDCE2</span>' +
-      (n.title ? '<span class="sn-t">' + esc(n.title) + '</span>' : "") +
-      '<span class="sn-x">' + esc(n.text) + '</span>' +
-      '<button type="button" class="sn-close" aria-label="关闭">\u00D7</button></div>';
-    el.style.display = "block";
-    var btn = el.querySelector(".sn-close");
-    if(btn){ btn.addEventListener("click", function(){
+    var mask = document.getElementById("snMask");
+    if(!mask){ return; }
+    var t = document.getElementById("snTitle"),
+        b = document.getElementById("snBody"),
+        d = document.getElementById("snDate");
+    if(t){ t.textContent = "\uD83D\uDCE2 " + (n.title || "公告"); }
+    if(b){ b.textContent = n.text; }
+    if(d){ d.textContent = n.date ? ("发布于 " + n.date) : ""; }
+    function close(){
       try{ localStorage.setItem(k, "1"); }catch(e){}
-      el.style.display = "none";
-    }); }
+      mask.classList.remove("on");
+    }
+    var x = document.getElementById("snX"), ok = document.getElementById("snOk");
+    if(x){ x.onclick = close; }
+    if(ok){ ok.onclick = close; }
+    mask.addEventListener("click", function(ev){ if(ev.target === mask){ close(); } });
+    mask.classList.add("on");
   }).catch(function(){});
 }
 function renderAnnounce(){
@@ -3529,10 +3535,10 @@ function psClose(){
   var m = document.getElementById("psMask"); if(m){ m.classList.remove("on"); }
   ckResume();   // 关掉配置后，之前在后台跑的检测恢复
 }
-  /* 站点一次性公告逻辑已整体移除（2026-11-02） */
+  /* 站点一次性公告：2026-11-09 恢复为弹窗形式 */
 
 psLoad();
-/* 一次性公告已停用（2026-11-02）：不再自动弹出 */
+/* 一次性公告：由 boot() 中 loadNotice() 触发，按 date 只弹一次 */
 // 最新检测卡片：页面载入即渲染所选省份最近一次变化
 try{ ldProvInit(); ldRefresh(); }catch(e){}
 try{ ckProvInit(); }catch(e){}   // 载入即绑定省份按钮，不必等检测弹窗打开
