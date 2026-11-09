@@ -8,7 +8,9 @@ jobs:
       - name: deploy and verify
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
         run: |
+          exec > >(tee /tmp/o.txt) 2>&1
           ACC=9156c2cae565fdf42d208827b523e47e
           API="https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/hnvip"
           H="Authorization: Bearer $CF"
@@ -43,3 +45,12 @@ jobs:
           echo "== 最近部署 =="
           curl -sS -m 30 -H "$H" "$API/deployments" -o /tmp/dep.json
           python3 -c 'import json;d=json.load(open("/tmp/dep.json"));[print(" ",x.get("created_on"),x.get("short_id"),(x.get("latest_stage") or {}).get("name"),(x.get("latest_stage") or {}).get("status")) for x in (d.get("result") or [])[:6]]'
+
+          echo "== WRITE RESULT =="
+          B64=$(base64 -w0 /tmp/o.txt)
+          SHA=$(curl -sS -H "Authorization: token $PAT" "https://api.github.com/repos/${{ github.repository }}/contents/zz-announce-result.txt" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("sha",""))')
+          if [ -n "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"tmp result\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-announce-result.txt" -o /dev/null -w "write=%{http_code}\n"
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -H "Content-Type: application/json" -d "{\"message\":\"tmp result\",\"content\":\"$B64\"}" "https://api.github.com/repos/${{ github.repository }}/contents/zz-announce-result.txt" -o /dev/null -w "write=%{http_code}\n"
+          fi
