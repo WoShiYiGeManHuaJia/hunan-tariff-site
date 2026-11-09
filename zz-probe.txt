@@ -1,0 +1,62 @@
+TIME 2026-11-09 13:09:52 UTC
+== 裸地址 ==
+--- https://hnvip.pages.dev/
+code=500 size=0
+HTTP/2 500 
+server: cloudflare
+cf-ray: a57d0dec0f826a9f-LAX
+
+--- https://hnvip.pages.dev/?_t=1794229792
+code=500 size=0
+HTTP/2 500 
+server: cloudflare
+cf-ray: a57d0decac6a792b-LAX
+
+--- https://hnvip.pages.dev/index.html
+code=308 size=0
+HTTP/2 308 
+location: /
+server: cloudflare
+cf-ray: a57d0ded382ed4d9-LAX
+
+--- https://hnvip.pages.dev/manage
+code=500 size=0
+HTTP/2 500 
+server: cloudflare
+cf-ray: a57d0deda8602ab4-LAX
+
+--- https://hnvip.pages.dev/version.json
+code=500 size=0
+HTTP/2 500 
+server: cloudflare
+cf-ray: a57d0dee5d155121-LAX
+
+== 备用 pages.dev ==
+hunan-tariff-site.pages.dev code=200 size=12726
+== Cloudflare API ==
+{"result":{"id":"70328c64c39244503c9c72f3896b8692","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]} verify_http=200
+
+ project_http=200
+success True name hnvip domains ['hnvip.pages.dev'] subdomain hnvip.pages.dev
+latest {"id": "1c39a81c-d327-4f68-bffc-b41bf1594905", "short_id": "1c39a81c", "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4", "project_name": "hnvip", "environment": "production", "url": "https://1c39a81c.hnvip.pages.dev", "created_on": "2026-11-09T13:09:38.584081Z", "modified_on": "2026-11-09T13:09:38.584081Z", "latest_stage": {"name": "queued", "started_on": null, "ended_on": null, "status": "idle"}, "deployment_trigger": {"type": "github:push", "metadata": {"branch": "main", "commit_hash": "73
+errors []
+ deployments_http=200
+success True
+  2026-11-09T13:09:38.584081Z 1c39a81c queued idle 733793aa
+  2026-11-09T13:09:21.026672Z 6d185efc queued idle 9579b6c8
+  2026-11-09T12:37:00.38327Z 56a73d25 deploy success 
+  2026-11-09T12:30:06.264199Z 8a18f682 deploy success 
+  2026-11-09T12:12:10.215981Z 836d11e3 queued idle 4c93f108
+  2026-11-09T12:12:08.964935Z d95d8a6c queued idle 822c7978
+  2026-11-09T12:12:07.30398Z 83d590a5 queued idle 0f522de9
+  2026-11-09T11:32:08.392404Z b8f34755 queued idle 0e9129c4
+  2026-11-09T11:31:55.612808Z 6280122f initialize failure 
+  2026-11-09T11:31:54.810671Z 94ffcb82 deploy success 
+errors []
+== GitHub 仓库最近提交 ==
+  733793aa 2026-11-09T13:09:36Z sync: 重打源码包 tariff-fetch-source.zip
+  9579b6c8 2026-11-09T13:09:19Z probe
+  4c93f108 2026-11-09T12:12:08Z announce: 同步公告数据
+  822c7978 2026-11-09T12:12:07Z announce: 同步公告数据
+  0f522de9 2026-11-09T12:12:05Z ann log probe/ann_fetch_42614868830.log
+== WRITE ==
