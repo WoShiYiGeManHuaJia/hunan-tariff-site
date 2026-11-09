@@ -3821,8 +3821,13 @@ document.addEventListener("click", function(e){
     else if(pg === "last"){ state[ps].page = 2147483647; }
     else { state[ps].page = parseInt(pg, 10); }
     renderList(ps);
-    var top = pbox.getBoundingClientRect().top + window.scrollY - 140;
-    window.scrollTo({ top:top, behavior:"smooth" });
+    /* 翻页后滚到【列表顶部】，而不是分页条位置。
+       旧写法以 pbox（分页条）为基准：用户在列表底部点页码时，
+       页面只会向上挪 140px，列表内容仍在下方，还得手动往上滑。
+       改用列表容器(qList/pList)作基准，翻页后直接回到该页第一条。 */
+    var __lst = document.getElementById(ps === "q" ? "qList" : "pList") || pbox;
+    var top = __lst.getBoundingClientRect().top + window.scrollY - 140;
+    window.scrollTo({ top: (top < 0 ? 0 : top), behavior:"smooth" });
     return;
   }
 });
