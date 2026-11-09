@@ -7,6 +7,7 @@ name: Sync Source Zip
 # 因此本 workflow 自己提交 zip 不会再次触发，不会死循环。
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
