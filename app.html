@@ -1639,16 +1639,12 @@ function skeleton(n){
 }
 function pgSeq(page, pages, n){
   var out = [], i;
+  if(!n || n < 7){ n = 7; }
   if(pages <= n){ for(i = 1; i <= pages; i++){ out.push(i); } return out; }
-  if(n < 5){ n = 5; }
-  var target = n - 2, st = 2, en = pages - 1, dots;
-  for(dots = 2; dots >= 0; dots--){
-    var mid = target - dots; if(mid < 1){ mid = 1; }
-    st = page - Math.floor((mid - 1) / 2); en = st + mid - 1;
-    if(st < 2){ st = 2; en = st + mid - 1; }
-    if(en > pages - 1){ en = pages - 1; st = en - mid + 1; if(st < 2){ st = 2; } }
-    if((st > 2 ? 1 : 0) + (en < pages - 1 ? 1 : 0) === dots){ break; }
-  }
+  var mid = n - 4; if(mid < 1){ mid = 1; }
+  var st = page - Math.floor(mid / 2), en = st + mid - 1;
+  if(st < 2){ st = 2; en = st + mid - 1; }
+  if(en > pages - 1){ en = pages - 1; st = en - mid + 1; if(st < 2){ st = 2; } }
   out.push(1);
   if(st > 2){ out.push(0); }
   for(i = st; i <= en; i++){ out.push(i); }
@@ -1688,13 +1684,18 @@ function renderList(scope){
       box.innerHTML = slice.map(function(it,i){ return cardHTML(it,i); }).join("");
     }
     hint.textContent = "共 " + fmt(arr.length) + " 条 · 第 " + s.page + "/" + pages + " 页 · 左右滑动翻页";
-    if(pager.__pages !== pages || !pager.querySelector("[data-pg]")){
+    var __seq = pgSeq(s.page, pages, 7);
+    var __seqKey = __seq.join(",");
+    if(pager.__pages !== pages || pager.__seqKey !== __seqKey || !pager.querySelector("[data-pg]")){
       var btns = [];
-      for(var k = 1; k <= pages; k++){
-        btns.push('<button class="pg' + (k === s.page ? " on" : "") + '" data-pg="' + k + '">' + k + "</button>");
+      for(var qi = 0; qi < __seq.length; qi++){
+        var k = __seq[qi];
+        if(k === 0){ btns.push('<span class="pg dots">\u2026</span>'); }
+        else { btns.push('<button class="pg' + (k === s.page ? " on" : "") + '" data-pg="' + k + '">' + k + "</button>"); }
       }
       pager.innerHTML = btns.join("");
       pager.__pages = pages;
+      pager.__seqKey = __seqKey;
     } else {
       var __po = pager.querySelector(".pg.on"); if(__po){ __po.classList.remove("on"); }
       var __pc = pager.querySelector('[data-pg="'+s.page+'"]'); if(__pc){ __pc.classList.add("on"); }
