@@ -900,6 +900,17 @@ a.opc{text-decoration:none;display:block}
   z-index:260;display:none;padding:10px 14px;border-radius:12px;background:#0b7a3f;color:#fff;
   font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer}
 #newTip.on{display:block}
+/* 一次性站点公告横幅（数据源 data/notice.json，独立于官网公告 announce.json） */
+#siteNotice{margin:10px 14px 0}
+#siteNotice .sn-banner{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:12px;
+  background:linear-gradient(120deg,#2F6BFF,#5B8DFF);color:#fff;font-size:13px;line-height:1.55;
+  box-shadow:0 4px 16px rgba(47,107,255,.18)}
+#siteNotice .sn-ic{font-size:16px;flex:0 0 auto;margin-top:1px}
+#siteNotice .sn-t{font-weight:700;flex:0 0 auto}
+#siteNotice .sn-x{opacity:.94;word-break:break-all}
+#siteNotice .sn-close{flex:0 0 auto;margin-left:auto;background:rgba(255,255,255,.22);border:none;color:#fff;
+  width:22px;height:22px;border-radius:50%;font-size:14px;line-height:1;cursor:pointer}
+#siteNotice .sn-close:hover{background:rgba(255,255,255,.38)}
 </style>
 </head>
 <body>
@@ -907,6 +918,7 @@ a.opc{text-decoration:none;display:block}
 <div class="grain"></div>
 
 <div class="wrap">
+  <div id="siteNotice" style="display:none"></div>
   <header class="nav glass">
     <div class="nav-in">
       <div class="brand">
@@ -1954,6 +1966,25 @@ function histToggleAll(){
   }
   var tg2 = document.getElementById("hTogAll");
   if(tg2){ tg2.textContent = HIST_ALL ? "全部收起" : "全部展开"; }
+}
+function loadNotice(){
+  __j(DATA_BASE + "notice.json").then(function(n){
+    if(!n || !n.text){ return; }
+    var k = "sn_hidden_" + (n.date || "");
+    try{ if(localStorage.getItem(k)){ return; } }catch(e){}
+    var el = document.getElementById("siteNotice");
+    if(!el){ return; }
+    el.innerHTML = '<div class="sn-banner"><span class="sn-ic">\uD83D\uDCE2</span>' +
+      (n.title ? '<span class="sn-t">' + esc(n.title) + '</span>' : "") +
+      '<span class="sn-x">' + esc(n.text) + '</span>' +
+      '<button type="button" class="sn-close" aria-label="关闭">\u00D7</button></div>';
+    el.style.display = "block";
+    var btn = el.querySelector(".sn-close");
+    if(btn){ btn.addEventListener("click", function(){
+      try{ localStorage.setItem(k, "1"); }catch(e){}
+      el.style.display = "none";
+    }); }
+  }).catch(function(){});
 }
 function renderAnnounce(){
   var a = D.announce || {};
@@ -3782,6 +3813,7 @@ document.getElementById("tabs").addEventListener("scroll", function(){ updateEdg
 /* ---------- 启动 ---------- */
 function boot(){
   __restoreFilter();
+  loadNotice();
   D.items.forEach(function(x,n){ x.__i = n; });
   if(D.qitems){ D.qitems.forEach(function(x,n){ x.__i = n; }); }
   document.getElementById("updTxt").textContent = "更新于 " + (D.updated || "—");
