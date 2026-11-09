@@ -17,7 +17,7 @@
 用法:
   python3 telecom_pipeline.py --prev-dir PATH --out-dir PATH
 """
-import urllib.request, json, time, base64, hashlib, os, sys, argparse, random
+import urllib.request, json, time, base64, hashlib, os, sys, argparse, random, gzip, zlib
 
 from pipeline_common import (is_sampling_noise, mark_noise, has_real_change,
                              modified_details_for, filter_test_items, slim_change, diff_items, stable_business_key, field_snapshot)
@@ -49,6 +49,29 @@ def encrypt(m):
     return base64.b64encode(AES.new(KEY, AES.MODE_ECB).encrypt(pad(m.encode("utf-8"), 16))).decode("utf-8")
 
 
+def _maybe_gunzip(raw, enc):
+    """按 Content-Encoding 解压响应体。
+
+    运营商接口的资费 JSON 单次可达数百 KB，开 gzip 后实测降到约 1/7，
+    对联通这种单板块要跑上百轮采样的管线，流量与耗时都显著下降。
+    """
+    enc = (enc or "").lower()
+    if enc == "gzip" or raw[:2] == b"\x1f\x8b":
+        try:
+            return gzip.decompress(raw)
+        except Exception:
+            return raw
+    if enc == "deflate":
+        try:
+            return zlib.decompress(raw)
+        except Exception:
+            try:
+                return zlib.decompress(raw, -zlib.MAX_WBITS)
+            except Exception:
+                return raw
+    return raw
+
+
 def call(fn, rc):
     body = encrypt(json.dumps({"headerInfo": {"functionCode": fn}, "requestContent": rc}, ensure_ascii=False))
     req = urllib.request.Request(API, data=body.encode("utf-8"), method="POST", headers={
@@ -58,14 +81,20 @@ def call(fn, rc):
         "Content-Type": "text/plain;charset=UTF-8",
         "Origin": "https://www.189.cn",
         "x-qd-reqtime": str(int(time.time() * 1000)),
+        "Accept-Encoding": "gzip, deflate",
     })
     last = None
     for a in range(4):
         try:
             with urllib.request.urlopen(req, timeout=60) as r:
-                return json.loads(r.read().decode("utf-8"))
+                raw = r.read()
+                enc = (r.headers.get("Content-Encoding") or "")
+            raw = _maybe_gunzip(raw, enc)
+            return json.loads(raw.decode("utf-8"))
         except Exception as e:
             last = e
+            if a == 3:
+                break          # 末次失败不再空睡 8 秒
             time.sleep(2 * (a + 1))
     raise last
 
