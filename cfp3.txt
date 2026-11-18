@@ -15,12 +15,11 @@
  name: kebiao
  subdomain: kebiao-50p.pages.dev
  domains: ['kebiao-50p.pages.dev']
- canonical: https://ce65335b.kebiao-50p.pages.dev
- source: null
- latest: {"id": "ce65335b-5c6d-4314-9cc6-0be8bfb1f679", "short_id": "ce65335b", "project_id": "953a9afd-b596-4778-ac59-2aa193d5c900", "project_name": "kebiao", "environment": "production", "url": "https://ce65335b.kebiao-50p.pages.dev", "created_on": "2026-09-11T07:19:42.995476Z", "modified_on": "2026-09-11T
+ canonical: https://01f2f53d.kebiao-50p.pages.dev
+ source: {"type": "github", "config": {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "kebiao-page", "repo_id": "1438392665", "production_branch": "main", "pr_comments_enabled": true, "de
+ latest: {"id": "01f2f53d-64b8-4fcf-890d-40ce7dfa7e4f", "short_id": "01f2f53d", "project_id": "c711b8cc-7ae2-4443-83d8-737c50c43904", "project_name": "kebiao", "environment": "production", "url": "https://01f2f53d.kebiao-50p.pages.dev", "created_on": "2026-10-30T04:32:15.963752Z", "modified_on": "2026-10-30T
 --- deployments ---
-   ce65335b-5c6d-4314-9cc6-0be8bfb1f679 | env: production | status: null | url: https://ce65335b.kebiao-50p.pages.dev
-   d975164c-d215-4550-be12-7853b0e12bc9 | env: production | status: null | url: https://d975164c.kebiao-50p.pages.dev
+   01f2f53d-64b8-4fcf-890d-40ce7dfa7e4f | env: production | status: null | url: https://01f2f53d.kebiao-50p.pages.dev
 ===== 探测站点是否可访问 =====
 https://hunan-tariff-site.pages.dev -> 200
 curl: (6) Could not resolve host: changes-in-carrier-pricing.pages.dev
