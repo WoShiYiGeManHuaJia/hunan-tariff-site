@@ -211,9 +211,19 @@ jobs:
                   f.write("stale=true\nage=999\nnewest=none\n")
           else:
               age = (now - best).total_seconds() / 3600.0
-              stale = "true" if age >= 6 else "false"
-              print("[fresh] 最新数据 %s (%s)，距今 %.1f 小时 -> stale=%s"
-                    % (best, src, age, stale))
+              # 数据时间戳按 UTC 写入，统一换算北京时间再判「是不是本场次的」。
+              # GitHub schedule 实测延迟 5~9 小时：凌晨那批抓的数据到早场推送
+              # 时 age 只有 3~4 小时，旧逻辑(age>=6)误判新鲜，于是把凌晨甚至
+              # 前一天的数据当「今天」推。加场次下限兜底：
+              #   早场(北京 7-12 点) 要求数据不早于当天 06:00
+              #   晚场(北京 19-22 点) 要求数据不早于当天 17:00
+              bj = now + datetime.timedelta(hours=8)
+              best_bj = best + datetime.timedelta(hours=8)
+              cutoff_hour = 6 if bj.hour < 12 else 17
+              cutoff = bj.replace(hour=cutoff_hour, minute=0, second=0, microsecond=0)
+              stale = "true" if (age >= 6 or best_bj < cutoff) else "false"
+              print("[fresh] 最新数据 %s (北京 %s)，距今 %.1f 小时，本场下限 %s -> stale=%s"
+                    % (best, best_bj, age, cutoff, stale))
               with open(out, "a") as f:
                   f.write("stale=%s\nage=%.1f\nnewest=%s\n" % (stale, age, best))
           PYEOF
