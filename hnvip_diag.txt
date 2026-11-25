@@ -1,0 +1,21 @@
+project: hnvip
+subdomain: hnvip.pages.dev
+domains: ['hnvip.pages.dev']
+source: {"type": "github", "config": {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "hunan-tariff-site", "repo_id": "1438392194", "production_branch": "main", "pr_comments_enabled": false, "deployments_enabled": true, "production_deployments_enabled": true, "preview_deployment_setting
+latest_deployment: 8eaaebeb-a86d-43a4-b69f-4c25a7c3ed30 env=production stage=idle 2026-11-25T16:45:03.27255Z
+--- deployments ---
+ 8eaaebeb env=production stage=idle 2026-11-25T16:45:03.27255Z https://8eaaebeb.hnvip.pages.dev
+ 0d2dd665 env=production stage=idle 2026-11-25T16:42:42.858228Z https://0d2dd665.hnvip.pages.dev
+ 723816cf env=production stage=active 2026-11-25T16:40:34.378195Z https://723816cf.hnvip.pages.dev
+ 1642b3a4 env=production stage=success 2026-11-25T16:40:33.62949Z https://1642b3a4.hnvip.pages.dev
+ ed17a4bb env=production stage=idle 2026-11-25T16:39:18.854216Z https://ed17a4bb.hnvip.pages.dev
+ de62a0ea env=production stage=idle 2026-11-25T16:38:54.085653Z https://de62a0ea.hnvip.pages.dev
+ 5ecc1ff3 env=production stage=idle 2026-11-25T16:38:13.369583Z https://5ecc1ff3.hnvip.pages.dev
+ 70a7fc16 env=production stage=failure 2026-11-25T16:36:05.325434Z https://70a7fc16.hnvip.pages.dev
+ e8fd55a7 env=production stage=success 2026-11-25T16:36:03.779655Z https://e8fd55a7.hnvip.pages.dev
+ 8cc9dd8a env=production stage=idle 2026-11-25T16:35:05.462367Z https://8cc9dd8a.hnvip.pages.dev
+ 2efbbcd7 env=production stage=failure 2026-11-25T16:29:21.356062Z https://2efbbcd7.hnvip.pages.dev
+ af1cd44f env=production stage=success 2026-11-25T16:29:20.636573Z https://af1cd44f.hnvip.pages.dev
+curl root -> 500 | 
+curl latest.json -> 500 | 
+curl version.json -> 500 | 
