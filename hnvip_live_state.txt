@@ -1,0 +1,8 @@
+checked_at=2026-11-25T16:38:11Z
+http=0
+repo_updated=2026-11-25 09:39:58
+online_updated=?
+match=false
+stage=success
+dep=e8fd55a7-bd86-4496-9475-df88ce762334
+error=线上数据仍落后仓库，等待下一轮自愈
