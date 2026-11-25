@@ -1,9 +1,9 @@
-checked_at=2026-11-25T16:42:40Z
+checked_at=2026-11-25T16:59:02Z
 http=500
 repo_updated=2026-11-25 09:39:58
 online_updated=?
 match=unknown
 stage=success
-dep=1642b3a4-83db-4d5a-908a-2b017289b023
+dep=df22126a-37cf-4654-9bc9-2ece67fc51c6
 verify=unreachable
-error=线上回读不可达，本轮部署已成功但未自动校验
+error=站点返回 HTTP 500
