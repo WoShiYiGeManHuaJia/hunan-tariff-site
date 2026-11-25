@@ -1,8 +1,9 @@
-checked_at=2026-11-25T16:38:11Z
-http=0
+checked_at=2026-11-25T16:42:40Z
+http=500
 repo_updated=2026-11-25 09:39:58
 online_updated=?
-match=false
+match=unknown
 stage=success
-dep=e8fd55a7-bd86-4496-9475-df88ce762334
-error=线上数据仍落后仓库，等待下一轮自愈
+dep=1642b3a4-83db-4d5a-908a-2b017289b023
+verify=unreachable
+error=线上回读不可达，本轮部署已成功但未自动校验
