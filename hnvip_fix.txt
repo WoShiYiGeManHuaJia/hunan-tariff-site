@@ -1,4 +1,15 @@
-ROLLBACK 1642b3a4 -> {"HTTPERR": 400, "body": "{\n  \"result\": null,\n  \"success\": false,\n  \"errors\": [\n    {\n      \"code\": 8000039,\n      \"message\": \"You cannot rollback to the deployment that is currently in production. You must rollback to a previous deployment.\"\n    }\n  ],\n  \"messages\": []\n}\n"}
-latest_deployment 3a111178 stage=idle 2026-11-25T16:48:17.295722Z
-curl root -> 500 | 
-curl latest.json -> 500 | 
+77eb7304 active 2026-11-25T16:56:56.399721Z aliases=None
+df22126a success 2026-11-25T16:56:55.68113Z aliases=None
+3a111178 idle 2026-11-25T16:48:17.295722Z aliases=None
+8e66b33b idle 2026-11-25T16:45:11.301504Z aliases=None
+8eaaebeb idle 2026-11-25T16:45:03.27255Z aliases=None
+0d2dd665 idle 2026-11-25T16:42:42.858228Z aliases=None
+723816cf failure 2026-11-25T16:40:34.378195Z aliases=None
+1642b3a4 success 2026-11-25T16:40:33.62949Z aliases=None
+probe df22126a -> 500 | 
+probe 1642b3a4 -> 500 | 
+probe af1cd44f -> 500 | 
+probe ROOT -> 500 | 
+ROLLBACK df22126a -> {"HTTPERR": 400, "body": "{\n  \"result\": null,\n  \"success\": false,\n  \"errors\": [\n    {\n      \"code\": 8000039,\n      \"message\": \"You cannot rollback to the deployment that is currently in production. You must rollback to a previous deployment.\"\n    }\n  ],\n  \"messages\": []\n}\n"}
+AFTER ROOT -> 500 | 
+AFTER latest -> 500 | 
