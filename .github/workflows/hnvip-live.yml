@@ -1,8 +1,10 @@
 name: hnvip-live
-# hnvip.pages.dev 是 Cloudflare Pages「直传(ad_hoc)」项目，不跟 GitHub 自动构建。
-# 仓库里另一个项目 changes-in-carrier-pricing 才是 GitHub 绑定、天天部署 success 的那个，
-# 两者不是一回事：所以「部署 success」不等于 hnvip 会更新。
-# 本工作流在站点数据提交后，把当前仓库直传到 hnvip 的生产环境。
+# hnvip.pages.dev 是 Cloudflare Pages「直传(ad_hoc)」项目，不会跟 GitHub 自动构建。
+# 仓库里 changes-in-carrier-pricing 才是绑定 GitHub 的那个项目，它 deploy success
+# 不等于 hnvip 更新 —— 这正是 11-20 之后线上停更 6 天的原因。
+# 本工作流：站点数据一提交就直传；另有每 2 小时定时兜底，漏一次最多 2 小时自愈。
+# 关键：部署后回读线上 latest.json 的 updated，与仓库比对，不一致直接判失败，
+#       杜绝「部署 success 但线上还是旧快照」再次无人知晓。
 on:
   push:
     branches: [main]
@@ -11,15 +13,19 @@ on:
       - 'unicom/data/**'
       - 'telecom/data/**'
       - 'gb/data/**'
+      - 'site/data/**'
+      - 'pipelines/site/data/**'
       - 'index.html'
       - 'app.js'
       - 'style.css'
       - 'common-extras.js'
       - '_headers'
       - 'version.json'
+      - '.github/workflows/hnvip-live.yml'
+  schedule:
+    - cron: '17 */2 * * *'
   workflow_dispatch:
 
-# 抓取一天多次提交，只保留最新一次，避免 CF 部署队列堆积
 concurrency:
   group: hnvip-live
   cancel-in-progress: true
@@ -27,34 +33,65 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: 直传 hnvip 生产
+      - name: 直传生产并校验线上数据
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
         run: |
           python3 - <<'PY'
-          import os, json, hashlib, uuid, time, urllib.request, urllib.error
-          root = os.getcwd()
+          import os, json, hashlib, uuid, time, base64, urllib.request, urllib.error
+
+          ROOT = os.getcwd()
           ACC = '9156c2cae565fdf42d208827b523e47e'
-          token = os.environ['CF']
-          skip_dirs = {'.git', '.github'}
+          CF = os.environ['CF']
+          PAT = os.environ['PAT']
+          REPO = os.environ.get('GITHUB_REPOSITORY', '')
+          API = 'https://api.cloudflare.com/client/v4/accounts/%s/pages/projects/hnvip/deployments' % ACC
+          SITE = 'https://hnvip.pages.dev'
+
+          def http(url, data=None, method='GET', headers=None, timeout=600):
+              req = urllib.request.Request(url, data=data, method=method)
+              req.add_header('Authorization', 'Bearer ' + CF)
+              req.add_header('Content-Type', 'application/json' if headers is None else headers)
+              req.add_header('User-Agent', 'hnvip-live/1.0')
+              return urllib.request.urlopen(req, timeout=timeout).read()
+
+          def gh(method, path, body=None):
+              url = 'https://api.github.com/repos/' + REPO + '/contents/' + path
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(url, data=data, method=method,
+                  headers={'Authorization': 'token ' + PAT, 'User-Agent': 'hnvip-live',
+                           'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json'})
+              for i in range(6):
+                  try:
+                      return json.loads(urllib.request.urlopen(req, timeout=60).read())
+                  except Exception as e:
+                      print('  gh retry %d %s' % (i, str(e)[:90]))
+                      time.sleep(4)
+              raise SystemExit('GitHub API 写入失败')
+
+          def site_updated():
+              req = urllib.request.Request(SITE + '/data/latest.json?_=' + str(time.time_ns()),
+                  headers={'User-Agent': 'hnvip-live', 'Cache-Control': 'no-cache'})
+              return json.loads(urllib.request.urlopen(req, timeout=40).read()).get('updated', '?')
+
+          # ---------- 1. 构造 manifest 并直传 ----------
           files = {}
-          for dp, dn, fn in os.walk(root):
-              dn[:] = [d for d in dn if d not in skip_dirs]
+          for dp, dn, fn in os.walk(ROOT):
+              dn[:] = [d for d in dn if d not in ('.git', '.github')]
               for f in fn:
                   p = os.path.join(dp, f)
-                  rel = os.path.relpath(p, root).replace(os.sep, '/')
+                  rel = os.path.relpath(p, ROOT).replace(os.sep, '/')
                   sz = os.path.getsize(p)
                   if sz > 24 * 1024 * 1024:
-                      print('SKIP >24MB:', rel, sz)
-                      continue
-                  h = hashlib.sha1(open(p, 'rb').read()).hexdigest()
-                  files['/' + rel] = {"hash": h, "size": sz}
+                      print('SKIP >24MB:', rel, sz); continue
+                  files['/' + rel] = {"hash": hashlib.sha1(open(p, 'rb').read()).hexdigest(), "size": sz}
           print('files:', len(files), '| has index:', '/index.html' in files)
           if '/index.html' not in files:
               raise SystemExit('index.html 缺失，中止')
@@ -62,73 +99,91 @@ jobs:
           boundary = '----x' + uuid.uuid4().hex
           def field(name, val, ctype=None, fname=None):
               b = ('--%s\r\n' % boundary).encode()
-              if fname:
-                  b += ('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (name, fname)).encode()
-              else:
-                  b += ('Content-Disposition: form-data; name="%s"\r\n' % name).encode()
+              b += (('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (name, fname))
+                    if fname else ('Content-Disposition: form-data; name="%s"\r\n' % name)).encode()
               if ctype:
                   b += ('Content-Type: %s\r\n' % ctype).encode()
               return b + b'\r\n' + val + b'\r\n'
           body = field('manifest', json.dumps(files).encode(), 'application/json')
           for path, info in files.items():
-              body += field(info['hash'], open(root + path, 'rb').read(),
+              body += field(info['hash'], open(ROOT + path, 'rb').read(),
                             'application/octet-stream', info['hash'])
           body += ('--%s--\r\n' % boundary).encode()
 
-          url = 'https://api.cloudflare.com/client/v4/accounts/%s/pages/projects/hnvip/deployments' % ACC
-          req = urllib.request.Request(url, data=body, method='POST')
-          req.add_header('Authorization', 'Bearer ' + token)
+          req = urllib.request.Request(API, data=body, method='POST')
+          req.add_header('Authorization', 'Bearer ' + CF)
           req.add_header('Content-Type', 'multipart/form-data; boundary=' + boundary)
+          req.add_header('User-Agent', 'hnvip-live/1.0')
           try:
-              resp = urllib.request.urlopen(req, timeout=600)
+              out = json.loads(urllib.request.urlopen(req, timeout=900).read())
           except urllib.error.HTTPError as e:
-              print('DEPLOY HTTP ERR', e.code, e.read().decode()[:600])
-              raise
-          out = json.loads(resp.read().decode())
+              print('DEPLOY HTTP ERR', e.code, e.read().decode()[:600]); raise
           dep = out['result']
-          print('DEP_ID', dep['id'], 'env', dep.get('environment'), 'url', dep.get('url'))
+          dep_id = dep['id']
+          print('DEP_ID', dep_id, 'env', dep.get('environment'))
 
-          # 直传创建的 deployment 会卡在 queued，必须 retry 才会真正构建
-          r = urllib.request.Request(url + '/' + dep['id'] + '/retry', data=b'', method='POST')
-          r.add_header('Authorization', 'Bearer ' + token)
+          # 直传创建的 deployment 卡在 queued，必须 retry 才真正构建
           try:
-              print('RETRY HTTP', urllib.request.urlopen(r, timeout=120).status)
+              q = urllib.request.Request(API + '/' + dep_id + '/retry', data=b'', method='POST')
+              q.add_header('Authorization', 'Bearer ' + CF)
+              print('RETRY HTTP', urllib.request.urlopen(q, timeout=120).status)
           except Exception as e:
               print('RETRY WARN', str(e)[:200])
 
+          stage = 'unknown'
           for i in range(40):
               time.sleep(10)
-              q = urllib.request.Request(url + '/' + dep['id'])
-              q.add_header('Authorization', 'Bearer ' + token)
               try:
-                  st = json.loads(urllib.request.urlopen(q, timeout=60).read())['result']['latest_stage']['status']
+                  q = urllib.request.Request(API + '/' + dep_id)
+                  q.add_header('Authorization', 'Bearer ' + CF)
+                  stage = json.loads(urllib.request.urlopen(q, timeout=60).read())['result']['latest_stage']['status']
               except Exception as e:
-                  print('poll', i, 'ERR', str(e)[:100]); continue
-              print('stage[%d]' % i, st)
-              if st in ('success', 'failure', 'cancelled'):
-                  print('FINAL_STAGE', st)
-                  if st != 'success':
-                      raise SystemExit('部署未成功')
+                  print('poll %d ERR %s' % (i, str(e)[:100])); continue
+              print('stage[%d]' % i, stage)
+              if stage in ('success', 'failure', 'cancelled'):
                   break
-          else:
-              raise SystemExit('轮询超时')
-          PY
+          print('FINAL_STAGE', stage)
+          if stage != 'success':
+              raise SystemExit('部署未成功: ' + stage)
 
-      - name: 验证裸地址并留痕
-        env:
-          PAT: ${{ secrets.GH_PAT }}
-        run: |
-          sleep 20
-          CODE=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/)
-          UPD=$(curl -sS -L --max-time 30 https://hnvip.pages.dev/data/latest.json | python3 -c "import sys,json;print(json.load(sys.stdin).get('updated','?'))" 2>/dev/null || echo 'read-fail')
-          echo "hnvip.pages.dev -> $CODE"
-          echo "线上 updated -> $UPD"
-          printf 'checked_at=%s\nhttp=%s\nonline_updated=%s\n' "$(date -u +%FT%TZ)" "$CODE" "$UPD" > /tmp/state.txt
-          B64=$(base64 -w0 /tmp/state.txt)
-          API="https://api.github.com/repos/${{ github.repository }}/contents/hnvip_live_state.txt"
-          SHA=$(curl -sS -H "Authorization: token $PAT" "$API" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))" 2>/dev/null || echo '')
-          if [ -z "$SHA" ]; then
-            curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"hnvip live state\",\"content\":\"$B64\"}" "$API" >/dev/null
-          else
-            curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"hnvip live state\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "$API" >/dev/null
-          fi
+          # ---------- 2. 线上一致性自检 ----------
+          repo_updated = json.load(open(ROOT + '/data/latest.json')).get('updated', '?')
+          online = '?'
+          for k in range(6):
+              time.sleep(15 if k == 0 else 20)
+              try:
+                  online = site_updated()
+              except Exception as e:
+                  print('  读线上 %d ERR %s' % (k, str(e)[:100])); continue
+              print('  线上 updated[%d] = %s | 仓库 = %s' % (k, online, repo_updated))
+              if online == repo_updated:
+                  break
+          ok = (online == repo_updated)
+          code = 0
+          try:
+              code = urllib.request.urlopen(urllib.request.Request(SITE + '/',
+                  headers={'User-Agent': 'hnvip-live'}), timeout=30).status
+          except Exception as e:
+              print('  裸地址探测 ERR', str(e)[:100])
+
+          # ---------- 3. 留痕（无论成败都写，便于排查） ----------
+          txt = ('checked_at=%s\nhttp=%s\nrepo_updated=%s\nonline_updated=%s\nmatch=%s\nstage=%s\ndep=%s\n'
+                 % (time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), code,
+                    repo_updated, online, str(ok).lower(), stage, dep_id))
+          print('--- STATE ---\n' + txt)
+          try:
+              cur = gh('GET', 'hnvip_live_state.txt')
+              sha = cur.get('sha')
+          except Exception:
+              sha = None
+          payload = {'message': 'hnvip live state ' + ('OK' if ok else 'STALE'),
+                     'content': base64.b64encode(txt.encode()).decode(), 'branch': 'main'}
+          if sha:
+              payload['sha'] = sha
+          gh('PUT', 'hnvip_live_state.txt', payload)
+
+          if not ok:
+              raise SystemExit('线上数据仍落后仓库（%s != %s），本轮判失败，等待下一轮自愈'
+                               % (online, repo_updated))
+          print('OK 线上已与仓库一致')
+          PY
