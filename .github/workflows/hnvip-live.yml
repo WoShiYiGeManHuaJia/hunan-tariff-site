@@ -83,7 +83,7 @@ jobs:
               return None
 
           def flush_state():
-              txt = ('checked_at=%s\nhttp=%s\nrepo_updated=%s\nonline_updated=%s\nmatch=%s\nstage=%s\ndep=%s\nerror=%s\n'
+              txt = ('checked_at=%s\nhttp=%s\nrepo_updated=%s\nonline_updated=%s\nmatch=%s\nstage=%s\ndep=%s\nverify=%s\nerror=%s\n'
                      % (time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                         STATE.get('http', '?'), STATE.get('repo', '?'), STATE.get('online', '?'),
                         STATE.get('match', 'false'), STATE.get('stage', '?'),
