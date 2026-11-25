@@ -1,0 +1,9 @@
+RESTORE PATCH {"result": {"id": "95cc5a36-e730-4878-9070-51e47d7013b4", "name": "hnvip", "subdomain": "hnvip.pages.dev", "domains": ["hnvip.pages.dev"], "source": {"type": "github", "config": {"owner": "WoShiYiGeManHuaJia", "owner_id": "317776016", "repo_name": "h
+AFTER prod_enabled=True depl_enabled=True
+files=814 has_index=True
+DEP_ID b305710b-d2d9-4dfb-b701-bed1b50118c5
+stage[0] success
+FINAL success
+curl root -> 500 | 
+curl latest.json -> 500 | 
+curl version.json -> 500 | 
