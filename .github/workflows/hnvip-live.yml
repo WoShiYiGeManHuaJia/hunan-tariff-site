@@ -62,6 +62,8 @@ jobs:
               req.add_header('User-Agent', 'hnvip-live/1.0')
               return urllib.request.urlopen(req, timeout=timeout).read()
 
+          STATE = {}
+
           def gh(method, path, body=None):
               url = 'https://api.github.com/repos/' + REPO + '/contents/' + path
               data = json.dumps(body).encode() if body is not None else None
@@ -71,10 +73,35 @@ jobs:
               for i in range(6):
                   try:
                       return json.loads(urllib.request.urlopen(req, timeout=60).read())
+                  except urllib.error.HTTPError as e:
+                      if e.code == 404:
+                          return None          # 文件不存在是正常情况，不是失败
+                      print('  gh retry %d HTTP %s' % (i, e.code)); time.sleep(4)
                   except Exception as e:
-                      print('  gh retry %d %s' % (i, str(e)[:90]))
-                      time.sleep(4)
-              raise SystemExit('GitHub API 写入失败')
+                      print('  gh retry %d %s' % (i, str(e)[:90])); time.sleep(4)
+              print('  gh WARN 写入失败（不影响主流程判定）')
+              return None
+
+          def flush_state():
+              txt = ('checked_at=%s\nhttp=%s\nrepo_updated=%s\nonline_updated=%s\nmatch=%s\nstage=%s\ndep=%s\nerror=%s\n'
+                     % (time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                        STATE.get('http', '?'), STATE.get('repo', '?'), STATE.get('online', '?'),
+                        STATE.get('match', 'false'), STATE.get('stage', '?'),
+                        STATE.get('dep', '?'), STATE.get('error', '')))
+              print('--- STATE ---\n' + txt)
+              try:
+                  cur = gh('GET', 'hnvip_live_state.txt')
+                  sha = cur.get('sha') if isinstance(cur, dict) else None
+              except Exception:
+                  sha = None
+              payload = {'message': 'hnvip live state ' + ('OK' if STATE.get('match') == 'true' else 'CHECK'),
+                         'content': base64.b64encode(txt.encode()).decode(), 'branch': 'main'}
+              if sha:
+                  payload['sha'] = sha
+              gh('PUT', 'hnvip_live_state.txt', payload)
+
+          import atexit
+          atexit.register(flush_state)   # 即使中途抛异常，也一定留下诊断
 
           def site_updated():
               req = urllib.request.Request(SITE + '/data/latest.json?_=' + str(time.time_ns()),
@@ -94,7 +121,7 @@ jobs:
                   files['/' + rel] = {"hash": hashlib.sha1(open(p, 'rb').read()).hexdigest(), "size": sz}
           print('files:', len(files), '| has index:', '/index.html' in files)
           if '/index.html' not in files:
-              raise SystemExit('index.html 缺失，中止')
+              STATE['error']='index.html 缺失'; raise SystemExit('index.html 缺失，中止')
 
           boundary = '----x' + uuid.uuid4().hex
           def field(name, val, ctype=None, fname=None):
@@ -120,6 +147,7 @@ jobs:
               print('DEPLOY HTTP ERR', e.code, e.read().decode()[:600]); raise
           dep = out['result']
           dep_id = dep['id']
+          STATE['dep']=dep_id; STATE['stage']='queued'
           print('DEP_ID', dep_id, 'env', dep.get('environment'))
 
           # 直传创建的 deployment 卡在 queued，必须 retry 才真正构建
@@ -142,9 +170,10 @@ jobs:
               print('stage[%d]' % i, stage)
               if stage in ('success', 'failure', 'cancelled'):
                   break
+          STATE['stage']=stage
           print('FINAL_STAGE', stage)
           if stage != 'success':
-              raise SystemExit('部署未成功: ' + stage)
+              STATE['error']='部署未成功: '+stage; raise SystemExit('部署未成功: ' + stage)
 
           # ---------- 2. 线上一致性自检 ----------
           repo_updated = json.load(open(ROOT + '/data/latest.json')).get('updated', '?')
@@ -166,23 +195,11 @@ jobs:
           except Exception as e:
               print('  裸地址探测 ERR', str(e)[:100])
 
-          # ---------- 3. 留痕（无论成败都写，便于排查） ----------
-          txt = ('checked_at=%s\nhttp=%s\nrepo_updated=%s\nonline_updated=%s\nmatch=%s\nstage=%s\ndep=%s\n'
-                 % (time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), code,
-                    repo_updated, online, str(ok).lower(), stage, dep_id))
-          print('--- STATE ---\n' + txt)
-          try:
-              cur = gh('GET', 'hnvip_live_state.txt')
-              sha = cur.get('sha')
-          except Exception:
-              sha = None
-          payload = {'message': 'hnvip live state ' + ('OK' if ok else 'STALE'),
-                     'content': base64.b64encode(txt.encode()).decode(), 'branch': 'main'}
-          if sha:
-              payload['sha'] = sha
-          gh('PUT', 'hnvip_live_state.txt', payload)
-
+          # ---------- 3. 留痕（atexit 保证无论成败都写） ----------
+          STATE.update({'http': code, 'repo': repo_updated, 'online': online,
+                        'match': str(ok).lower(), 'stage': stage})
           if not ok:
+              STATE['error'] = '线上数据仍落后仓库，等待下一轮自愈'
               raise SystemExit('线上数据仍落后仓库（%s != %s），本轮判失败，等待下一轮自愈'
                                % (online, repo_updated))
           print('OK 线上已与仓库一致')
