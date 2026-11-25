@@ -1,4 +1,4 @@
-BEFORE production_deployments_enabled=True deployments_enabled=True preview=none
+BEFORE production_deployments_enabled=False deployments_enabled=False preview=none
 PATCH success=True errors=[]
 AFTER production_deployments_enabled=False preview=none
 deployments ERR HTTP Error 400: Bad Request
