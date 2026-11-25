@@ -125,7 +125,8 @@ jobs:
                   sz = os.path.getsize(p)
                   if sz > 24 * 1024 * 1024:
                       print('SKIP >24MB:', rel, sz); continue
-                  files['/' + rel] = {"hash": hashlib.sha1(open(p, 'rb').read()).hexdigest(), "size": sz}
+                  # CF Pages 直传 manifest 必须是 [hash, size] 数组；对象格式会 stage=success 但产物为空 → 全站 500
+                  files['/' + rel] = [hashlib.sha1(open(p, 'rb').read()).hexdigest(), sz]
           print('files:', len(files), '| has index:', '/index.html' in files)
           if '/index.html' not in files:
               STATE['error']='index.html 缺失'; raise SystemExit('index.html 缺失，中止')
@@ -139,9 +140,9 @@ jobs:
                   b += ('Content-Type: %s\r\n' % ctype).encode()
               return b + b'\r\n' + val + b'\r\n'
           body = field('manifest', json.dumps(files).encode(), 'application/json')
-          for path, info in files.items():
-              body += field(info['hash'], open(ROOT + path, 'rb').read(),
-                            'application/octet-stream', info['hash'])
+          for path, (h, sz) in files.items():
+              body += field(h, open(ROOT + path, 'rb').read(),
+                            'application/octet-stream', h)
           body += ('--%s--\r\n' % boundary).encode()
 
           req = urllib.request.Request(API, data=body, method='POST')
@@ -210,6 +211,9 @@ jobs:
           STATE.update({'http': code, 'repo': repo_updated, 'online': online,
                         'match': (str(ok).lower() if verified else 'unknown'), 'stage': stage,
                         'verify': ('ok' if verified else 'unreachable')})
+          if code and code >= 400:
+              STATE['error'] = '站点返回 HTTP %s' % code
+              raise SystemExit('站点返回 HTTP %s，部署虽 success 但线上不可用' % code)
           if not verified:
               # 部署已 success，只是本轮回读通道不通；不判失败，留痕等下一轮定时兜底再校验
               STATE['error'] = '线上回读不可达，本轮部署已成功但未自动校验'
