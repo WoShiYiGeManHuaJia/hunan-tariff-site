@@ -1,6 +1,4 @@
-BEFORE production_deployments_enabled=False deployments_enabled=False preview=none
-PATCH success=True errors=[]
-AFTER production_deployments_enabled=False preview=none
-deployments ERR HTTP Error 400: Bad Request
+ROLLBACK 1642b3a4 -> {"HTTPERR": 400, "body": "{\n  \"result\": null,\n  \"success\": false,\n  \"errors\": [\n    {\n      \"code\": 8000039,\n      \"message\": \"You cannot rollback to the deployment that is currently in production. You must rollback to a previous deployment.\"\n    }\n  ],\n  \"messages\": []\n}\n"}
+latest_deployment 3a111178 stage=idle 2026-11-25T16:48:17.295722Z
 curl root -> 500 | 
 curl latest.json -> 500 | 
