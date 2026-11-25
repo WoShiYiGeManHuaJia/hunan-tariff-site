@@ -5,30 +5,37 @@ jobs:
   p:
     runs-on: ubuntu-latest
     steps:
-      - name: 多通道探测
+      - name: 打印项目完整配置
         env:
+          CF: ${{ secrets.CF_API_TOKEN }}
           PAT: ${{ secrets.GH_PAT }}
         run: |
           python3 - <<'PY'
-          import os,json,subprocess,base64,urllib.request,urllib.error
-          PAT=os.environ['PAT']; REPO=os.environ['GITHUB_REPOSITORY']
-          urls=[
-            'https://hnvip.pages.dev/',
-            'https://hnvip.pages.dev/data/latest.json',
-            'https://1642b3a4.hnvip.pages.dev/',
-            'https://1642b3a4.hnvip.pages.dev/data/latest.json',
-            'https://hunan-tariff-site.pages.dev/',
-            'https://www.cloudflare.com/',
-          ]
+          import os,json,base64,urllib.request,urllib.error
+          CF=os.environ['CF']; PAT=os.environ['PAT']; REPO=os.environ['GITHUB_REPOSITORY']
+          ACC='9156c2cae565fdf42d208827b523e47e'
+          B='https://api.cloudflare.com/client/v4/accounts/'+ACC+'/pages/projects/hnvip'
+          def get(u):
+              r=urllib.request.Request(u,headers={'Authorization':'Bearer '+CF,'User-Agent':'probe'})
+              return json.loads(urllib.request.urlopen(r,timeout=40).read())['result']
+          p=get(B)
           out=[]
-          for u in urls:
-              r=subprocess.run(['curl','-sS','-L','--max-time','25','-D','/tmp/h','-o','/tmp/b',
-                                '-w','%{http_code}','-H','User-Agent: Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36',u],
-                               capture_output=True,text=True,timeout=35)
-              h=open('/tmp/h','rb').read().decode('utf8','replace').splitlines()
-              keep=[x for x in h if any(k in x.lower() for k in ['http/','server:','cf-ray','content-type','cache-control','location:'])]
-              b=open('/tmp/b','rb').read()[:180].decode('utf8','replace').replace('\n',' ')
-              out.append('%s -> %s\n   %s\n   %s' % (u,(r.stdout or '').strip(),' | '.join(keep[-6:]),b))
+          for k in ['name','subdomain','domains','created_on','production_branch','uses_functions']:
+              out.append('%s = %s' % (k,str(p.get(k))[:200]))
+          out.append('source = '+json.dumps(p.get('source'),ensure_ascii=False)[:600])
+          out.append('build_config = '+json.dumps(p.get('build_config'),ensure_ascii=False)[:600])
+          out.append('deployment_configs = '+json.dumps(p.get('deployment_configs'),ensure_ascii=False)[:800])
+          ld=p.get('latest_deployment') or {}
+          out.append('latest_deployment = '+json.dumps({k:ld.get(k) for k in ['id','environment','aliases','created_on','latest_stage','deployment_trigger']},ensure_ascii=False)[:400])
+          # 找带 aliases 的部署
+          try:
+              ds=get(B+'/deployments?per_page=12')
+              out.append('--- aliases ---')
+              for d in ds[:12]:
+                  if d.get('aliases'):
+                      out.append(' %s %s %s aliases=%s' % (str(d.get('id'))[:8],
+                          (d.get('latest_stage') or {}).get('status'), d.get('created_on'), d.get('aliases')))
+          except Exception as e: out.append('deployments ERR '+str(e)[:200])
           txt='\n'.join(out)+'\n'; print(txt)
           url='https://api.github.com/repos/'+REPO+'/contents/hnvip_probe.txt'
           sha=None
@@ -38,7 +45,7 @@ jobs:
           except urllib.error.HTTPError as e:
               if e.code!=404: pass
           except Exception: pass
-          d={'message':'[Skip CI] probe','content':base64.b64encode(txt.encode()).decode(),'branch':'main'}
+          d={'message':'[Skip CI] project config','content':base64.b64encode(txt.encode()).decode(),'branch':'main'}
           if sha: d['sha']=sha
           q=urllib.request.Request(url,data=json.dumps(d).encode(),method='PUT',
               headers={'Authorization':'token '+PAT,'User-Agent':'p','Content-Type':'application/json'})
