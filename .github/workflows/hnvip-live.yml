@@ -114,8 +114,21 @@ jobs:
               raise SystemExit('轮询超时')
           PY
 
-      - name: 验证裸地址
+      - name: 验证裸地址并留痕
+        env:
+          PAT: ${{ secrets.GH_PAT }}
         run: |
           sleep 20
-          echo "hnvip.pages.dev -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/)"
-          echo "latest.json -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/data/latest.json)"
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/)
+          UPD=$(curl -sS -L --max-time 30 https://hnvip.pages.dev/data/latest.json | python3 -c "import sys,json;print(json.load(sys.stdin).get('updated','?'))" 2>/dev/null || echo 'read-fail')
+          echo "hnvip.pages.dev -> $CODE"
+          echo "线上 updated -> $UPD"
+          printf 'checked_at=%s\nhttp=%s\nonline_updated=%s\n' "$(date -u +%FT%TZ)" "$CODE" "$UPD" > /tmp/state.txt
+          B64=$(base64 -w0 /tmp/state.txt)
+          API="https://api.github.com/repos/${{ github.repository }}/contents/hnvip_live_state.txt"
+          SHA=$(curl -sS -H "Authorization: token $PAT" "$API" | python3 -c "import json,sys;print(json.load(sys.stdin).get('sha',''))" 2>/dev/null || echo '')
+          if [ -z "$SHA" ]; then
+            curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"hnvip live state\",\"content\":\"$B64\"}" "$API" >/dev/null
+          else
+            curl -sS -X PUT -H "Authorization: token $PAT" -d "{\"message\":\"hnvip live state\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" "$API" >/dev/null
+          fi
