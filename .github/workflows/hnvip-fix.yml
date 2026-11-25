@@ -47,7 +47,7 @@ jobs:
           except Exception as e: out.append('VERIFY ERR '+str(e)[:150])
           # 3. 找最近一个 success 的生产部署，回滚生产别名
           try:
-              ds=req(B+'/deployments?per_page=30')['result']
+              ds=req(B+'/deployments?per_page=12')['result']
               succ=[d for d in ds if d.get('environment')=='production'
                     and (d.get('latest_stage') or {}).get('status')=='success']
               succ.sort(key=lambda d: d.get('created_on',''), reverse=True)
@@ -56,7 +56,7 @@ jobs:
                   did=succ[0]['id']
                   out.append('rollback 目标 %s %s' % (did[:8], succ[0].get('created_on')))
                   try:
-                      rr=req(B+'/deployments/'+did+'/rollback','POST',{})
+                      rr=req(B+'/deployments/'+did+'/rollback','POST')
                       out.append('ROLLBACK success=%s errors=%s' % (rr.get('success'), str(rr.get('errors'))[:200]))
                   except urllib.error.HTTPError as e:
                       out.append('ROLLBACK HTTP %s %s' % (e.code, e.read().decode()[:300]))
