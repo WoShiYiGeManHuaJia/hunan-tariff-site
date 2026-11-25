@@ -1,0 +1,18 @@
+https://hnvip.pages.dev/ -> 500
+   HTTP/2 500  | server: cloudflare | cf-ray: a6022c80ee53942e-IAD
+   
+https://hnvip.pages.dev/data/latest.json -> 500
+   HTTP/2 500  | server: cloudflare | cf-ray: a6022c816a255d0b-IAD
+   
+https://1642b3a4.hnvip.pages.dev/ -> 500
+   HTTP/2 500  | server: cloudflare | cf-ray: a6022c821c0d054b-IAD
+   
+https://1642b3a4.hnvip.pages.dev/data/latest.json -> 500
+   HTTP/2 500  | server: cloudflare | cf-ray: a6022c827b04cb8c-IAD
+   
+https://hunan-tariff-site.pages.dev/ -> 200
+   HTTP/2 200  | content-type: text/html; charset=utf-8 | cache-control: public, max-age=0, must-revalidate | x-content-type-options: nosniff | server: cloudflare | cf-ray: a6022c830a5fe762-IAD
+   <!DOCTYPE html> <html lang="zh-CN"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <meta http-equiv="Cache-Control" content="n
+https://www.cloudflare.com/ -> 200
+   HTTP/2 200  | content-type: text/html; charset=utf-8 | cf-ray: a6022c842ecc3389-IAD | cache-control: max-age=10 | server: cloudflare | x-content-type-options: nosniff
+   <!DOCTYPE html><html lang="en" class="font-stk-bureau-sans"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><
