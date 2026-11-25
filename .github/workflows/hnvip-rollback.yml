@@ -5,42 +5,58 @@ jobs:
   r:
     runs-on: ubuntu-latest
     steps:
-      - name: 回滚到已成功的直传部署
+      - name: 翻页找健康部署并回滚
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
           PAT: ${{ secrets.GH_PAT }}
         run: |
           python3 - <<'PY'
-          import os, json, urllib.request, urllib.error, subprocess, base64, time
+          import os,json,urllib.request,urllib.error,subprocess,base64,time
           CF=os.environ['CF']; PAT=os.environ['PAT']; REPO=os.environ['GITHUB_REPOSITORY']
           ACC='9156c2cae565fdf42d208827b523e47e'
           B='https://api.cloudflare.com/client/v4/accounts/'+ACC+'/pages/projects/hnvip'
           out=[]
-          def call(url,method='GET',body=None):
+          def cf(u,method='GET',body=None):
               data=json.dumps(body).encode() if body is not None else None
-              r=urllib.request.Request(url,data=data,method=method,
-                  headers={'Authorization':'Bearer '+CF,'User-Agent':'rollback'})
-              try:
-                  return json.loads(urllib.request.urlopen(r,timeout=60).read())
-              except urllib.error.HTTPError as e:
-                  return {'HTTPERR':e.code,'body':e.read().decode()[:400]}
-          # 最近一次 stage=success 的直传部署（来自 hnvip_live_state.txt）
-          DID='1642b3a4-83db-4d5a-908a-2b017289b023'
-          r=call(B+'/deployments/'+DID+'/rollback','POST')
-          out.append('ROLLBACK '+DID[:8]+' -> '+json.dumps(r,ensure_ascii=False)[:400])
-          # 项目当前生产指向
-          p=call(B)
-          if 'result' in p:
-              ld=p['result'].get('latest_deployment') or {}
-              out.append('latest_deployment %s stage=%s %s' % (str(ld.get('id'))[:8],
-                  (ld.get('latest_stage') or {}).get('status'), ld.get('created_on')))
-          else: out.append('project -> '+str(p)[:200])
+              r=urllib.request.Request(u,data=data,method=method,
+                  headers={'Authorization':'Bearer '+CF,'Content-Type':'application/json','User-Agent':'rb'})
+              try: return json.loads(urllib.request.urlopen(r,timeout=60).read())
+              except urllib.error.HTTPError as e: return {'HTTPERR':e.code,'body':e.read().decode()[:300]}
+          def probe(u):
+              r=subprocess.run(['curl','-sS','-L','--max-time','25','-o','/tmp/b','-w','%{http_code}',
+                                '-H','User-Agent: Mozilla/5.0',u],capture_output=True,text=True,timeout=35)
+              return (r.stdout or '').strip()
+          all=[]
+          for page in range(1,8):
+              d=cf(B+'/deployments?per_page=25&page='+str(page))
+              if 'result' not in d:
+                  out.append('page %d ERR %s'%(page,str(d)[:150])); break
+              all+=d['result']
+              if len(d['result'])<25: break
+          out.append('共取得部署 %d 个'%len(all))
+          for d in all:
+              st=(d.get('latest_stage') or {}).get('status')
+              if st=='success' and d.get('aliases'):
+                  out.append('HAS ALIAS %s %s %s'%(str(d.get('id'))[:8],d.get('created_on'),d.get('aliases')))
+          # 打印 11-20 前后的 success 部署
+          for d in all:
+              co=d.get('created_on','')
+              st=(d.get('latest_stage') or {}).get('status')
+              if co.startswith('2026-11-20') or co.startswith('2026-11-19') or co.startswith('2026-11-18'):
+                  out.append('OLD %s %s %s %s'%(str(d.get('id'))[:8],co,st,str(d.get('aliases'))[:60]))
+          # 候选：最早的一个 success（rollback 要求非当前生产）
+          cands=[d for d in all if (d.get('latest_stage') or {}).get('status')=='success']
+          cands.sort(key=lambda d:d.get('created_on',''))
+          if cands:
+              for d in cands[:5]:
+                  out.append('CAND %s %s trigger=%s'%(str(d.get('id'))[:8],d.get('created_on'),
+                      (d.get('deployment_trigger') or {}).get('type')))
+              did=cands[0]['id']
+              rr=cf(B+'/deployments/'+did+'/rollback','POST')
+              out.append('ROLLBACK %s -> %s'%(did[:8],json.dumps(rr,ensure_ascii=False)[:300]))
           time.sleep(25)
           for u in ['https://hnvip.pages.dev/','https://hnvip.pages.dev/data/latest.json']:
-              rr=subprocess.run(['curl','-sS','-L','--max-time','30','-o','/tmp/b','-w','%{http_code}',u],
-                                capture_output=True,text=True,timeout=40)
-              body=open('/tmp/b','rb').read()[:220].decode('utf8','replace').replace('\n',' ')
-              out.append('curl %s -> %s | %s' % (u.split('/')[-1] or 'root',(rr.stdout or '').strip(),body))
+              out.append('AFTER %s -> %s'%(u.split('/')[-1] or 'root',probe(u)))
           txt='\n'.join(out)+'\n'; print(txt)
           url='https://api.github.com/repos/'+REPO+'/contents/hnvip_fix.txt'
           sha=None
@@ -50,7 +66,7 @@ jobs:
           except urllib.error.HTTPError as e:
               if e.code!=404: pass
           except Exception: pass
-          d={'message':'[Skip CI] rollback result','content':base64.b64encode(txt.encode()).decode(),'branch':'main'}
+          d={'message':'[Skip CI] rollback old','content':base64.b64encode(txt.encode()).decode(),'branch':'main'}
           if sha: d['sha']=sha
           q=urllib.request.Request(url,data=json.dumps(d).encode(),method='PUT',
               headers={'Authorization':'token '+PAT,'User-Agent':'rb','Content-Type':'application/json'})
