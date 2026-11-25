@@ -1,15 +1,28 @@
-77eb7304 active 2026-11-25T16:56:56.399721Z aliases=None
-df22126a success 2026-11-25T16:56:55.68113Z aliases=None
-3a111178 idle 2026-11-25T16:48:17.295722Z aliases=None
-8e66b33b idle 2026-11-25T16:45:11.301504Z aliases=None
-8eaaebeb idle 2026-11-25T16:45:03.27255Z aliases=None
-0d2dd665 idle 2026-11-25T16:42:42.858228Z aliases=None
-723816cf failure 2026-11-25T16:40:34.378195Z aliases=None
-1642b3a4 success 2026-11-25T16:40:33.62949Z aliases=None
-probe df22126a -> 500 | 
-probe 1642b3a4 -> 500 | 
-probe af1cd44f -> 500 | 
-probe ROOT -> 500 | 
-ROLLBACK df22126a -> {"HTTPERR": 400, "body": "{\n  \"result\": null,\n  \"success\": false,\n  \"errors\": [\n    {\n      \"code\": 8000039,\n      \"message\": \"You cannot rollback to the deployment that is currently in production. You must rollback to a previous deployment.\"\n    }\n  ],\n  \"messages\": []\n}\n"}
-AFTER ROOT -> 500 | 
-AFTER latest -> 500 | 
+共取得部署 175 个
+OLD 0a9e779f 2026-11-20T22:41:29.790632Z idle None
+OLD 9f3308c0 2026-11-20T21:14:13.996419Z idle None
+OLD 0f1dbad3 2026-11-20T21:13:28.216263Z idle None
+OLD 19dca9d0 2026-11-20T21:06:13.191398Z idle None
+OLD 6d3c011b 2026-11-20T20:11:44.756007Z idle None
+OLD 04e8e26b 2026-11-20T20:11:43.460808Z idle None
+OLD a0f9bb38 2026-11-20T20:11:42.342318Z idle None
+OLD 17bebee9 2026-11-20T18:53:03.745015Z idle None
+OLD 468193c6 2026-11-20T18:53:02.142134Z idle None
+OLD 63d78f01 2026-11-20T18:53:01.015919Z idle None
+OLD 035b9f14 2026-11-20T11:32:40.011508Z idle None
+OLD 5561cb31 2026-11-20T11:32:38.620904Z idle None
+OLD af77d856 2026-11-20T11:32:37.099483Z idle None
+OLD 53c0b576 2026-11-20T10:36:18.923555Z success None
+OLD 78682d60 2026-11-20T10:36:17.444438Z idle None
+OLD 7d392ed1 2026-11-20T10:36:15.91791Z idle None
+OLD 6b695cec 2026-11-20T10:36:05.562906Z idle None
+OLD cf161716 2026-11-20T08:41:42.885147Z idle None
+OLD e52da16d 2026-11-20T08:34:25.511075Z idle None
+CAND 53c0b576 2026-11-20T10:36:18.923555Z trigger=github:push
+CAND 0e93780c 2026-11-25T16:21:34.240448Z trigger=ad_hoc
+CAND 2150489d 2026-11-25T16:25:47.237687Z trigger=ad_hoc
+CAND af1cd44f 2026-11-25T16:29:20.636573Z trigger=ad_hoc
+CAND e8fd55a7 2026-11-25T16:36:03.779655Z trigger=ad_hoc
+ROLLBACK 53c0b576 -> {"result": {"id": "53c0b576-faac-4de0-8c14-bfff13e397b4", "short_id": "53c0b576", "project_id": "95cc5a36-e730-4878-9070-51e47d7013b4", "project_name": "hnvip", "environment": "production", "url": "https://53c0b576.hnvip.pages.dev", "created_on": "2026-11-20T10:36:18.923555Z", "modified_on": "2026-1
+AFTER root -> 200
+AFTER latest.json -> 200
