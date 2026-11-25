@@ -87,7 +87,7 @@ jobs:
                      % (time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                         STATE.get('http', '?'), STATE.get('repo', '?'), STATE.get('online', '?'),
                         STATE.get('match', 'false'), STATE.get('stage', '?'),
-                        STATE.get('dep', '?'), STATE.get('error', '')))
+                        STATE.get('dep', '?'), STATE.get('verify', '?'), STATE.get('error', '')))
               print('--- STATE ---\n' + txt)
               try:
                   cur = gh('GET', 'hnvip_live_state.txt')
@@ -104,9 +104,16 @@ jobs:
           atexit.register(flush_state)   # 即使中途抛异常，也一定留下诊断
 
           def site_updated():
-              req = urllib.request.Request(SITE + '/data/latest.json?_=' + str(time.time_ns()),
-                  headers={'User-Agent': 'hnvip-live', 'Cache-Control': 'no-cache'})
-              return json.loads(urllib.request.urlopen(req, timeout=40).read()).get('updated', '?')
+              # 用 curl 回读：urllib 常被 CF 边缘策略拦，curl 与之前成功探测一致
+              import subprocess
+              r = subprocess.run(
+                  ['curl', '-sS', '-L', '--max-time', '40', '-H', 'Cache-Control: no-cache',
+                   '-H', 'User-Agent: hnvip-live/1.0',
+                   SITE + '/data/latest.json?_=' + str(time.time_ns())],
+                  capture_output=True, text=True, timeout=55)
+              if r.returncode != 0:
+                  raise RuntimeError('curl %d %s' % (r.returncode, (r.stderr or '')[:160]))
+              return json.loads(r.stdout).get('updated', '?')
 
           # ---------- 1. 构造 manifest 并直传 ----------
           files = {}
@@ -188,19 +195,29 @@ jobs:
               if online == repo_updated:
                   break
           ok = (online == repo_updated)
+          verified = (online != '?')      # 回读不到 ≠ 部署失败，不制造假告警
           code = 0
           try:
-              code = urllib.request.urlopen(urllib.request.Request(SITE + '/',
-                  headers={'User-Agent': 'hnvip-live'}), timeout=30).status
+              import subprocess
+              r = subprocess.run(['curl', '-sS', '-o', '/dev/null', '-w', '%{http_code}',
+                                 '-L', '--max-time', '30', SITE + '/'],
+                                capture_output=True, text=True, timeout=40)
+              code = int((r.stdout or '0').strip() or 0)
           except Exception as e:
               print('  裸地址探测 ERR', str(e)[:100])
 
           # ---------- 3. 留痕（atexit 保证无论成败都写） ----------
           STATE.update({'http': code, 'repo': repo_updated, 'online': online,
-                        'match': str(ok).lower(), 'stage': stage})
-          if not ok:
+                        'match': (str(ok).lower() if verified else 'unknown'), 'stage': stage,
+                        'verify': ('ok' if verified else 'unreachable')})
+          if not verified:
+              # 部署已 success，只是本轮回读通道不通；不判失败，留痕等下一轮定时兜底再校验
+              STATE['error'] = '线上回读不可达，本轮部署已成功但未自动校验'
+              print('WARN 线上回读不可达，部署已成功，等待下一轮校验')
+          elif not ok:
               STATE['error'] = '线上数据仍落后仓库，等待下一轮自愈'
               raise SystemExit('线上数据仍落后仓库（%s != %s），本轮判失败，等待下一轮自愈'
                                % (online, repo_updated))
-          print('OK 线上已与仓库一致')
+          else:
+              print('OK 线上已与仓库一致')
           PY
