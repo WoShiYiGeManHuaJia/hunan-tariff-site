@@ -1,0 +1,121 @@
+name: hnvip-live
+# hnvip.pages.dev 是 Cloudflare Pages「直传(ad_hoc)」项目，不跟 GitHub 自动构建。
+# 仓库里另一个项目 changes-in-carrier-pricing 才是 GitHub 绑定、天天部署 success 的那个，
+# 两者不是一回事：所以「部署 success」不等于 hnvip 会更新。
+# 本工作流在站点数据提交后，把当前仓库直传到 hnvip 的生产环境。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/**'
+      - 'unicom/data/**'
+      - 'telecom/data/**'
+      - 'gb/data/**'
+      - 'index.html'
+      - 'app.js'
+      - 'style.css'
+      - 'common-extras.js'
+      - '_headers'
+      - 'version.json'
+  workflow_dispatch:
+
+# 抓取一天多次提交，只保留最新一次，避免 CF 部署队列堆积
+concurrency:
+  group: hnvip-live
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 直传 hnvip 生产
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os, json, hashlib, uuid, time, urllib.request, urllib.error
+          root = os.getcwd()
+          ACC = '9156c2cae565fdf42d208827b523e47e'
+          token = os.environ['CF']
+          skip_dirs = {'.git', '.github'}
+          files = {}
+          for dp, dn, fn in os.walk(root):
+              dn[:] = [d for d in dn if d not in skip_dirs]
+              for f in fn:
+                  p = os.path.join(dp, f)
+                  rel = os.path.relpath(p, root).replace(os.sep, '/')
+                  sz = os.path.getsize(p)
+                  if sz > 24 * 1024 * 1024:
+                      print('SKIP >24MB:', rel, sz)
+                      continue
+                  h = hashlib.sha1(open(p, 'rb').read()).hexdigest()
+                  files['/' + rel] = {"hash": h, "size": sz}
+          print('files:', len(files), '| has index:', '/index.html' in files)
+          if '/index.html' not in files:
+              raise SystemExit('index.html 缺失，中止')
+
+          boundary = '----x' + uuid.uuid4().hex
+          def field(name, val, ctype=None, fname=None):
+              b = ('--%s\r\n' % boundary).encode()
+              if fname:
+                  b += ('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (name, fname)).encode()
+              else:
+                  b += ('Content-Disposition: form-data; name="%s"\r\n' % name).encode()
+              if ctype:
+                  b += ('Content-Type: %s\r\n' % ctype).encode()
+              return b + b'\r\n' + val + b'\r\n'
+          body = field('manifest', json.dumps(files).encode(), 'application/json')
+          for path, info in files.items():
+              body += field(info['hash'], open(root + path, 'rb').read(),
+                            'application/octet-stream', info['hash'])
+          body += ('--%s--\r\n' % boundary).encode()
+
+          url = 'https://api.cloudflare.com/client/v4/accounts/%s/pages/projects/hnvip/deployments' % ACC
+          req = urllib.request.Request(url, data=body, method='POST')
+          req.add_header('Authorization', 'Bearer ' + token)
+          req.add_header('Content-Type', 'multipart/form-data; boundary=' + boundary)
+          try:
+              resp = urllib.request.urlopen(req, timeout=600)
+          except urllib.error.HTTPError as e:
+              print('DEPLOY HTTP ERR', e.code, e.read().decode()[:600])
+              raise
+          out = json.loads(resp.read().decode())
+          dep = out['result']
+          print('DEP_ID', dep['id'], 'env', dep.get('environment'), 'url', dep.get('url'))
+
+          # 直传创建的 deployment 会卡在 queued，必须 retry 才会真正构建
+          r = urllib.request.Request(url + '/' + dep['id'] + '/retry', data=b'', method='POST')
+          r.add_header('Authorization', 'Bearer ' + token)
+          try:
+              print('RETRY HTTP', urllib.request.urlopen(r, timeout=120).status)
+          except Exception as e:
+              print('RETRY WARN', str(e)[:200])
+
+          for i in range(40):
+              time.sleep(10)
+              q = urllib.request.Request(url + '/' + dep['id'])
+              q.add_header('Authorization', 'Bearer ' + token)
+              try:
+                  st = json.loads(urllib.request.urlopen(q, timeout=60).read())['result']['latest_stage']['status']
+              except Exception as e:
+                  print('poll', i, 'ERR', str(e)[:100]); continue
+              print('stage[%d]' % i, st)
+              if st in ('success', 'failure', 'cancelled'):
+                  print('FINAL_STAGE', st)
+                  if st != 'success':
+                      raise SystemExit('部署未成功')
+                  break
+          else:
+              raise SystemExit('轮询超时')
+          PY
+
+      - name: 验证裸地址
+        run: |
+          sleep 20
+          echo "hnvip.pages.dev -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/)"
+          echo "latest.json -> $(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 https://hnvip.pages.dev/data/latest.json)"
