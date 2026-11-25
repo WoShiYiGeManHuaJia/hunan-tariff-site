@@ -1,0 +1,64 @@
+name: hnvip-diag
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 查 hnvip 部署与线上响应
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.error, subprocess, base64, time
+          CF=os.environ['CF']; PAT=os.environ['PAT']; REPO=os.environ['GITHUB_REPOSITORY']
+          ACC='9156c2cae565fdf42d208827b523e47e'
+          B='https://api.cloudflare.com/client/v4/accounts/'+ACC+'/pages/projects/hnvip'
+          def cf(u):
+              r=urllib.request.Request(u,headers={'Authorization':'Bearer '+CF,'User-Agent':'diag'})
+              return json.loads(urllib.request.urlopen(r,timeout=40).read())
+          out=[]
+          try:
+              p=cf(B)['result']
+              out.append('project: '+p.get('name','?'))
+              out.append('subdomain: '+str(p.get('subdomain')))
+              out.append('domains: '+str(p.get('domains')))
+              out.append('source: '+json.dumps(p.get('source'),ensure_ascii=False)[:300])
+              ld=p.get('latest_deployment') or {}
+              out.append('latest_deployment: '+str(ld.get('id'))+' env='+str(ld.get('environment'))+' stage='+str((ld.get('latest_stage') or {}).get('status'))+' '+str(ld.get('created_on')))
+          except Exception as e: out.append('project ERR '+str(e)[:200])
+          try:
+              ds=cf(B+'/deployments?per_page=12')['result']
+              out.append('--- deployments ---')
+              for d in ds:
+                  out.append(' %s env=%s stage=%s %s %s' % (
+                      d.get('id','')[:8], d.get('environment'),
+                      (d.get('latest_stage') or {}).get('status'), d.get('created_on'),
+                      d.get('url')))
+          except Exception as e: out.append('deployments ERR '+str(e)[:200])
+          for u in ['https://hnvip.pages.dev/','https://hnvip.pages.dev/data/latest.json','https://hnvip.pages.dev/version.json']:
+              r=subprocess.run(['curl','-sS','-L','--max-time','30','-o','/tmp/b','-w','%{http_code}',u],
+                               capture_output=True,text=True,timeout=40)
+              body=open('/tmp/b','rb').read()[:160].decode('utf8','replace').replace('\n',' ')
+              out.append('curl %s -> %s | %s' % (u.split('/')[-1] or 'root', (r.stdout or '').strip(), body))
+          txt='\n'.join(out)+'\n'
+          print(txt)
+          url='https://api.github.com/repos/'+REPO+'/contents/hnvip_diag.txt'
+          for i in range(5):
+              try:
+                  req=urllib.request.Request(url,headers={'Authorization':'token '+PAT,'User-Agent':'diag'})
+                  sha=json.loads(urllib.request.urlopen(req,timeout=30).read()).get('sha')
+                  break
+              except urllib.error.HTTPError as e:
+                  sha=None
+                  if e.code==404: break
+                  time.sleep(3)
+              except Exception: sha=None; break
+          d={'message':'hnvip diag','content':base64.b64encode(txt.encode()).decode(),'branch':'main'}
+          if sha: d['sha']=sha
+          req=urllib.request.Request(url,data=json.dumps(d).encode(),method='PUT',
+              headers={'Authorization':'token '+PAT,'User-Agent':'diag','Content-Type':'application/json'})
+          try: urllib.request.urlopen(req,timeout=40).read(); print('diag written')
+          except Exception as e: print('write ERR',str(e)[:200])
+          PY
