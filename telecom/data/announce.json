@@ -1,141 +1,173 @@
 {
- "updated": "2026-10-19 14:18",
+ "updated": "2026-11-27 06:22:06",
  "count": 15,
+ "province": "湖南",
+ "source": "https://www.189.cn/web/notice",
  "items": [
   {
-   "id": "715737200001",
+   "title": "湖南电信一证多卡业务办理营业厅公示",
+   "date": "2026-11-23",
+   "offerCode": "736363300001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "湖南电信一证多卡业务办理营业厅公示",
+   "page_url": "",
+   "content": "<p><span style=\"color: rgb(51, 51, 51); background-color: rgb(255, 255, 255); font-size: 16px;\">请点击查阅&gt;&gt;&gt;</span></p><p><a href=\"https://www.189.cn/bigdataRecommend/1690_湖南电信一证多卡业务办理营业厅公示.pdf\" target=\"_blank\"><img src=\"data:image/svg+xml;charset=utf-8;base64,PHN2ZyB0PSIxNzc4MDY1MDI0OTc0IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjE1NzciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBkPSJNOTAxLjg1MDU5MyA5MjYuNDc2MjgzYTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEtNDguNzYxODU5IDQ4Ljc2MTg1OUgxNzAuNDIyNzE4YTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEtNDguNzYxODU4LTQ4Ljc2MTg1OVY0OC43NjI4MzRhNDguNzYxODU4IDQ4Ljc2MTg1OCAwIDAgMSA0OC43NjE4NTgtNDguNzYxODU5aDQxOC44NjQzNjNhNDguNzYxODU4IDQ4Ljc2MTg1OCAwIDAgMSAzNC42MjA5MTkgMTQuMTQwOTM5bDI2My44MDE2NTQgMjYzLjgwMTY1NGE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxIDE0LjE0MDkzOSAzNC42MjA5MTlWOTI2LjQ3NjI4M3oiIGZpbGw9IiNFQkVDRjAiIHAtaWQ9IjE1NzgiPjwvcGF0aD48cGF0aCBkPSJNOTAxLjg1MDU5MyA5MjYuNDc2MjgzdjQ4Ljc2MTg1OWE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxLTQ4Ljc2MTg1OSA0OC43NjE4NThIMTcwLjQyMjcxOGE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxLTQ4Ljc2MTg1OC00OC43NjE4NTh2LTQ4Ljc2MTg1OWE0OC43NjE4NTggNDguNzYxODU4IDAgMCAwIDQ4Ljc2MTg1OCA0OC43NjE4NTloNjgyLjY2NjAxNmE0OC43NjE4NTggNDguNzYxODU4IDAgMCAwIDQ4Ljc2MTg1OS00OC43NjE4NTl6IiBmaWxsPSIjQzFDN0QwIiBwLWlkPSIxNTc5Ij48L3BhdGg+PHBhdGggZD0iTTI0LjEzNzE0MyA1MzYuMzgxNDE3aDk3NS4yMzcxNjZ2MjQzLjgwOTI5MWE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxLTQ4Ljc2MTg1OCA0OC43NjE4NTlINzIuODk5MDAxYTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEtNDguNzYxODU4LTQ4Ljc2MTg1OXYtMjQzLjgwOTI5MXoiIGZpbGw9IiNGRjU2MzAiIHAtaWQ9IjE1ODAiPjwvcGF0aD48cGF0aCBkPSJNMTIxLjY2MDg2IDUzNi4zODE0MTdWNDM4Ljg1NzdsLTk3LjUyMzcxNyA5Ny41MjM3MTdoOTcuNTIzNzE3ek05MDEuODUwNTkzIDUzNi4zODE0MTdsMC45NzUyMzctOTcuNTIzNzE3IDk3LjAzNjA5OCA5Ny41MjM3MTdIOTAxLjg1MDU5M3oiIGZpbGw9IiNERTM1MEIiIHAtaWQ9IjE1ODEiPjwvcGF0aD48cGF0aCBkPSJNMjY3Ljk0NjQzNCA1ODUuMTQzMjc1aDg0Ljg0NTYzNGE1Ny4wNTEzNzQgNTcuMDUxMzc0IDAgMCAxIDQxLjkzNTE5OCAxNS42MDM3OTUgNTUuMTAwOSA1NS4xMDA5IDAgMCAxIDE2LjA5MTQxMyA0MC45NTk5NjEgNTUuNTg4NTE4IDU1LjU4ODUxOCAwIDAgMS0xNi4wOTE0MTMgNDAuOTU5OTYxIDU5LjAwMTg0OSA1OS4wMDE4NDkgMCAwIDEtNDMuMzk4MDU0IDE2LjA5MTQxM2gtNDguNzYxODU4djc2LjU1NjExOEgyNjcuOTQ2NDM0eiBtMzIuNjcwNDQ2IDgxLjkxOTkyMmg0My44ODU2NzJhNDIuNDIyODE3IDQyLjQyMjgxNyAwIDAgMCAyNS44NDM3ODUtNi4zMzkwNDEgMjMuODkzMzExIDIzLjg5MzMxMSAwIDAgMCA3LjgwMTg5Ny0xOS45OTIzNjJxMC0yNC44Njg1NDgtMzIuNjcwNDQ1LTI0Ljg2ODU0OGgtNDQuODYwOTA5ek00MzQuNzExOTkgNTg4LjA2ODk4N0g1MTEuNzU1NzI2YTczLjE0Mjc4NyA3My4xNDI3ODcgMCAwIDEgNTguNTE0MjMgMjUuMzU2MTY2IDEwMC45MzcwNDcgMTAwLjkzNzA0NyAwIDAgMSAyMS45NDI4MzYgNjguMjY2NjAyIDExMC42ODk0MTggMTEwLjY4OTQxOCAwIDAgMS0yMC45Njc1OTkgNjkuNzI5NDU3QTcxLjY3OTkzMiA3MS42Nzk5MzIgMCAwIDEgNTExLjc1NTcyNiA3ODAuMTkwNzA4SDQzNC43MTE5OXogbTMyLjY3MDQ0NSAxNTguOTYzNjU4SDUxMS43NTU3MjZhNDMuMzk4MDU0IDQzLjM5ODA1NCAwIDAgMCAzNi4wODM3NzUtMTcuMDY2NjUxQTc1LjA5MzI2MiA3NS4wOTMyNjIgMCAwIDAgNTYwLjUxNzU4NCA2ODIuNjY2OTkyYTcwLjcwNDY5NSA3MC43MDQ2OTUgMCAwIDAtMTMuNjUzMzItNDguNzYxODU5IDQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDAtMzcuNTQ2NjMxLTE2LjU3OTAzMWgtNDEuOTM1MTk4ek03NTUuNTY1MDE4IDYxOC43ODg5NTdoLTEwMC45MzcwNDd2NDUuMzQ4NTI5SDc1NS41NjUwMTh2MzEuMjA3NTg5aC0xMDAuOTM3MDQ3djgxLjkxOTkyMmgtMzIuNjcwNDQ1di0xOTAuMTcxMjQ4SDc1NS41NjUwMTh6IiBmaWxsPSIjRkZGRkZGIiBwLWlkPSIxNTgyIj48L3BhdGg+PHBhdGggZD0iTTkwMS44NTA1OTMgMzEyLjU2NDQ4N3Y2LjgyNjY2aC0yNjMuODAxNjU0YTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEtNDguNzYxODU4LTQ4Ljc2MTg1OFYwLjAwMDk3NWE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxIDM0LjYyMDkxOSAxNC4xNDA5MzlsMjY0LjI4OTI3MiAyNjMuODAxNjU0YTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEgMTMuNjUzMzIxIDM0LjYyMDkxOXoiIGZpbGw9IiNDMUM3RDAiIHAtaWQ9IjE1ODMiPjwvcGF0aD48L3N2Zz4=\" alt=\"1690\" data-href=\"\" style=\"width: 12px;\"/> &nbsp;湖南电信一证多卡业务办理营业厅公示.pdf</a></p>",
+   "summary": "请点击查阅>>>\n 湖南电信一证多卡业务办理营业厅公示.pdf"
+  },
+  {
+   "title": "关于中国电信郴州公司宽带网络升级的公告",
+   "date": "2026-11-23",
+   "offerCode": "736331600001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信郴州公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好的服务客户，我公司将于11月25日00:00-06:00对互联网络进行升级维护，正常情况下不影响用户，极端场景下可能造成郴州用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网业务下线后不能自动重新上线。在此期间如遇业务不能正常使用，请重启光猫/机顶盒一次。给您带来不便，敬请谅解，感谢您对中国电信的支持和关注。</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\">中国电信郴州分公司</p><p style=\"text-indent: 28pt; text-align: right;\">2026年11月23日</p>",
+   "summary": "为更好的服务客户，我公司将于11月25日00:00-06:00对互联网络进行升级维护，正常情况下不影响用户，极端场景下可能造成郴州用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等"
+  },
+  {
+   "title": "关于中国电信永州公司宽带网络升级的公告",
+   "date": "2026-11-23",
+   "offerCode": "736331700001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信永州公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好的服务客户，我公司将于11月25日00:00-06:00对互联网络进行升级维护，正常情况下不影响用户，极端场景下可能造成永州用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网业务下线后不能自动重新上线。在此期间如遇业务不能正常使用，请重启光猫/机顶盒一次。给您带来不便，敬请谅解，感谢您对中国电信的支持和关注。</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\">中国电信永州分公司</p><p style=\"text-indent: 28pt; text-align: right;\">2026年11月23日</p>",
+   "summary": "为更好的服务客户，我公司将于11月25日00:00-06:00对互联网络进行升级维护，正常情况下不影响用户，极端场景下可能造成永州用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等"
+  },
+  {
+   "title": "Public Notice on Business Halls for New Mobile Number Card Registration Services for Foreign Nationals",
+   "date": "2026-11-19",
+   "offerCode": "735782500001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "Public Notice on Business Halls for New Mobile Number Card Registration Services for Foreign Nationals",
+   "page_url": "",
+   "content": "<p><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092939195716.jpg\" alt=\"常德.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092939195716.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092941568752.jpg\" alt=\"郴州.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092941568752.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092942699190.jpg\" alt=\"衡阳.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092942699190.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092943977144.jpg\" alt=\"怀化.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092943977144.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092945350278.jpg\" alt=\"娄底.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092945350278.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092946823785.jpg\" alt=\"邵阳.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092946823785.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092947784981.jpg\" alt=\"湘潭.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092947784981.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092948761678.jpg\" alt=\"益阳.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092948761678.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092950069636.jpg\" alt=\"永州.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092950069636.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092951475618.jpg\" alt=\"岳阳.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092951475618.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092952738287.jpg\" alt=\"张家界.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092952738287.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092954363676.jpg\" alt=\"长沙.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092954363676.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092955753827.jpg\" alt=\"株洲.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092955753827.jpg\" style=\"\"/><img src=\"https://w.189.cn/bigdata/2026/11/19/111795092957121524.jpg\" alt=\"自治州.jpg\" data-href=\"https://w.189.cn/bigdata/2026/11/19/111795092957121524.jpg\" style=\"\"/></p>",
+   "summary": "（图片公告，点击查看）"
+  },
+  {
+   "title": "湖南电信办理“未成年人业务“门店公示更新",
+   "date": "2026-11-19",
+   "offerCode": "735791400001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "湖南电信办理“未成年人业务“门店公示更新",
+   "page_url": "",
+   "content": "<p><span style=\"color: rgb(51, 51, 51); background-color: rgb(255, 255, 255); font-size: 16px;\">请点击查阅&gt;&gt;&gt;</span></p><p><a href=\"https://www.189.cn/bigdataRecommend/1689_湖南电信未成年入网业务办理营业厅店公示（2026）.pdf\" target=\"_blank\"><img src=\"data:image/svg+xml;charset=utf-8;base64,PHN2ZyB0PSIxNzc4MDY1MDI0OTc0IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjE1NzciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBkPSJNOTAxLjg1MDU5MyA5MjYuNDc2MjgzYTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEtNDguNzYxODU5IDQ4Ljc2MTg1OUgxNzAuNDIyNzE4YTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEtNDguNzYxODU4LTQ4Ljc2MTg1OVY0OC43NjI4MzRhNDguNzYxODU4IDQ4Ljc2MTg1OCAwIDAgMSA0OC43NjE4NTgtNDguNzYxODU5aDQxOC44NjQzNjNhNDguNzYxODU4IDQ4Ljc2MTg1OCAwIDAgMSAzNC42MjA5MTkgMTQuMTQwOTM5bDI2My44MDE2NTQgMjYzLjgwMTY1NGE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxIDE0LjE0MDkzOSAzNC42MjA5MTlWOTI2LjQ3NjI4M3oiIGZpbGw9IiNFQkVDRjAiIHAtaWQ9IjE1NzgiPjwvcGF0aD48cGF0aCBkPSJNOTAxLjg1MDU5MyA5MjYuNDc2MjgzdjQ4Ljc2MTg1OWE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxLTQ4Ljc2MTg1OSA0OC43NjE4NThIMTcwLjQyMjcxOGE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxLTQ4Ljc2MTg1OC00OC43NjE4NTh2LTQ4Ljc2MTg1OWE0OC43NjE4NTggNDguNzYxODU4IDAgMCAwIDQ4Ljc2MTg1OCA0OC43NjE4NTloNjgyLjY2NjAxNmE0OC43NjE4NTggNDguNzYxODU4IDAgMCAwIDQ4Ljc2MTg1OS00OC43NjE4NTl6IiBmaWxsPSIjQzFDN0QwIiBwLWlkPSIxNTc5Ij48L3BhdGg+PHBhdGggZD0iTTI0LjEzNzE0MyA1MzYuMzgxNDE3aDk3NS4yMzcxNjZ2MjQzLjgwOTI5MWE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxLTQ4Ljc2MTg1OCA0OC43NjE4NTlINzIuODk5MDAxYTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEtNDguNzYxODU4LTQ4Ljc2MTg1OXYtMjQzLjgwOTI5MXoiIGZpbGw9IiNGRjU2MzAiIHAtaWQ9IjE1ODAiPjwvcGF0aD48cGF0aCBkPSJNMTIxLjY2MDg2IDUzNi4zODE0MTdWNDM4Ljg1NzdsLTk3LjUyMzcxNyA5Ny41MjM3MTdoOTcuNTIzNzE3ek05MDEuODUwNTkzIDUzNi4zODE0MTdsMC45NzUyMzctOTcuNTIzNzE3IDk3LjAzNjA5OCA5Ny41MjM3MTdIOTAxLjg1MDU5M3oiIGZpbGw9IiNERTM1MEIiIHAtaWQ9IjE1ODEiPjwvcGF0aD48cGF0aCBkPSJNMjY3Ljk0NjQzNCA1ODUuMTQzMjc1aDg0Ljg0NTYzNGE1Ny4wNTEzNzQgNTcuMDUxMzc0IDAgMCAxIDQxLjkzNTE5OCAxNS42MDM3OTUgNTUuMTAwOSA1NS4xMDA5IDAgMCAxIDE2LjA5MTQxMyA0MC45NTk5NjEgNTUuNTg4NTE4IDU1LjU4ODUxOCAwIDAgMS0xNi4wOTE0MTMgNDAuOTU5OTYxIDU5LjAwMTg0OSA1OS4wMDE4NDkgMCAwIDEtNDMuMzk4MDU0IDE2LjA5MTQxM2gtNDguNzYxODU4djc2LjU1NjExOEgyNjcuOTQ2NDM0eiBtMzIuNjcwNDQ2IDgxLjkxOTkyMmg0My44ODU2NzJhNDIuNDIyODE3IDQyLjQyMjgxNyAwIDAgMCAyNS44NDM3ODUtNi4zMzkwNDEgMjMuODkzMzExIDIzLjg5MzMxMSAwIDAgMCA3LjgwMTg5Ny0xOS45OTIzNjJxMC0yNC44Njg1NDgtMzIuNjcwNDQ1LTI0Ljg2ODU0OGgtNDQuODYwOTA5ek00MzQuNzExOTkgNTg4LjA2ODk4N0g1MTEuNzU1NzI2YTczLjE0Mjc4NyA3My4xNDI3ODcgMCAwIDEgNTguNTE0MjMgMjUuMzU2MTY2IDEwMC45MzcwNDcgMTAwLjkzNzA0NyAwIDAgMSAyMS45NDI4MzYgNjguMjY2NjAyIDExMC42ODk0MTggMTEwLjY4OTQxOCAwIDAgMS0yMC45Njc1OTkgNjkuNzI5NDU3QTcxLjY3OTkzMiA3MS42Nzk5MzIgMCAwIDEgNTExLjc1NTcyNiA3ODAuMTkwNzA4SDQzNC43MTE5OXogbTMyLjY3MDQ0NSAxNTguOTYzNjU4SDUxMS43NTU3MjZhNDMuMzk4MDU0IDQzLjM5ODA1NCAwIDAgMCAzNi4wODM3NzUtMTcuMDY2NjUxQTc1LjA5MzI2MiA3NS4wOTMyNjIgMCAwIDAgNTYwLjUxNzU4NCA2ODIuNjY2OTkyYTcwLjcwNDY5NSA3MC43MDQ2OTUgMCAwIDAtMTMuNjUzMzItNDguNzYxODU5IDQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDAtMzcuNTQ2NjMxLTE2LjU3OTAzMWgtNDEuOTM1MTk4ek03NTUuNTY1MDE4IDYxOC43ODg5NTdoLTEwMC45MzcwNDd2NDUuMzQ4NTI5SDc1NS41NjUwMTh2MzEuMjA3NTg5aC0xMDAuOTM3MDQ3djgxLjkxOTkyMmgtMzIuNjcwNDQ1di0xOTAuMTcxMjQ4SDc1NS41NjUwMTh6IiBmaWxsPSIjRkZGRkZGIiBwLWlkPSIxNTgyIj48L3BhdGg+PHBhdGggZD0iTTkwMS44NTA1OTMgMzEyLjU2NDQ4N3Y2LjgyNjY2aC0yNjMuODAxNjU0YTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEtNDguNzYxODU4LTQ4Ljc2MTg1OFYwLjAwMDk3NWE0OC43NjE4NTggNDguNzYxODU4IDAgMCAxIDM0LjYyMDkxOSAxNC4xNDA5MzlsMjY0LjI4OTI3MiAyNjMuODAxNjU0YTQ4Ljc2MTg1OCA0OC43NjE4NTggMCAwIDEgMTMuNjUzMzIxIDM0LjYyMDkxOXoiIGZpbGw9IiNDMUM3RDAiIHAtaWQ9IjE1ODMiPjwvcGF0aD48L3N2Zz4=\" alt=\"1689\" data-href=\"\" style=\"width: 12px;\"/> &nbsp;湖南电信未成年入网业务办理营业厅店公示（2026）.pdf</a></p>",
+   "summary": "请点击查阅>>>\n 湖南电信未成年入网业务办理营业厅店公示（2026）.pdf"
+  },
+  {
+   "title": "关于合作权益到期下线调整公告",
+   "date": "2026-11-11",
+   "offerCode": "731092500001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于合作权益到期下线调整公告",
+   "page_url": "",
+   "content": "<p>尊敬的用户：<br> &nbsp; &nbsp; &nbsp; &nbsp;因权益合作到期，赞有商城96会员权益月卡、波奇宠物75元/45元代金券礼包及繁花剧场等部分短剧会员权益，将于2026年12月1日起正式下线。下线后将停止权益发放，相关权益包可能进行权益内容调整或下线处理。<br> &nbsp; &nbsp; &nbsp; &nbsp;若您不再需要上述相关权益包，建议及时办理退订，避免后续产生费用。本次调整给您带来不便，敬请谅解！为更好的服务客户，我公司将于11月5日00:00-06:00对互联网络进行升级维护，正常情况下不影响用户，极端场景下可能造成长沙用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网业务下线后不能自动重新上线。在此期间如遇业务不能正常使用，请重启光猫/机顶盒一次。给您带来不便，敬请谅解，感谢您对中国电信的支持和关注。</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\">中国电信股份有限公司湖南电子渠道部</p><p style=\"text-indent: 28pt; text-align: right;\">2026年11月11日</p>",
+   "summary": "尊敬的用户：\n 因权益合作到期，赞有商城96会员权益月卡、波奇宠物75元/45元代金券礼包及繁花剧场等部分短剧会员权益，将于2026年12月1日起正式下线。下线后将停止权益发放，相关权益包可能进行权益"
+  },
+  {
+   "title": "关于中国电信益阳公司宽带网络升级的公告",
+   "date": "2026-11-05",
+   "offerCode": "727936000001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信益阳公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好的服务客户，我公司将于11月7日00:00-06:00对宽带网络进行升级维护，正常情况下不影响用户，极端场景下可能造成益阳电信用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网业务下线后不能自动重新上线。期间如遇业务不能正常使用，请重启光猫/机顶盒一次。给您带来不便，敬请谅解，感谢您对中国电信的支持和关注</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\">中国电信益阳分公司</p><p style=\"text-indent: 28pt; text-align: right;\">2026年11月5日</p>",
+   "summary": "为更好的服务客户，我公司将于11月7日00:00-06:00对宽带网络进行升级维护，正常情况下不影响用户，极端场景下可能造成益阳电信用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带"
+  },
+  {
+   "title": "关于中国电信长沙公司宽带网络升级的公告",
+   "date": "2026-11-03",
+   "offerCode": "725974500001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信长沙公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好的服务客户，我公司将于11月5日00:00-06:00对互联网络进行升级维护，正常情况下不影响用户，极端场景下可能造成长沙用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网业务下线后不能自动重新上线。在此期间如遇业务不能正常使用，请重启光猫/机顶盒一次。给您带来不便，敬请谅解，感谢您对中国电信的支持和关注。</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\">中国电信长沙分公司</p><p style=\"text-indent: 28pt; text-align: right;\">2026年11月3日</p>",
+   "summary": "为更好的服务客户，我公司将于11月5日00:00-06:00对互联网络进行升级维护，正常情况下不影响用户，极端场景下可能造成长沙用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固"
+  },
+  {
+   "title": "关于中国电信株洲公司宽带网络升级的公告",
+   "date": "2026-11-03",
+   "offerCode": "725974400001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信株洲公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为提供更优质的网络服务，我公司计划于11月6日1:00-6:00对株洲市渌口区的电信宽带网络实施升级改造，升级期间，渌口区部分电信用户的宽带、IPTV、专线、固话等业务约中断120分钟，请您提前做好安排。升级完成后若业务无法正常使用，可尝试重启光猫、路由器、机顶盒等设备，仍未恢复请关注微信服务号“湖南电信”或拨打客服热线10000申报故障。感谢您的理解与支持！</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\">中国电信株洲公司</p><p style=\"text-indent: 28pt; text-align: right;\">2026年11月3日</p>",
+   "summary": "为提供更优质的网络服务，我公司计划于11月6日1:00-6:00对株洲市渌口区的电信宽带网络实施升级改造，升级期间，渌口区部分电信用户的宽带、IPTV、专线、固话等业务约中断120分钟，请您提前做好安"
+  },
+  {
+   "title": "关于中国电信益阳公司宽带网络升级的公告",
+   "date": "2026-10-20",
+   "offerCode": "719876300001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信益阳公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好的服务客户，我公司将于10月22日00:00-06:00对网络进行升级维护，正常情况下不影响用户，极端场景下可能造成益阳用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网业务下线后不能自动重新上线。在此期间如遇业务不能正常使用，请重启光猫/机顶盒一次。给您带来不便，敬请谅解，感谢您对中国电信的支持和关注。</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\"><span style=\"color: rgb(0, 0, 0);\">中国电信益阳分公司</span></p><p style=\"text-indent: 28pt; text-align: right;\">2026年10月20日</p>",
+   "summary": "为更好的服务客户，我公司将于10月22日00:00-06:00对网络进行升级维护，正常情况下不影响用户，极端场景下可能造成益阳用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网"
+  },
+  {
+   "title": "关于中国电信株洲公司宽带网络升级的公告",
+   "date": "2026-10-20",
+   "offerCode": "719935700001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信株洲公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好的服务客户，我公司将于10月22日00:00-06:00对网络进行升级维护，正常情况下不影响用户，极端场景下可能造成株洲用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网业务下线后不能自动重新上线。在此期间如遇业务不能正常使用，请重启光猫/机顶盒一次。给您带来不便，敬请谅解，感谢您对中国电信的支持和关注。</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\"><span style=\"color: rgb(0, 0, 0);\">中国电信株洲分公司</span></p><p style=\"text-indent: 28pt; text-align: right;\">2026年10月20日</p>",
+   "summary": "为更好的服务客户，我公司将于10月22日00:00-06:00对网络进行升级维护，正常情况下不影响用户，极端场景下可能造成株洲用户宽带上网、IPTV、互联网专线、云专网云专线、福彩体彩、校园宽带等固网"
+  },
+  {
+   "title": "关于中国电信株洲公司宽带网络升级的公告",
+   "date": "2026-10-12",
+   "offerCode": "715577900001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信株洲公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为提供更优质的服务，我公司将于10月15日1:00-6:00对株洲市炎陵县的电信网络设备进行升级。升级期间，炎陵县部分电信用户的宽带、IPTV电视、固定电话、专线等业务约中断60分钟，请您提前做好安排。如网络升级后不能正常使用，请重启光猫和路由器等设备，仍未恢复请关注微信服务号“湖南电信”或拨打客服热线10000申告故障。感谢您的理解与支持！</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\"><span style=\"color: rgb(0, 0, 0);\">中国电信株洲公司</span></p><p style=\"text-indent: 28pt; text-align: right;\">2026年10月12日</p>",
+   "summary": "为提供更优质的服务，我公司将于10月15日1:00-6:00对株洲市炎陵县的电信网络设备进行升级。升级期间，炎陵县部分电信用户的宽带、IPTV电视、固定电话、专线等业务约中断60分钟，请您提前做好安排"
+  },
+  {
+   "title": "关于中国电信张家界公司宽带网络升级的公告",
+   "date": "2026-10-12",
+   "offerCode": "714843100001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信张家界公司宽带网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好地服务客户，我公司将于10月15日01:00-06:00对张家界市区、永定区的宽带网络进行升级。升级期间，张家界市区、永定区、武陵源区部分电信用户的宽带上网、IPTV电视、固定电话等业务约中断150分钟，请您提前做好安排。升级后如不能正常使用，请重启光猫和路由器等设备，仍未恢复请关注微信服务号“湖南电信”或拨打客服热线10000申告故障。给您带来不便，敬请谅解。</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\"><span style=\"color: rgb(0, 0, 0);\">中国电信张家界公司</span></p><p style=\"text-indent: 28pt; text-align: right;\">2026年10月12日</p>",
+   "summary": "为更好地服务客户，我公司将于10月15日01:00-06:00对张家界市区、永定区的宽带网络进行升级。升级期间，张家界市区、永定区、武陵源区部分电信用户的宽带上网、IPTV电视、固定电话等业务约中断1"
+  },
+  {
    "title": "关于中国电信长沙公司移动网络升级的公告",
    "date": "2026-10-12",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
+   "offerCode": "715737200001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信长沙公司移动网络升级的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好地服务客户，我公司将于10月15日01：00-06:00对移动网络进行升级维护，期间可能会短时影响长沙电信天心区、雨花区、长沙县部分用户的手机通信，给您造成不便，敬请谅解。</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\"><span style=\"color: rgb(0, 0, 0);\">中国电信长沙公司</span></p><p style=\"text-indent: 28pt; text-align: right;\">2026年10月12日</p>",
+   "summary": "为更好地服务客户，我公司将于10月15日01：00-06:00对移动网络进行升级维护，期间可能会短时影响长沙电信天心区、雨花区、长沙县部分用户的手机通信，给您造成不便，敬请谅解。\n\n中国电信长沙公司\n"
   },
   {
-   "id": "715577900001",
-   "title": "关于中国电信株洲公司宽带网络升级的公告",
-   "date": "2026-10-12",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "715568600001",
    "title": "关于中国电信宁乡公司双凫铺机房割接的公告",
    "date": "2026-10-12",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "714843100001",
-   "title": "关于中国电信张家界公司宽带网络升级的公告",
-   "date": "2026-10-12",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "712941700001",
-   "title": "关于中国电信常德公司宽带网络升级的公告",
-   "date": "2026-10-09",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "712907400001",
-   "title": "湖南电信“星卡全家畅享福利”活动下线公告",
-   "date": "2026-10-05",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "570447200001",
-   "title": "湖南电信装维延伸服务收费公示",
-   "date": "2026-09-18",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "567750700001",
-   "title": "关于中国电信张家界公司宽带网络升级的公告",
-   "date": "2026-09-16",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "567768800001",
-   "title": "关于中国电信株洲公司宽带网络升级的公告",
-   "date": "2026-09-15",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "567676400001",
-   "title": "中国电信股份有限公司湖南电子渠道部 互联网合作商招商公告",
-   "date": "2026-09-14",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "566924800001",
-   "title": "关于中国电信湘西、衡阳公司宽带网络升级的公告",
-   "date": "2026-09-14",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "563739300001",
-   "title": "关于中国电信株洲公司宽带网络升级的公告",
-   "date": "2026-09-08",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "540248600001",
-   "title": "关于中国电信株洲公司宽带网络升级的公告",
-   "date": "2026-09-05",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "539122600001",
-   "title": "关于中国电信株洲公司宽带网络升级的公告",
-   "date": "2026-09-01",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
-  },
-  {
-   "id": "532603000001",
-   "title": "关于中国电信怀化公司宽带网络升级的公告",
-   "date": "2026-08-24",
-   "page_url": "https://www.189.cn/web/notice",
-   "summary": "",
-   "content": "",
-   "attachments": []
+   "offerCode": "715568600001",
+   "type": "wt_sy_bzzx",
+   "link": "",
+   "tab": "关于中国电信宁乡公司双凫铺机房割接的公告",
+   "page_url": "",
+   "content": "<p> &nbsp; &nbsp; &nbsp; &nbsp;为更好地服务客户，我公司计划于 2026 年 10 月 12 日凌晨 1:30-3:00对宁乡双凫铺机房进行割接，割接期间将影响宁乡市黄材、流沙河、灰汤、横市、老粮仓、巷子口、龙田、青山桥乡镇部分电信用户固定电话、宽带上网、电视等业务的使用，割接完成即可恢复，给您带来不便，敬请谅解。 感谢您对中国电信的支持！</p><p><br></p><p style=\"text-indent: 28pt; text-align: right;\"><span style=\"color: rgb(0, 0, 0);\">中国电信宁乡公司</span></p><p style=\"text-indent: 28pt; text-align: right;\">2026年10月12日</p>",
+   "summary": "为更好地服务客户，我公司计划于 2026 年 10 月 12 日凌晨 1:30-3:00对宁乡双凫铺机房进行割接，割接期间将影响宁乡市黄材、流沙河、灰汤、横市、老粮仓、巷子口、龙田、青山桥乡镇部分电信"
   }
  ]
 }
