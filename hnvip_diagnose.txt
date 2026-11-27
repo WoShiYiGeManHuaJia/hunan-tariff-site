@@ -1,0 +1,19 @@
+name hnvip subdomain hnvip.pages.dev domains ['hnvip.pages.dev']
+source.type github repo_id 1438392194 repo_name hunan-tariff-site
+prod_enabled True depl_enabled True
+build_config {"build_command": "", "destination_dir": "", "root_dir": "", "web_analytics_tag": null, "web_analytics_token": null}
+latest ce5a1d48-1d94-4239-a1ce-ce3fd7f5a0b5 stage idle trigger github:push url https://ce5a1d48.hnvip.pages.dev
+DEP ce5a1d48 production idle github:push 2026-11-27T13:57:33.172742Z -> 404 https://ce5a1d48.hnvip.pages.dev
+DEP 69af4501 production idle github:push 2026-11-27T13:57:11.322705Z -> 404 https://69af4501.hnvip.pages.dev
+DEP 1b7ecf42 production idle github:push 2026-11-27T13:54:14.357629Z -> 404 https://1b7ecf42.hnvip.pages.dev
+DEP 9da05ff5 production active ad_hoc 2026-11-27T13:51:05.975998Z -> 404 https://9da05ff5.hnvip.pages.dev
+DEP 4b206b25 production success ad_hoc 2026-11-27T13:51:05.44916Z -> 500 https://4b206b25.hnvip.pages.dev
+DEP 6439b72e production failure ad_hoc 2026-11-27T13:47:42.406218Z -> 404 https://6439b72e.hnvip.pages.dev
+DEP 6997065a production success ad_hoc 2026-11-27T13:47:41.805102Z -> 500 https://6997065a.hnvip.pages.dev
+DEP dc9ab3de production idle github:push 2026-11-27T13:47:07.092533Z -> 404 https://dc9ab3de.hnvip.pages.dev
+DEP d772547c production idle github:push 2026-11-27T13:47:05.565589Z -> 404 https://d772547c.hnvip.pages.dev
+DEP ea1d9c25 production idle github:push 2026-11-27T13:43:29.938779Z -> 404 https://ea1d9c25.hnvip.pages.dev
+ROOT https://hnvip.pages.dev/ -> 500
+ROOT body: 
+LATEST https://hnvip.pages.dev/data/latest.json -> 500
+ALT https://hunan-tariff-site.pages.dev/ -> 200
