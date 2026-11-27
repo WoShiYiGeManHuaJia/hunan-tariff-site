@@ -19,14 +19,14 @@ def http_err(e):
 
 # 1. 取全部部署 id
 ids=[]
-for page in range(1,9):
+for page in range(1,16):
     try:
-        st,d=req(D+'?page=%d&per_page=100'%page)
+        st,d=req(D+'?page=%d&per_page=25'%page)
         arr=(d.get('result') or []) if isinstance(d,dict) else []
         if not arr: break
         ids += [x['id'] for x in arr]
         log('page',page,'got',len(arr),'total',len(ids))
-        if len(arr)<100: break
+        if len(arr)<25: break
     except urllib.error.HTTPError as e: log('LIST HTTP',*http_err(e)); break
     except Exception as e: log('LIST ERR',str(e)[:120]); break
 log('TOTAL DEPLOYMENTS',len(ids))
@@ -40,7 +40,7 @@ for i,did in enumerate(ids):
         c,_=http_err(e)
         if c!=404: log('del ERR',did[:8],c)
     except Exception as e: log('del ERR',did[:8],str(e)[:60])
-    if (i+1)%40==0 or (i+1)==len(ids):
+    if (i+1)%25==0 or (i+1)==len(ids):
         log('deleted',deleted,'/',len(ids))
         for k in range(2):
             try:
