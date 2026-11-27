@@ -1,14 +1,245 @@
-LIST HTTP 400 {
+page 1 got 25 total 25
+page 2 got 25 total 50
+page 3 got 25 total 75
+page 4 got 25 total 100
+page 5 got 25 total 125
+page 6 got 25 total 150
+page 7 got 25 total 175
+page 8 got 25 total 200
+page 9 got 25 total 225
+page 10 got 25 total 250
+page 11 got 25 total 275
+page 12 got 25 total 300
+page 13 got 25 total 325
+page 14 got 25 total 350
+page 15 got 25 total 375
+TOTAL DEPLOYMENTS 375
+del ERR ad0c6b01 400
+deleted 24 / 375
+PROJECT DEL HTTP 400 {
   "result": null,
   "success": false,
   "errors": [
     {
-      "code": 8000024,
-      "message": "Invalid list options provided. Review the `page` or `per_page` parameter."
-    }
-  ],
-  "messages":
-TOTAL DEPLOYMENTS 0
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 49 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 74 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 99 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 124 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 149 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 174 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 199 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 224 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 249 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 274 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 299 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 324 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 349 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+deleted 374 / 375
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
 FINAL DEL HTTP 400 {
   "result": null,
   "success": false,
