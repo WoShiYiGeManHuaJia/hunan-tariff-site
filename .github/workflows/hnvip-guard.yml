@@ -1,0 +1,27 @@
+name: hnvip-guard
+# 定时巡检：只在「线上挂了或数据落后」时才补一次直传。
+# 线上一致 → 0 次部署，这是防止 Cloudflare 队列堆积/生产被顶坏的关键。
+# 多个 cron 提高触发概率（GitHub 免费版 schedule 常延迟甚至漏跑）。
+on:
+  schedule:
+    - cron: '7 */2 * * *'
+    - cron: '37 0,6,12,18 * * *'
+    - cron: '17 3,9,15,21 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: hnvip-sync
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: 比对线上并按需补传
+        env:
+          PAT: ${{ secrets.GH_PAT }}
+        run: python3 scripts/hnvip_guard.py
