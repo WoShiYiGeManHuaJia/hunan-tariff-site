@@ -34,6 +34,10 @@ on:
         description: '同时把项目改回纯直传并切生产（站点 500 时用）'
         required: false
         default: 'false'
+      rebuild:
+        description: '删除并重建为纯直传项目（项目被绑错仓库时用）'
+        required: false
+        default: 'false'
 
 concurrency:
   group: hnvip-sync          # 与 hnvip-guard 共用，同一时刻只允许一个部署
@@ -53,6 +57,7 @@ jobs:
           PAT: ${{ secrets.GH_PAT }}
           FORCE: ${{ inputs.force }}
           REPAIR: ${{ inputs.repair }}
+          REBUILD: ${{ inputs.rebuild }}
           EVENT: ${{ github.event_name }}
           ALERT: ${{ vars.HNVIP_ALERT }}
           DING_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
