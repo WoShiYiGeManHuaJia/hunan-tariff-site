@@ -1,9 +1,10 @@
-checked_at=2026-11-25T16:59:02Z
+checked_at=2026-11-27T13:43:28Z
+event=workflow_dispatch
 http=500
-repo_updated=2026-11-25 09:39:58
+repo_updated=2026-11-27 09:47:53
 online_updated=?
-match=unknown
+match=false
 stage=success
-dep=df22126a-37cf-4654-9bc9-2ece67fc51c6
-verify=unreachable
-error=站点返回 HTTP 500
+dep=9887577e-bc94-4a72-b75b-5ee69d050c94
+attempts=2
+error=第2次：部署成功但线上不可用 (http=500, ? != 2026-11-27 09:47:53)
