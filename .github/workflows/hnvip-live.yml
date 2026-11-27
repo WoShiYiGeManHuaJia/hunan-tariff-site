@@ -1,10 +1,12 @@
 name: hnvip-live
-# hnvip.pages.dev 是 Cloudflare Pages「直传(ad_hoc)」项目，不会跟 GitHub 自动构建。
-# 仓库里 changes-in-carrier-pricing 才是绑定 GitHub 的那个项目，它 deploy success
-# 不等于 hnvip 更新 —— 这正是 11-20 之后线上停更 6 天的原因。
-# 本工作流：站点数据一提交就直传；另有每 2 小时定时兜底，漏一次最多 2 小时自愈。
-# 关键：部署后回读线上 latest.json 的 updated，与仓库比对，不一致直接判失败，
-#       杜绝「部署 success 但线上还是旧快照」再次无人知晓。
+# hnvip.pages.dev 是 Cloudflare Pages 直传(ad_hoc)项目，不跟 GitHub 自动构建。
+# 历史故障逐条封死：
+#  1) 密集 push 全量直传 + cancel-in-progress 打断构建 → 生产指向半成品 → 全站 500
+#  2) paths 含本工作流自身 → 改一次触发一次，自激连锁
+#  3) manifest 用对象格式 → stage=success 但产物为空 → 全站 500
+#  4) 部署 success ≠ 线上更新，必须回读线上 updated 与仓库比对
+# 逻辑本体在 scripts/hnvip_sync.py；本文件只负责触发与环境。
+# 定时兜底由 hnvip-guard 负责（先比后传），这里不设 schedule。
 on:
   push:
     branches: [main]
@@ -21,207 +23,33 @@ on:
       - 'common-extras.js'
       - '_headers'
       - 'version.json'
-      - '.github/workflows/hnvip-live.yml'
-  schedule:
-    - cron: '17 */2 * * *'
+      # 故意不含 .github/workflows/**、scripts/**、hnvip_*_state.txt，避免自激
   workflow_dispatch:
+    inputs:
+      force:
+        description: '忽略一致性检查，强制直传一次'
+        required: false
+        default: 'false'
 
 concurrency:
-  group: hnvip-live
-  cancel-in-progress: true
+  group: hnvip-sync          # 与 hnvip-guard 共用，同一时刻只允许一个部署
+  cancel-in-progress: false  # 绝不打断正在构建的部署
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
-      - name: 直传生产并校验线上数据
+      - name: 直传并自愈
         env:
           CF: ${{ secrets.CF_API_TOKEN }}
           PAT: ${{ secrets.GH_PAT }}
-        run: |
-          python3 - <<'PY'
-          import os, json, hashlib, uuid, time, base64, urllib.request, urllib.error
-
-          ROOT = os.getcwd()
-          ACC = '9156c2cae565fdf42d208827b523e47e'
-          CF = os.environ['CF']
-          PAT = os.environ['PAT']
-          REPO = os.environ.get('GITHUB_REPOSITORY', '')
-          API = 'https://api.cloudflare.com/client/v4/accounts/%s/pages/projects/hnvip/deployments' % ACC
-          SITE = 'https://hnvip.pages.dev'
-
-          def http(url, data=None, method='GET', headers=None, timeout=600):
-              req = urllib.request.Request(url, data=data, method=method)
-              req.add_header('Authorization', 'Bearer ' + CF)
-              req.add_header('Content-Type', 'application/json' if headers is None else headers)
-              req.add_header('User-Agent', 'hnvip-live/1.0')
-              return urllib.request.urlopen(req, timeout=timeout).read()
-
-          STATE = {}
-
-          def gh(method, path, body=None):
-              url = 'https://api.github.com/repos/' + REPO + '/contents/' + path
-              data = json.dumps(body).encode() if body is not None else None
-              req = urllib.request.Request(url, data=data, method=method,
-                  headers={'Authorization': 'token ' + PAT, 'User-Agent': 'hnvip-live',
-                           'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json'})
-              for i in range(6):
-                  try:
-                      return json.loads(urllib.request.urlopen(req, timeout=60).read())
-                  except urllib.error.HTTPError as e:
-                      if e.code == 404:
-                          return None          # 文件不存在是正常情况，不是失败
-                      print('  gh retry %d HTTP %s' % (i, e.code)); time.sleep(4)
-                  except Exception as e:
-                      print('  gh retry %d %s' % (i, str(e)[:90])); time.sleep(4)
-              print('  gh WARN 写入失败（不影响主流程判定）')
-              return None
-
-          def flush_state():
-              txt = ('checked_at=%s\nhttp=%s\nrepo_updated=%s\nonline_updated=%s\nmatch=%s\nstage=%s\ndep=%s\nverify=%s\nerror=%s\n'
-                     % (time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-                        STATE.get('http', '?'), STATE.get('repo', '?'), STATE.get('online', '?'),
-                        STATE.get('match', 'false'), STATE.get('stage', '?'),
-                        STATE.get('dep', '?'), STATE.get('verify', '?'), STATE.get('error', '')))
-              print('--- STATE ---\n' + txt)
-              try:
-                  cur = gh('GET', 'hnvip_live_state.txt')
-                  sha = cur.get('sha') if isinstance(cur, dict) else None
-              except Exception:
-                  sha = None
-              payload = {'message': 'hnvip live state ' + ('OK' if STATE.get('match') == 'true' else 'CHECK'),
-                         'content': base64.b64encode(txt.encode()).decode(), 'branch': 'main'}
-              if sha:
-                  payload['sha'] = sha
-              gh('PUT', 'hnvip_live_state.txt', payload)
-
-          import atexit
-          atexit.register(flush_state)   # 即使中途抛异常，也一定留下诊断
-
-          def site_updated():
-              # 用 curl 回读：urllib 常被 CF 边缘策略拦，curl 与之前成功探测一致
-              import subprocess
-              r = subprocess.run(
-                  ['curl', '-sS', '-L', '--max-time', '40', '-H', 'Cache-Control: no-cache',
-                   '-H', 'User-Agent: hnvip-live/1.0',
-                   SITE + '/data/latest.json?_=' + str(time.time_ns())],
-                  capture_output=True, text=True, timeout=55)
-              if r.returncode != 0:
-                  raise RuntimeError('curl %d %s' % (r.returncode, (r.stderr or '')[:160]))
-              return json.loads(r.stdout).get('updated', '?')
-
-          # ---------- 1. 构造 manifest 并直传 ----------
-          files = {}
-          for dp, dn, fn in os.walk(ROOT):
-              dn[:] = [d for d in dn if d not in ('.git', '.github')]
-              for f in fn:
-                  p = os.path.join(dp, f)
-                  rel = os.path.relpath(p, ROOT).replace(os.sep, '/')
-                  sz = os.path.getsize(p)
-                  if sz > 24 * 1024 * 1024:
-                      print('SKIP >24MB:', rel, sz); continue
-                  # CF Pages 直传 manifest 必须是 [hash, size] 数组；对象格式会 stage=success 但产物为空 → 全站 500
-                  files['/' + rel] = [hashlib.sha1(open(p, 'rb').read()).hexdigest(), sz]
-          print('files:', len(files), '| has index:', '/index.html' in files)
-          if '/index.html' not in files:
-              STATE['error']='index.html 缺失'; raise SystemExit('index.html 缺失，中止')
-
-          boundary = '----x' + uuid.uuid4().hex
-          def field(name, val, ctype=None, fname=None):
-              b = ('--%s\r\n' % boundary).encode()
-              b += (('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (name, fname))
-                    if fname else ('Content-Disposition: form-data; name="%s"\r\n' % name)).encode()
-              if ctype:
-                  b += ('Content-Type: %s\r\n' % ctype).encode()
-              return b + b'\r\n' + val + b'\r\n'
-          body = field('manifest', json.dumps(files).encode(), 'application/json')
-          for path, (h, sz) in files.items():
-              body += field(h, open(ROOT + path, 'rb').read(),
-                            'application/octet-stream', h)
-          body += ('--%s--\r\n' % boundary).encode()
-
-          req = urllib.request.Request(API, data=body, method='POST')
-          req.add_header('Authorization', 'Bearer ' + CF)
-          req.add_header('Content-Type', 'multipart/form-data; boundary=' + boundary)
-          req.add_header('User-Agent', 'hnvip-live/1.0')
-          try:
-              out = json.loads(urllib.request.urlopen(req, timeout=900).read())
-          except urllib.error.HTTPError as e:
-              print('DEPLOY HTTP ERR', e.code, e.read().decode()[:600]); raise
-          dep = out['result']
-          dep_id = dep['id']
-          STATE['dep']=dep_id; STATE['stage']='queued'
-          print('DEP_ID', dep_id, 'env', dep.get('environment'))
-
-          # 直传创建的 deployment 卡在 queued，必须 retry 才真正构建
-          try:
-              q = urllib.request.Request(API + '/' + dep_id + '/retry', data=b'', method='POST')
-              q.add_header('Authorization', 'Bearer ' + CF)
-              print('RETRY HTTP', urllib.request.urlopen(q, timeout=120).status)
-          except Exception as e:
-              print('RETRY WARN', str(e)[:200])
-
-          stage = 'unknown'
-          for i in range(40):
-              time.sleep(10)
-              try:
-                  q = urllib.request.Request(API + '/' + dep_id)
-                  q.add_header('Authorization', 'Bearer ' + CF)
-                  stage = json.loads(urllib.request.urlopen(q, timeout=60).read())['result']['latest_stage']['status']
-              except Exception as e:
-                  print('poll %d ERR %s' % (i, str(e)[:100])); continue
-              print('stage[%d]' % i, stage)
-              if stage in ('success', 'failure', 'cancelled'):
-                  break
-          STATE['stage']=stage
-          print('FINAL_STAGE', stage)
-          if stage != 'success':
-              STATE['error']='部署未成功: '+stage; raise SystemExit('部署未成功: ' + stage)
-
-          # ---------- 2. 线上一致性自检 ----------
-          repo_updated = json.load(open(ROOT + '/data/latest.json')).get('updated', '?')
-          online = '?'
-          for k in range(6):
-              time.sleep(15 if k == 0 else 20)
-              try:
-                  online = site_updated()
-              except Exception as e:
-                  print('  读线上 %d ERR %s' % (k, str(e)[:100])); continue
-              print('  线上 updated[%d] = %s | 仓库 = %s' % (k, online, repo_updated))
-              if online == repo_updated:
-                  break
-          ok = (online == repo_updated)
-          verified = (online != '?')      # 回读不到 ≠ 部署失败，不制造假告警
-          code = 0
-          try:
-              import subprocess
-              r = subprocess.run(['curl', '-sS', '-o', '/dev/null', '-w', '%{http_code}',
-                                 '-L', '--max-time', '30', SITE + '/'],
-                                capture_output=True, text=True, timeout=40)
-              code = int((r.stdout or '0').strip() or 0)
-          except Exception as e:
-              print('  裸地址探测 ERR', str(e)[:100])
-
-          # ---------- 3. 留痕（atexit 保证无论成败都写） ----------
-          STATE.update({'http': code, 'repo': repo_updated, 'online': online,
-                        'match': (str(ok).lower() if verified else 'unknown'), 'stage': stage,
-                        'verify': ('ok' if verified else 'unreachable')})
-          if code and code >= 400:
-              STATE['error'] = '站点返回 HTTP %s' % code
-              raise SystemExit('站点返回 HTTP %s，部署虽 success 但线上不可用' % code)
-          if not verified:
-              # 部署已 success，只是本轮回读通道不通；不判失败，留痕等下一轮定时兜底再校验
-              STATE['error'] = '线上回读不可达，本轮部署已成功但未自动校验'
-              print('WARN 线上回读不可达，部署已成功，等待下一轮校验')
-          elif not ok:
-              STATE['error'] = '线上数据仍落后仓库，等待下一轮自愈'
-              raise SystemExit('线上数据仍落后仓库（%s != %s），本轮判失败，等待下一轮自愈'
-                               % (online, repo_updated))
-          else:
-              print('OK 线上已与仓库一致')
-          PY
+          FORCE: ${{ inputs.force }}
+          EVENT: ${{ github.event_name }}
+          ALERT: ${{ vars.HNVIP_ALERT }}
+          DING_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DING_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: python3 scripts/hnvip_sync.py
