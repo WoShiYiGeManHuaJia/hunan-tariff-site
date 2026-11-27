@@ -1,10 +1,10 @@
-checked_at=2026-11-27T14:00:41Z
+checked_at=2026-11-27T22:47:26Z
 event=workflow_dispatch
-http=?
-repo_updated=?
+http=500
+repo_updated=2026-11-27 22:09:46
 online_updated=?
 match=false
-stage=?
-dep=?
-attempts=0
-error=
+stage=success
+dep=2d0857e9-f96d-4835-86be-eb45f25b1c73
+attempts=2
+error=第2次：部署成功但线上不可用 (http=500, ? != 2026-11-27 22:09:46)
