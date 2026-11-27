@@ -1,0 +1,34 @@
+LIST HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000024,
+      "message": "Invalid list options provided. Review the `page` or `per_page` parameter."
+    }
+  ],
+  "messages":
+TOTAL DEPLOYMENTS 0
+FINAL DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+FINAL DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+FINAL DEL HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000076,
+      "message": "Your project has too many deployments to be deleted, follow this guide to delete them: https://cfl.
+PROJECT_GONE False
+CREATED False
