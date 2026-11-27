@@ -11,6 +11,7 @@ API  = BASE + '/deployments'
 SITE = 'https://hnvip.pages.dev'
 FORCE = os.environ.get('FORCE', 'false') == 'true'
 REPAIR = os.environ.get('REPAIR', 'false') == 'true'
+REBUILD = os.environ.get('REBUILD', 'false') == 'true'
 EVENT = os.environ.get('EVENT', '')
 S = {}
 
@@ -194,6 +195,38 @@ def disable_auto_deploy():
         print('WARN 读取项目失败', str(e)[:140])
 
 
+def rebuild_project():
+    """把被绑错仓库(github:push 空构建把生产顶成 500)的 hnvip 重建为纯直传项目。"""
+    projects_url = 'https://api.cloudflare.com/client/v4/accounts/%s/pages/projects' % ACC
+    try:
+        old = cf_json(BASE)['result']
+        src = old.get('source') or {}
+        print('REBUILD 旧项目 source.type=%s repo_id=%s prod_enabled=%s'
+              % (src.get('type'), (src.get('config') or {}).get('repo_id'),
+                 (src.get('config') or {}).get('production_deployments_enabled')))
+    except Exception as e:
+        print('REBUILD 读取旧项目失败', str(e)[:140])
+    try:
+        r = cf_json(BASE, 'DELETE')
+        print('DELETE', r.get('success'), str(r.get('errors'))[:160])
+    except urllib.error.HTTPError as e:
+        print('DELETE HTTP', e.code, e.read().decode()[:200])
+    except Exception as e:
+        print('DELETE ERR', str(e)[:140])
+    time.sleep(4)
+    # 不传 source => 纯 ad_hoc 直传项目，彻底没有 GitHub 自动构建来抢生产别名
+    try:
+        r = cf_json(projects_url, 'POST', {'name': 'hnvip', 'production_branch': 'main'})
+        print('CREATE', r.get('success'), str(r.get('errors'))[:220])
+        res = r.get('result') or {}
+        print('NEW source=', json.dumps(res.get('source'), ensure_ascii=False)[:200],
+              'subdomain=', res.get('subdomain'))
+    except urllib.error.HTTPError as e:
+        print('CREATE HTTP', e.code, e.read().decode()[:300])
+        raise
+    time.sleep(5)
+
+
 def promote(dep_id):
     """把生产别名切到指定成功部署。直传部署 success 但别名仍指向坏构建时用它自愈。"""
     try:
@@ -226,7 +259,9 @@ def alert(msg):
 
 
 def main():
-    if REPAIR:
+    if REBUILD:
+        rebuild_project()
+    elif REPAIR:
         disable_auto_deploy()
     repo_upd = json.load(open(ROOT + '/data/latest.json')).get('updated', '?')
     S['repo'] = repo_upd
