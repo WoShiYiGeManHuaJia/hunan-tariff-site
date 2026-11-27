@@ -30,6 +30,10 @@ on:
         description: '忽略一致性检查，强制直传一次'
         required: false
         default: 'false'
+      repair:
+        description: '同时把项目改回纯直传并切生产（站点 500 时用）'
+        required: false
+        default: 'false'
 
 concurrency:
   group: hnvip-sync          # 与 hnvip-guard 共用，同一时刻只允许一个部署
@@ -48,6 +52,7 @@ jobs:
           CF: ${{ secrets.CF_API_TOKEN }}
           PAT: ${{ secrets.GH_PAT }}
           FORCE: ${{ inputs.force }}
+          REPAIR: ${{ inputs.repair }}
           EVENT: ${{ github.event_name }}
           ALERT: ${{ vars.HNVIP_ALERT }}
           DING_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
