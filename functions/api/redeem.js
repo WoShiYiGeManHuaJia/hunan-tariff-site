@@ -69,11 +69,11 @@ export async function onRequest(context) {
   const devices = conf.devices || {};
   const usedCount = Object.keys(used).length;
 
-  if (url.pathname.endsWith("/remaining")) {
+  if (url.pathname === "/api/remaining" || url.pathname === "/api/redeem/remaining" || url.pathname === "/remaining") {
     return jr({ ok: true, total: TOTAL, used: usedCount, remaining: Math.max(0, TOTAL - usedCount) });
   }
 
-  if (url.pathname.endsWith("/check")) {
+  if (url.pathname === "/api/check" || url.pathname === "/check") {
     const code = norm(url.searchParams.get("code"));
     if (!code) return jr({ ok: false, msg: "missing code" }, 400);
     const hash = await hmac24(code, conf.salt);
@@ -83,7 +83,7 @@ export async function onRequest(context) {
     return jr({ ok: true, status: "valid", msg: "可用" });
   }
 
-  if (url.pathname.endsWith("/redeem") && request.method === "POST") {
+  if ((url.pathname === "/api/redeem" || url.pathname === "/redeem") && request.method === "POST") {
     let body = {};
     try { body = await request.json(); } catch (e) {}
     const code = norm(body.code);
@@ -103,5 +103,5 @@ export async function onRequest(context) {
     return jr({ ok: true, status: "redeemed", msg: "兑换成功", remaining: Math.max(0, TOTAL - usedCount - 1) });
   }
 
-  return jr({ ok: false, msg: "not found" }, 404);
+  return jr({ ok: false, msg: "not found", path: url.pathname, method: request.method }, 404);
 }
