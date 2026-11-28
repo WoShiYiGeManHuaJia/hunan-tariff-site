@@ -1,0 +1,67 @@
+PROJECT type=github prod=True depl=True
+PATCH True []
+AFTER prod=False depl=False
+DEPLOY files=845 has_index=True
+DEP_ID 297ff530-b449-4efd-920e-052fc66c5605
+RETRY 200
+stage[0] success
+PROMOTE HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000039,
+      "message": "You cannot rollback to the deployment that is currently in 
+PROMOTE HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000039,
+      "message": "You cannot rollback to the deployment that is currently in 
+PROMOTE HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000039,
+      "message": "You cannot rollback to the deployment that is currently in 
+  ROOT[1] -> 500
+  ROOT[2] -> 500
+  ROOT[3] -> 500
+  ROOT[4] -> 500
+  ROOT[5] -> 500
+  ROOT[6] -> 500
+FALLBACK → 最小跳转页
+DEPLOY files=1 has_index=True
+DEP_ID d12095f5-2470-4a25-a2c0-29621f7517a2
+RETRY 200
+stage[0] success
+PROMOTE HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000039,
+      "message": "You cannot rollback to the deployment that is currently in 
+PROMOTE HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000039,
+      "message": "You cannot rollback to the deployment that is currently in 
+PROMOTE HTTP 400 {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000039,
+      "message": "You cannot rollback to the deployment that is currently in 
+  ROOT[1] -> 500
+  ROOT[2] -> 500
+  ROOT[3] -> 500
+  ROOT[4] -> 500
+  ROOT[5] -> 500
+  ROOT[6] -> 500
+FINAL_OK False ROOT 500
