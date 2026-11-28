@@ -89,7 +89,7 @@ export async function onRequest(context) {
     const code = norm(body.code);
     const device = String(body.device || "");
     const hash = body.hash ? String(body.hash).toLowerCase() : await hmac24(code, conf.salt);
-    if (!hash || !hashes.includes(hash)) return jr({ ok: false, status: "invalid", msg: "兑换码无效" });
+    if (!hash || !hashes.includes(hash)) return jr({ ok: false, status: "invalid", msg: "兑换码无效", dbg: { n: hashes.length, saltLen: (conf.salt||"").length, hash: hash, first: hashes[0] || "" } });
     if (used[hash]) {
       const bound = devices[hash];
       if (bound && device && bound === device) return jr({ ok: true, status: "already", msg: "该兑换码你已兑换过，名额已生效" });
