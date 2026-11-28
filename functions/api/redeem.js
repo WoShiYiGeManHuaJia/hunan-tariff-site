@@ -74,55 +74,35 @@ async function ghWrite(cfg, sha) {
 
 export async function onRequest(context) {
   const request = context.request;
-  const url = new URL(request.url);
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors() });
-
+  if (request.method !== "POST") return jr({ ok: false, msg: "method not allowed" }, 405);
+  let body = {};
+  try { body = await request.json(); } catch (e) {}
+  const code = norm(body.code);
+  const device = String(body.device || "");
   const got = await ghRead();
-  if (!got) return jr({ ok: false, status: "error", msg: "配置读取失败，请稍后重试" }, 503);
+  if (!got) return jr({ ok: false, status: "error", msg: "配置读取失败" }, 503);
   const cfg = got.cfg;
   const hashes = cfg.hashes || [];
   const used = cfg.used || {};
   const devices = cfg.devices || {};
   const usedCount = Object.keys(used).length;
-
-  if (url.pathname === "/api/remaining") {
-    return jr({ ok: true, total: TOTAL, used: usedCount, remaining: Math.max(0, TOTAL - usedCount) });
-  }
-
-  if (url.pathname === "/api/check") {
-    const code = norm(url.searchParams.get("code"));
-    if (!code) return jr({ ok: false, msg: "missing code" }, 400);
-    const hash = await hmac24(code, cfg.salt);
-    if (hashes.indexOf(hash) < 0) return jr({ ok: true, status: "invalid", msg: "兑换码无效" });
-    if (used[hash]) return jr({ ok: true, status: "used", msg: "该兑换码已被使用" });
-    if (usedCount >= TOTAL) return jr({ ok: true, status: "exhausted", msg: "总托管池名额已用完，已无法添加托管" });
-    return jr({ ok: true, status: "valid", msg: "可用" });
-  }
-
-  if (url.pathname === "/api/redeem" && request.method === "POST") {
-    let body = {};
-    try { body = await request.json(); } catch (e) {}
-    const code = norm(body.code);
-    const device = String(body.device || "");
-    const hash = body.hash ? String(body.hash).toLowerCase() : await hmac24(code, cfg.salt);
-    if (!hash || hashes.indexOf(hash) < 0) return jr({ ok: false, status: "invalid", msg: "兑换码无效" });
-    if (used[hash]) {
-      const bound = devices[hash];
-      if (bound && device && bound === device) {
-        return jr({ ok: true, status: "already", msg: "该兑换码你已兑换过，名额已生效" });
-      }
-      return jr({ ok: false, status: "used", msg: "该兑换码已被使用" });
+  const hash = body.hash ? String(body.hash).toLowerCase() : await hmac24(code, cfg.salt);
+  if (!hash || hashes.indexOf(hash) < 0) return jr({ ok: false, status: "invalid", msg: "兑换码无效" });
+  if (used[hash]) {
+    const bound = devices[hash];
+    if (bound && device && bound === device) {
+      return jr({ ok: true, status: "already", msg: "该兑换码你已兑换过，名额已生效" });
     }
-    if (usedCount >= TOTAL) {
-      return jr({ ok: false, status: "exhausted", msg: "总托管池名额已用完，已无法添加托管" });
-    }
-    used[hash] = new Date().toISOString();
-    if (device) devices[hash] = device;
-    cfg.used = used;
-    cfg.devices = devices;
-    await ghWrite(cfg, got.sha);
-    return jr({ ok: true, status: "redeemed", msg: "兑换成功", remaining: Math.max(0, TOTAL - usedCount - 1) });
+    return jr({ ok: false, status: "used", msg: "该兑换码已被使用" });
   }
-
-  return jr({ ok: false, msg: "not found" }, 404);
+  if (usedCount >= TOTAL) {
+    return jr({ ok: false, status: "exhausted", msg: "总托管池名额已用完，已无法添加托管" });
+  }
+  used[hash] = new Date().toISOString();
+  if (device) devices[hash] = device;
+  cfg.used = used;
+  cfg.devices = devices;
+  await ghWrite(cfg, got.sha);
+  return jr({ ok: true, status: "redeemed", msg: "兑换成功", remaining: Math.max(0, TOTAL - usedCount - 1) });
 }
