@@ -1,0 +1,23 @@
+name: hnvip-watch
+# 只读巡检：线上一致 → 0 次操作；挂了/落后 → 让 Cloudflare 用正确仓库重建一次。
+# 不直传文件、不并发、不取消任何构建，避免历史上把生产顶成 500 的那套。
+on:
+  schedule:
+    - cron: '13 */2 * * *'
+    - cron: '43 1,7,13,19 * * *'
+  workflow_dispatch:
+concurrency:
+  group: hnvip-sync
+  cancel-in-progress: false
+jobs:
+  w:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+      - name: 巡检
+        env:
+          CF: ${{ secrets.CF_API_TOKEN }}
+          PAT: ${{ secrets.GH_PAT }}
+        run: python3 scripts/hnvip_watch.py
