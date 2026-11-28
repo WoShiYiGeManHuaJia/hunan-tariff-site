@@ -1,0 +1,17 @@
+GOOD source.type github repo hunan-tariff-site repo_id 1356207966 prod True
+GOOD build_config {"build_command": "", "destination_dir": "", "root_dir": "", "web_analytics_tag": null, "web_analytics_token": null}
+PATCH 200 {'result': {'id': '95cc5a36-e730-4878-9070-51e47d7013b4', 'name': 'hnvip', 'subdomain': 'hnvip.pages.dev', 'domains': ['hnvip.pages.dev'], 'source': {'type': 'github', 'config': {'owner': 'WoShiYiGeManHuaJia', 'owner_id': '317776016', 'repo_name': 'hunan-tariff-site', 'repo_id': '1438392194', 'production_branch': 'main', 'pr_comments_enabled': False, 'deployments_enabled': True, 'production_deployments_enabled': True, 'preview_deployment_setting': 'none', 'preview_branch_includes': [], 'preview_
+AFTER type github repo_id 1438392194 repo hunan-tariff-site prod True
+BUILD 200 {'result': {'id': 'e1b03df6-d40f-4621-85b4-746b460cbe32', 'short_id': 'e1b03df6', 'project_id': '95cc5a36-e730-4878-9070-51e47d7013b4', 'project_name': 'hnvip', 'environment': 'production', 'url': 'https://e1b03df6.hnvip.pages.dev', 'created_on': '2026-11-28T03:17:42.034535Z', 'modified_on': '2026-11-28T03:17:42.034535Z', 'latest_stage': {'name': 'queued', 'started_on': None, 'ended_on': None, 'st
+CHECK 0 http 500 online ?
+CHECK 1 http 500 online ?
+CHECK 2 http 500 online ?
+CHECK 3 http 500 online ?
+CHECK 4 http 500 online ?
+CHECK 5 http 500 online ?
+CHECK 6 http 500 online ?
+CHECK 7 http 500 online ?
+CHECK 8 http 500 online ?
+CHECK 9 http 500 online ?
+CHECK 10 http 200 online 2026-11-27 22:09:46
+FINAL http 200 online 2026-11-27 22:09:46
